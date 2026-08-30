@@ -1,0 +1,1111 @@
+{
+  "description": "Observed URL patterns per page type. The source uses a flat namespace: products, categories and brands all live at `/<slug>/`, so page type cannot be derived from the URL.",
+  "patterns": [
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/biancaffe-classica/",
+        "https://www.kafezona.com/biancaffe-intenso/",
+        "https://www.kafezona.com/eurocaf-crema-vivace/",
+        "https://www.kafezona.com/eurocaf-rosso-fuoco/",
+        "https://www.kafezona.com/modo-mio-lavazza-delizioso-36/"
+      ],
+      "matchCount": 109,
+      "notes": null,
+      "pageType": "product",
+      "pattern": "/{product-slug}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/amann/",
+        "https://www.kafezona.com/biancafe/",
+        "https://www.kafezona.com/bianchi/",
+        "https://www.kafezona.com/borbone/",
+        "https://www.kafezona.com/elia/"
+      ],
+      "matchCount": 20,
+      "notes": null,
+      "pageType": "brand",
+      "pattern": "/{brand-slug}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/a-modo-mio/",
+        "https://www.kafezona.com/caffitaly/",
+        "https://www.kafezona.com/dolce-gusto/",
+        "https://www.kafezona.com/lavazza-blue/",
+        "https://www.kafezona.com/nespresso/"
+      ],
+      "matchCount": 5,
+      "notes": null,
+      "pageType": "subcategory",
+      "pattern": "/{subcategory-slug}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-na-zyrna/",
+        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/raztvorimo%20kafe/",
+        "https://www.kafezona.com/vending-zona/"
+      ],
+      "matchCount": 5,
+      "notes": null,
+      "pageType": "category",
+      "pattern": "/{category-slug}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "home",
+      "pattern": "/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/blog/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "blog_index",
+      "pattern": "/blog/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/marki/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/marki/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/promo/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "promotion",
+      "pattern": "/promo/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/privacy/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "legal",
+      "pattern": "/privacy/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/cookie-settings/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "legal",
+      "pattern": "/cookie-settings/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/vergnano/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/vergnano/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/bianchi-dg-forte-espresso-16/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{bianchi-dg-forte-espresso-16}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-intenso-16/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-intenso-16}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-cookies-16/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-cookies-16}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-molini-torino-16/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-molini-torino-16}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-molini-torino-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-molini-torino-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-classico-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-lavazza-crema-gusto-classico-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-caramel-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-caramel-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-bianchi-arte-classico-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-bianchi-arte-classico-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/caffitaly-espresso-corposo-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{caffitaly-espresso-corposo-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/caffitaly-espresso-panettone-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{caffitaly-espresso-panettone-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/caffitaly-espresso-morbido-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{caffitaly-espresso-morbido-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/modo-mio-lavazza-intenso-36/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{modo-mio-lavazza-intenso-36}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/modo-mio-lavazza-crema-gusto-36/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{modo-mio-lavazza-crema-gusto-36}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/modo-mio-lavazza-delizioso-36/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{modo-mio-lavazza-delizioso-36}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/blue-lavazza-decaffeinato-100/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{blue-lavazza-decaffeinato-100}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-matcha-16/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-matcha-16}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/rema-caffe-fortissimo-25/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{rema-caffe-fortissimo-25}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/molini-firenze-150/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{molini-firenze-150}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/rema-caffe-intenso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{rema-caffe-intenso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-molini-napoli/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-molini-napoli}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-molini-firenze/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-molini-firenze}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-molini-milano/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-molini-milano}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-gusto-satin/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-gusto-satin}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-arabica-gold/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-arabica-gold}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-forte/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-forte}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-creme-brulee/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-creme-brulee}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-cortado/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-cortado}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-cappucino-cortado/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-cappucino-cortado}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-hazelnut/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-hazelnut}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-caramel/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-caramel}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-rema-caffe-irish/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-rema-caffe-irish}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-fine-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-fine-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-gusto-decaf/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-gusto-decaf}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-crema-aroma-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-crema-aroma-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-irish-cream-aroma-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-irish-cream-aroma-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-chocolate-aroma-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-chocolate-aroma-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-arabica-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-arabica-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-bianchi-hazelnut-aroma-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-bianchi-hazelnut-aroma-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-borbone-lungo-sublime/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-borbone-lungo-sublime}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-borbone-crema-superiore/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-borbone-crema-superiore}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-borbone-crema-classica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-borbone-crema-classica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/dg-borbone-baileys-cappuccino/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{dg-borbone-baileys-cappuccino}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-allegro/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-allegro}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-forte/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-forte}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-arabica-gold/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-arabica-gold}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-intenso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-intenso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-gusto-satin/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-gusto-satin}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-decaffeinato/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-decaffeinato}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-molini-firenze/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-molini-firenze}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-molini-napoli/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-molini-napoli}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-supremo/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-supremo}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-fortissimo/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-fortissimo}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-ristretto/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-ristretto}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-gusto-forte/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-gusto-forte}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-gran-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-gran-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vergnano-antica-bottega/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vergnano-antica-bottega}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-crema-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-crema-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-gold-selection/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-gold-selection}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vergnano-gran-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vergnano-gran-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/kimbo-barista-napoli/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{kimbo-barista-napoli}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/kimbo-aroma-gold/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{kimbo-aroma-gold}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/borbone-intenso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{borbone-intenso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-gusto-pieno/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-gusto-pieno}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vergnano-espresso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vergnano-espresso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-super-crema/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-super-crema}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-crema-aroma-expert/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-crema-aroma-expert}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/lavazza-top-class/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{lavazza-top-class}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/molini-firenze/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{molini-firenze}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/molini-torino/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{molini-torino}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/molini-napoli/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{molini-napoli}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/biancaffe-classica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{biancaffe-classica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/biancaffe-soave/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{biancaffe-soave}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/biancaffe-intenso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{biancaffe-intenso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/biancaffe-arabica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{biancaffe-arabica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/biancaffe-dek/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{biancaffe-dek}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/elia-vending-crema/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{elia-vending-crema}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/elia-vending-intenso/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{elia-vending-intenso}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/elia-vending-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{elia-vending-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/julius-meinl-crema/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{julius-meinl-crema}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/julius-meinl-clasico/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{julius-meinl-clasico}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/julius-meinl-arabica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{julius-meinl-arabica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/espressia-capri/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{espressia-capri}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/espressia-positano/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{espressia-positano}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/borbone-crema-classica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{borbone-crema-classica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/borbone-crema-superiore/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{borbone-crema-superiore}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/tezzoro-espresso-classic/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{tezzoro-espresso-classic}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/tezzoro-espresso-top-class/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{tezzoro-espresso-top-class}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/tezzoro-espresso-excellence/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{tezzoro-espresso-excellence}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vandino-espresso-club/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vandino-espresso-club}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vandino-espresso-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vandino-espresso-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/vandino-espresso-bar/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{vandino-espresso-bar}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/amann-sido/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{amann-sido}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/este-forte/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{este-forte}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/este-aroma/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{este-aroma}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/este-crema/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{este-crema}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/eurocaf-rosso-fuoco/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{eurocaf-rosso-fuoco}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/eurocaf-piacere-oro/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{eurocaf-piacere-oro}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/eurocaf-crema-vivace/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{eurocaf-crema-vivace}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/amann-cascada/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{amann-cascada}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/borbone-crema-superiore-500/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{borbone-crema-superiore-500}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/illy-classico-500/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{illy-classico-500}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/tezzoro-espresso-excellence-250/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{tezzoro-espresso-excellence-250}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-hazelnut/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-hazelnut}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-rema-caffe-cookies/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-rema-caffe-cookies}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-bianchi-arte-colombia/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-bianchi-arte-colombia}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-bianchi-arte-costa-rica/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-bianchi-arte-costa-rica}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-bianchi-arte-hazelnut/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-bianchi-arte-hazelnut}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-ricco-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-lavazza-crema-gusto-ricco-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-forte-10/"
+      ],
+      "matchCount": 1,
+      "notes": "These URLs return HTTP 200 with the home page shell; they are not real pages.",
+      "pageType": "soft_404",
+      "pattern": "/products/{nespresso-lavazza-crema-gusto-forte-10}/"
+    },
+    {
+      "exampleUrls": [
+        "https://www.kafezona.com/brands/"
+      ],
+      "matchCount": 1,
+      "notes": null,
+      "pageType": "brand_index",
+      "pattern": "/brands/"
+    }
+  ],
+  "schemaVersion": "1.0.0"
+}

@@ -1,0 +1,90 @@
+{
+  "counts": {
+    "brands": 15,
+    "categories": 8,
+    "crawlErrors": 0,
+    "features": 12,
+    "filters": 5,
+    "forms": 2,
+    "internalLinks": 15901,
+    "pagesCrawled": 256,
+    "products": 110,
+    "realPages": 145,
+    "routePatterns": 121,
+    "softNotFoundPages": 111
+  },
+  "crawlRunId": "fe95f7e9-856e-4e37-a0d6-75917bef353c",
+  "crawlerVersion": "0.1.0",
+  "files": [
+    {
+      "bytes": 3137,
+      "name": "brands.json",
+      "sha256": "6cd79837e246905ea05924c3de6fa4b5cf381012b685247341084ba58b51a233"
+    },
+    {
+      "bytes": 2223,
+      "name": "categories.json",
+      "sha256": "50d9c6d9ecd525aa03bb122c671c51f3b712c8f7e6a46279f26a37c79e6868ee"
+    },
+    {
+      "bytes": 23442,
+      "name": "errors.json",
+      "sha256": "24dbf488c1f2d713a7d37e9642d6e953503ecfde40105cd50e71dc26efdf3993"
+    },
+    {
+      "bytes": 9860,
+      "name": "features.json",
+      "sha256": "c6c1336cccd41351a3e1389ebdbe5eba631a96ca1d7b2860e9570793fe996235"
+    },
+    {
+      "bytes": 7541,
+      "name": "filters.json",
+      "sha256": "0bb7121e133e82273ca3eb90efef58cc408be7e8a8e4771a6904ed6737de1a5c"
+    },
+    {
+      "bytes": 8179,
+      "name": "forms.json",
+      "sha256": "c45dfb89d4155046e2195e8cdbfdc3cac67d1b5ace242b9598eca03c7a52c1cc"
+    },
+    {
+      "bytes": 17265,
+      "name": "page-types.json",
+      "sha256": "bae59bdbf9ba909bd1c30d59300d05880424ebd7eec3a02ccc86289bea0ed965"
+    },
+    {
+      "bytes": 365696,
+      "name": "pages.json",
+      "sha256": "3f8caf0abd9095a1df9a97c6c56eac97af25aadc22ec4fe686af1d03346020a2"
+    },
+    {
+      "bytes": 138406,
+      "name": "products.json",
+      "sha256": "f94cc8cec3d9bc24abe3ed80a4e0aaa1b1504b5163d3bd05dd5d85579285510b"
+    },
+    {
+      "bytes": 2033,
+      "name": "relationships.json",
+      "sha256": "6fa1a243a890a31bfd903607568047842e33829a81144e02cb53a80b49abfb7c"
+    },
+    {
+      "bytes": 7865,
+      "name": "report.md",
+      "sha256": "da707324994a0ec85975e16c34f96998968cfa1bfa288ef68968e850d2deafab"
+    },
+    {
+      "bytes": 38370,
+      "name": "route-patterns.json",
+      "sha256": "efaf094e55254bdcb44faf4d769a170a949c4be4ac76166319e5ce181a958362"
+    },
+    {
+      "bytes": 2948292,
+      "name": "site-map.json",
+      "sha256": "51889df3caf346559f5b6bc804cc9d37514497b58c6ebaf1766b256162a37f2a"
+    }
+  ],
+  "generatedAt": "2026-08-21T05:32:48.586Z",
+  "gitCommit": null,
+  "schemaVersion": "1.0.0",
+  "sourceBaseUrl": "https://www.kafezona.com/",
+  "sourceHost": "www.kafezona.com"
+}

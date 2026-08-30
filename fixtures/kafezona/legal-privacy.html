@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Политика за поверителност — KafeZona.com</title>
+  <meta name="description" content="Политика за поверителност на KafeZona.com. Научете как обработваме вашите лични данни.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'kz-xdark':  '#1c0f07',
+            'kz-dark':   '#2c1810',
+            'kz-medium': '#c08a5a',
+            'kz-light':  '#ede4d8',
+            'kz-xlight': '#f7f2ee',
+            'kz-sdark':  '#6b3f1f',
+            'kz-smed':   '#b8a898',
+            'kz-slight': '#ddd5c8',
+            'kz-red':    '#d4380d',
+          },
+          fontFamily: {
+            sans: ['Roboto', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; }
+
+    /* Vue cloak — hide un-compiled filter app markup until mount */
+    [v-cloak] { display: none; }
+
+    /* Shared filter UI styling (search, brand, products filter pages) */
+    .filter-checkbox {
+      appearance: none; -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border: 1.5px solid #b8a898; border-radius: 4px;
+      background: white; cursor: pointer; flex-shrink: 0; position: relative;
+    }
+    .filter-checkbox:checked { background: #c08a5a; border-color: #c08a5a; }
+    .filter-checkbox:checked::after {
+      content: ''; position: absolute;
+      left: 5px; top: 2px; width: 8px; height: 12px;
+      border: 2px solid white; border-top: none; border-left: none; transform: rotate(45deg);
+    }
+    .filter-checkbox:indeterminate { background: #e8c9a8; border-color: #c08a5a; }
+    .filter-checkbox:indeterminate::after {
+      content: ''; position: absolute;
+      left: 4px; top: 8px; width: 10px; height: 2px;
+      background: #c08a5a;
+    }
+  </style>
+</head>
+<body class="bg-white text-[#141414] overflow-x-hidden">
+
+          
+
+<div id="warning-banner" style="display:none" class="bg-[#c08a5a] px-4 py-[4px] lg:py-[11px] flex-shrink-0">
+  <div class="max-w-[1440px] mx-auto lg:px-[120px] flex items-center justify-between">
+    <div class="flex items-center gap-3 lg:gap-5 min-w-0">
+            <div class="flex-shrink-0 flex items-center justify-center w-6 h-6 lg:w-[30px] lg:h-[30px]">
+        <svg width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 21.4984 18.8283" fill="none" xmlns="http://www.w3.org/2000/svg"><path id="Vector" d="M10.7495 7.08221V11.0822M10.7495 14.0822H10.7595M9.1125 1.67322L1.0065 15.2072C0.839393 15.4966 0.750965 15.8247 0.750008 16.1589C0.749051 16.493 0.835599 16.8216 1.00104 17.112C1.16649 17.4023 1.40506 17.6443 1.69304 17.8138C1.98101 17.9833 2.30835 18.0745 2.6425 18.0782H18.8565C19.1905 18.0744 19.5177 17.9832 19.8055 17.8137C20.0933 17.6442 20.3318 17.4024 20.4972 17.1122C20.6626 16.822 20.7492 16.4936 20.7484 16.1596C20.7476 15.8256 20.6594 15.4976 20.4925 15.2082L12.3865 1.67222C12.216 1.39072 11.9757 1.15796 11.6889 0.996418C11.4022 0.834872 11.0786 0.75 10.7495 0.75C10.4204 0.75 10.0968 0.834872 9.81005 0.996418C9.52329 1.15796 9.28304 1.39072 9.1125 1.67222V1.67322Z" stroke="var(--stroke-0, #D4380D)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+            <p class="text-[#ede4d8] text-sm lg:text-base leading-snug lg:whitespace-nowrap">
+        Не работим в понеделник 21 септември. Поръчките ще бъдат обработени на 22 септември.
+      </p>
+    </div>
+    <button
+      onclick="closeBanner()"
+      class="flex-shrink-0 ml-3 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center cursor-pointer"
+    >
+      <img src="/assets/icon-x-small.svg" alt="Затвори" class="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] object-contain">
+    </button>
+  </div>
+</div>
+<script>
+(function ()
+{
+  var KEY = 'warning_banner_closed_at';
+  var DAYS = 7;
+  var stored = localStorage.getItem(KEY);
+  var show = true;
+  if (stored)
+  {
+    var diff = Date.now() - parseInt(stored, 10);
+    if (diff < DAYS * 24 * 60 * 60 * 1000)
+    {
+      show = false;
+    }
+  }
+  if (show)
+  {
+    document.getElementById('warning-banner').style.display = '';
+  }
+}());
+
+function closeBanner()
+{
+  localStorage.setItem('warning_banner_closed_at', Date.now().toString());
+  document.getElementById('warning-banner').style.display = 'none';
+}
+</script>
+
+
+<header class="sticky top-0 z-40 bg-white shadow-sm">
+
+  
+  <div class="hidden lg:flex items-center gap-[82px] px-[120px] py-8 border-b border-[#ede4d8] max-w-[1440px] mx-auto w-full">
+    
+    <a href="/" class="flex items-center gap-2 flex-shrink-0">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-10 h-10 flex-shrink-0">
+      <span class="font-light text-xl leading-7 text-[#1c0f07]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    
+    <div class="flex-1 flex items-center bg-white border border-[#6b3f1f] rounded-full pl-4">
+      <input
+        type="text"
+        placeholder="Търсете продукти..."
+        class="flex-1 text-[#888] text-base py-3 outline-none bg-transparent placeholder:text-[#888] min-w-0"
+        data-search-input
+        oninput="handleSearchInput(this.value)"
+        onkeydown="handleSearchKeydown(event, this.value)"
+      >
+      <button onclick="triggerSearch(this.previousElementSibling.value)" class="bg-[#c08a5a] flex items-center justify-center px-5 self-stretch rounded-r-full flex-shrink-0">
+        <img src="/assets/icon-search-white.svg" alt="Търси" class="w-4 h-4 object-contain">
+      </button>
+    </div>
+    
+    <div class="flex items-center gap-5 flex-shrink-0">
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <img src="/assets/icon-phone-header.svg" alt="" class="w-6 h-6 object-contain">
+        <a href="tel:0887 695 267" class="text-[#2c1810] text-base whitespace-nowrap hover:text-[#c08a5a] transition-colors">0887 695 267</a>
+      </div>
+    </div>
+  </div>
+
+  
+  <nav class="hidden lg:flex items-center px-[120px] py-3 max-w-[1440px] mx-auto w-full bg-white relative gap-3">
+
+                      <div class="relative group">
+        <a href="/kafe-na-zyrna/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kafe-na-zyrna.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Кафе на зърна
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/kapsuli/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kapsuli.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Капсули
+                    <img src="/assets/icon-chevron-down.svg" alt="" class="w-3 h-1.5 object-contain transition-transform duration-200 group-hover:-rotate-180 opacity-60">
+                  </a>
+                <div class="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border border-[#e5e5e5] rounded-[10px] shadow-xl z-50 overflow-hidden min-w-[200px]">
+          <a href="/kapsuli/" class="px-5 py-2.5 text-[13px] text-[#c08a5a] hover:bg-[#f7f2ee] transition-colors border-b border-[#e5e5e5]">Всички капсули</a>
+                    <a href="/nespresso/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Nespresso </a>
+                    <a href="/dolce-gusto/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Dolce Gusto </a>
+                    <a href="/lavazza-blue/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Lavazza Blue</a>
+                    <a href="/caffitaly/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Caffitaly</a>
+                    <a href="/a-modo-mio/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors">A Modo Mio</a>
+                  </div>
+              </div>
+                      <div class="relative group">
+        <a href="/kafe-dozi/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kafe-dozi.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Кафе дози
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/raztvorimo kafe/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/raztvorimo kafe.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Разтворимо кафе
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/vending-zona/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    Вендинг Зона
+                  </a>
+              </div>
+    
+    <div class="w-px h-5 bg-[#e5e5e5] mx-1 flex-shrink-0"></div>
+
+    
+    <div class="relative group">
+      <a href="/brands/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+        Бранд
+        <img src="/assets/icon-chevron-down.svg" alt="" class="w-3 h-1.5 object-contain opacity-60 transition-transform duration-200 group-hover:-rotate-180">
+      </a>
+      <div class="absolute right-0 top-full hidden group-hover:flex bg-white border border-[#e5e5e5] rounded-[10px] shadow-xl z-50 p-6">
+        <div class="flex gap-6 items-center flex-wrap max-w-[640px]">
+                    <a href="/lollocafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/lollocafe.png-400w.png" alt="LOLLOCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/eurocaf/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/eurocaf.png-400w.png" alt="EUROCAF" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/bianchi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/bianchi.png-400w.png" alt="BIANCHI " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/biancafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/biancafe.png-400w.png" alt="BIANCAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/rema-caffe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/rema-caffe.png-400w.png" alt="REMA CAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/molini/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/molini.png-400w.png" alt="MOLINI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/kimbo/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/kimbo.png-400w.png" alt="KIMBO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/amann/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/amann.png-400w.png" alt="AMANN" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/garibaldi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/garibaldi.png-400w.png" alt="GARIBALDI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/ vergnano/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/ vergnano.png-400w.png" alt=" VERGNANO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/borbone/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/borbone.png-400w.png" alt="BORBONE " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/julius-meinl/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/julius-meinl.png-400w.png" alt="JULIUS MEINL" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/lavazza/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/lavazza.png-400w.png" alt="LAVAZZA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/tezzoro/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/tezzoro.png-400w.png" alt="TEZZORO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/este/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/este.png-400w.png" alt="ESTE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/elia/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/elia.png-400w.png" alt="ELIA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/nescafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/nescafe.png-400w.png" alt="NESCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/foodness/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/foodness.png-400w.png" alt="FoodNess" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/illy/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/illy.png-400w.png" alt="ILLY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/caffitaly/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/caffitaly.png-400w.png" alt="CAFFITALY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/jacobs/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/jacobs.png-400w.png" alt="JACOBS" class="w-[56px] h-auto object-contain">
+          </a>
+                  </div>
+      </div>
+    </div>
+
+    <a href="/promo/" class="px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">Промоции</a>
+    <a href="/blog/" class="px-3 py-2 text-sm text-[#1c0f07] hover:text-[#c08a5a] transition-colors whitespace-nowrap">Блог</a>
+  </nav>
+
+  
+  <div class="flex lg:hidden items-center justify-between p-4">
+    <button onclick="openMobileMenu()" class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+      <img src="/assets/icon-menu.svg" alt="Меню" class="w-4 h-3 object-contain">
+    </button>
+    <a href="/" class="flex items-center gap-1">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#1c0f07]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <div class="flex items-center gap-0.5 flex-shrink-0">
+      <img src="/assets/icon-phone-header-sm.svg" alt="" class="w-3 h-3 object-contain flex-shrink-0">
+      <a href="tel:0887 695 267" class="text-[#2c1810] text-[10px] whitespace-nowrap hover:text-[#c08a5a] transition-colors">0887 695 267</a>
+    </div>
+  </div>
+
+  
+  <div class="flex lg:hidden bg-[#1c0f07] px-4 py-4">
+    <div class="flex-1 flex items-center bg-white border border-[#c08a5a] rounded-full overflow-hidden pl-4">
+      <input
+        type="text"
+        placeholder="Търсете продукти..."
+        class="flex-1 text-[#888] text-base py-2.5 outline-none bg-transparent placeholder:text-[#888] min-w-0"
+        data-search-input
+        oninput="handleSearchInput(this.value)"
+        onkeydown="handleSearchKeydown(event, this.value)"
+      >
+      <button onclick="triggerSearch(this.previousElementSibling.value)" class="bg-[#c08a5a] flex items-center justify-center px-4 self-stretch rounded-r-full flex-shrink-0">
+        <img src="/assets/icon-search-white.svg" alt="Търси" class="w-4 h-4 object-contain">
+      </button>
+    </div>
+  </div>
+
+</header>
+
+
+<div id="mobile-menu" class="fixed inset-0 z-50 hidden bg-[#2c1810] flex-col gap-6 pt-4 pb-[60px] px-4 overflow-y-auto">
+
+  <div class="flex items-center justify-between w-full flex-shrink-0">
+    <a href="/" class="flex items-center gap-1">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <button onclick="closeMobileMenu()" class="w-6 h-6 flex items-center justify-center flex-shrink-0 cursor-pointer">
+      <img src="/assets/icon-x-mobile-menu.svg" alt="Затвори" class="w-[15px] h-[15px] object-contain">
+    </button>
+  </div>
+
+  <div class="flex flex-col gap-3 w-full flex-shrink-0">
+
+    <div class="w-full">
+      <div class="w-full flex items-center gap-1 px-4 py-2 border-b border-[#b8a898]">
+        <span class="flex-1 font-bold text-[14px] text-white text-left tracking-[0.014em]">Кафе</span>
+      </div>
+      <div class="flex flex-col gap-[6px] mt-3">
+                                      <div>
+                        <a href="/kafe-na-zyrna/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kafe-na-zyrna.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Кафе на зърна</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <button onclick="toggleKafeSub('kapsuli')" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px] cursor-pointer">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kapsuli.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Капсули</span>
+                            <img src="/assets/icon-arrow-circle.svg" alt="" class="w-[20px] h-[20px] object-contain flex-shrink-0">
+            </button>
+            <div id="kapsuli-sub" class="hidden flex-col">
+              <a href="/kapsuli/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-[#c08a5a] leading-4">Всички капсули</span>
+              </a>
+                            <a href="/nespresso/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Nespresso </span>
+              </a>
+                            <a href="/dolce-gusto/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Dolce Gusto </span>
+              </a>
+                            <a href="/lavazza-blue/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Lavazza Blue</span>
+              </a>
+                            <a href="/caffitaly/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Caffitaly</span>
+              </a>
+                            <a href="/a-modo-mio/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">A Modo Mio</span>
+              </a>
+                          </div>
+                      </div>
+                                      <div>
+                        <a href="/kafe-dozi/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kafe-dozi.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Кафе дози</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <a href="/raztvorimo kafe/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/raztvorimo kafe.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Разтворимо кафе</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <a href="/vending-zona/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Вендинг Зона</span>
+                          </a>
+                      </div>
+              </div>
+    </div>
+
+    
+    <div class="w-full">
+      <button onclick="toggleMenuSection('marki')" class="w-full flex items-center gap-1 px-4 py-2 border-b border-[#b8a898] cursor-pointer">
+        <span id="marki-label" class="flex-1 font-bold text-[14px] text-white text-left tracking-[0.014em]">Бранд</span>
+        <div id="marki-icon-closed" class="w-[18px] h-[18px] rounded-full border border-white/80 flex items-center justify-center flex-shrink-0">
+          <img src="/assets/icon-plus.svg" alt="" class="w-2.5 h-2.5 object-contain">
+        </div>
+        <img id="marki-icon-open" src="/assets/icon-arrow-circle.svg" alt="" class="w-[18px] h-[18px] object-contain flex-shrink-0 hidden">
+      </button>
+      <div id="marki-sub" class="hidden flex-col">
+        <a href="/brands/" class="flex items-center px-4 py-3 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+          <span class="flex-1 text-[12px] text-[#c08a5a] leading-4 font-bold">Виж всички бранд &rarr;</span>
+        </a>
+        <div class="flex flex-wrap gap-2 pt-4 pb-4 px-1">
+                    <a href="/lollocafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/lollocafe.png-400w.png" alt="LOLLOCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/eurocaf/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/eurocaf.png-400w.png" alt="EUROCAF" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/bianchi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/bianchi.png-400w.png" alt="BIANCHI " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/biancafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/biancafe.png-400w.png" alt="BIANCAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/rema-caffe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/rema-caffe.png-400w.png" alt="REMA CAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/molini/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/molini.png-400w.png" alt="MOLINI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/kimbo/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/kimbo.png-400w.png" alt="KIMBO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/amann/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/amann.png-400w.png" alt="AMANN" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/garibaldi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/garibaldi.png-400w.png" alt="GARIBALDI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/ vergnano/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/ vergnano.png-400w.png" alt=" VERGNANO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/borbone/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/borbone.png-400w.png" alt="BORBONE " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/julius-meinl/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/julius-meinl.png-400w.png" alt="JULIUS MEINL" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/lavazza/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/lavazza.png-400w.png" alt="LAVAZZA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/tezzoro/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/tezzoro.png-400w.png" alt="TEZZORO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/este/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/este.png-400w.png" alt="ESTE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/elia/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/elia.png-400w.png" alt="ELIA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/nescafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/nescafe.png-400w.png" alt="NESCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/foodness/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/foodness.png-400w.png" alt="FoodNess" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/illy/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/illy.png-400w.png" alt="ILLY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/caffitaly/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/caffitaly.png-400w.png" alt="CAFFITALY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/jacobs/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/jacobs.png-400w.png" alt="JACOBS" class="w-[56px] h-auto object-contain">
+          </a>
+                  </div>
+      </div>
+    </div>
+
+    <div class="w-full flex flex-col gap-[6px]">
+      <a href="/blog/" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Блог</span></a>
+      <a href="/promo/" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Промоции</span></a>
+      <a href="#" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Поверителност</span></a>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+function openMobileMenu()
+{
+  var menu = document.getElementById('mobile-menu');
+  menu.classList.remove('hidden');
+  menu.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileMenu()
+{
+  var menu = document.getElementById('mobile-menu');
+  menu.classList.add('hidden');
+  menu.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+
+function toggleKafeSub(subId)
+{
+  var sub = document.getElementById(subId + '-sub');
+  var isOpen = !sub.classList.contains('hidden');
+  if (isOpen)
+  {
+    sub.classList.add('hidden');
+    sub.classList.remove('flex');
+  }
+  else
+  {
+    sub.classList.remove('hidden');
+    sub.classList.add('flex');
+  }
+}
+
+function toggleMenuSection(id)
+{
+  var sub = document.getElementById(id + '-sub');
+  var label = document.getElementById(id + '-label');
+  var iconClosed = document.getElementById(id + '-icon-closed');
+  var iconOpen = document.getElementById(id + '-icon-open');
+  var isOpen = !sub.classList.contains('hidden');
+  if (isOpen)
+  {
+    sub.classList.add('hidden');
+    sub.classList.remove('flex');
+    if (label) label.style.color = '';
+    if (iconClosed) iconClosed.classList.remove('hidden');
+    if (iconOpen) iconOpen.classList.add('hidden');
+  }
+  else
+  {
+    sub.classList.remove('hidden');
+    sub.classList.add('flex');
+    if (label) label.style.color = '#c08a5a';
+    if (iconClosed) iconClosed.classList.add('hidden');
+    if (iconOpen) iconOpen.classList.remove('hidden');
+  }
+}
+
+/* ===================== SEARCH ===================== */
+var _searchTimer = null;
+var _isSearchPage = window.location.pathname === '/search/';
+
+function handleSearchInput(value)
+{
+  clearTimeout(_searchTimer);
+  var trimmed = value.trim();
+  if (trimmed.length < 2)
+  {
+    if (_isSearchPage && trimmed.length === 0)
+    {
+      history.pushState(null, '', '/search/');
+      if (typeof applyFiltersFromURL === 'function') applyFiltersFromURL();
+    }
+    return;
+  }
+  _searchTimer = setTimeout(function()
+  {
+    triggerSearch(trimmed);
+  }, 300);
+}
+
+function handleSearchKeydown(event, value)
+{
+  if (event.key === 'Enter')
+  {
+    clearTimeout(_searchTimer);
+    var trimmed = value.trim();
+    if (trimmed.length > 0) triggerSearch(trimmed);
+  }
+}
+
+function triggerSearch(value)
+{
+  var trimmed = (value || '').trim();
+  if (!trimmed) return;
+  var targetUrl = '/search/?q=' + encodeURIComponent(trimmed);
+  if (_isSearchPage)
+  {
+    history.pushState(null, '', targetUrl);
+    if (typeof applyFiltersFromURL === 'function') applyFiltersFromURL();
+  }
+  else
+  {
+    window.location.href = targetUrl;
+  }
+}
+
+/* Pre-fill search inputs on page load if already on /search/ */
+(function ()
+{
+  if (!_isSearchPage) return;
+  var params = new URLSearchParams(window.location.search);
+  var kw = params.get('q') || '';
+  if (!kw) return;
+  document.querySelectorAll('input[data-search-input]').forEach(function(inp)
+  {
+    inp.value = kw;
+  });
+}());
+</script>
+
+<div class="flex items-center px-4 lg:px-[120px] pt-8 pb-0 max-w-[1440px] mx-auto w-full">
+  <p class="text-[#888] text-[12px] lg:text-[20px] leading-4 lg:leading-6 tracking-[0.014em] lg:tracking-[0]">ПОЛИТИКА ЗА ПОВЕРИТЕЛНОСТ</p>
+</div>
+
+<div class="max-w-[1440px] mx-auto px-4 lg:px-[120px] py-8 lg:py-12">
+  <div class="privacy-content text-[#141414]">
+    <h1>ОБЩИ УСЛОВИЯ</h1>
+<h2>За използване на kafezona.com и продажба на стоки от разстояние</h2>
+<p><strong>Версия 1.0 | В сила от 07.07.2026 г.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Данни</th>
+<th>Информация</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Търговец</strong></td>
+<td>„Смарти груп“ ЕООД</td>
+</tr>
+<tr>
+<td><strong>ЕИК</strong></td>
+<td>202268472, вписано в Търговския регистър и регистъра на ЮЛНЦ</td>
+</tr>
+<tr>
+<td><strong>Седалище / адрес</strong></td>
+<td>гр. Пловдив, ул. „Скопие “ № 106А, Република България</td>
+</tr>
+<tr>
+<td><strong>Онлайн магазин</strong></td>
+<td><a href="https://kafezona.com">https://kafezona.com</a></td>
+</tr>
+<tr>
+<td><strong>E-mail</strong></td>
+<td><a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></td>
+</tr>
+<tr>
+<td><strong>Телефон</strong></td>
+<td><em>0887 695 267</em></td>
+</tr>
+</tbody>
+</table>
+<h2>1. Предмет и приложно поле</h2>
+<h3>1.1. Настоящите Общи условия уреждат използването на онлайн магазина <a href="https://kafezona.com">kafezona.com</a>, управляван от „Смарти груп“ ЕООД („Търговеца“), както и сключването и изпълнението на договори за продажба от разстояние чрез магазина.</h3>
+<h3>1.2. Магазинът предлага стоки, свързани с кафе, кафе капсули, консумативи и други артикули, описани на сайта. Конкретните характеристики, количество, цена и наличност са посочени на страницата на съответната стока.</h3>
+<h3>1.3. Доставки по настоящите Общи условия се извършват на територията на Република България, освен ако за конкретна поръчка Търговецът изрично не е уговорил друго.</h3>
+<h3>1.4. „Потребител“ е физическо лице, което действа извън рамките на своята търговска или професионална дейност. Специалните права по Закона за защита на потребителите се прилагат само за лица, които имат качеството потребител.</h3>
+<p>За юридически лица и физически лица, действащи професионално, те се прилагат само когато законът изрично предвижда това или Търговецът се е съгласил писмено.</p>
+<h3>1.5. Преди изпращане на поръчката клиентът има възможност да се запознае с настоящите Общи условия и да коригира въведените данни. Изпращането на поръчката изисква изрично потвърждение на Общите условия.</h3>
+<h2>2. Информация за стоките, наличност и изображения</h2>
+<h3>2.1. Основните характеристики на стоките се посочват на съответните продуктови страници. При хранителни продукти се предоставя приложимата задължителна информация за храните съгласно действащото законодателство.</h3>
+<h3>2.2. Изображенията имат илюстративен характер. Възможни са несъществени визуални разлики в опаковка или етикет, когато не се засягат идентичността, количеството, качеството и съществените характеристики на поръчаната стока.</h3>
+<h3>2.3. Посочването на стока в сайта не е безусловна гаранция за наличност. При установена липса след поръчка Търговецът уведомява клиента без неоправдано забавяне и не извършва замяна с друг артикул без съгласието му.</h3>
+<p>Ако е получено плащане за недоставима стока, сумата се възстановява по приложимия ред.</p>
+<h2>3. Цени и разходи</h2>
+<h3>3.1. Цените, показани на <a href="https://kafezona.com">kafezona.com</a>, са крайни цени за съответната стока и включват всички приложими към продажбата данъци и такси, които по закон са част от цената, освен ако на сайта изрично е посочено друго по допустим от закона начин.</h3>
+<h3>3.2. Разходът за доставка не е включен в цената на стоката, освен ако изрично е посочено обратното. Размерът му или начинът за изчисляването му се показва на клиента преди окончателното изпращане на поръчката.</h3>
+<h3>3.3. Търговецът може да променя бъдещи цени и промоции. За вече сключен договор се прилага цената, потвърдена при поръчката, освен ако страните изрично не се уговорят друго или е налице очевидна техническа грешка, за която клиентът е уведомен преди изпълнение и има възможност да потвърди коригираната цена или да прекрати поръчката без разходи.</h3>
+<h2>4. Поръчка и сключване на договор</h2>
+<h3>4.1. Поръчка се прави чрез функционалностите на онлайн магазина. Обичайните технически стъпки са:</h3>
+<ol>
+<li>Избор на стока и количество и добавяне в количката.</li>
+<li>Преглед на количката и въвеждане/проверка на данни за контакт, фактуриране и доставка.</li>
+<li>Избор на метод за доставка и плащане.</li>
+<li>Преглед на основните характеристики на стоките, общата цена, срока и разходите за доставка и коригиране на грешки.</li>
+<li>Приемане на приложимите условия и изпращане на поръчката чрез бутон, който недвусмислено показва, че поръчката води до задължение за плащане.</li>
+</ol>
+<h3>4.2. До натискането на финалния бутон клиентът може да се върне към предходните стъпки и да поправи въведената информация.</h3>
+<h3>4.3. След получаване на поръчката Търговецът изпраща електронно потвърждение на посочения e-mail или се обажда по телефона за потвърждение. Потвърждението съдържа или прави достъпни на траен носител данните за поръчката и приложимата преддоговорна информация.</h3>
+<h3>4.4. Договорът се счита сключен, когато Търговецът потвърди приемането на поръчката за изпълнение. Автоматично съобщение, което единствено удостоверява техническото получаване, не представлява приемане, ако от съдържанието му ясно следва това.</h3>
+<h3>4.5. Договорът се сключва на български език. Търговецът съхранява данните за поръчката за сроковете, посочени в приложимото законодателство и Политиката за поверителност. Клиентът получава информацията за своята поръчка чрез потвърждението или чрез профила си.</h3>
+<h2>5. Плащане</h2>
+<h3>5.1. В <a href="https://kafezona.com">kafezona.com</a> при завършване на поръчката плащането може да се извърши чрез:</h3>
+<ul>
+<li>Наложен платеж при доставка.</li>
+<li>Банков превод по посочена от Търговеца банкова сметка.</li>
+<li>Платежна карта чрез интегрирания доставчик на платежна услуга, показан в платежната стъпка.</li>
+</ul>
+<h3>5.2. При банков превод поръчката може да бъде обработена след постъпване на сумата, ако това е посочено при поръчката. Клиентът следва да използва предоставеното основание/номер на поръчката.</h3>
+<h3>5.3. При картово плащане обработването на платежните данни се извършва чрез избрания платежен доставчик съгласно неговите условия и информация за защита на данните. Конкретният доставчик се показва преди извършване на плащането.</h3>
+<h3>5.4. Търговецът не изисква клиентът да изпраща данни на платежна карта по e-mail, телефон или свободно текстово поле.</h3>
+<h2>6. Доставка</h2>
+<h3>6.1. Доставката се извършва само на територията на България чрез куриерски оператор според опциите, налични при поръчката. Конкретният доставчик, адрес/офис/автомат и цената на доставката се определят при завършването на поръчката.</h3>
+<h3>6.2. Посоченият в сайта или потвърждението срок за доставка е приложимият уговорен срок. Ако не е уговорен друг срок, Търговецът доставя стоките без неоправдано забавяне и не по-късно от 30 дни от сключването на договора.</h3>
+<h3>6.3. Ако доставка в уговорения срок стане невъзможна, клиентът се уведомява своевременно. Правата на потребителя при забава или недоставка се упражняват съгласно действащия закон и не се ограничават от настоящите Общи условия.</h3>
+<p>КафеЗона не носи отговорност за забавяния, причинени от обстоятелства извън нашия контрол. Такива събития не дават на клиента право на обезщетения или прекратяване на договора за покупка.</p>
+<h3>6.4. Препоръчва се при получаване клиентът да провери видимото състояние на пратката и при установена транспортна повреда да поиска тя да бъде отбелязана от куриера. Неизвършването на такава проверка не води само по себе си до загуба на законови права на потребителя.</h3>
+<p>Ако стоките пристигнат повредени, направете рекламация веднага пред куриера. Ако стоките имат скрити дефекти, моля, свържете се с нас до 5 дни, като приложите номер на поръчката и снимки на повредата. Моля, запазете и опаковката до изясняване на ситуацията.</p>
+<h2>7. Право на отказ на потребител</h2>
+<h3>7.1. Потребителят има право, без да посочва причина и без да дължи неустойка, да се откаже от договор от разстояние в 14-дневен срок. При договор за една стока срокът тече от деня, в който потребителят или посочено от него трето лице, различно от превозвача, получи стоката.</h3>
+<p>При множество стоки, партиди или редовна доставка срокът се определя съгласно чл. 50 от Закона за защита на потребителите.</p>
+<h3>7.2. За упражняване на отказа потребителят изпраща преди изтичането на срока недвусмислено заявление до „Смарти груп“ ЕООД на <a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a> или на адрес: гр. Пловдив, ул. „Скопие“ № 106А.</h3>
+<p>Потребителят може да използва формуляра в Приложение № 1, но това не е задължително.</p>
+<h3>7.3. След уведомяването потребителят изпраща или предава стоката обратно без неоправдано забавяне и не по-късно от 14 дни. При липса на друго изрично указание от Търговеца адресът за връщане е:</h3>
+<p><strong>гр. Пловдив, ул. „Скопие“ № 106А</strong></p>
+<h3>7.4. Преките разходи за връщането са за сметка на потребителя, освен ако Търговецът изрично се е съгласил да ги поеме или не е уведомил потребителя, че тези разходи са за негова сметка.</h3>
+<p>Ако не сте заплатили разходите за връщане, ние ще удържим 10 € за разходите по обратната доставка.</p>
+<h3>7.5. При валиден отказ Търговецът възстановява всички получени от потребителя суми, без разхода за доставка, без неоправдано забавяне и не по-късно от 14 дни, след като получим върнатите стоки при нас и проверим, че те отговарят на нашите условия за връщане.</h3>
+<h3>7.6. Възстановяването се извършва със същото платежно средство, използвано при първоначалната трансакция, освен ако потребителят изрично се е съгласил на друго и това не води до разходи за него.</h3>
+<p>Търговецът може да задържи възстановяването, докато получи стоката обратно или докато потребителят представи доказателство, че я е изпратил, в зависимост от това кое настъпи по-рано.</p>
+<h2>8. Изключения от правото на отказ</h2>
+<h3>8.1. Правото на отказ не се прилага в изрично предвидените в чл. 57 от Закона за защита на потребителите случаи, включително, когато са приложими:</h3>
+<ul>
+<li>Стоки, изработени по поръчка на потребителя или съобразно неговите индивидуални изисквания.</li>
+<li>Стоки, които поради естеството си могат да влошат качеството си или имат кратък срок на годност.</li>
+<li>Запечатани стоки, които са разпечатани след доставката и не могат да бъдат върнати поради съображения, свързани с хигиената или защитата на здравето.</li>
+<li>Стоки, които след доставката поради естеството си са се смесили неразделно с други стоки.</li>
+<li>Други случаи, изрично предвидени в чл. 57 от Закона за защита на потребителите.</li>
+</ul>
+<h3>8.2. Самият факт, че дадена стока е кафе, напитка или друг хранителен продукт, не изключва автоматично правото на отказ. Изключение се прилага само ако са изпълнени конкретните законови предпоставки.</h3>
+<h3>8.3. Правото на отказ се губи, ако опаковката на стоката е нарушена или продуктът е използван.</h3>
+<p>Правото на отказ не се прилага за хранителни продукти, включително кафе, капсули, дозети и вендинг консумативи със срок на годност, по-малък от 90 дни към момента на връщане.</p>
+<h2>9. Съответствие на стоките и рекламации</h2>
+<h3>9.1. Търговецът отговаря за съответствието на продадените стоки съгласно Закона за предоставяне на цифрово съдържание и цифрови услуги и за продажба на стоки и другото приложимо потребителско законодателство.</h3>
+<h3>9.2. За потребителските стоки се прилага законовата гаранция за съответствие. Към датата на настоящите Общи условия законовият срок е две години от доставянето на стоката, без да се засягат специални правила, произтичащи от естеството на стоката или императивни законови разпоредби.</h3>
+<h3>9.3. Рекламация може да се предяви на <a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a>, на тел. 0887 695 267 или на адреса на Търговеца.</h3>
+<p>Писмената форма е препоръчителна за по-лесно проследяване. Потребителят посочва стоката, номера на поръчката, несъответствието и предпочитания начин за удовлетворяване на рекламацията, когато законът предоставя избор, и прилага наличните документи, на които основава претенцията си.</p>
+<h3>9.4. При несъответствие потребителят разполага с правата, предвидени в закона, включително, когато е приложимо, право на ремонт или замяна, пропорционално намаляване на цената или разваляне на договора. Настоящите Общи условия не ограничават тези права.</h3>
+<h3>9.5. Евентуална търговска гаранция от производител или от Търговеца е допълнителна и не ограничава законовата гаранция за съответствие.</h3>
+<h3>9.6. Кафето и другите хранителни стоки от нашия асортимент трябва да се съхраняват на сухо, тъмно и прохладно място.</h3>
+<h2>10. Потребителски профил и допустимо използване</h2>
+<h3>10.1. Когато създава профил, клиентът е длъжен да поддържа въведените данни точни и да пази данните си за достъп. Поръчка като гост, ако е налична, не създава задължение за регистрация.</h3>
+<h3>10.2. Не се допуска използване на сайта с цел нарушаване на закона, чужди права, сигурността или нормалната работа на системите, включително опити за неоторизиран достъп, автоматизирано натоварване или въвеждане на зловреден код.</h3>
+<h3>10.3. Търговецът може да ограничи достъпа до профил при обосновано съмнение за злоупотреба или риск за сигурността, като това не засяга вече възникнали права и задължения по валидни договори.</h3>
+<h2>11. Интелектуална собственост</h2>
+<h3>11.1. Съдържанието на <a href="https://kafezona.com">kafezona.com</a>, включително текстове, структура, графични елементи, снимки и обозначения, е защитено съгласно приложимото право, доколкото съответните права принадлежат на Търговеца или се използват на валидно основание.</h3>
+<h3>11.2. Обичайното разглеждане на сайта и използването му за покупки е разрешено. Копиране, разпространение или търговско използване извън допустимото от закона изисква съгласието на съответния носител на права.</h3>
+<h2>12. Лични данни и бисквитки</h2>
+<h3>12.1. Личните данни се обработват съгласно Политиката за поверителност на <a href="https://kafezona.com">kafezona.com</a>. Използването на бисквитки и сходни технологии е описано в Политиката за бисквитките и Регистъра на бисквитките, публикувани на сайта.</h3>
+<h3>12.2. Настоящите Общи условия не заменят тези политики. При картово плащане или доставка съответните платежни и куриерски доставчици могат да обработват данни съобразно приложимите им роли и собствени задължения по закон.</h3>
+<h2>13. Отговорност и непреодолима сила</h2>
+<h3>13.1. Търговецът полага дължимата грижа за функционирането на магазина, но временни технически прекъсвания могат да възникнат поради поддръжка, комуникационни проблеми или обстоятелства извън разумния му контрол.</h3>
+<h3>13.2. Страните не отговарят за неизпълнение, дължащо се на непреодолима сила, доколкото са изпълнени законовите предпоставки. Това не освобождава Търговеца от задължения, които по императивна законова разпоредба остават приложими, включително възстановяване на суми, когато се дължи.</h3>
+<h3>13.3. Никоя разпоредба на настоящите Общи условия не изключва или ограничава отговорност или права на потребителя, които не могат да бъдат изключени или ограничени по закон.</h3>
+<h2>14. Жалби, извънсъдебно решаване на спорове и приложимо право</h2>
+<h3>14.1. Клиентът може първо да отправи жалба до Търговеца на <a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a> или на адрес:</h3>
+<p><strong>гр. Пловдив, ул. „Скопие“ № 106А</strong></p>
+<p>Това не е условие за упражняване на права пред компетентен орган или съд, когато законът не изисква друго.</p>
+<h3>14.2. Потребителите могат да подават жалби и сигнали до <a href="https://www.kzp.bg">Комисията за защита на потребителите (КЗП)</a> и, когато е приложимо, да използват общите помирителни комисии за доброволно извънсъдебно решаване на спорове.</h3>
+<p>За област Пловдив действа Обща помирителна комисия със седалище в гр. Пловдив според актуалната информация на КЗП.</p>
+<h3>14.3. Европейската платформа за онлайн решаване на спорове (ODR), използвана в по-стари образци на общи условия, е прекратена от 20.07.2025 г. Поради това настоящите Общи условия не съдържат неактуалния ODR адрес.</h3>
+<p>Информация за признати органи за алтернативно решаване на потребителски спорове е достъпна чрез КЗП и портала <strong>Consumer Redress in the EU</strong> на Европейската комисия.</p>
+<h3>14.4. За неуредените въпроси се прилага българското право. Споровете се решават от компетентния съд съгласно приложимите правила за подсъдност, включително специалните правила за защита на потребителите.</h3>
+<p>Настоящата клауза не лишава потребителя от задължителна защита, предоставена му от приложимото право.</p>
+<h2>15. Изменения и заключителни разпоредби</h2>
+<h3>15.1. Търговецът може да актуализира настоящите Общи условия при промяна в законодателството, функционалностите на магазина или търговския модел. Актуалната версия се публикува на <a href="https://kafezona.com">kafezona.com</a> с дата на влизане в сила.</h3>
+<h3>15.2. За конкретна поръчка се прилага версията на Общите условия, приета при изпращането ѝ, освен ако последваща промяна е изрично приета от страните или произтича от задължителна законова норма.</h3>
+<h3>15.3. Ако отделна разпоредба се окаже недействителна или неприложима, останалите разпоредби запазват действието си, доколкото това е допустимо от закона.</h3>
+<h3>15.4. Контакти на Търговеца</h3>
+<table>
+<thead>
+<tr>
+<th>Данни</th>
+<th>Информация</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Търговец</strong></td>
+<td>„Смарти груп“ ЕООД</td>
+</tr>
+<tr>
+<td><strong>ЕИК</strong></td>
+<td>202268472</td>
+</tr>
+<tr>
+<td><strong>Адрес</strong></td>
+<td>гр. Пловдив, ул. „Дрин“ № 5</td>
+</tr>
+<tr>
+<td><strong>E-mail</strong></td>
+<td><a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></td>
+</tr>
+<tr>
+<td><strong>Телефон</strong></td>
+<td>0887 695 267</td>
+</tr>
+</tbody>
+</table>
+<h1>Приложение № 1</h1>
+<h2>Стандартен формуляр за отказ</h2>
+<blockquote>
+<p>Попълнете и изпратете настоящия формуляр само ако желаете да се откажете от договора.</p>
+</blockquote>
+<p><strong>До:</strong><br />
+„Смарти груп“ ЕООД<br />
+гр. Пловдив, ул. „Скопие“ № 106А<br />
+E-mail: <a href="/cdn-cgi/l/email-protection#0000"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></p>
+<h3>Уведомление</h3>
+<p>С настоящото уведомявам, че се отказвам от сключения от мен договор за покупка на следните стоки:</p>
+<p><strong>Стоки:</strong> ________________________________________________________________________</p>
+<p>________________________________________________________________________</p>
+<hr />
+<p><strong>Поръчано на:</strong>   ____________________________</p>
+<p><strong>Получено на:</strong>   ____________________________</p>
+<p><strong>№ на поръчка:</strong> ____________________________</p>
+<p><strong>Име на потребителя:</strong> ________________________________________________________________________</p>
+<p><strong>Адрес на потребителя:</strong> ________________________________________________________________________</p>
+<hr />
+<p><strong>Подпис:</strong>   ____________________________ <em>Попълва се само ако формулярът е на хартия.</em></p>
+<p><strong>Дата:</strong>   ____________________________</p>
+<blockquote>
+<p>Не е необходимо да посочвате причина за отказа.</p>
+</blockquote>
+<h2>Правна рамка и официална информация</h2>
+<p>Документът е изготвен с оглед на действащите към 07.07.2026 г.:</p>
+<ul>
+<li>Закон за защита на потребителите;</li>
+<li>Закон за електронната търговия;</li>
+<li>приложимите правила за съответствие на стоките.</li>
+</ul>
+<p>Полезна актуална информация:</p>
+<ul>
+<li><a href="https://kzp.bg">Комисия за защита на потребителите</a></li>
+<li><a href="https://consumer-redress.ec.europa.eu">Consumer Redress in the EU</a></li>
+</ul>
+  </div>
+</div>
+
+<style>
+.privacy-content h2 {
+  font-size: 20px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #141414;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+.privacy-content p {
+  font-size: 16px;
+  line-height: 1.25;
+  color: #888;
+  letter-spacing: 0.014em;
+  margin-bottom: 8px;
+}
+</style>
+
+
+
+<footer class="bg-[#1c0f07] text-[#f5f5f5] pt-8 lg:pt-0">
+
+  <div class="hidden lg:flex items-center justify-between px-[120px] py-8 border-b border-[rgba(237,228,216,0.2)] max-w-[1440px] mx-auto w-full">
+    <a href="/" class="flex items-center gap-2 flex-shrink-0">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-10 h-10">
+      <span class="font-light text-xl leading-7 text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <div class="flex items-center gap-2.5">
+      <nav class="flex items-center">
+        <a href="/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Начало</a>
+        <a href="/blog/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Блог</a>
+        <a href="/privacy/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Общи условия</a>
+        <a href="/cookie-settings/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Настройки на бисквитките</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="lg:hidden flex flex-col gap-5 px-4 pb-5">
+    <a href="/" class="flex items-center gap-1 self-start">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <nav class="flex flex-col">
+      <a href="/" class="py-2 text-sm text-[#f5f5f5] underline">Начало</a>
+      <a href="/blog/" class="py-2 text-sm text-[#f5f5f5] underline">Блог</a>
+      <a href="/privacy/" class="py-2 text-sm text-[#f5f5f5] underline">Общи условия</a>
+      <a href="/cookie-settings/" class="py-2 text-sm text-[#f5f5f5] underline">Настройки на бисквитките</a>
+    </nav>
+  </div>
+
+  <div class="hidden lg:flex items-start gap-[116px] px-[120px] py-8 max-w-[1440px] mx-auto w-full">
+    <div class="flex flex-col gap-[30px] w-[309px]">
+      <p class="text-[#c08a5a] text-base">Пазарувайте по категория</p>
+      <nav class="flex flex-col">
+                <a href="/kafe-na-zyrna/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Кафе на зърна</a>
+                <a href="/kapsuli/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Капсули</a>
+                <a href="/kafe-dozi/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Кафе дози</a>
+                <a href="/raztvorimo kafe/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Разтворимо кафе</a>
+                <a href="/vending-zona/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Вендинг Зона</a>
+              </nav>
+    </div>
+    <div class="flex flex-col gap-[30px] w-[309px]">
+      <p class="text-[#c08a5a] text-base">Контакти</p>
+      <div class="flex flex-col gap-0">
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-phone-footer.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0"><a href="tel:0887 695 267" class="text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">0887 695 267</a></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-address-footer.svg" alt="" class="w-3.5 h-4 object-contain flex-shrink-0"><span class="text-[#f5f5f5] text-base">гр. Пловдив, ул. Скопие 106А</span></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-email-footer.svg" alt="" class="w-4 h-[14px] object-contain flex-shrink-0"><a href="/cdn-cgi/l/email-protection#0000" class="text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-clock-footer.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0"><span class="text-[#f5f5f5] text-base">09:00 - 16:30 (в работни дни)</span></div>
+        <div class="flex items-center gap-3 py-2">
+          <img src="/assets/icon-share.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0">
+          <span class="text-[#f5f5f5] flex-1 text-base">Социални мрежи</span>
+          <div class="flex gap-3 flex-shrink-0">
+            <a href="#"><img src="/assets/icon-facebook.svg" alt="Facebook" class="w-5 h-5 object-contain cursor-pointer hover:opacity-70 transition-opacity"></a>
+            <a href="#"><img src="/assets/icon-linkedin.svg" alt="LinkedIn" class="w-5 h-5 object-contain cursor-pointer hover:opacity-70 transition-opacity"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col gap-[30px] w-[402px]">
+      <p class="text-[#c08a5a] text-base">Начини на плащане</p>
+      <div class="flex flex-col gap-4">
+        <div class="flex items-start gap-3 py-2 border-b border-[#2c1810]"><img src="/assets/icon-cash-footer.svg" alt="" class="w-[18px] h-[14px] object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Наложен платеж</span><span class="text-[#b8a898] text-sm">Плащате в брой при доставка</span></div></div>
+        <div class="flex items-start gap-3 py-2 border-b border-[#2c1810]"><img src="/assets/icon-bank-footer.svg" alt="" class="w-[18px] h-[18px] object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Банков превод</span><span class="text-[#b8a898] text-sm">Превод по банкова сметка</span></div></div>
+        <div class="flex items-center gap-[30px] py-2 border-b border-[#2c1810]">
+          <div class="flex items-start gap-3"><img src="/assets/icon-card-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Плащане с карта</span><span class="text-[#b8a898] text-sm">Превод по банкова сметка</span></div></div>
+          <div class="flex gap-1.5 items-center flex-shrink-0"><img src="/assets/payment-visa.png" alt="Visa" class="h-6 object-contain"><img src="/assets/payment-mastercard.png" alt="Mastercard" class="h-6 object-contain"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:hidden px-4 flex flex-col gap-5 pb-5">
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Пазарувайте по категория</p>
+            <a href="/kafe-na-zyrna/" class="py-2 text-sm text-[#f5f5f5] underline">Кафе на зърна</a>
+            <a href="/kapsuli/" class="py-2 text-sm text-[#f5f5f5] underline">Капсули</a>
+            <a href="/kafe-dozi/" class="py-2 text-sm text-[#f5f5f5] underline">Кафе дози</a>
+            <a href="/raztvorimo kafe/" class="py-2 text-sm text-[#f5f5f5] underline">Разтворимо кафе</a>
+            <a href="/vending-zona/" class="py-2 text-sm text-[#f5f5f5] underline">Вендинг Зона</a>
+          </div>
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Контакти</p>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-phone-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><a href="tel:0887 695 267" class="text-sm text-[#f5f5f5] hover:text-[#c08a5a] transition-colors">0887 695 267</a></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-address-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><span class="text-sm text-[#f5f5f5]">гр. Пловдив, ул. Скопие 106А</span></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-email-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><a href="/cdn-cgi/l/email-protection#0000" class="text-sm text-[#f5f5f5] hover:text-[#c08a5a] transition-colors"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-clock-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><span class="text-sm text-[#f5f5f5]">09:00 - 16:30 (в работни дни)</span></div>
+      <div class="flex items-center gap-2 py-2">
+        <img src="/assets/icon-share.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0">
+        <span class="text-sm text-[#f5f5f5] flex-1">Социални мрежи</span>
+        <div class="flex gap-3 flex-shrink-0">
+          <a href="#"><img src="/assets/icon-facebook.svg" alt="Facebook" class="w-6 h-6 object-contain cursor-pointer"></a>
+          <a href="#"><img src="/assets/icon-linkedin.svg" alt="LinkedIn" class="w-6 h-6 object-contain cursor-pointer"></a>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Начини на плащане</p>
+      <div class="flex items-start gap-1.5 py-2 border-b border-[#2c1810]"><img src="/assets/icon-cash-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Наложен платеж</span><span class="text-xs text-[#b8a898]">Плащате в брой при доставка</span></div></div>
+      <div class="flex items-start gap-1.5 py-2 border-b border-[#2c1810]"><img src="/assets/icon-bank-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Банков превод</span><span class="text-xs text-[#b8a898]">Превод по банкова сметка</span></div></div>
+      <div class="flex items-center justify-between py-2 border-b border-[#2c1810] pr-4">
+        <div class="flex items-start gap-1.5"><img src="/assets/icon-card-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Плащане с карта</span><span class="text-xs text-[#b8a898]">Превод по банкова сметка</span></div></div>
+        <div class="flex gap-1.5 items-center flex-shrink-0"><img src="/assets/payment-mastercard.png" alt="Mastercard" class="h-[15px] object-contain"><img src="/assets/payment-visa.png" alt="Visa" class="h-[15px] object-contain"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-4 lg:px-[120px] py-8 max-w-[1440px] lg:mx-auto w-full">
+    <p class="text-[#f5f5f5] text-xs lg:text-sm">&copy; 2026 Kafezone. Всички права запазени.</p>
+  </div>
+
+</footer>
+
+<div id="cookie-bar" class="fixed bottom-0 left-0 right-0 z-50 bg-[#1c0f07] border-t border-[#c08a5a]/40 shadow-[0_-4px_24px_rgba(0,0,0,0.4)]" style="display:none">
+  <div class="lg:hidden flex flex-col gap-[10px] items-center pt-[6px] pb-8 px-4">
+    <div class="flex items-center gap-2 w-full">
+      <div class="w-6 h-6 flex-shrink-0"><img src="/assets/icon-cookie.svg" alt="" class="w-full h-full object-contain"></div>
+      <p class="font-bold text-[14px] text-[#f5f5f5] leading-5 tracking-[0.014em]">Използваме бисквитки</p>
+    </div>
+    <div class="w-full px-1">
+      <p class="text-[12px] text-[#f5f5f5] leading-4 tracking-[0.014em]">Използваме бисквитки, за да подобрим вашето изживяване, да анализираме трафика и да показваме подходящи оферти. Можете да изберете кои бисквитки да разрешите. <a href="/privacy/" class="text-[#c08a5a] underline">Политика за поверителност</a></p>
+    </div>
+    <div class="flex gap-3 items-stretch w-full mt-1 flex-wrap">
+      <a href="/cookie-settings/" class="text-[#c08a5a] text-[12px] underline whitespace-nowrap flex items-center">Управление</a>
+      <button onclick="CookieConsent.rejectAll()" class="flex-1 bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-5 rounded-full whitespace-nowrap">Откажете всички</button>
+      <button onclick="CookieConsent.acceptAll()" class="flex-1 bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-5 rounded-full whitespace-nowrap">Приемете всички</button>
+    </div>
+  </div>
+  <div class="hidden lg:flex items-stretch gap-6 px-[120px] py-5 max-w-[1440px] mx-auto">
+    <div class="flex-1 flex flex-col gap-[4px]">
+      <div class="flex items-center gap-2 py-1">
+        <div class="w-7 h-7 flex-shrink-0"><img src="/assets/icon-cookie.svg" alt="" class="w-full h-full object-contain"></div>
+        <p class="font-bold text-[17px] text-[#f5f5f5] leading-6 whitespace-nowrap">Използваме бисквитки</p>
+      </div>
+      <div class="py-0">
+        <p class="text-[14px] text-[#f5f5f5] leading-5 tracking-[0.014em]">Използваме бисквитки, за да подобрим вашето изживяване, да анализираме трафика и да показваме подходящи оферти. Можете да изберете кои бисквитки да разрешите. <a href="/privacy/" class="text-[#c08a5a] underline">Политика за поверителност</a></p>
+      </div>
+    </div>
+    <div class="flex gap-4 items-center flex-shrink-0 my-auto">
+      <a href="/cookie-settings/" class="text-[#c08a5a] text-[12px] underline whitespace-nowrap flex items-center">Управление</a>
+      <button onclick="CookieConsent.rejectAll()" class="bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-7 rounded-full whitespace-nowrap">Откажете всички</button>
+      <button onclick="CookieConsent.acceptAll()" class="bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-7 rounded-full whitespace-nowrap">Приемете всички</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(function ()
+{
+  var CONSENT_KEY = 'cookieConsent';
+  var SETTINGS_PATH = '/cookie-settings/';
+  var bar = document.getElementById('cookie-bar');
+
+  function getConsent()
+  {
+    try { return JSON.parse(localStorage.getItem(CONSENT_KEY)); }
+    catch (e) { return null; }
+  }
+
+  function saveConsent(state)
+  {
+    state.savedAt = new Date().toISOString();
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(state));
+    hideCookieBar();
+    applyConsent(state);
+  }
+
+  function hideCookieBar()
+  {
+    if (bar) bar.style.display = 'none';
+  }
+
+  function showCookieBar()
+  {
+    if (bar) bar.style.display = '';
+  }
+
+  function acceptAll()
+  {
+    saveConsent({ analytics: true, marketing: true, preferences: true });
+  }
+
+  function rejectAll()
+  {
+    saveConsent({ analytics: false, marketing: false, preferences: false });
+  }
+
+  /**
+   * Fires registered consent handlers.
+   * Register handlers via: window.cookieConsentHandlers = { analytics: fn, marketing: fn, preferences: fn }
+   * Each handler is called at most once per page load (guarded by a data attribute on <head>).
+   */
+  function applyConsent(state)
+  {
+    if (!state) return;
+    var handlers = window.cookieConsentHandlers || {};
+    if (state.analytics && typeof handlers.analytics === 'function' && !document.head.dataset.cookieAnalytics)
+    {
+      document.head.dataset.cookieAnalytics = '1';
+      handlers.analytics();
+    }
+    if (state.marketing && typeof handlers.marketing === 'function' && !document.head.dataset.cookieMarketing)
+    {
+      document.head.dataset.cookieMarketing = '1';
+      handlers.marketing();
+    }
+    if (state.preferences && typeof handlers.preferences === 'function' && !document.head.dataset.cookiePreferences)
+    {
+      document.head.dataset.cookiePreferences = '1';
+      handlers.preferences();
+    }
+  }
+
+  function onSettingsPage()
+  {
+    return window.location.pathname === SETTINGS_PATH ||
+           window.location.pathname === SETTINGS_PATH.replace(/\/$/, '');
+  }
+
+  function init()
+  {
+    var consent = getConsent();
+    if (onSettingsPage())
+    {
+      hideCookieBar();
+      applyConsent(consent);
+      return;
+    }
+    if (consent !== null)
+    {
+      hideCookieBar();
+      applyConsent(consent);
+    }
+    else
+    {
+      showCookieBar();
+    }
+  }
+
+  window.CookieConsent = {
+    get: getConsent,
+    save: saveConsent,
+    acceptAll: acceptAll,
+    rejectAll: rejectAll,
+    apply: applyConsent
+  };
+
+  init();
+}());
+</script>
+
+</body>
+</html>

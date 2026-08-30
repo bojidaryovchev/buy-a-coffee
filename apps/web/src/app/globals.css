@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens.
+ *
+ * This is an original identity, deliberately unrelated to the reference site.
+ * The reference uses a tan/brown palette (#c08a5a on #ede4d8), Roboto for
+ * everything, fully-rounded pill controls and a 1440px centred shell. This
+ * design instead uses a pine-green and clay palette, a serif display face
+ * paired with a sans body face, squared geometry with small radii, and a
+ * narrower editorial measure.
+ *
+ * Both display and body faces carry Cyrillic, which is a hard requirement:
+ * the catalog is in Bulgarian.
+ *
+ * Rebranding means editing this block and `src/config/site.ts`. Nothing else.
+ */
+@theme {
+  /* --- Colour ---------------------------------------------------------- */
+  --color-ink-900: oklch(0.19 0.02 160);
+  --color-ink-700: oklch(0.34 0.02 160);
+  --color-ink-500: oklch(0.52 0.015 160);
+  --color-ink-300: oklch(0.72 0.012 160);
+
+  --color-paper: oklch(0.985 0.006 95);
+  --color-paper-raised: oklch(1 0 0);
+  --color-paper-sunken: oklch(0.96 0.008 95);
+
+  --color-pine-900: oklch(0.26 0.055 165);
+  --color-pine-700: oklch(0.38 0.075 165);
+  --color-pine-500: oklch(0.52 0.09 165);
+  --color-pine-100: oklch(0.93 0.03 165);
+
+  --color-clay-600: oklch(0.58 0.13 45);
+  --color-clay-500: oklch(0.66 0.14 45);
+  --color-clay-100: oklch(0.94 0.035 45);
+
+  --color-line: oklch(0.88 0.008 160);
+  --color-line-strong: oklch(0.78 0.012 160);
+
+  --color-positive: oklch(0.55 0.12 155);
+  --color-caution: oklch(0.62 0.13 75);
+  --color-critical: oklch(0.55 0.19 25);
+
+  /* --- Type ------------------------------------------------------------ */
+  --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.95rem;
+  --text-3xl: 1.9375rem;
+  --text-3xl--line-height: 2.3rem;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 2.75rem;
+  --text-5xl: 3.25rem;
+  --text-5xl--line-height: 3.4rem;
+
+  /* --- Geometry -------------------------------------------------------- */
+  /* Small radii on purpose: squared, editorial, not pill-shaped. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-raise: 0 1px 2px oklch(0.2 0.02 160 / 0.06);
+  --shadow-float: 0 8px 28px -12px oklch(0.2 0.02 160 / 0.22);
+
+  --container-measure: 68ch;
+  --container-shell: 1180px;
+}
+
+/* --- Base ------------------------------------------------------------- */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Respect a user's request for less motion, everywhere. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /*
+   * A single, highly visible focus treatment applied consistently. Removing
+   * outlines without an equivalent replacement is the most common way a site
+   * becomes unusable by keyboard.
+   */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-pine-700);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--color-pine-100);
+    color: var(--color-pine-900);
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  /* Skip link: visible only once focused. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+  }
+  .skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+    padding: 0.625rem 1rem;
+    background: var(--color-pine-900);
+    color: white;
+    border-radius: var(--radius-sm);
+  }
+
+  /*
+   * Sanitised product description HTML from the source. Scoped styling keeps
+   * arbitrary incoming markup from inheriting unpredictable layout.
+   */
+  .rich-text {
+    color: var(--color-ink-700);
+    line-height: 1.65;
+  }
+  .rich-text > * + * {
+    margin-top: 0.85em;
+  }
+  .rich-text a {
+    color: var(--color-pine-700);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .rich-text ul,
+  .rich-text ol {
+    padding-left: 1.25rem;
+    list-style: revert;
+  }
+  .rich-text strong {
+    color: var(--color-ink-900);
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  .shell {
+    width: 100%;
+    max-width: var(--container-shell);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .shell {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* A hairline that stays 1 device pixel on high-density screens. */
+  .rule {
+    border-bottom: 1px solid var(--color-line);
+  }
+}

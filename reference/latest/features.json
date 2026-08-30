@@ -1,0 +1,286 @@
+{
+  "count": 12,
+  "description": "Observed public storefront capabilities. Every entry is backed by evidence URLs from the crawl.",
+  "features": [
+    {
+      "description": "Products are organised into top-level categories, with a nested set of capsule subcategories reachable from the header navigation.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-na-zyrna/",
+        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/raztvorimo%20kafe/",
+        "https://www.kafezona.com/vending-zona/",
+        "https://www.kafezona.com/a-modo-mio/",
+        "https://www.kafezona.com/caffitaly/",
+        "https://www.kafezona.com/dolce-gusto/",
+        "https://www.kafezona.com/lavazza-blue/",
+        "https://www.kafezona.com/nespresso/"
+      ],
+      "id": "category-browsing",
+      "implementationNotes": [
+        "8 categories observed, including nested children.",
+        "Two navigation categories are currently empty and still render as valid pages."
+      ],
+      "name": "Category browsing",
+      "outputs": [
+        "product listing"
+      ],
+      "pageTypes": [
+        "category",
+        "subcategory"
+      ]
+    },
+    {
+      "description": "Brands are first-class: an index page lists every brand, and each brand has its own listing page with a description and product count.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/brands/",
+        "https://www.kafezona.com/%20vergnano/",
+        "https://www.kafezona.com/amann/",
+        "https://www.kafezona.com/biancafe/",
+        "https://www.kafezona.com/bianchi/",
+        "https://www.kafezona.com/borbone/",
+        "https://www.kafezona.com/elia/",
+        "https://www.kafezona.com/este/",
+        "https://www.kafezona.com/eurocaf/",
+        "https://www.kafezona.com/foodness/",
+        "https://www.kafezona.com/garibaldi/",
+        "https://www.kafezona.com/illy/"
+      ],
+      "id": "brand-browsing",
+      "implementationNotes": [
+        "15 brands carry products; the index also lists brands with none.",
+        "Brand pages filter by category, the inverse of category pages, which filter by brand."
+      ],
+      "name": "Brand browsing",
+      "outputs": [
+        "product listing"
+      ],
+      "pageTypes": [
+        "brand_index",
+        "brand"
+      ]
+    },
+    {
+      "description": "Each product has a detail page with name, image, price, pack size, availability, intensity, a short description, breadcrumbs and related products.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/amann-cascada/",
+        "https://www.kafezona.com/amann-sido/",
+        "https://www.kafezona.com/biancaffe-arabica/",
+        "https://www.kafezona.com/biancaffe-classica/",
+        "https://www.kafezona.com/biancaffe-dek/",
+        "https://www.kafezona.com/biancaffe-intenso/",
+        "https://www.kafezona.com/biancaffe-soave/",
+        "https://www.kafezona.com/bianchi-dg-forte-espresso-16/",
+        "https://www.kafezona.com/blue-lavazza-decaffeinato-100/",
+        "https://www.kafezona.com/borbone-crema-classica/",
+        "https://www.kafezona.com/borbone-crema-superiore-500/",
+        "https://www.kafezona.com/borbone-crema-superiore/"
+      ],
+      "id": "product-detail",
+      "implementationNotes": [
+        "Some products genuinely have no price and no pack size; both must render gracefully."
+      ],
+      "name": "Product detail page",
+      "outputs": [
+        "product detail"
+      ],
+      "pageTypes": [
+        "product"
+      ]
+    },
+    {
+      "description": "Listing pages expose filters whose state is encoded in URL search parameters.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/a-modo-mio/",
+        "https://www.kafezona.com/dolce-gusto/",
+        "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-na-zyrna/",
+        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/lavazza-blue/",
+        "https://www.kafezona.com/nespresso/",
+        "https://www.kafezona.com/promo/",
+        "https://www.kafezona.com/raztvorimo%20kafe/",
+        "https://www.kafezona.com/vending-zona/",
+        "https://www.kafezona.com/a-modo-mio/",
+        "https://www.kafezona.com/dolce-gusto/"
+      ],
+      "id": "catalog-filters",
+      "implementationNotes": [
+        "Reference filtering is client-side show/hide over a fully rendered list.",
+        "A server-rendered equivalent is required for our storefront so filtered pages are crawlable."
+      ],
+      "inputs": [
+        "brand",
+        "strength",
+        "decaf",
+        "aromas",
+        "category"
+      ],
+      "name": "Catalog filtering",
+      "outputs": [
+        "filtered product listing"
+      ],
+      "pageTypes": [
+        "category",
+        "subcategory",
+        "brand",
+        "promotion",
+        "search"
+      ]
+    },
+    {
+      "description": "A promotions route lists products carrying a reduced price. The capability exists and is currently empty.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/promo/"
+      ],
+      "id": "promotions",
+      "implementationNotes": [
+        "Every observed product has an empty `old_price`, so no promotion is active right now.",
+        "The route must render a proper empty state rather than 404."
+      ],
+      "name": "Promotions",
+      "outputs": [
+        "discounted product listing"
+      ],
+      "pageTypes": [
+        "promotion"
+      ]
+    },
+    {
+      "description": "Instead of a cart and checkout, each product offers a single phone-number field. The shop calls back to confirm the order.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/amann-cascada/",
+        "https://www.kafezona.com/amann-sido/",
+        "https://www.kafezona.com/biancaffe-arabica/",
+        "https://www.kafezona.com/biancaffe-classica/",
+        "https://www.kafezona.com/biancaffe-dek/",
+        "https://www.kafezona.com/biancaffe-intenso/",
+        "https://www.kafezona.com/biancaffe-soave/",
+        "https://www.kafezona.com/bianchi-dg-forte-espresso-16/"
+      ],
+      "id": "quick-order",
+      "implementationNotes": [
+        "There is no cart, no checkout and no payment anywhere on the reference site.",
+        "The reference posts to a third-party CMS endpoint; ours must post to our own API and persist locally."
+      ],
+      "inputs": [
+        "phone number"
+      ],
+      "name": "Quick order by phone",
+      "outputs": [
+        "order enquiry"
+      ],
+      "pageTypes": [
+        "product"
+      ]
+    },
+    {
+      "description": "A footer email field offers a discount in exchange for subscribing.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/",
+        "https://www.kafezona.com/marki/",
+        "https://www.kafezona.com/products/amann-cascada/",
+        "https://www.kafezona.com/products/amann-sido/"
+      ],
+      "id": "newsletter-signup",
+      "implementationNotes": [
+        "Must store consent locally rather than forwarding to the source."
+      ],
+      "inputs": [
+        "email address"
+      ],
+      "name": "Newsletter signup",
+      "outputs": [
+        "subscription"
+      ],
+      "pageTypes": [
+        "home",
+        "category",
+        "product"
+      ]
+    },
+    {
+      "description": "Product pages show a carousel of other products from the same area of the catalog.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/amann-cascada/",
+        "https://www.kafezona.com/amann-sido/",
+        "https://www.kafezona.com/biancaffe-arabica/",
+        "https://www.kafezona.com/biancaffe-classica/",
+        "https://www.kafezona.com/biancaffe-dek/",
+        "https://www.kafezona.com/biancaffe-intenso/"
+      ],
+      "id": "related-products",
+      "implementationNotes": [
+        "No explicit relationship is published, so ours is derived from category and brand."
+      ],
+      "name": "Related products",
+      "outputs": [
+        "product recommendations"
+      ],
+      "pageTypes": [
+        "product"
+      ]
+    },
+    {
+      "description": "Product pages show shop → category → product.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/amann-cascada/",
+        "https://www.kafezona.com/amann-sido/",
+        "https://www.kafezona.com/biancaffe-arabica/",
+        "https://www.kafezona.com/biancaffe-classica/",
+        "https://www.kafezona.com/biancaffe-dek/",
+        "https://www.kafezona.com/biancaffe-intenso/"
+      ],
+      "id": "breadcrumbs",
+      "name": "Breadcrumb navigation",
+      "pageTypes": [
+        "product"
+      ]
+    },
+    {
+      "description": "A blog route exists and currently has no published articles.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/blog/"
+      ],
+      "id": "blog",
+      "implementationNotes": [
+        "Capability only; there is no content to mirror."
+      ],
+      "name": "Blog",
+      "pageTypes": [
+        "blog_index"
+      ]
+    },
+    {
+      "description": "Privacy policy, general terms and cookie settings are published.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/cookie-settings/",
+        "https://www.kafezona.com/privacy/"
+      ],
+      "id": "legal-pages",
+      "implementationNotes": [
+        "Content must be written for our business, never copied."
+      ],
+      "name": "Legal and policy pages",
+      "pageTypes": [
+        "legal"
+      ]
+    },
+    {
+      "description": "A phone number is present in the header and footer as a direct `tel:` link.",
+      "evidenceUrls": [
+        "https://www.kafezona.com/",
+        "https://www.kafezona.com/%20vergnano/",
+        "https://www.kafezona.com/a-modo-mio/"
+      ],
+      "id": "phone-contact",
+      "name": "Phone contact",
+      "pageTypes": [
+        "home",
+        "product",
+        "category"
+      ]
+    }
+  ],
+  "schemaVersion": "1.0.0"
+}

@@ -1,0 +1,36 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local object storage driver output (dev image mirror)
+.storage/
+
+# Crawl working data
+reference/runs/
+snapshots/
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
+!infra/terraform/*.tfvars.example
+infra/terraform/.terraform.lock.hcl
+infra/terraform/build/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+.DS_Store
+Thumbs.db

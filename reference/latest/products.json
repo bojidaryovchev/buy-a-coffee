@@ -1,0 +1,3513 @@
+{
+  "catalogSource": "filter_init",
+  "collidingPaths": [
+    "/borbone-crema-classica/"
+  ],
+  "count": 110,
+  "description": "Normalised catalog snapshot. `sourceKey` combines the canonical path with the normalised pack size because the source serves two different products from one URL.",
+  "duplicateKeys": [
+    "/eurocaf-piacere-oro/#1000g"
+  ],
+  "parserConfidence": 1,
+  "products": [
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "amann",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "16.00",
+      "descriptionText": "La Cascada е 100 % арабика от фермата Finca Flor del Rosario в региона San Cristóbal Verapaz, Гватемала.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Amann La Cascada 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "0fd3fc0c7e18e9180c4d9e7dbd811258391b2bdb6949077bad379a7b548bcfaf",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1220.jpg-800w.jpg"
+      ],
+      "sourceKey": "/amann-cascada/#500g",
+      "sourcePath": "/amann-cascada/",
+      "sourceUrl": "https://www.kafezona.com/amann-cascada/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "amann",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "16.00",
+      "descriptionText": "Amann Sido е селекция от висококачествени високопланински арабика зърна, създадена за любителите на изискано, гладко и ароматно кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Amann Sido 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "3bc9b642a40734c3da6051aa8875801533fc89494ace278639f5495c3b28d6b2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1212.jpg-800w.jpg"
+      ],
+      "sourceKey": "/amann-sido/#500g",
+      "sourcePath": "/amann-sido/",
+      "sourceUrl": "https://www.kafezona.com/amann-sido/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "2 от 5",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "biancafe",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "12.00",
+      "descriptionText": "Biancaffè Arabica е 100 % арабика, подбрана за фин аромат и богат, но лек вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Biancaffe Arabica 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "5a03e0a8811712ac668fc892312da3e9f9f2ee3fea1bc25473dd4c74a0cb9a50",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1193.jpg-800w.jpg"
+      ],
+      "sourceKey": "/biancaffe-arabica/#500g",
+      "sourcePath": "/biancaffe-arabica/",
+      "sourceUrl": "https://www.kafezona.com/biancaffe-arabica/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "4 от 5",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "19.50",
+      "descriptionText": "Biancaffè Classica е специално подбран бленд с лек и приятен характер, създаден за любителите на деликатно и балансирано кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Biancaffe Classica 1кг.",
+      "oldPrice": null,
+      "semanticHash": "8618b8be1add6be3118e8cd955101406604a1a4f4e835b2abe51d03c5214bf5e",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1188.jpg-800w.jpg"
+      ],
+      "sourceKey": "/biancaffe-classica/#1000g",
+      "sourcePath": "/biancaffe-classica/",
+      "sourceUrl": "https://www.kafezona.com/biancaffe-classica/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "yes",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "biancafe",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "12.00",
+      "descriptionText": "Biancaffè Dek е внимателно подбран бленд от около 70% арабика и 30% робуста, с минимално съдържание на кофеин (под 0,1%).",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Biancaffe Dek 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "dcf1eab35efe1fb947107a94c2049af12905fbdbf6ee0899cfe74db9f05411e7",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1194.jpg-800w.jpg"
+      ],
+      "sourceKey": "/biancaffe-dek/#500g",
+      "sourcePath": "/biancaffe-dek/",
+      "sourceUrl": "https://www.kafezona.com/biancaffe-dek/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "5 от 5",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "biancafe",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "16.90",
+      "descriptionText": "Biancaffè Intenso е бленд с високо съдържание на робуста и по малко арабика, създаден за ценителите на мощно, плътно и ароматно кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Biancaffe Intenso 1кг.",
+      "oldPrice": null,
+      "semanticHash": "1fce1c6c6d2b8824b712f385157211ca8b2589026e509eda7b3cd1137e451ee9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1192.jpg-800w.jpg"
+      ],
+      "sourceKey": "/biancaffe-intenso/#1000g",
+      "sourcePath": "/biancaffe-intenso/",
+      "sourceUrl": "https://www.kafezona.com/biancaffe-intenso/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "4 от 5",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "18.90",
+      "descriptionText": "Biancaffè Soave е италиански бленд с приблизително 50% арабика и 50% робуста, създаден за любителите на наситено, балансирано и ароматно кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Biancaffe Soave 1кг.",
+      "oldPrice": null,
+      "semanticHash": "6f11caa8d619aeb23b7d4346bd1bdbc5c288c2076413c3926022bca4e4458134",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1189.jpg-800w.jpg"
+      ],
+      "sourceKey": "/biancaffe-soave/#1000g",
+      "sourcePath": "/biancaffe-soave/",
+      "sourceUrl": "https://www.kafezona.com/biancaffe-soave/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "За любителите на силното и наситено кафе - Bianchi Collezione Nero Gusto Forte Espresso предлага плътен, богат вкус с интензивен аромат.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Gusto Forte Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "ae7c6f67429e202aee7f4c6c86501befe57e890914118f360e69e5da9021021d",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1114.jpg-800w.jpg"
+      ],
+      "sourceKey": "/bianchi-dg-forte-espresso-16/#16pc",
+      "sourcePath": "/bianchi-dg-forte-espresso-16/",
+      "sourceUrl": "https://www.kafezona.com/bianchi-dg-forte-espresso-16/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "yes",
+        "intensity": "7 от 13",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "lavazza-blue"
+      ],
+      "currency": "EUR",
+      "currentPrice": "33.25",
+      "descriptionText": "Меко, ароматно и пленително - Lavazza Decaffeinato улавя сладостта и хармонията на италианското безкофеиново еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Blue Lavazza Decaffeinato 100 бр.",
+      "oldPrice": null,
+      "semanticHash": "ebd8075ab69e55ca7801aabd9731be64673206243d816dc930c66a0f6d3747f5",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1127.jpg-800w.jpg"
+      ],
+      "sourceKey": "/blue-lavazza-decaffeinato-100/#100pc",
+      "sourcePath": "/blue-lavazza-decaffeinato-100/",
+      "sourceUrl": "https://www.kafezona.com/blue-lavazza-decaffeinato-100/",
+      "sourceVariantKey": "100pc",
+      "weight": "100 бр.",
+      "weightCanonical": "100pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "20.50",
+      "descriptionText": "Crema Classica е внимателно подбран бленд от висококачествени арабика и робуста, създаден за любителите на гладка крема и богат вкус във всяка чаша.",
+      "gtin": null,
+      "hasUrlCollision": true,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Borbone Crema Classica 1кг.",
+      "oldPrice": null,
+      "semanticHash": "004353f5f77bddfeb9803e071e3160ed7cc95f180bb68b44d11b0931bbbb4ff4",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1204.jpg-800w.jpg"
+      ],
+      "sourceKey": "/borbone-crema-classica/#1000g",
+      "sourcePath": "/borbone-crema-classica/",
+      "sourceUrl": "https://www.kafezona.com/borbone-crema-classica/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "10.70",
+      "descriptionText": "Crema Classica е внимателно подбран бленд от висококачествени арабика и робуста, създаден за любителите на гладка крема и богат вкус във всяка чаша.",
+      "gtin": null,
+      "hasUrlCollision": true,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Borbone Crema Classica 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "87a97c39c8f3d947ee2aaa47c13b515551ca8b307728793c72268f1e1d7d41b7",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1221.jpg-800w.jpg"
+      ],
+      "sourceKey": "/borbone-crema-classica/#500g",
+      "sourcePath": "/borbone-crema-classica/",
+      "sourceUrl": "https://www.kafezona.com/borbone-crema-classica/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "11.25",
+      "descriptionText": "Crema Superiore е внимателно подбран бленд от около 80 % арабика и 20 % робуста, с леко по-светло средно изпичане, запазващо текстурата и ароматите на кафето.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Borbone Crema Superiore 0.500кг.",
+      "oldPrice": null,
+      "semanticHash": "6a901229831092a3fac9963baa03419bf0c2cf79954b27e65770580f23475cd7",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1290.jpg-800w.jpg"
+      ],
+      "sourceKey": "/borbone-crema-superiore-500/#500g",
+      "sourcePath": "/borbone-crema-superiore-500/",
+      "sourceUrl": "https://www.kafezona.com/borbone-crema-superiore-500/",
+      "sourceVariantKey": "500g",
+      "weight": "0.500кг.",
+      "weightCanonical": "500g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "22.00",
+      "descriptionText": "Crema Superiore е внимателно подбран бленд от около 80 % арабика и 20 % робуста, с леко по-светло средно изпичане, запазващо текстурата и ароматите на кафето.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Borbone Crema Superiore 1кг.",
+      "oldPrice": null,
+      "semanticHash": "4b941f7c428bc3e7c0137de005cd68a04412c547dec9c14efcd37f0b4bdd4dec",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1205.jpg-800w.jpg"
+      ],
+      "sourceKey": "/borbone-crema-superiore/#1000g",
+      "sourcePath": "/borbone-crema-superiore/",
+      "sourceUrl": "https://www.kafezona.com/borbone-crema-superiore/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "19.00",
+      "descriptionText": "Borbone Intenso е бленд с висок процент робуста, създаден за онези, които предпочитат силно, плътно и енергично кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Borbone Intenso 1кг.",
+      "oldPrice": null,
+      "semanticHash": "7857559b0f876cacba90128c4650e26b9ecac5747e0c56c870b4c746eb2519bf",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1179.jpg-800w.jpg"
+      ],
+      "sourceKey": "/borbone-intenso/#1000g",
+      "sourcePath": "/borbone-intenso/",
+      "sourceUrl": "https://www.kafezona.com/borbone-intenso/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "caffitaly",
+      "categoryKeys": [
+        "caffitaly"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.35",
+      "descriptionText": "Плътно, силно и ароматно - Caffitaly Corposo улавя богатството и интензитета на италианското еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Caffitaly Espresso Corposo 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "a7910a4f23ae97ccbb4a28893eefb9c99d477f5ab76827870ec9ae780f98a607",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1121.jpg-800w.jpg"
+      ],
+      "sourceKey": "/caffitaly-espresso-corposo-10/#10pc",
+      "sourcePath": "/caffitaly-espresso-corposo-10/",
+      "sourceUrl": "https://www.kafezona.com/caffitaly-espresso-corposo-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "caffitaly",
+      "categoryKeys": [
+        "caffitaly"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.35",
+      "descriptionText": "Меко, хармонично и балансирано - Morbido е създаден с 70% арабика и 30% робуста, за да предложи приятен и обгръщащ вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Caffitaly Espresso Morbido 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "a74b3d69c91357df35ec698115038273aaa276c65b2e313ba8f21c7872caaf70",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1122.jpg-800w.jpg"
+      ],
+      "sourceKey": "/caffitaly-espresso-morbido-10 /#10pc",
+      "sourcePath": "/caffitaly-espresso-morbido-10 /",
+      "sourceUrl": "https://www.kafezona.com/caffitaly-espresso-morbido-10%20/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "6 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "caffitaly",
+      "categoryKeys": [
+        "caffitaly"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.35",
+      "descriptionText": "Оригинален и празничен бленд - Espresso Panettone съчетава 70% арабика и 30% робуста с аромат, вдъхновен от италианския коледен сладкиш панетоне.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Caffitaly Espresso Panettone 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "f60be08cf63d62cbcccd599b2c173c6cb0a5e0e951d692dac521cdb1d9f81022",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1120.jpg-800w.jpg"
+      ],
+      "sourceKey": "/caffitaly-espresso-panettone-10/#10pc",
+      "sourcePath": "/caffitaly-espresso-panettone-10/",
+      "sourceUrl": "https://www.kafezona.com/caffitaly-espresso-panettone-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Изтънчен и ароматен бленд от 100% арабика, създаден за ценителите на мекото и балансирано еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi 100% Arabica Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "423ac53fe825217bee8cca25545979fa986de78bcfd03526388a64ac9f17d743",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1152.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-arabica-espresso/#16pc",
+      "sourcePath": "/dg-bianchi-arabica-espresso/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-arabica-espresso/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "5 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Съблазнително кафе с нежен шоколадов аромат, създадено за специалните моменти през деня.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Chocolate Aroma Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "07c13977fa6a3427cbf2cb35e25767edd3cafc176cff60a1f404fbb21b103c47",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1151.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-chocolate-aroma-espresso/#16pc",
+      "sourcePath": "/dg-bianchi-chocolate-aroma-espresso/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-chocolate-aroma-espresso/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Наслади се на богатата и кадифена крема на еспресото с Bianchi Collezione Nero Gusto Crema Aroma.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Crema Aroma Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "6f7e927f55772df25943757a885666eef21107ba0eb2f2dfb0d5c46c7defb083",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1149.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-crema-aroma-espresso/#16pc",
+      "sourcePath": "/dg-bianchi-crema-aroma-espresso/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-crema-aroma-espresso/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Наслади се на изтънчен аромат и мек вкус с Bianchi Collezione Nero Gusto Fine Aroma - еспресо с деликатен баланс между аромат и гладка текстура.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Fine Aroma Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "5c4cb5de0eaf24a17993723d6e60ce8fdf6217d8436c20ade173fe1282713df9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1147.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-fine-aroma/#16pc",
+      "sourcePath": "/dg-bianchi-fine-aroma/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-fine-aroma/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "yes",
+        "intensity": "3 от 12",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Наслади се на автентичен вкус на еспресо без кофеин с Bianchi Collezione Nero Gusto Decaf Espresso.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Gusto Decaf Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "466cb2e3ffd370c957023a28a85c6bc79dc0183a4ae0fd2bd3faadec891e5cb1",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1148.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-gusto-decaf/#16pc",
+      "sourcePath": "/dg-bianchi-gusto-decaf/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-gusto-decaf/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "5 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Изискано кафе с неустоим аромат на лешник, създадено за моментите, когато искаш нещо различно от традиционното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Hazelnut Aroma Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "5d70effa88e193965c05aa221148b2aeb9e271866e89bcc5a6eb2bbf38a069e6",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1153.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-hazelnut-aroma-espresso/#16pc",
+      "sourcePath": "/dg-bianchi-hazelnut-aroma-espresso/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-hazelnut-aroma-espresso/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "5 от 12",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.60",
+      "descriptionText": "Изкушаваща комбинация от кафе и нежен аромат на Irish Cream, която превръща всяка чаша в истинско удоволствие.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Bianchi Irish Cream Aroma Espresso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "57e865a823136f888c3763070e49fd1cd78a548c89596ca52b9754573b1b21ec",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1150.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-bianchi-irish-cream-aroma-espresso/#16pc",
+      "sourcePath": "/dg-bianchi-irish-cream-aroma-espresso/",
+      "sourceUrl": "https://www.kafezona.com/dg-bianchi-irish-cream-aroma-espresso/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "6.65",
+      "descriptionText": "Потопи се в сладко изкушение с Borbone DG Baileys - кафе с уникален вкус, вдъхновен от известния ликьор.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Borbone Baileys Cappuccino 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "a846fed880ce0e07ce053cfdbda63823611f072191f7f2f79e130e15646503b8",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1157.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-borbone-baileys-cappuccino/#16pc",
+      "sourcePath": "/dg-borbone-baileys-cappuccino/",
+      "sourceUrl": "https://www.kafezona.com/dg-borbone-baileys-cappuccino/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "6.65",
+      "descriptionText": "Открий класическата италианска елегантност с Borbone DG Crema Classica - кафе с богат, балансиран вкус и кадифена крема, която гали небцето.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Borbone Crema Classica 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "5966ef54fc8c756fb46327faf7e7d1fe91013602306c8a5f07f58728bb581929",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1156.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-borbone-crema-classica/#16pc",
+      "sourcePath": "/dg-borbone-crema-classica/",
+      "sourceUrl": "https://www.kafezona.com/dg-borbone-crema-classica/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "6.65",
+      "descriptionText": "Поглези сетивата си с Borbone DG Crema Superiore - кафе, което пленява с плътна, кремообразна текстура и изключителен аромат.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Borbone Crema Superiore 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "61462a39291ea2dfec6a266f496669cf13bc5f553176caad555b5a200a944c21",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1155.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-borbone-crema-superiore/#16pc",
+      "sourcePath": "/dg-borbone-crema-superiore/",
+      "sourceUrl": "https://www.kafezona.com/dg-borbone-crema-superiore/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "borbone",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "6.65",
+      "descriptionText": "Наслади се на фината италианска традиция с Borbone DG Lungo Sublime - кафе с мек, но пълноценен вкус, създадено за дълго и наситено еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Borbone Lungo Sublime 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "c86c4bb864d524c26a6061b1a45280d7a27c05437ca42df16820fd2f440f3f52",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1154.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-borbone-lungo-sublime/#16pc",
+      "sourcePath": "/dg-borbone-lungo-sublime/",
+      "sourceUrl": "https://www.kafezona.com/dg-borbone-lungo-sublime/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.90",
+      "descriptionText": "Изискано и балансирано - така може да се опише Molini Firenze, кафе, вдъхновено от елегантния дух на Тоскана.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Molini Firenze 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "a4a2ba9a6afd838a7296e1b67833f2090d8b6187c058dd564a946588d8eba835",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1134.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-molini-firenze/#16pc",
+      "sourcePath": "/dg-molini-firenze/",
+      "sourceUrl": "https://www.kafezona.com/dg-molini-firenze/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.90",
+      "descriptionText": "Фино, модерно и елегантно - Molini Milano улавя космополитния дух на северна Италия.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Molini Milano 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "89222e49f424e2cd7aa80795393429903cf6c60db737318a60f789acbdcd9397",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1135.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-molini-milano/#16pc",
+      "sourcePath": "/dg-molini-milano/",
+      "sourceUrl": "https://www.kafezona.com/dg-molini-milano/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.90",
+      "descriptionText": "Открий силата и темперамента на южна Италия с Molini Napoli - интензивно кафе с дълбок аромат и характерен южен вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Molini Napoli 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "b019922c01dec4d30391d564c7db11818b8bc44b179c31e52696f4a96772ba2b",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1133.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-molini-napoli/#16pc",
+      "sourcePath": "/dg-molini-napoli/",
+      "sourceUrl": "https://www.kafezona.com/dg-molini-napoli/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.90",
+      "descriptionText": "Потопете се в истинския италиански дух с Molini Torino - ароматно кафе с богат вкус и кадифена кремообразност.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Molini Torino 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "8111fe1c35a1628d89984c5abd74f91d61ff248a3e861c6d144f9cd8c3e84949",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1115.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-molini-torino-16/#16pc",
+      "sourcePath": "/dg-molini-torino-16/",
+      "sourceUrl": "https://www.kafezona.com/dg-molini-torino-16/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Открий елегантния и фин вкус на Rema Caffè DG Arabica Gold - кафе, създадено изцяло от висококачествени Арабика зърна.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Arabica Gold 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "b786f67308c50f36f1ba370348fdd8f759e5f98ced3c17f5acf1e16b7f80c580",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1137.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-arabica-gold/#16pc",
+      "sourcePath": "/dg-rema-caffe-arabica-gold/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-arabica-gold/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Rema Caffè Cappuccino 3in1 съчетава ароматно кафе, нежна млечна кремообразност и фина сладост, за да създаде богата и хармонична напитка с кадифена пяна.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Cappuccino 3in1 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "34bb8a3828d796a88e8cc2b4859363a5ad9cc755887c554f6f989e61656e17bc",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1143.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-cappucino-cortado/#16pc",
+      "sourcePath": "/dg-rema-caffe-cappucino-cortado/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-cappucino-cortado/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Наслади се на перфектния баланс между ароматно еспресо и сладки нотки на карамел с Rema Caffè DG Caramel.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Caramel 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "55e188d0de589702c02be4b4cbc82edb8683e393167605ce62cf30bbc7050bfe",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1145.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-caramel/#16pc",
+      "sourcePath": "/dg-rema-caffe-caramel/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-caramel/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Поглези сетивата си с уникалното кафе Rema Caffè DG Cookies - комбинация от богат аромат на еспресо и сладки нотки на бисквитка.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Cookies 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "beaf699d019a251138a6cf1a27f967115f602d3ba2fa97b22f4510e2826cea0a",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1113.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-cookies-16/#16pc",
+      "sourcePath": "/dg-rema-caffe-cookies-16/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-cookies-16/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Перфектният баланс между силно еспресо и меко мляко - Rema Caffè DG Cortado предлага гладка и кремообразна напитка с леко сладък нюанс.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Cortado 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "711c2f396a06baa6638a25fa2cd5fb013f1520c7c155b0696c17bd38df2c5ca1",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1142.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-cortado/#16pc",
+      "sourcePath": "/dg-rema-caffe-cortado/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-cortado/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "yes",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Потопи се в сладостта на любим френски десерт с Rema Caffè DG Creme Brulee - напитка с деликатен карамелен вкус и кремообразна текстура.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Creme Brulee 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "ab5af80fb6a07e192a8158743594ef22c639c94978e52c330d57f0b642977811",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1139.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-creme-brulee/#16pc",
+      "sourcePath": "/dg-rema-caffe-creme-brulee/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-creme-brulee/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Наслади се на мощен и плътен вкус с Rema Caffè DG Forte - кафе, създадено за любителите на интензивното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Forte 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "e4c2c3bcdf1d82c5b6fc438f44a19aa07260557f08c8739b3759d5c417eef00d",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1138.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-forte/#16pc",
+      "sourcePath": "/dg-rema-caffe-forte/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-forte/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Поглези сетивата си с Rema Caffè DG Gusto Satin - елегантно и кадифено кафе, създадено за любителите на меките и балансирани вкусове.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Gusto Satin 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "2f1684a03b941721f145ba79b2bfd76dfdc5e6a5e3d9e4141220b6e4e4aa731c",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1136.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-gusto-satin/#16pc",
+      "sourcePath": "/dg-rema-caffe-gusto-satin/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-gusto-satin/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Поглези сетивата си с Rema Caffè DG Hazelnut - ароматно еспресо с леко сладък и наситен вкус на печени лешници.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Hazelnut 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "c0c7faedc984fe818515e711b5b82cbd5b0d3b872f0a410a5662e62493f2efc0",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1144.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-hazelnut/#16pc",
+      "sourcePath": "/dg-rema-caffe-hazelnut/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-hazelnut/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Силно и плътно еспресо за истинските ценители. Rema Caffè DG Intenso е създадено за любителите на интензивния и запомнящ се вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Intenso 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "a18fcf28417ac5609d1e4eef06dc82128f981c56d53d2bf47326f55ab9b9686c",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1112.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-intenso-16/#16pc",
+      "sourcePath": "/dg-rema-caffe-intenso-16/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-intenso-16/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Изкушаваща комбинация от кафе и нежен аромат на Irish Cream, която превръща всяка чаша в истинско удоволствие.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffè Irish Cream 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "27d0bb5da037d1f98a86573be96e890441c7159e8a696c04b38d987f9d8ca65f",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1146.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-irish/#16pc",
+      "sourcePath": "/dg-rema-caffe-irish/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-irish/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "dolce-gusto"
+      ],
+      "currency": "EUR",
+      "currentPrice": "5.90",
+      "descriptionText": "Добавете екзотичен ритуал в ежедневието си с Matcha Latte от Rema Caffe. Приготвена от внимателно подбран натурален зелен чай и нежна млечна пяна.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули DG Rema Caffe Matcha 16 бр.",
+      "oldPrice": null,
+      "semanticHash": "728734f8ef921252f99a79728342ac17c28bc4006a3c6cc6254c4dffa2aa16e3",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1128.jpg-800w.jpg"
+      ],
+      "sourceKey": "/dg-rema-caffe-matcha-16/#16pc",
+      "sourcePath": "/dg-rema-caffe-matcha-16/",
+      "sourceUrl": "https://www.kafezona.com/dg-rema-caffe-matcha-16/",
+      "sourceVariantKey": "16pc",
+      "weight": "16 бр.",
+      "weightCanonical": "16pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "elia",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "14.80",
+      "descriptionText": "Elia Vending Aroma е внимателно подбран бленд от арабика и робуста, създаден за автоматични кафе машини и вендинг системи.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Elia Vending Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "fbb3788183f098e6277fdda5a0a5b5418321401bccd0872d918c11af309d71c9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1198.jpg-800w.jpg"
+      ],
+      "sourceKey": "/elia-vending-aroma/#1000g",
+      "sourcePath": "/elia-vending-aroma/",
+      "sourceUrl": "https://www.kafezona.com/elia-vending-aroma/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "14.20",
+      "descriptionText": "Elia Vending Crema е хармоничен бленд, създаден специално за автоматични кафе машини и вендинг системи.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Elia Vending Crema 1кг.",
+      "oldPrice": null,
+      "semanticHash": "7a82043acfba969111c569b2656df8e3a5ec415d248b4849233e652ead2643ee",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1195.jpg-800w.jpg"
+      ],
+      "sourceKey": "/elia-vending-crema/#1000g",
+      "sourcePath": "/elia-vending-crema/",
+      "sourceUrl": "https://www.kafezona.com/elia-vending-crema/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "elia",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "13.45",
+      "descriptionText": "Elia Vending Intenso е бленд, създаден специално за вендинг и автоматични кафе машини, който впечатлява с плътно тяло, богат аромат и дълготраен каймак.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Elia Vending Intenso 1кг.",
+      "oldPrice": null,
+      "semanticHash": "5f4f1a8243401485ffe5f0ef88ce9a39261461d8d228ab40973e93d75e8948d3",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1197.jpg-800w.jpg"
+      ],
+      "sourceKey": "/elia-vending-intenso/#1000g",
+      "sourcePath": "/elia-vending-intenso/",
+      "sourceUrl": "https://www.kafezona.com/elia-vending-intenso/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "16.90",
+      "descriptionText": "Вдъхновено от традициите на Южна Италия, Espressia Capri предлага перфектен баланс между арабика и робуста.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Espressia Capri 1кг.",
+      "oldPrice": null,
+      "semanticHash": "00f2d992a1795ee7867972929f5c437c2b9ad786b630dbe16ed713580fbd7511",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1202.jpg-800w.jpg"
+      ],
+      "sourceKey": "/espressia-capri/#1000g",
+      "sourcePath": "/espressia-capri/",
+      "sourceUrl": "https://www.kafezona.com/espressia-capri/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "22.00",
+      "descriptionText": "Espressia Positano е внимателно балансиран бленд от арабика и робуста, който впечатлява с богат аромат, плътно тяло и кадифена крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Espressia Positano 1кг.",
+      "oldPrice": null,
+      "semanticHash": "c18723d1db184fd3fa1e72b3bcff6cb2db11c22fde54ebcffa1f63f836f7e164",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1203.jpg-800w.jpg"
+      ],
+      "sourceKey": "/espressia-positano/#1000g",
+      "sourcePath": "/espressia-positano/",
+      "sourceUrl": "https://www.kafezona.com/espressia-positano/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "este",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "16.90",
+      "descriptionText": "Este Aroma е внимателно подбран бленд от арабика и робуста, създаден за ценителите на кафе с плътно тяло и изразителен вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Este Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "376c0d932e5ede94da51ea6fbc8b37c72499abe9fd456df9bcfa926d69ec98a9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1214.jpg-800w.jpg"
+      ],
+      "sourceKey": "/este-aroma/#1000g",
+      "sourcePath": "/este-aroma/",
+      "sourceUrl": "https://www.kafezona.com/este-aroma/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "este",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "14.85",
+      "descriptionText": "Este Crema е бленд от арабика и робуста, създаден за любителите на силен, богат и хармоничен вкус с отличителна крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Este Crema 1кг.",
+      "oldPrice": null,
+      "semanticHash": "60ca958c088cdb311de9ee478c8318288e431b80531e30a218b21320911238c2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1215.jpg-800w.jpg"
+      ],
+      "sourceKey": "/este-crema/#1000g",
+      "sourcePath": "/este-crema/",
+      "sourceUrl": "https://www.kafezona.com/este-crema/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "este",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "13.60",
+      "descriptionText": "Este Forte е внимателно подбран бленд от ароматни зърна робуста, създаден за любителите на мощно кафе с плътно тяло и устойчива крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Este Forte 1кг.",
+      "oldPrice": null,
+      "semanticHash": "78b40700db47695c475e768256d0c8d6623521d068171213eaec691a3f0ed230",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1213.jpg-800w.jpg"
+      ],
+      "sourceKey": "/este-forte/#1000g",
+      "sourcePath": "/este-forte/",
+      "sourceUrl": "https://www.kafezona.com/este-forte/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "eurocaf",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "13.80",
+      "descriptionText": "Crema Vivace е внимателно подбран бленд от робуста, изпечен умерено до тъмно, за да предложи плътно тяло, наситен вкус и отличителна крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Eurocaf Crema Vivace 1кг.",
+      "oldPrice": null,
+      "semanticHash": "9b7f5e8668111e6575ca5410c962c0ce2660a7cdc896e705a6ccd20f9be31772",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1219.jpg-800w.jpg"
+      ],
+      "sourceKey": "/eurocaf-crema-vivace/#1000g",
+      "sourcePath": "/eurocaf-crema-vivace/",
+      "sourceUrl": "https://www.kafezona.com/eurocaf-crema-vivace/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "eurocaf",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "14.85",
+      "descriptionText": "Piacentino D’Oro е внимателно подбран бленд, създаден да предложи елегантно и балансирано кафе изживяване със средно до плътно тяло, фина текстура и устойчива крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Eurocaf Piacere d'Oro 1кг.",
+      "oldPrice": null,
+      "semanticHash": "dc67f7421a233282482f3d5f74051b9a4f00b34904d0fbb0430d84ce9eefcbb2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1218.jpg-800w.jpg"
+      ],
+      "sourceKey": "/eurocaf-piacere-oro/#1000g",
+      "sourcePath": "/eurocaf-piacere-oro/",
+      "sourceUrl": "https://www.kafezona.com/eurocaf-piacere-oro/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "eurocaf",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "13.80",
+      "descriptionText": "Eurocaf Rosso Fuoco е 100% робуста с произход от Уганда и Индия, изпечена средно тъмно за плътно тяло, наситен аромат и изразителна крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Eurocaf Rosso Fuoco 1кг.",
+      "oldPrice": null,
+      "semanticHash": "8f122d8578a684a598856e7c84980babd75dcfe65460db9fcac90aaa58cf06e6",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1216.jpg-800w.jpg"
+      ],
+      "sourceKey": "/eurocaf-rosso-fuoco/#1000g",
+      "sourcePath": "/eurocaf-rosso-fuoco/",
+      "sourceUrl": "https://www.kafezona.com/eurocaf-rosso-fuoco/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "illy",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "9.80",
+      "descriptionText": "Illy Classico е емблематичен бленд от 100% арабика, създаден за ценителите на елегантното, меко и прецизно балансирано еспресо без излишна горчивина",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Illy Classico 0.250кг.",
+      "oldPrice": null,
+      "semanticHash": "ad2e82b66ece4665ff77d7e119b770f65c8ba6e18ca04b5443d16e4be005a7b6",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1293.jpg-800w.jpg"
+      ],
+      "sourceKey": "/illy-classico-500/#250g",
+      "sourcePath": "/illy-classico-500/",
+      "sourceUrl": "https://www.kafezona.com/illy-classico-500/",
+      "sourceVariantKey": "250g",
+      "weight": "0.250кг.",
+      "weightCanonical": "250g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "julius-meinl",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "30.60",
+      "descriptionText": "Julius Meinl Espresso Arabica е изискано 100% арабика кафе, създадено за ценителите на по-лекото, ароматно и хармонично еспресо с кадифено усещане и деликатна сладост.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Julius Meinl Arabica 1кг.",
+      "oldPrice": null,
+      "semanticHash": "492570fe71966caa64c8dbbb108e668b8e63dc1e349916851ad1e56260569e17",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1201.jpg-800w.jpg"
+      ],
+      "sourceKey": "/julius-meinl-arabica/#1000g",
+      "sourcePath": "/julius-meinl-arabica/",
+      "sourceUrl": "https://www.kafezona.com/julius-meinl-arabica/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "5 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "julius-meinl",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "26.55",
+      "descriptionText": "Julius Meinl Espresso Classico е добре балансиран бленд от арабика и робуста, създаден за любителите на по-силно еспресо с богат аромат и дълготрайна крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Julius Meinl Clasico 1кг.",
+      "oldPrice": null,
+      "semanticHash": "06ac59f605ddea150870f0631631cc419d0eae7259b5026b539e2a2cba620b53",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1200.jpg-800w.jpg"
+      ],
+      "sourceKey": "/julius-meinl-clasico/#1000g",
+      "sourcePath": "/julius-meinl-clasico/",
+      "sourceUrl": "https://www.kafezona.com/julius-meinl-clasico/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "julius-meinl",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "27.60",
+      "descriptionText": "Julius Meinl Caffè Crema е елегантен бленд от висококачествена арабика и селектирана робуста - създаден за любителите на меко, ароматно кафе с плътна и дълготрайна крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Julius Meinl Crema 1кг.",
+      "oldPrice": null,
+      "semanticHash": "13cc447de6ea97e90a3e2ddeac9aea37273faeafcb550ce3ede18e6dd39205b2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1199.jpg-800w.jpg"
+      ],
+      "sourceKey": "/julius-meinl-crema/#1000g",
+      "sourcePath": "/julius-meinl-crema/",
+      "sourceUrl": "https://www.kafezona.com/julius-meinl-crema/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "25.30",
+      "descriptionText": "Kimbo Aroma Gold е изискано 100% арабика кафе, създадено да пресъздаде лекотата и аромата на Амалфийското крайбрежие - идеално за любителите на по-деликатно, ароматно и елегантно еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Kimbo Aroma Gold 1кг.",
+      "oldPrice": null,
+      "semanticHash": "154e9ffa999c05b4bab29fab8e8ad1508afe8e99fd96c4c77e2bb8e41432f02e",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1178.jpg-800w.jpg"
+      ],
+      "sourceKey": "/kimbo-aroma-gold/#1000g",
+      "sourcePath": "/kimbo-aroma-gold/",
+      "sourceUrl": "https://www.kafezona.com/kimbo-aroma-gold/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "24.60",
+      "descriptionText": "Kimbo Barista Napoli е класически италиански бленд от арабика и робуста, създаден за почитателите на силното, плътно еспресо с богата крема и характерен южен стил.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Kimbo Barista Napoli 1кг.",
+      "oldPrice": null,
+      "semanticHash": "a531e0e4d976f49dce597b262c8ed44786408b1330cf073d8c0e24e55bc9d9bd",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1177.jpg-800w.jpg"
+      ],
+      "sourceKey": "/kimbo-barista-napoli/#1000g",
+      "sourcePath": "/kimbo-barista-napoli/",
+      "sourceUrl": "https://www.kafezona.com/kimbo-barista-napoli/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "25.05",
+      "descriptionText": "Lavazza Expert Crema e Aroma е селектиран бленд от арабика и робуста от Южна Америка и Азия, създаден да предложи кремообразен, хармоничен и богато ароматен кафе профил.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Crema E Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "ecdfb9e4eeb5c9ebd3f9b17c586170e640d40df972d2efe2302b46d6feceb855",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1183.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-crema-aroma-expert/#1000g",
+      "sourcePath": "/lavazza-crema-aroma-expert/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-crema-aroma-expert/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "25.55",
+      "descriptionText": "Lavazza Crema e Aroma е класически бленд от арабика и робуста от Южна Америка и Азия, създаден да предложи кремообразен, хармоничен и ароматен кафе профил.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Crema E Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "3a8a1b0b71ff112336e6dd23ebbd783146c444d340f4f590d65a340cc7bfdf61",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1174.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-crema-aroma/#1000g",
+      "sourcePath": "/lavazza-crema-aroma/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-crema-aroma/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "32.00",
+      "descriptionText": "Lavazza Gold Selection е изискан бленд от арабика от Бразилия и Централна Америка, комбинирана с висококачествена азиатска робуста.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Gold Selection 1кг.",
+      "oldPrice": null,
+      "semanticHash": "18d39b715e9613f4cf73d47f12937f09108f5d2d5ca840e219fd9463574e8ba4",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1175.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-gold-selection/#1000g",
+      "sourcePath": "/lavazza-gold-selection/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-gold-selection/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "29.00",
+      "descriptionText": "Lavazza Gran Espresso съчетава внимателно подбрана арабика от Централна и Южна Америка с висококачествена робуста от Азия, за да създаде плътно, ароматно и автентично италианско еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Gran Espresso 1кг.",
+      "oldPrice": null,
+      "semanticHash": "401c6d0bedc0d87612eb1f7a5a24e776de2478e07d5356a7987ad56ca7b5e8ad",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/66123-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-gran-espresso/#1000g",
+      "sourcePath": "/lavazza-gran-espresso/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-gran-espresso/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "13 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": null,
+      "descriptionText": "Lavazza Expert Gusto Forte е плътен бленд от висококачествена робуста от Южна Америка и Азия, създаден за тези, които предпочитат енергично, интензивно и дълбоко ароматно кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Gusto Forte 1кг.",
+      "oldPrice": null,
+      "semanticHash": "a85558423d02b5d26ec0c99805e4ce7b10b565e775604b7f1b91dfc0a686a7be",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1171.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-gusto-forte/#1000g",
+      "sourcePath": "/lavazza-gusto-forte/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-gusto-forte/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "22.30",
+      "descriptionText": "Lavazza Expert Gusto Pieno е внимателно създаден бленд от арабика и робуста от Южна Америка и Азия, който предлага богат, плътен вкус с кадифена текстура и приятно балансиран аромат.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Gusto Pieno 1кг.",
+      "oldPrice": null,
+      "semanticHash": "e2203c886540857f52bc347ea992472daaf19f125242f11e1f85000d28758c5b",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1180.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-gusto-pieno/#1000g",
+      "sourcePath": "/lavazza-gusto-pieno/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-gusto-pieno/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "30.00",
+      "descriptionText": "Lavazza Super Crema е фино съчетание от висококачествена арабика от Бразилия и Колумбия и робуста от Индонезия и Виетнам - създадено за тези, които предпочитат мек, кадифен и балансиран вкус без излишна горчивина.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Super Crema 1кг.",
+      "oldPrice": null,
+      "semanticHash": "4cd78cc5e706fe4542829e48c64ee0162af1e0bb7c5cf3f70f9032fd8ea8ccce",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1182.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-super-crema/#1000g",
+      "sourcePath": "/lavazza-super-crema/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-super-crema/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "30.00",
+      "descriptionText": "Lavazza Top Class е внимателно подбрана комбинация от арабика от Бразилия и Централна Америка и робуста от Индия и Индонезия, създадена за онези, които ценят баланса между аромат и сила.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Lavazza Top Class 1кг.",
+      "oldPrice": null,
+      "semanticHash": "cb1959ab2b8511f2506d9b8ed2a21ec534cb028da876147927fe69aeb1e08d97",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1184.jpg-800w.jpg"
+      ],
+      "sourceKey": "/lavazza-top-class/#1000g",
+      "sourcePath": "/lavazza-top-class/",
+      "sourceUrl": "https://www.kafezona.com/lavazza-top-class/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "a-modo-mio"
+      ],
+      "currency": "EUR",
+      "currentPrice": "12.80",
+      "descriptionText": "Плътен вкус и силен характер в класически италиански стил - този бленд съчетава арабика и робуста, за да създаде интензивно еспресо с богато тяло и гъста, устойчива крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули A Modo Mio Lavazza Crema E Gusto 36 бр.",
+      "oldPrice": null,
+      "semanticHash": "2045da3df04b43a62c8fde9437437358fccd2fb674bf696095809eb140d40181",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1125.jpg-800w.jpg"
+      ],
+      "sourceKey": "/modo-mio-lavazza-crema-gusto-36/#36pc",
+      "sourcePath": "/modo-mio-lavazza-crema-gusto-36/",
+      "sourceUrl": "https://www.kafezona.com/modo-mio-lavazza-crema-gusto-36/",
+      "sourceVariantKey": "36pc",
+      "weight": "36 бр.",
+      "weightCanonical": "36pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 13",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "a-modo-mio"
+      ],
+      "currency": "EUR",
+      "currentPrice": "12.80",
+      "descriptionText": "Фин и балансиран вкус за елегантно ежедневно еспресо - този бленд от подбрана арабика създава меко и ароматно кафе с деликатна сладост и кадифена текстура.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули A Modo Mio Lavazza Delizioso 36 бр.",
+      "oldPrice": null,
+      "semanticHash": "f0edc2eb0809604cc582664016f43fbcb2571867154566c1fb5cbdff255dec98",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1126.jpg-800w.jpg"
+      ],
+      "sourceKey": "/modo-mio-lavazza-delizioso-36/#36pc",
+      "sourcePath": "/modo-mio-lavazza-delizioso-36/",
+      "sourceUrl": "https://www.kafezona.com/modo-mio-lavazza-delizioso-36/",
+      "sourceVariantKey": "36pc",
+      "weight": "36 бр.",
+      "weightCanonical": "36pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "13 от 13",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "a-modo-mio"
+      ],
+      "currency": "EUR",
+      "currentPrice": "12.80",
+      "descriptionText": "Силен и наситен характер за истинско италианско еспресо - този бленд съчетава подбрана арабика и робуста, за да създаде дълбок вкус с плътно тяло и изразителен аромат.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули A Modo Mio Lavazza Intenso 36 бр.",
+      "oldPrice": null,
+      "semanticHash": "f6eb864f500c2af5b25a4e0b4c0b78e2162af81ee3f3aafe5261a47ca25041e1",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1124.jpg-800w.jpg"
+      ],
+      "sourceKey": "/modo-mio-lavazza-intenso-36/#36pc",
+      "sourcePath": "/modo-mio-lavazza-intenso-36/",
+      "sourceUrl": "https://www.kafezona.com/modo-mio-lavazza-intenso-36/",
+      "sourceVariantKey": "36pc",
+      "weight": "36 бр.",
+      "weightCanonical": "36pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "kafe-dozi"
+      ],
+      "currency": "EUR",
+      "currentPrice": "30.00",
+      "descriptionText": "Елегантен и балансиран бленд с робуста и арабика, предлагащ деликатни нотки на какао и горчив шоколад.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Дозети Molini Firenze 150бр.",
+      "oldPrice": null,
+      "semanticHash": "0073609f692e8c80b00c36858ba6fbe4f4ab7820a205603f3e31222a24903ba2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1131.jpg-800w.jpg"
+      ],
+      "sourceKey": "/molini-firenze-150/#150pc",
+      "sourcePath": "/molini-firenze-150/",
+      "sourceUrl": "https://www.kafezona.com/molini-firenze-150/",
+      "sourceVariantKey": "150pc",
+      "weight": "150бр.",
+      "weightCanonical": "150pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "15.70",
+      "descriptionText": "Molini Firenze е бленд от висококачествена арабика и робуста, създаден за любителите на балансирано и ароматно кафе с кадифена текстура.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Molini Firenze 1кг.",
+      "oldPrice": null,
+      "semanticHash": "aeee9297ee0302bad9f935e04fac1e77ab92c437bd7bd6744eb577d1144fa4dd",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1185.jpg-800w.jpg"
+      ],
+      "sourceKey": "/molini-firenze/#1000g",
+      "sourcePath": "/molini-firenze/",
+      "sourceUrl": "https://www.kafezona.com/molini-firenze/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "15.30",
+      "descriptionText": "Molini Napoli е бленд с по-високо съдържание на робуста, създаден за любителите на мощен, наситен вкус с плътно тяло и устойчива крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Molini Napoli 1кг.",
+      "oldPrice": null,
+      "semanticHash": "23c7614586525e87f6fc8832e01fcd7a30183e5ea5921399f511ac8d298dcffb",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1187.jpg-800w.jpg"
+      ],
+      "sourceKey": "/molini-napoli/#1000g",
+      "sourcePath": "/molini-napoli/",
+      "sourceUrl": "https://www.kafezona.com/molini-napoli/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "15.50",
+      "descriptionText": "Molini Torino е бленд с висок процент робуста, създаден за онези, които търсят мощен вкус с плътно тяло и устойчива крема.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Molini Torino 1кг.",
+      "oldPrice": null,
+      "semanticHash": "b7d7f4c04c4654dec830835c7c0182ca5a0e65379923736918931b4376b84db4",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1186.jpg-800w.jpg"
+      ],
+      "sourceKey": "/molini-torino/#1000g",
+      "sourcePath": "/molini-torino/",
+      "sourceUrl": "https://www.kafezona.com/molini-torino/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.35",
+      "descriptionText": "Открий традиционния италиански вкус с Bianchi Caffè Arte Classico - кафе с богат и балансиран аромат, създадено за любителите на класическото еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Bianchi Caffè Arte Classico 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "cefabd422fbeb7529e28d3ff64ef64c5433e4442c4a110b42348c98133cf3413",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1119.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-bianchi-arte-classico-10/#10pc",
+      "sourcePath": "/nespresso-bianchi-arte-classico-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-bianchi-arte-classico-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.35",
+      "descriptionText": "Пренеси се в сърцето на Колумбия с Bianchi Caffè Arte Colombia - кафе с изключително фин и изискан аромат, създадено за ценителите на деликатните вкусове.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Bianchi Colombia 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "4fa692870ed6d00ec9b319e81c56f2069f55dd4ea4dcb8437ed98474a7479682",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1306.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-bianchi-arte-colombia/#10pc",
+      "sourcePath": "/nespresso-bianchi-arte-colombia/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-bianchi-arte-colombia/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "6 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.35",
+      "descriptionText": "Потопи се в фините вкусове на Централна Америка с Bianchi Caffè Arte Costa Rica - кафе с елегантен и балансиран аромат, създаден за ценителите на меките, но изразителни еспресо вкусове.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Bianchi Costa Rica 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "6e366bf188d633a0b156ab6539f3a583432895e6cf7eec2e534c61f0cb6e44e4",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1307.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-bianchi-arte-costa-rica/#10pc",
+      "sourcePath": "/nespresso-bianchi-arte-costa-rica/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-bianchi-arte-costa-rica/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "5 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "bianchi",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.35",
+      "descriptionText": "Потопи се в сладко изкушение с Bianchi Caffè Arte Hazelnut Aroma Espresso - кафе с аромат на печени лешници и богат, балансиран вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Bianchi Hazelnut 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "9eca570bdbcbc5e1dd570f68cd8637f4655e28e60308e6aa97050550f6bf5582",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1308.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-bianchi-arte-hazelnut/#10pc",
+      "sourcePath": "/nespresso-bianchi-arte-hazelnut/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-bianchi-arte-hazelnut/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.80",
+      "descriptionText": "Класическо, балансирано и изключително ароматно - Lavazza Crema e Gusto Classico улавя истинския италиански дух на еспресото.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Lavazza Crema E Gusto Classico 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "ab3c5c812c1651c49d8eb3b5fead290a315bd515d2d5d49c922d2c8a2efd737b",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1117.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-lavazza-crema-gusto-classico-10/#10pc",
+      "sourcePath": "/nespresso-lavazza-crema-gusto-classico-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-lavazza-crema-gusto-classico-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "13 от 13",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.80",
+      "descriptionText": "Смело, плътно и изключително ароматно - Lavazza Crema e Gusto Forte улавя страстта на италианското кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Lavazza Crema E Gusto Forte 10бр.",
+      "oldPrice": null,
+      "semanticHash": "8954782c028eb60fb22548d55363bbfa5f2b4d0588fcd619679685c0d733d0a9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1311.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-lavazza-crema-gusto-forte-10/#10pc",
+      "sourcePath": "/nespresso-lavazza-crema-gusto-forte-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-lavazza-crema-gusto-forte-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "lavazza",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.80",
+      "descriptionText": "Плътно, наситено и изключително ароматно - Lavazza Crema e Gusto Ricco улавя богатството и енергията на италианското еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Lavazza Crema E Gusto Ricco 10бр.",
+      "oldPrice": null,
+      "semanticHash": "3189a4c221158536c58b40266570628df8f8eaff66abf63bc3e354bc758d53ac",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1310.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-lavazza-crema-gusto-ricco-10/#10pc",
+      "sourcePath": "/nespresso-lavazza-crema-gusto-ricco-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-lavazza-crema-gusto-ricco-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "3.35",
+      "descriptionText": "Пренеси се в сърцето на Италия с Molini Nespresso Firenze - кафе с изключително богат и балансиран вкус, създаден за ценителите на елегантното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Molini Firenze 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "fc2afc7cc0991a1624cd411001881d95a1e3b7448f344a950fd4f6ab7cb6a63a",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1164.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-molini-firenze/#10pc",
+      "sourcePath": "/nespresso-molini-firenze/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-molini-firenze/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "3.35",
+      "descriptionText": "Открий интензивната сила на Южна Италия с Molini Nespresso Napoli - кафе с мощен, плътен вкус и изразителен аромат, създадено за истинските любители на силното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Molini Napoli 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "d28f2fe71f3741f0ec34cf196a2bbfd33a59a6c71758a832ef58613d1b9df67e",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1165.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-molini-napoli/#10pc",
+      "sourcePath": "/nespresso-molini-napoli/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-molini-napoli/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "molini",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "3.35",
+      "descriptionText": "Наслади се на характерната сила и богатство на Molini Nespresso Torino - кафе с плътен, наситен вкус и дълбок аромат, вдъхновено от традицията на северна Италия.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Molini Torino 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "76eca79b0a2ee8f9d23bdbb7b32b8b9eb726892ef9e858ec0afa133edcf83b59",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1116.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-molini-torino-10/#10pc",
+      "sourcePath": "/nespresso-molini-torino-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-molini-torino-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Наслади се на меката елегантност на Rema Caffè Nespresso Allegro - кафе с приятен и балансиран вкус, създадено за ценителите на нежните аромати.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Allegro 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "e96b7c421dcd29840dddfb7889a5396dc0b78fa4f63edcfcecefb652a8a2c236",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1158.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-allegro/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-allegro/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-allegro/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "10 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Потопи се в изтънчения вкус на Rema Caffè Nespresso Arabica Gold - кафе с деликатен и елегантен аромат, създаден за ценителите на чистата Арабика.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Arabica Gold 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "d8a6edb91b665a3301b9ee1150c2d6670d6c3412fe4c9674210474afc415d283",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1160.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-arabica-gold/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-arabica-gold/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-arabica-gold/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Отдайте се на богатата и обгръщаща сладост на карамела.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffe Caramel 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "d244530cd11fff6919ca4634617dc5c4690915d9b32b28e74546795e3e243c4b",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1118.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-caramel-10/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-caramel-10/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-caramel-10/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Този изискан 100% арабика бленд съчетава нежното тяло на бразилското кафе с неустоимата привлекателност на кремообразния карамел, създавайки сетивното изживяване.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Cookies 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "704b544c1f2fc66747a79a90c14defe719025655239fbfd653d50cdd0dc176d2",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1301.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-cookies/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-cookies/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-cookies/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "yes",
+        "intensity": "6 от 12",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Наслади се на меката наслада на Rema Caffè Nespresso Decaf - кафе без кофеин, което запазва пълния аромат и богат вкус на традиционното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Decaffeinato 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "a1b8c589f52cdbeab00c75b79302fec381f6a32d468ec8b73d207aee8d401db1",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1163.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-decaffeinato/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-decaffeinato/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-decaffeinato/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Изживей мощния характер на Rema Caffè Nespresso Forte - кафе с интензивен и плътен вкус, създаден за истинските ценители на силното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Forte 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "6fed9396b541d414041734e945c9f5412821575e85f41538651a27327c173889",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1159.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-forte/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-forte/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-forte/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "10.50",
+      "descriptionText": "Насладете се на кадифената мекота на Nespresso Fortissimo 100% Арабика, изработена от най-добрите зърна, отгледани в зелените хълмове на Бразилия.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Fortissimo 20 бр.",
+      "oldPrice": null,
+      "semanticHash": "e410940d1a0e71102169c946f68a0bafce1ccd23e6fe9a4dd47a893273ece64f",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1167.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-fortissimo/#20pc",
+      "sourcePath": "/nespresso-rema-caffe-fortissimo/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-fortissimo/",
+      "sourceVariantKey": "20pc",
+      "weight": "20 бр.",
+      "weightCanonical": "20pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "4 от 12",
+        "strength": "weak"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Поглези сетивата си с Rema Nespresso Gusto Satin - елегантно и кадифено кафе, създадено за любителите на меките и балансирани вкусове.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Gusto Satin 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "32a0e2afc7669a26742875f848d5439db82396ead12601111644ae127cc9653b",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1162.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-gusto-satin/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-gusto-satin/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-gusto-satin/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "yes",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Невероятно елегантно кафе с вкус на лешник в капсула.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Hazelnut 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "c3b377db5340bd771cb9d7252d9440e472461ea2dd3a54c62b0f5c1aa86e6253",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1295.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-hazelnut/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-hazelnut/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-hazelnut/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "12 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "4.60",
+      "descriptionText": "Открий наситения вкус на Rema Caffè Nespresso Intenso - кафе с плътен и енергичен аромат, създаден за любителите на интензивното еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Intenso 10 бр.",
+      "oldPrice": null,
+      "semanticHash": "603cd933b16330a4ce387866a85ab746f2b2bf0a18c1cb682bbff80bf03f6b11",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1161.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-intenso/#10pc",
+      "sourcePath": "/nespresso-rema-caffe-intenso/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-intenso/",
+      "sourceVariantKey": "10pc",
+      "weight": "10 бр.",
+      "weightCanonical": "10pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "10.50",
+      "descriptionText": "Интензивно и плътно еспресо, създадено за любителите на силното кафе с богат аромат и дълготраен послевкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Ristretto 20 бр.",
+      "oldPrice": null,
+      "semanticHash": "2ed4d7236dcbc7f36373f5e6ed3b60455bbd3ffec56ab14d0045aa00a4ae9362",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1168.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-ristretto/#20pc",
+      "sourcePath": "/nespresso-rema-caffe-ristretto/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-ristretto/",
+      "sourceVariantKey": "20pc",
+      "weight": "20 бр.",
+      "weightCanonical": "20pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 12",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "nespresso"
+      ],
+      "currency": "EUR",
+      "currentPrice": "10.50",
+      "descriptionText": "Подарете си върховно удоволствие с Supremo - първокласно кафе от 100% Арабика, изработено от най - добрите зърна, отгледани в тучните, зелени хълмове на най - известните южноамерикански планини.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Капсули Nespresso Rema Caffè Supremo 20 бр.",
+      "oldPrice": null,
+      "semanticHash": "bae734422504fb322805e4ed30e73347f33397bb7597b69ab5991264d906dbcc",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1166.jpg-800w.jpg"
+      ],
+      "sourceKey": "/nespresso-rema-caffe-supremo/#20pc",
+      "sourcePath": "/nespresso-rema-caffe-supremo/",
+      "sourceUrl": "https://www.kafezona.com/nespresso-rema-caffe-supremo/",
+      "sourceVariantKey": "20pc",
+      "weight": "20 бр.",
+      "weightCanonical": "20pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "9 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "kafe-dozi"
+      ],
+      "currency": "EUR",
+      "currentPrice": "10.75",
+      "descriptionText": "Силен и плътен бленд от висококачествена арабика, с богати нотки на какао и горчив шоколад.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Дозети Rema Caffe Fortissimo 25бр.",
+      "oldPrice": null,
+      "semanticHash": "ffa19980f66fba8b290f97793ea7ae14a7dedefcf31dce2c7f30c093d667797d",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1312.jpg-800w.jpg"
+      ],
+      "sourceKey": "/rema-caffe-fortissimo-25/#25pc",
+      "sourcePath": "/rema-caffe-fortissimo-25/",
+      "sourceUrl": "https://www.kafezona.com/rema-caffe-fortissimo-25/",
+      "sourceVariantKey": "25pc",
+      "weight": "25бр.",
+      "weightCanonical": "25pc"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "11 от 12",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "rema-caffe",
+      "categoryKeys": [
+        "kafe-dozi"
+      ],
+      "currency": "EUR",
+      "currentPrice": null,
+      "descriptionText": "Интензивен, мощен и плътен бленд, създаден за истински фенове на силното еспресо. Тъмно изпичане, богат аромат и силен характер.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path",
+      "name": "Дозети Rema Caffe Intenso",
+      "oldPrice": null,
+      "semanticHash": "8dce6330595c19402b6d19ab02f5e76a630b4a64a80310a64ac63b23c2f7d0d6",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1132.jpg-800w.jpg"
+      ],
+      "sourceKey": "/rema-caffe-intenso/",
+      "sourcePath": "/rema-caffe-intenso/",
+      "sourceUrl": "https://www.kafezona.com/rema-caffe-intenso/",
+      "sourceVariantKey": null,
+      "weight": null,
+      "weightCanonical": null
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "23.00",
+      "descriptionText": "Tezzoro Classic е внимателно подбран бленд от арабика и робуста, създаден да предложи балансиран вкус и приятна плътност.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Tezzoro Espresso Classic 1кг.",
+      "oldPrice": null,
+      "semanticHash": "b15f73d72d70a377d7d190d314d0f28cf36f312b8635a8213c6d1d45b093eb28",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1206.jpg-800w.jpg"
+      ],
+      "sourceKey": "/tezzoro-espresso-classic/#1000g",
+      "sourcePath": "/tezzoro-espresso-classic/",
+      "sourceUrl": "https://www.kafezona.com/tezzoro-espresso-classic/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "tezzoro",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "7.70",
+      "descriptionText": "Tezzoro Excellence е внимателно подбран бленд от четири сорта премиум арабика, изпечени така, че да развият максимален аромат, плътност и характер.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Tezzoro Excellence 0.250кг.",
+      "oldPrice": null,
+      "semanticHash": "83fff54bf8238232a07006ef4743d84e430928f653e52a18e6bb58a30aadeb6d",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1294.jpg-800w.jpg"
+      ],
+      "sourceKey": "/tezzoro-espresso-excellence-250/#250g",
+      "sourcePath": "/tezzoro-espresso-excellence-250/",
+      "sourceUrl": "https://www.kafezona.com/tezzoro-espresso-excellence-250/",
+      "sourceVariantKey": "250g",
+      "weight": "0.250кг.",
+      "weightCanonical": "250g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "30.10",
+      "descriptionText": "Tezzoro Excellence е внимателно подбран бленд от четири сорта премиум арабика, изпечени така, че да развият максимален аромат, плътност и характер.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Tezzoro Espresso Excellence 1кг.",
+      "oldPrice": null,
+      "semanticHash": "a23bd995175e2a269655f10adef08a5f8257809ac1c4e526b328ea5354e1b6c5",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1208.jpg-800w.jpg"
+      ],
+      "sourceKey": "/tezzoro-espresso-excellence/#1000g",
+      "sourcePath": "/tezzoro-espresso-excellence/",
+      "sourceUrl": "https://www.kafezona.com/tezzoro-espresso-excellence/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "25.10",
+      "descriptionText": "Tezzoro Top Class е изискан бленд от първокласни азиатски зърна робуста, обогатени с ароматни арабики, създаден за ценителите на плътно, ароматно кафе.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Tezzoro Espresso Top Class 1кг.",
+      "oldPrice": null,
+      "semanticHash": "b7a7e8c16960071d43b6d0daf96b952d748c29ad965cf365f27495b1c1520ffe",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1207.jpg-800w.jpg"
+      ],
+      "sourceKey": "/tezzoro-espresso-top-class/#1000g",
+      "sourcePath": "/tezzoro-espresso-top-class/",
+      "sourceUrl": "https://www.kafezona.com/tezzoro-espresso-top-class/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "15.85",
+      "descriptionText": "Vandino Espresso Aroma е специално подбран бленд от арабика и робуста, създаден за любителите на класическото еспресо с кадифен каймак и отлично представяне в автоматични кафе машини и вендинг системи.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vandino Espresso Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "82b04cde960827a6e4573a823bdd12fd2d1130ed24e51612f2d1e9fa86cbd959",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1210.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vandino-espresso-aroma/#1000g",
+      "sourcePath": "/vandino-espresso-aroma/",
+      "sourceUrl": "https://www.kafezona.com/vandino-espresso-aroma/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "14.90",
+      "descriptionText": "Vandino Espresso Bar е внимателно подбран бленд с високо съдържание на робуста, създаден за плътно кафе с богата крема, ниска киселинност и интензивен вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vandino Espresso Bar 1кг.",
+      "oldPrice": null,
+      "semanticHash": "54282266f845759d3ff8a79a6f822bd01b78b5ccb84cce2546805c777abe8ea3",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1211.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vandino-espresso-bar/#1000g",
+      "sourcePath": "/vandino-espresso-bar/",
+      "sourceUrl": "https://www.kafezona.com/vandino-espresso-bar/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": null,
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "17.95",
+      "descriptionText": "Vandino Espresso Club е премиум бленд от внимателно селектирани зърна арабика и робуста от Бразилия и Индонезия, създаден за истинските ценители на италианското еспресо.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vandino Espresso Club 1кг.",
+      "oldPrice": null,
+      "semanticHash": "a676797bfd8270a03befcc9fe5adf45ed25f91e10d712de06eca13054b65e7b0",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1209.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vandino-espresso-club/#1000g",
+      "sourcePath": "/vandino-espresso-club/",
+      "sourceUrl": "https://www.kafezona.com/vandino-espresso-club/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "5 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "vergnano",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "24.70",
+      "descriptionText": "Vergnano AnticaBottega е внимателно подбран бленд с висок процент арабика, леко допълнен с робуста, създаден чрез бавно и деликатно изпичане за балансиран аромат и кадифена текстура.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vergnano Antica Bottega 1кг.",
+      "oldPrice": null,
+      "semanticHash": "96e04be372d4e13fe9bafbd789d43c1b6a108d79131668a730931e5e9277e36e",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1173.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vergnano-antica-bottega/#1000g",
+      "sourcePath": "/vergnano-antica-bottega/",
+      "sourceUrl": "https://www.kafezona.com/vergnano-antica-bottega/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "7 от 10",
+        "strength": "medium"
+      },
+      "availability": "in_stock",
+      "brandKey": "vergnano",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "27.65",
+      "descriptionText": "Този бленд представлява внимателно подбрана комбинация от арабика и робуста, изпичана за максимално развитие на аромата и балансиран вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vergnano Espresso 1кг.",
+      "oldPrice": null,
+      "semanticHash": "64b8a79f6417c7fdd619546ea8c53aae02bbb7f88c4cb25c85aa4d667d3236c9",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1181.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vergnano-espresso/#1000g",
+      "sourcePath": "/vergnano-espresso/",
+      "sourceUrl": "https://www.kafezona.com/vergnano-espresso/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    },
+    {
+      "attributes": {
+        "aromas": "no",
+        "decaf": "no",
+        "intensity": "8 от 10",
+        "strength": "strong"
+      },
+      "availability": "in_stock",
+      "brandKey": "vergnano",
+      "categoryKeys": [
+        "kafe-na-zyrna"
+      ],
+      "currency": "EUR",
+      "currentPrice": "24.70",
+      "descriptionText": "Gran Aroma е внимателно подбран бленд от висококачествена арабика и селектирана робуста, създаден за ценителите на кафе с плътно тяло и изразителен вкус.",
+      "gtin": null,
+      "hasUrlCollision": false,
+      "identityStrategy": "path_and_size",
+      "name": "Кафе на зърна Vergnano Gran Aroma 1кг.",
+      "oldPrice": null,
+      "semanticHash": "81211940a3bdacae50702a787de97cc6551d73b3f9804dce23dff90bc9cc0e82",
+      "sku": null,
+      "sourceImageUrls": [
+        "https://www.kafezona.com/img/product-img-1176.jpg-800w.jpg"
+      ],
+      "sourceKey": "/vergnano-gran-aroma/#1000g",
+      "sourcePath": "/vergnano-gran-aroma/",
+      "sourceUrl": "https://www.kafezona.com/vergnano-gran-aroma/",
+      "sourceVariantKey": "1000g",
+      "weight": "1 кг.",
+      "weightCanonical": "1000g"
+    }
+  ],
+  "rawRecordCount": 111,
+  "schemaVersion": "1.0.0"
+}

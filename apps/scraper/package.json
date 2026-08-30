@@ -1,0 +1,33 @@
+{
+  "name": "@catalog/scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "cli": "tsx src/cli.ts",
+    "crawl:discovery": "tsx src/cli.ts discovery",
+    "sync:catalog": "tsx src/cli.ts sync",
+    "reference:export": "tsx src/cli.ts reference",
+    "images:gc": "tsx src/cli.ts images:gc",
+    "build:lambda": "node scripts/build-lambda.mjs"
+  },
+  "dependencies": {
+    "@catalog/db": "workspace:*",
+    "@catalog/scraper-core": "workspace:*",
+    "@catalog/shared": "workspace:*",
+    "drizzle-orm": "^0.44.6",
+    "zod": "^3.25.76",
+    "@aws-sdk/client-secrets-manager": "^3.723.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/node": "^22.18.13",
+    "esbuild": "^0.25.10",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "bin": {
+    "catalog-sync": "./src/cli.ts"
+  }
+}

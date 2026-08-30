@@ -1,0 +1,90 @@
+{
+  "base": "https://www.kafezona.com",
+  "generatedBy": "scripts/build-fixtures.mjs",
+  "pages": [
+    {
+      "name": "home.html",
+      "sourcePath": "/",
+      "status": 200,
+      "bytes": 88524
+    },
+    {
+      "name": "search-filter-init.html",
+      "sourcePath": "/search/",
+      "status": 200,
+      "bytes": 91796
+    },
+    {
+      "name": "category-kapsuli.html",
+      "sourcePath": "/kapsuli/",
+      "status": 200,
+      "bytes": 113423
+    },
+    {
+      "name": "category-empty.html",
+      "sourcePath": "/vending-zona/",
+      "status": 200,
+      "bytes": 97845
+    },
+    {
+      "name": "brand-lavazza.html",
+      "sourcePath": "/lavazza/",
+      "status": 200,
+      "bytes": 75083
+    },
+    {
+      "name": "brand-empty.html",
+      "sourcePath": "/kimbo/",
+      "status": 200,
+      "bytes": 66523
+    },
+    {
+      "name": "brands-index.html",
+      "sourcePath": "/brands/",
+      "status": 200,
+      "bytes": 79777
+    },
+    {
+      "name": "product-lavazza-super-crema.html",
+      "sourcePath": "/lavazza-super-crema/",
+      "status": 200,
+      "bytes": 86001
+    },
+    {
+      "name": "product-no-price.html",
+      "sourcePath": "/lavazza-gusto-forte/",
+      "status": 200,
+      "bytes": 85885
+    },
+    {
+      "name": "product-comma-price.html",
+      "sourcePath": "/dg-molini-napoli/",
+      "status": 200,
+      "bytes": 87392
+    },
+    {
+      "name": "promo-empty.html",
+      "sourcePath": "/promo/",
+      "status": 200,
+      "bytes": 79054
+    },
+    {
+      "name": "blog-empty.html",
+      "sourcePath": "/blog/",
+      "status": 200,
+      "bytes": 54016
+    },
+    {
+      "name": "legal-privacy.html",
+      "sourcePath": "/privacy/",
+      "status": 200,
+      "bytes": 74416
+    },
+    {
+      "name": "soft-404.html",
+      "sourcePath": "/__definitely-not-a-real-page-fixture/",
+      "status": 200,
+      "bytes": 88524
+    }
+  ]
+}

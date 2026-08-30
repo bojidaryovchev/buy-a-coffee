@@ -1,0 +1,690 @@
+{
+  "blockedByRobots": [
+    "https://www.kafezona.com/cdn-cgi/l/email-protection/"
+  ],
+  "catalogErrors": [],
+  "crawlErrors": [],
+  "description": "Failures encountered during discovery, plus stale sitemap entries.",
+  "invalidProductRecords": [],
+  "schemaVersion": "1.0.0",
+  "softNotFoundUrls": [
+    "https://www.kafezona.com/marki/",
+    "https://www.kafezona.com/products/amann-cascada/",
+    "https://www.kafezona.com/products/amann-sido/",
+    "https://www.kafezona.com/products/biancaffe-arabica/",
+    "https://www.kafezona.com/products/biancaffe-classica/",
+    "https://www.kafezona.com/products/biancaffe-dek/",
+    "https://www.kafezona.com/products/biancaffe-intenso/",
+    "https://www.kafezona.com/products/biancaffe-soave/",
+    "https://www.kafezona.com/products/bianchi-dg-forte-espresso-16/",
+    "https://www.kafezona.com/products/blue-lavazza-decaffeinato-100/",
+    "https://www.kafezona.com/products/borbone-crema-classica/",
+    "https://www.kafezona.com/products/borbone-crema-superiore-500/",
+    "https://www.kafezona.com/products/borbone-crema-superiore/",
+    "https://www.kafezona.com/products/borbone-intenso/",
+    "https://www.kafezona.com/products/caffitaly-espresso-corposo-10/",
+    "https://www.kafezona.com/products/caffitaly-espresso-morbido-10/",
+    "https://www.kafezona.com/products/caffitaly-espresso-panettone-10/",
+    "https://www.kafezona.com/products/dg-bianchi-arabica-espresso/",
+    "https://www.kafezona.com/products/dg-bianchi-chocolate-aroma-espresso/",
+    "https://www.kafezona.com/products/dg-bianchi-crema-aroma-espresso/",
+    "https://www.kafezona.com/products/dg-bianchi-fine-aroma/",
+    "https://www.kafezona.com/products/dg-bianchi-gusto-decaf/",
+    "https://www.kafezona.com/products/dg-bianchi-hazelnut-aroma-espresso/",
+    "https://www.kafezona.com/products/dg-bianchi-irish-cream-aroma-espresso/",
+    "https://www.kafezona.com/products/dg-borbone-baileys-cappuccino/",
+    "https://www.kafezona.com/products/dg-borbone-crema-classica/",
+    "https://www.kafezona.com/products/dg-borbone-crema-superiore/",
+    "https://www.kafezona.com/products/dg-borbone-lungo-sublime/",
+    "https://www.kafezona.com/products/dg-molini-firenze/",
+    "https://www.kafezona.com/products/dg-molini-milano/",
+    "https://www.kafezona.com/products/dg-molini-napoli/",
+    "https://www.kafezona.com/products/dg-molini-torino-16/",
+    "https://www.kafezona.com/products/dg-rema-caffe-arabica-gold/",
+    "https://www.kafezona.com/products/dg-rema-caffe-cappucino-cortado/",
+    "https://www.kafezona.com/products/dg-rema-caffe-caramel/",
+    "https://www.kafezona.com/products/dg-rema-caffe-cookies-16/",
+    "https://www.kafezona.com/products/dg-rema-caffe-cortado/",
+    "https://www.kafezona.com/products/dg-rema-caffe-creme-brulee/",
+    "https://www.kafezona.com/products/dg-rema-caffe-forte/",
+    "https://www.kafezona.com/products/dg-rema-caffe-gusto-satin/",
+    "https://www.kafezona.com/products/dg-rema-caffe-hazelnut/",
+    "https://www.kafezona.com/products/dg-rema-caffe-intenso-16/",
+    "https://www.kafezona.com/products/dg-rema-caffe-irish/",
+    "https://www.kafezona.com/products/dg-rema-caffe-matcha-16/",
+    "https://www.kafezona.com/products/elia-vending-aroma/",
+    "https://www.kafezona.com/products/elia-vending-crema/",
+    "https://www.kafezona.com/products/elia-vending-intenso/",
+    "https://www.kafezona.com/products/espressia-capri/",
+    "https://www.kafezona.com/products/espressia-positano/",
+    "https://www.kafezona.com/products/este-aroma/",
+    "https://www.kafezona.com/products/este-crema/",
+    "https://www.kafezona.com/products/este-forte/",
+    "https://www.kafezona.com/products/eurocaf-crema-vivace/",
+    "https://www.kafezona.com/products/eurocaf-piacere-oro/",
+    "https://www.kafezona.com/products/eurocaf-rosso-fuoco/",
+    "https://www.kafezona.com/products/illy-classico-500/",
+    "https://www.kafezona.com/products/julius-meinl-arabica/",
+    "https://www.kafezona.com/products/julius-meinl-clasico/",
+    "https://www.kafezona.com/products/julius-meinl-crema/",
+    "https://www.kafezona.com/products/kimbo-aroma-gold/",
+    "https://www.kafezona.com/products/kimbo-barista-napoli/",
+    "https://www.kafezona.com/products/lavazza-crema-aroma-expert/",
+    "https://www.kafezona.com/products/lavazza-crema-aroma/",
+    "https://www.kafezona.com/products/lavazza-gold-selection/",
+    "https://www.kafezona.com/products/lavazza-gran-espresso/",
+    "https://www.kafezona.com/products/lavazza-gusto-forte/",
+    "https://www.kafezona.com/products/lavazza-gusto-pieno/",
+    "https://www.kafezona.com/products/lavazza-super-crema/",
+    "https://www.kafezona.com/products/lavazza-top-class/",
+    "https://www.kafezona.com/products/modo-mio-lavazza-crema-gusto-36/",
+    "https://www.kafezona.com/products/modo-mio-lavazza-delizioso-36/",
+    "https://www.kafezona.com/products/modo-mio-lavazza-intenso-36/",
+    "https://www.kafezona.com/products/molini-firenze-150/",
+    "https://www.kafezona.com/products/molini-firenze/",
+    "https://www.kafezona.com/products/molini-napoli/",
+    "https://www.kafezona.com/products/molini-torino/",
+    "https://www.kafezona.com/products/nespresso-bianchi-arte-classico-10/",
+    "https://www.kafezona.com/products/nespresso-bianchi-arte-colombia/",
+    "https://www.kafezona.com/products/nespresso-bianchi-arte-costa-rica/",
+    "https://www.kafezona.com/products/nespresso-bianchi-arte-hazelnut/",
+    "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-classico-10/",
+    "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-forte-10/",
+    "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-ricco-10/",
+    "https://www.kafezona.com/products/nespresso-molini-firenze/",
+    "https://www.kafezona.com/products/nespresso-molini-napoli/",
+    "https://www.kafezona.com/products/nespresso-molini-torino-10/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-allegro/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-arabica-gold/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-caramel-10/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-cookies/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-decaffeinato/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-forte/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-fortissimo/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-gusto-satin/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-hazelnut/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-intenso/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-ristretto/",
+    "https://www.kafezona.com/products/nespresso-rema-caffe-supremo/",
+    "https://www.kafezona.com/products/rema-caffe-fortissimo-25/",
+    "https://www.kafezona.com/products/rema-caffe-intenso/",
+    "https://www.kafezona.com/products/tezzoro-espresso-classic/",
+    "https://www.kafezona.com/products/tezzoro-espresso-excellence-250/",
+    "https://www.kafezona.com/products/tezzoro-espresso-excellence/",
+    "https://www.kafezona.com/products/tezzoro-espresso-top-class/",
+    "https://www.kafezona.com/products/vandino-espresso-aroma/",
+    "https://www.kafezona.com/products/vandino-espresso-bar/",
+    "https://www.kafezona.com/products/vandino-espresso-club/",
+    "https://www.kafezona.com/products/vergnano-antica-bottega/",
+    "https://www.kafezona.com/products/vergnano-espresso/",
+    "https://www.kafezona.com/products/vergnano-gran-aroma/",
+    "https://www.kafezona.com/vergnano/"
+  ],
+  "staleSitemapEntries": [
+    {
+      "loc": "https://www.kafezona.com/marki/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/amann-cascada/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/amann-sido/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/biancaffe-arabica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/biancaffe-classica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/biancaffe-dek/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/biancaffe-intenso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/biancaffe-soave/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/bianchi-dg-forte-espresso-16/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/blue-lavazza-decaffeinato-100/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/borbone-crema-classica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/borbone-crema-classica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/borbone-crema-superiore-500/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/borbone-crema-superiore/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/borbone-intenso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/caffitaly-espresso-corposo-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/caffitaly-espresso-morbido-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/caffitaly-espresso-panettone-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-arabica-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-chocolate-aroma-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-crema-aroma-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-fine-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-gusto-decaf/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-hazelnut-aroma-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-bianchi-irish-cream-aroma-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-borbone-baileys-cappuccino/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-borbone-crema-classica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-borbone-crema-superiore/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-borbone-lungo-sublime/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-molini-firenze/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-molini-milano/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-molini-napoli/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-molini-torino-16/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-arabica-gold/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-cappucino-cortado/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-caramel/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-cookies-16/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-cortado/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-creme-brulee/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-forte/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-gusto-satin/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-hazelnut/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-intenso-16/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-irish/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/dg-rema-caffe-matcha-16/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/elia-vending-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/elia-vending-crema/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/elia-vending-intenso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/espressia-capri/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/espressia-positano/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/este-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/este-crema/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/este-forte/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/eurocaf-crema-vivace/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/eurocaf-piacere-oro/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/eurocaf-piacere-oro/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/eurocaf-rosso-fuoco/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/illy-classico-500/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/julius-meinl-arabica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/julius-meinl-clasico/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/julius-meinl-crema/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/kimbo-aroma-gold/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/kimbo-barista-napoli/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-crema-aroma-expert/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-crema-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-gold-selection/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-gran-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-gusto-forte/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-gusto-pieno/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-super-crema/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/lavazza-top-class/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/modo-mio-lavazza-crema-gusto-36/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/modo-mio-lavazza-delizioso-36/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/modo-mio-lavazza-intenso-36/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/molini-firenze-150/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/molini-firenze/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/molini-napoli/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/molini-torino/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-bianchi-arte-classico-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-bianchi-arte-colombia/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-bianchi-arte-costa-rica/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-bianchi-arte-hazelnut/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-classico-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-forte-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-lavazza-crema-gusto-ricco-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-molini-firenze/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-molini-napoli/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-molini-torino-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-allegro/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-arabica-gold/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-caramel-10/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-cookies/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-decaffeinato/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-forte/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-fortissimo/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-gusto-satin/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-hazelnut/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-intenso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-ristretto/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/nespresso-rema-caffe-supremo/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/rema-caffe-fortissimo-25/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/rema-caffe-intenso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/tezzoro-espresso-classic/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/tezzoro-espresso-excellence-250/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/tezzoro-espresso-excellence/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/tezzoro-espresso-top-class/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vandino-espresso-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vandino-espresso-bar/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vandino-espresso-club/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vergnano-antica-bottega/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vergnano-espresso/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/products/vergnano-gran-aroma/",
+      "outcome": "soft_404",
+      "verified": true
+    },
+    {
+      "loc": "https://www.kafezona.com/vergnano/",
+      "outcome": "soft_404",
+      "verified": true
+    }
+  ]
+}

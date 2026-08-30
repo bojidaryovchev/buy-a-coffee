@@ -1,0 +1,40 @@
+# Copy to terraform.tfvars and adjust. Never commit terraform.tfvars.
+
+aws_region  = "eu-central-1"
+project     = "coffee-catalog"
+environment = "prod"
+
+# Built by: pnpm --filter @catalog/scraper build:lambda
+lambda_zip_path = "build/scraper-lambda.zip"
+
+lambda_memory_mb       = 1024
+lambda_timeout_seconds = 300
+
+# Every 6 hours. The source catalog changes slowly, so this is generous.
+schedule_expression = "rate(6 hours)"
+schedule_timezone   = "Europe/Sofia"
+schedule_enabled    = true
+
+# Leave empty to have Terraform create an empty secret for you to populate.
+# Set it to reuse a secret you already manage.
+database_url_secret_arn = ""
+
+# Optional: CDN domain in front of the image bucket.
+image_public_base_url = ""
+
+# Optional: receives alarm notifications. You must confirm the email.
+alarm_email = ""
+
+log_retention_days       = 30
+no_successful_sync_hours = 24
+
+scraper_settings = {
+  CRAWL_CONCURRENCY      = "4"
+  CRAWL_MIN_DELAY_MS     = "150"
+  CRAWL_TIMEOUT_MS       = "20000"
+  CRAWL_MAX_RETRIES      = "3"
+  SYNC_MISSING_THRESHOLD = "3"
+  IMAGE_CONCURRENCY      = "4"
+  IMAGE_MIN_DELAY_MS     = "50"
+  LOG_LEVEL              = "info"
+}

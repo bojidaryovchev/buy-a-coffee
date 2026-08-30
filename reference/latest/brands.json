@@ -1,0 +1,127 @@
+{
+  "brands": [
+    {
+      "name": "AMANN",
+      "productCount": 2,
+      "rawSlug": "amann",
+      "sourceId": "638",
+      "sourceKey": "amann",
+      "url": "https://www.kafezona.com/amann/"
+    },
+    {
+      "name": "BIANCAFFE",
+      "productCount": 3,
+      "rawSlug": "biancafe",
+      "sourceId": "634",
+      "sourceKey": "biancafe",
+      "url": "https://www.kafezona.com/biancafe/"
+    },
+    {
+      "name": "BIANCHI",
+      "productCount": 12,
+      "rawSlug": "bianchi",
+      "sourceId": "640",
+      "sourceKey": "bianchi",
+      "url": "https://www.kafezona.com/bianchi/"
+    },
+    {
+      "name": "BORBONE",
+      "productCount": 9,
+      "rawSlug": "borbone",
+      "sourceId": "643",
+      "sourceKey": "borbone",
+      "url": "https://www.kafezona.com/borbone/"
+    },
+    {
+      "name": "CAFFITALY",
+      "productCount": 3,
+      "rawSlug": "caffitaly",
+      "sourceId": "716",
+      "sourceKey": "caffitaly",
+      "url": "https://www.kafezona.com/caffitaly/"
+    },
+    {
+      "name": "ELIA",
+      "productCount": 2,
+      "rawSlug": "elia",
+      "sourceId": "722",
+      "sourceKey": "elia",
+      "url": "https://www.kafezona.com/elia/"
+    },
+    {
+      "name": "ESTE",
+      "productCount": 3,
+      "rawSlug": "este",
+      "sourceId": "723",
+      "sourceKey": "este",
+      "url": "https://www.kafezona.com/este/"
+    },
+    {
+      "name": "EUROCAF",
+      "productCount": 4,
+      "rawSlug": "eurocaf",
+      "sourceId": "635",
+      "sourceKey": "eurocaf",
+      "url": "https://www.kafezona.com/eurocaf/"
+    },
+    {
+      "name": "ILLY",
+      "productCount": 1,
+      "rawSlug": "illy",
+      "sourceId": "754",
+      "sourceKey": "illy",
+      "url": "https://www.kafezona.com/illy/"
+    },
+    {
+      "name": "JULIUS MEINL",
+      "productCount": 3,
+      "rawSlug": "julius-meinl",
+      "sourceId": "639",
+      "sourceKey": "julius-meinl",
+      "url": "https://www.kafezona.com/julius-meinl/"
+    },
+    {
+      "name": "LAVAZZA",
+      "productCount": 15,
+      "rawSlug": "lavazza",
+      "sourceId": "605",
+      "sourceKey": "lavazza",
+      "url": "https://www.kafezona.com/lavazza/"
+    },
+    {
+      "name": "MOLINI",
+      "productCount": 10,
+      "rawSlug": "molini",
+      "sourceId": "644",
+      "sourceKey": "molini",
+      "url": "https://www.kafezona.com/molini/"
+    },
+    {
+      "name": "REMA CAFFE",
+      "productCount": 27,
+      "rawSlug": "rema-caffe",
+      "sourceId": "631",
+      "sourceKey": "rema-caffe",
+      "url": "https://www.kafezona.com/rema-caffe/"
+    },
+    {
+      "name": "TEZZORO",
+      "productCount": 1,
+      "rawSlug": "tezzoro",
+      "sourceId": "751",
+      "sourceKey": "tezzoro",
+      "url": "https://www.kafezona.com/tezzoro/"
+    },
+    {
+      "name": "VERGNANO",
+      "productCount": 3,
+      "rawSlug": " vergnano",
+      "sourceId": "642",
+      "sourceKey": "vergnano",
+      "url": "https://www.kafezona.com/%20vergnano/"
+    }
+  ],
+  "count": 15,
+  "description": "Brands that carry products. `rawSlug` preserves the source slug verbatim, including a leading space on one real brand.",
+  "schemaVersion": "1.0.0"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@catalog/scraper-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@catalog/db": "workspace:*",
+    "@catalog/shared": "workspace:*",
+    "cheerio": "^1.1.2",
+    "drizzle-orm": "^0.44.6",
+    "zod": "^3.25.76",
+    "domhandler": "^5.0.3",
+    "@aws-sdk/client-s3": "^3.723.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.13",
+    "typescript": "^5.9.3"
+  }
+}

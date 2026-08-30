@@ -1,0 +1,94 @@
+{
+  "categoryTree": [
+    {
+      "children": [
+        {
+          "children": [],
+          "name": "A Modo Mio",
+          "productCount": 3,
+          "sourceKey": "a-modo-mio"
+        },
+        {
+          "children": [],
+          "name": "Caffitaly",
+          "productCount": 3,
+          "sourceKey": "caffitaly"
+        },
+        {
+          "children": [],
+          "name": "Lavazza Blue",
+          "productCount": 1,
+          "sourceKey": "lavazza-blue"
+        },
+        {
+          "children": [],
+          "name": "Dolce Gusto",
+          "productCount": 28,
+          "sourceKey": "dolce-gusto"
+        },
+        {
+          "children": [],
+          "name": "Nespresso",
+          "productCount": 22,
+          "sourceKey": "nespresso"
+        }
+      ],
+      "name": "Капсули",
+      "productCount": 57,
+      "sourceKey": "kapsuli"
+    },
+    {
+      "children": [],
+      "name": "Кафе дози",
+      "productCount": 3,
+      "sourceKey": "kafe-dozi"
+    },
+    {
+      "children": [],
+      "name": "Кафе на зърна",
+      "productCount": 51,
+      "sourceKey": "kafe-na-zyrna"
+    }
+  ],
+  "description": "Entity relationships derived from the catalog.",
+  "productsOnPromotion": 0,
+  "productsPerBrand": {
+    "amann": 2,
+    "biancafe": 3,
+    "bianchi": 12,
+    "borbone": 9,
+    "caffitaly": 3,
+    "elia": 2,
+    "este": 3,
+    "eurocaf": 3,
+    "illy": 1,
+    "julius-meinl": 3,
+    "lavazza": 15,
+    "molini": 10,
+    "rema-caffe": 27,
+    "tezzoro": 1,
+    "vergnano": 3
+  },
+  "productsPerCategory": {
+    "a-modo-mio": 3,
+    "caffitaly": 3,
+    "dolce-gusto": 28,
+    "kafe-dozi": 3,
+    "kafe-na-zyrna": 50,
+    "lavazza-blue": 1,
+    "nespresso": 22
+  },
+  "productsWithoutBrand": 13,
+  "productsWithoutPrice": 2,
+  "productsWithoutWeight": 1,
+  "schemaVersion": "1.0.0",
+  "urlCollisions": [
+    {
+      "path": "/borbone-crema-classica/",
+      "sourceKeys": [
+        "/borbone-crema-classica/#1000g",
+        "/borbone-crema-classica/#500g"
+      ]
+    }
+  ]
+}

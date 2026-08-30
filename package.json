@@ -1,0 +1,42 @@
+{
+  "name": "catalog-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run && pnpm --filter @catalog/web test",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --project integration",
+    "db:migrate": "pnpm --filter @catalog/db migrate",
+    "db:generate": "pnpm --filter @catalog/db generate",
+    "db:studio": "pnpm --filter @catalog/db studio",
+    "crawl:discovery": "pnpm --filter @catalog/scraper crawl:discovery",
+    "sync:catalog": "pnpm --filter @catalog/scraper sync:catalog",
+    "reference:export": "pnpm --filter @catalog/scraper reference:export",
+    "images:gc": "pnpm --filter @catalog/scraper images:gc",
+    "test:e2e": "pnpm --filter @catalog/web test:e2e",
+    "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
+    "check:originality": "pnpm --filter @catalog/web check:originality",
+    "build": "pnpm --filter @catalog/web build",
+    "dev": "pnpm --filter @catalog/web dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.18.13",
+    "eslint": "^9.39.1",
+    "globals": "^15.15.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
+  }
+}

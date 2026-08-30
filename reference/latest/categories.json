@@ -1,0 +1,87 @@
+{
+  "categories": [
+    {
+      "name": "A Modo Mio",
+      "parentKey": "kapsuli",
+      "position": 0,
+      "productCount": 3,
+      "rawSlug": "a-modo-mio",
+      "sourceId": "625",
+      "sourceKey": "a-modo-mio",
+      "url": "https://www.kafezona.com/a-modo-mio/"
+    },
+    {
+      "name": "Caffitaly",
+      "parentKey": "kapsuli",
+      "position": 1,
+      "productCount": 3,
+      "rawSlug": "caffitaly",
+      "sourceId": "624",
+      "sourceKey": "caffitaly",
+      "url": "https://www.kafezona.com/caffitaly/"
+    },
+    {
+      "name": "Dolce Gusto",
+      "parentKey": "kapsuli",
+      "position": 3,
+      "productCount": 28,
+      "rawSlug": "dolce-gusto",
+      "sourceId": "615",
+      "sourceKey": "dolce-gusto",
+      "url": "https://www.kafezona.com/dolce-gusto/"
+    },
+    {
+      "name": "Кафе дози",
+      "parentKey": null,
+      "position": 1,
+      "productCount": 3,
+      "rawSlug": "kafe-dozi",
+      "sourceId": "612",
+      "sourceKey": "kafe-dozi",
+      "url": "https://www.kafezona.com/kafe-dozi/"
+    },
+    {
+      "name": "Кафе на зърна",
+      "parentKey": null,
+      "position": 2,
+      "productCount": 51,
+      "rawSlug": "kafe-na-zyrna",
+      "sourceId": "608",
+      "sourceKey": "kafe-na-zyrna",
+      "url": "https://www.kafezona.com/kafe-na-zyrna/"
+    },
+    {
+      "name": "Капсули",
+      "parentKey": null,
+      "position": 0,
+      "productCount": 57,
+      "rawSlug": "kapsuli",
+      "sourceId": "611",
+      "sourceKey": "kapsuli",
+      "url": "https://www.kafezona.com/kapsuli/"
+    },
+    {
+      "name": "Lavazza Blue",
+      "parentKey": "kapsuli",
+      "position": 2,
+      "productCount": 1,
+      "rawSlug": "lavazza-blue",
+      "sourceId": "618",
+      "sourceKey": "lavazza-blue",
+      "url": "https://www.kafezona.com/lavazza-blue/"
+    },
+    {
+      "name": "Nespresso",
+      "parentKey": "kapsuli",
+      "position": 4,
+      "productCount": 22,
+      "rawSlug": "nespresso",
+      "sourceId": "614",
+      "sourceKey": "nespresso",
+      "url": "https://www.kafezona.com/nespresso/"
+    }
+  ],
+  "count": 8,
+  "description": "Category taxonomy, including parent/child relationships.",
+  "schemaVersion": "1.0.0"
+}

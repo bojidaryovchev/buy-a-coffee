@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вендинг Зона</title>
+  <meta name="description" content="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'kz-xdark':  '#1c0f07',
+            'kz-dark':   '#2c1810',
+            'kz-medium': '#c08a5a',
+            'kz-light':  '#ede4d8',
+            'kz-xlight': '#f7f2ee',
+            'kz-sdark':  '#6b3f1f',
+            'kz-smed':   '#b8a898',
+            'kz-slight': '#ddd5c8',
+            'kz-red':    '#d4380d',
+          },
+          fontFamily: {
+            sans: ['Roboto', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; }
+
+    /* Vue cloak — hide un-compiled filter app markup until mount */
+    [v-cloak] { display: none; }
+
+    /* Shared filter UI styling (search, brand, products filter pages) */
+    .filter-checkbox {
+      appearance: none; -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border: 1.5px solid #b8a898; border-radius: 4px;
+      background: white; cursor: pointer; flex-shrink: 0; position: relative;
+    }
+    .filter-checkbox:checked { background: #c08a5a; border-color: #c08a5a; }
+    .filter-checkbox:checked::after {
+      content: ''; position: absolute;
+      left: 5px; top: 2px; width: 8px; height: 12px;
+      border: 2px solid white; border-top: none; border-left: none; transform: rotate(45deg);
+    }
+    .filter-checkbox:indeterminate { background: #e8c9a8; border-color: #c08a5a; }
+    .filter-checkbox:indeterminate::after {
+      content: ''; position: absolute;
+      left: 4px; top: 8px; width: 10px; height: 2px;
+      background: #c08a5a;
+    }
+  </style>
+<style>
+  .filter-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #b8a898;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .filter-checkbox:checked {
+    background: #c08a5a;
+    border-color: #c08a5a;
+  }
+  .filter-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 6px;
+    height: 10px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+  .filter-section-content {
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+  .seo-content p { margin-bottom: 0.75rem; }
+  .seo-content p:last-child { margin-bottom: 0; }
+  .seo-content strong, .seo-content b { font-weight: 700; }
+  .seo-content a { text-decoration: underline; opacity: 0.85; }
+  .seo-content a:hover { opacity: 1; }
+</style>
+</head>
+<body class="bg-white text-[#141414] overflow-x-hidden">
+
+          
+
+<div id="warning-banner" style="display:none" class="bg-[#c08a5a] px-4 py-[4px] lg:py-[11px] flex-shrink-0">
+  <div class="max-w-[1440px] mx-auto lg:px-[120px] flex items-center justify-between">
+    <div class="flex items-center gap-3 lg:gap-5 min-w-0">
+            <div class="flex-shrink-0 flex items-center justify-center w-6 h-6 lg:w-[30px] lg:h-[30px]">
+        <svg width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 21.4984 18.8283" fill="none" xmlns="http://www.w3.org/2000/svg"><path id="Vector" d="M10.7495 7.08221V11.0822M10.7495 14.0822H10.7595M9.1125 1.67322L1.0065 15.2072C0.839393 15.4966 0.750965 15.8247 0.750008 16.1589C0.749051 16.493 0.835599 16.8216 1.00104 17.112C1.16649 17.4023 1.40506 17.6443 1.69304 17.8138C1.98101 17.9833 2.30835 18.0745 2.6425 18.0782H18.8565C19.1905 18.0744 19.5177 17.9832 19.8055 17.8137C20.0933 17.6442 20.3318 17.4024 20.4972 17.1122C20.6626 16.822 20.7492 16.4936 20.7484 16.1596C20.7476 15.8256 20.6594 15.4976 20.4925 15.2082L12.3865 1.67222C12.216 1.39072 11.9757 1.15796 11.6889 0.996418C11.4022 0.834872 11.0786 0.75 10.7495 0.75C10.4204 0.75 10.0968 0.834872 9.81005 0.996418C9.52329 1.15796 9.28304 1.39072 9.1125 1.67222V1.67322Z" stroke="var(--stroke-0, #D4380D)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+            <p class="text-[#ede4d8] text-sm lg:text-base leading-snug lg:whitespace-nowrap">
+        Не работим в понеделник 21 септември. Поръчките ще бъдат обработени на 22 септември.
+      </p>
+    </div>
+    <button
+      onclick="closeBanner()"
+      class="flex-shrink-0 ml-3 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center cursor-pointer"
+    >
+      <img src="/assets/icon-x-small.svg" alt="Затвори" class="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px] object-contain">
+    </button>
+  </div>
+</div>
+<script>
+(function ()
+{
+  var KEY = 'warning_banner_closed_at';
+  var DAYS = 7;
+  var stored = localStorage.getItem(KEY);
+  var show = true;
+  if (stored)
+  {
+    var diff = Date.now() - parseInt(stored, 10);
+    if (diff < DAYS * 24 * 60 * 60 * 1000)
+    {
+      show = false;
+    }
+  }
+  if (show)
+  {
+    document.getElementById('warning-banner').style.display = '';
+  }
+}());
+
+function closeBanner()
+{
+  localStorage.setItem('warning_banner_closed_at', Date.now().toString());
+  document.getElementById('warning-banner').style.display = 'none';
+}
+</script>
+
+
+<header class="sticky top-0 z-40 bg-white shadow-sm">
+
+  
+  <div class="hidden lg:flex items-center gap-[82px] px-[120px] py-8 border-b border-[#ede4d8] max-w-[1440px] mx-auto w-full">
+    
+    <a href="/" class="flex items-center gap-2 flex-shrink-0">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-10 h-10 flex-shrink-0">
+      <span class="font-light text-xl leading-7 text-[#1c0f07]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    
+    <div class="flex-1 flex items-center bg-white border border-[#6b3f1f] rounded-full pl-4">
+      <input
+        type="text"
+        placeholder="Търсете продукти..."
+        class="flex-1 text-[#888] text-base py-3 outline-none bg-transparent placeholder:text-[#888] min-w-0"
+        data-search-input
+        oninput="handleSearchInput(this.value)"
+        onkeydown="handleSearchKeydown(event, this.value)"
+      >
+      <button onclick="triggerSearch(this.previousElementSibling.value)" class="bg-[#c08a5a] flex items-center justify-center px-5 self-stretch rounded-r-full flex-shrink-0">
+        <img src="/assets/icon-search-white.svg" alt="Търси" class="w-4 h-4 object-contain">
+      </button>
+    </div>
+    
+    <div class="flex items-center gap-5 flex-shrink-0">
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <img src="/assets/icon-phone-header.svg" alt="" class="w-6 h-6 object-contain">
+        <a href="tel:0887 695 267" class="text-[#2c1810] text-base whitespace-nowrap hover:text-[#c08a5a] transition-colors">0887 695 267</a>
+      </div>
+    </div>
+  </div>
+
+  
+  <nav class="hidden lg:flex items-center px-[120px] py-3 max-w-[1440px] mx-auto w-full bg-white relative gap-3">
+
+                      <div class="relative group">
+        <a href="/kafe-na-zyrna/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kafe-na-zyrna.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Кафе на зърна
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/kapsuli/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kapsuli.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Капсули
+                    <img src="/assets/icon-chevron-down.svg" alt="" class="w-3 h-1.5 object-contain transition-transform duration-200 group-hover:-rotate-180 opacity-60">
+                  </a>
+                <div class="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border border-[#e5e5e5] rounded-[10px] shadow-xl z-50 overflow-hidden min-w-[200px]">
+          <a href="/kapsuli/" class="px-5 py-2.5 text-[13px] text-[#c08a5a] hover:bg-[#f7f2ee] transition-colors border-b border-[#e5e5e5]">Всички капсули</a>
+                    <a href="/nespresso/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Nespresso </a>
+                    <a href="/dolce-gusto/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Dolce Gusto </a>
+                    <a href="/lavazza-blue/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Lavazza Blue</a>
+                    <a href="/caffitaly/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors border-b border-[#f0f0f0]">Caffitaly</a>
+                    <a href="/a-modo-mio/" class="px-5 py-2.5 text-[13px] text-[#4a4a4a] hover:bg-[#f7f2ee] hover:text-[#c08a5a] transition-colors">A Modo Mio</a>
+                  </div>
+              </div>
+                      <div class="relative group">
+        <a href="/kafe-dozi/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/kafe-dozi.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Кафе дози
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/raztvorimo kafe/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+                    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0">
+            <img src="/img/raztvorimo kafe.png-240w.png" alt="" class="w-3.5 h-3.5 object-contain opacity-70">
+          </div>
+                    Разтворимо кафе
+                  </a>
+              </div>
+                      <div class="relative group">
+        <a href="/vending-zona/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#c08a5a]">
+                    Вендинг Зона
+                  </a>
+              </div>
+    
+    <div class="w-px h-5 bg-[#e5e5e5] mx-1 flex-shrink-0"></div>
+
+    
+    <div class="relative group">
+      <a href="/brands/" class="flex items-center gap-1.5 px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">
+        Бранд
+        <img src="/assets/icon-chevron-down.svg" alt="" class="w-3 h-1.5 object-contain opacity-60 transition-transform duration-200 group-hover:-rotate-180">
+      </a>
+      <div class="absolute right-0 top-full hidden group-hover:flex bg-white border border-[#e5e5e5] rounded-[10px] shadow-xl z-50 p-6">
+        <div class="flex gap-6 items-center flex-wrap max-w-[640px]">
+                    <a href="/lollocafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/lollocafe.png-400w.png" alt="LOLLOCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/eurocaf/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/eurocaf.png-400w.png" alt="EUROCAF" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/bianchi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/bianchi.png-400w.png" alt="BIANCHI " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/biancafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/biancafe.png-400w.png" alt="BIANCAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/rema-caffe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/rema-caffe.png-400w.png" alt="REMA CAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/molini/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/molini.png-400w.png" alt="MOLINI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/kimbo/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/kimbo.png-400w.png" alt="KIMBO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/amann/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/amann.png-400w.png" alt="AMANN" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/garibaldi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/garibaldi.png-400w.png" alt="GARIBALDI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/ vergnano/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/ vergnano.png-400w.png" alt=" VERGNANO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/borbone/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/borbone.png-400w.png" alt="BORBONE " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/julius-meinl/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/julius-meinl.png-400w.png" alt="JULIUS MEINL" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/lavazza/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/lavazza.png-400w.png" alt="LAVAZZA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/tezzoro/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/tezzoro.png-400w.png" alt="TEZZORO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/este/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/este.png-400w.png" alt="ESTE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/elia/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/elia.png-400w.png" alt="ELIA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/nescafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/nescafe.png-400w.png" alt="NESCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/foodness/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/foodness.png-400w.png" alt="FoodNess" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/illy/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/illy.png-400w.png" alt="ILLY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/caffitaly/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/caffitaly.png-400w.png" alt="CAFFITALY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/jacobs/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 hover:border-[#c08a5a] transition-colors p-2">
+            <img src="/img/jacobs.png-400w.png" alt="JACOBS" class="w-[56px] h-auto object-contain">
+          </a>
+                  </div>
+      </div>
+    </div>
+
+    <a href="/promo/" class="px-3 py-2 text-sm transition-colors whitespace-nowrap text-[#1c0f07] hover:text-[#c08a5a]">Промоции</a>
+    <a href="/blog/" class="px-3 py-2 text-sm text-[#1c0f07] hover:text-[#c08a5a] transition-colors whitespace-nowrap">Блог</a>
+  </nav>
+
+  
+  <div class="flex lg:hidden items-center justify-between p-4">
+    <button onclick="openMobileMenu()" class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+      <img src="/assets/icon-menu.svg" alt="Меню" class="w-4 h-3 object-contain">
+    </button>
+    <a href="/" class="flex items-center gap-1">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#1c0f07]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <div class="flex items-center gap-0.5 flex-shrink-0">
+      <img src="/assets/icon-phone-header-sm.svg" alt="" class="w-3 h-3 object-contain flex-shrink-0">
+      <a href="tel:0887 695 267" class="text-[#2c1810] text-[10px] whitespace-nowrap hover:text-[#c08a5a] transition-colors">0887 695 267</a>
+    </div>
+  </div>
+
+  
+  <div class="flex lg:hidden bg-[#1c0f07] px-4 py-4">
+    <div class="flex-1 flex items-center bg-white border border-[#c08a5a] rounded-full overflow-hidden pl-4">
+      <input
+        type="text"
+        placeholder="Търсете продукти..."
+        class="flex-1 text-[#888] text-base py-2.5 outline-none bg-transparent placeholder:text-[#888] min-w-0"
+        data-search-input
+        oninput="handleSearchInput(this.value)"
+        onkeydown="handleSearchKeydown(event, this.value)"
+      >
+      <button onclick="triggerSearch(this.previousElementSibling.value)" class="bg-[#c08a5a] flex items-center justify-center px-4 self-stretch rounded-r-full flex-shrink-0">
+        <img src="/assets/icon-search-white.svg" alt="Търси" class="w-4 h-4 object-contain">
+      </button>
+    </div>
+  </div>
+
+</header>
+
+
+<div id="mobile-menu" class="fixed inset-0 z-50 hidden bg-[#2c1810] flex-col gap-6 pt-4 pb-[60px] px-4 overflow-y-auto">
+
+  <div class="flex items-center justify-between w-full flex-shrink-0">
+    <a href="/" class="flex items-center gap-1">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <button onclick="closeMobileMenu()" class="w-6 h-6 flex items-center justify-center flex-shrink-0 cursor-pointer">
+      <img src="/assets/icon-x-mobile-menu.svg" alt="Затвори" class="w-[15px] h-[15px] object-contain">
+    </button>
+  </div>
+
+  <div class="flex flex-col gap-3 w-full flex-shrink-0">
+
+    <div class="w-full">
+      <div class="w-full flex items-center gap-1 px-4 py-2 border-b border-[#b8a898]">
+        <span class="flex-1 font-bold text-[14px] text-white text-left tracking-[0.014em]">Кафе</span>
+      </div>
+      <div class="flex flex-col gap-[6px] mt-3">
+                                      <div>
+                        <a href="/kafe-na-zyrna/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kafe-na-zyrna.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Кафе на зърна</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <button onclick="toggleKafeSub('kapsuli')" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px] cursor-pointer">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kapsuli.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Капсули</span>
+                            <img src="/assets/icon-arrow-circle.svg" alt="" class="w-[20px] h-[20px] object-contain flex-shrink-0">
+            </button>
+            <div id="kapsuli-sub" class="hidden flex-col">
+              <a href="/kapsuli/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-[#c08a5a] leading-4">Всички капсули</span>
+              </a>
+                            <a href="/nespresso/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Nespresso </span>
+              </a>
+                            <a href="/dolce-gusto/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Dolce Gusto </span>
+              </a>
+                            <a href="/lavazza-blue/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Lavazza Blue</span>
+              </a>
+                            <a href="/caffitaly/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">Caffitaly</span>
+              </a>
+                            <a href="/a-modo-mio/" class="flex items-center gap-1 px-4 py-2 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+                <div class="w-5 h-5 rounded-full flex-shrink-0 opacity-0"></div>
+                <span class="flex-1 text-[12px] text-white leading-4">A Modo Mio</span>
+              </a>
+                          </div>
+                      </div>
+                                      <div>
+                        <a href="/kafe-dozi/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/kafe-dozi.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Кафе дози</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <a href="/raztvorimo kafe/" class="w-full flex items-center gap-[4px] px-4 bg-[#c08a5a] rounded-full h-[36px]">
+                            <div class="w-5 h-5 rounded-full bg-[#f5f5f5] flex items-center justify-center flex-shrink-0 p-0.5">
+                <img src="/img/raztvorimo kafe.png-240w.png" alt="" class="w-full h-full object-contain opacity-80">
+              </div>
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Разтворимо кафе</span>
+                          </a>
+                      </div>
+                                      <div>
+                        <a href="/vending-zona/" class="w-full flex items-center gap-[4px] px-4 bg-[#a0734a] rounded-full h-[36px]">
+                            <span class="flex-1 text-[14px] text-white leading-4 text-left">Вендинг Зона</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>            </a>
+                      </div>
+              </div>
+    </div>
+
+    
+    <div class="w-full">
+      <button onclick="toggleMenuSection('marki')" class="w-full flex items-center gap-1 px-4 py-2 border-b border-[#b8a898] cursor-pointer">
+        <span id="marki-label" class="flex-1 font-bold text-[14px] text-white text-left tracking-[0.014em]">Бранд</span>
+        <div id="marki-icon-closed" class="w-[18px] h-[18px] rounded-full border border-white/80 flex items-center justify-center flex-shrink-0">
+          <img src="/assets/icon-plus.svg" alt="" class="w-2.5 h-2.5 object-contain">
+        </div>
+        <img id="marki-icon-open" src="/assets/icon-arrow-circle.svg" alt="" class="w-[18px] h-[18px] object-contain flex-shrink-0 hidden">
+      </button>
+      <div id="marki-sub" class="hidden flex-col">
+        <a href="/brands/" class="flex items-center px-4 py-3 border-b border-[#6b3f1f] hover:bg-[#3d2215] transition-colors">
+          <span class="flex-1 text-[12px] text-[#c08a5a] leading-4 font-bold">Виж всички бранд &rarr;</span>
+        </a>
+        <div class="flex flex-wrap gap-2 pt-4 pb-4 px-1">
+                    <a href="/lollocafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/lollocafe.png-400w.png" alt="LOLLOCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/eurocaf/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/eurocaf.png-400w.png" alt="EUROCAF" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/bianchi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/bianchi.png-400w.png" alt="BIANCHI " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/biancafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/biancafe.png-400w.png" alt="BIANCAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/rema-caffe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/rema-caffe.png-400w.png" alt="REMA CAFFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/molini/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/molini.png-400w.png" alt="MOLINI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/kimbo/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/kimbo.png-400w.png" alt="KIMBO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/amann/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/amann.png-400w.png" alt="AMANN" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/garibaldi/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/garibaldi.png-400w.png" alt="GARIBALDI" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/ vergnano/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/ vergnano.png-400w.png" alt=" VERGNANO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/borbone/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/borbone.png-400w.png" alt="BORBONE " class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/julius-meinl/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/julius-meinl.png-400w.png" alt="JULIUS MEINL" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/lavazza/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/lavazza.png-400w.png" alt="LAVAZZA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/tezzoro/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/tezzoro.png-400w.png" alt="TEZZORO" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/este/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/este.png-400w.png" alt="ESTE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/elia/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/elia.png-400w.png" alt="ELIA" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/nescafe/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/nescafe.png-400w.png" alt="NESCAFE" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/foodness/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/foodness.png-400w.png" alt="FoodNess" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/illy/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/illy.png-400w.png" alt="ILLY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/caffitaly/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/caffitaly.png-400w.png" alt="CAFFITALY" class="w-[56px] h-auto object-contain">
+          </a>
+                    <a href="/jacobs/" class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] flex items-center justify-center p-2 flex-shrink-0 hover:border-[#c08a5a] transition-colors">
+            <img src="/img/jacobs.png-400w.png" alt="JACOBS" class="w-[56px] h-auto object-contain">
+          </a>
+                  </div>
+      </div>
+    </div>
+
+    <div class="w-full flex flex-col gap-[6px]">
+      <a href="/blog/" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Блог</span></a>
+      <a href="/promo/" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Промоции</span></a>
+      <a href="#" class="flex items-center px-4 py-[10px] border-b border-[#b8a898]"><span class="font-bold text-[14px] text-white tracking-[0.014em]">Поверителност</span></a>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+function openMobileMenu()
+{
+  var menu = document.getElementById('mobile-menu');
+  menu.classList.remove('hidden');
+  menu.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileMenu()
+{
+  var menu = document.getElementById('mobile-menu');
+  menu.classList.add('hidden');
+  menu.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+
+function toggleKafeSub(subId)
+{
+  var sub = document.getElementById(subId + '-sub');
+  var isOpen = !sub.classList.contains('hidden');
+  if (isOpen)
+  {
+    sub.classList.add('hidden');
+    sub.classList.remove('flex');
+  }
+  else
+  {
+    sub.classList.remove('hidden');
+    sub.classList.add('flex');
+  }
+}
+
+function toggleMenuSection(id)
+{
+  var sub = document.getElementById(id + '-sub');
+  var label = document.getElementById(id + '-label');
+  var iconClosed = document.getElementById(id + '-icon-closed');
+  var iconOpen = document.getElementById(id + '-icon-open');
+  var isOpen = !sub.classList.contains('hidden');
+  if (isOpen)
+  {
+    sub.classList.add('hidden');
+    sub.classList.remove('flex');
+    if (label) label.style.color = '';
+    if (iconClosed) iconClosed.classList.remove('hidden');
+    if (iconOpen) iconOpen.classList.add('hidden');
+  }
+  else
+  {
+    sub.classList.remove('hidden');
+    sub.classList.add('flex');
+    if (label) label.style.color = '#c08a5a';
+    if (iconClosed) iconClosed.classList.add('hidden');
+    if (iconOpen) iconOpen.classList.remove('hidden');
+  }
+}
+
+/* ===================== SEARCH ===================== */
+var _searchTimer = null;
+var _isSearchPage = window.location.pathname === '/search/';
+
+function handleSearchInput(value)
+{
+  clearTimeout(_searchTimer);
+  var trimmed = value.trim();
+  if (trimmed.length < 2)
+  {
+    if (_isSearchPage && trimmed.length === 0)
+    {
+      history.pushState(null, '', '/search/');
+      if (typeof applyFiltersFromURL === 'function') applyFiltersFromURL();
+    }
+    return;
+  }
+  _searchTimer = setTimeout(function()
+  {
+    triggerSearch(trimmed);
+  }, 300);
+}
+
+function handleSearchKeydown(event, value)
+{
+  if (event.key === 'Enter')
+  {
+    clearTimeout(_searchTimer);
+    var trimmed = value.trim();
+    if (trimmed.length > 0) triggerSearch(trimmed);
+  }
+}
+
+function triggerSearch(value)
+{
+  var trimmed = (value || '').trim();
+  if (!trimmed) return;
+  var targetUrl = '/search/?q=' + encodeURIComponent(trimmed);
+  if (_isSearchPage)
+  {
+    history.pushState(null, '', targetUrl);
+    if (typeof applyFiltersFromURL === 'function') applyFiltersFromURL();
+  }
+  else
+  {
+    window.location.href = targetUrl;
+  }
+}
+
+/* Pre-fill search inputs on page load if already on /search/ */
+(function ()
+{
+  if (!_isSearchPage) return;
+  var params = new URLSearchParams(window.location.search);
+  var kw = params.get('q') || '';
+  if (!kw) return;
+  document.querySelectorAll('input[data-search-input]').forEach(function(inp)
+  {
+    inp.value = kw;
+  });
+}());
+</script>
+
+
+<div class="lg:hidden flex items-center justify-between px-4 py-3 border-b border-[#f7f2ee]">
+  <p class="text-[#888] text-xs font-normal tracking-[0.01em]">ПРОДУКТИ (<span id="product-count">0</span>)</p>
+  <button onclick="openMobileFilter()" class="flex items-center gap-1.5 text-[#888] hover:text-[#c08a5a] transition-colors">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="text-xs tracking-[0.01em]">ФИЛТРИ</span>
+  </button>
+</div>
+
+<div class="max-w-[1440px] mx-auto">
+  <div class="lg:flex items-start">
+
+    
+    <div class="hidden lg:flex flex-col gap-4 flex-shrink-0 w-[340px] pl-[120px] pr-6 py-10 border-r border-[#f7f2ee]">
+      <div class="flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-shrink-0"><path d="M4 6H20M7 12H17M10 18H14" stroke="#888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p class="text-[#888] text-sm font-normal tracking-[0.01em]">ФИЛТРИ</p>
+      </div>
+
+      
+      <div class="flex flex-col w-full">
+        <button onclick="toggleFilterSection('marka')" class="flex items-center justify-between py-3 w-full cursor-pointer">
+          <p id="marka-label" class="flex-1 font-bold text-sm text-left text-[#c08a5a] tracking-[0.01em]">МАРКА</p>
+          <img id="marka-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-4 h-4 object-contain opacity-60 rotate-180 transition-transform duration-200">
+        </button>
+        <div id="marka-content" class="flex flex-col w-full">
+          <div class="flex items-center bg-white border border-[#6b3f1f] rounded-full pl-3 mb-2">
+            <input type="text" id="brand-search-desktop" placeholder="Търси марка..." oninput="filterBrandList('brand-search-desktop', 'brand-list-desktop')" class="flex-1 text-[#888] text-sm py-2 outline-none bg-transparent placeholder:text-[#888] min-w-0">
+          </div>
+          <div id="brand-list-desktop">
+            <button id="clear-brand-filter-desktop" onclick="applyBrandFilter('')" class="hidden w-full flex items-center gap-2 py-1.5 mb-1 text-[#c08a5a] text-xs hover:underline">&times; Премахни марка филтъра</button>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="lollocafe" data-brand-slug="lollocafe" data-brand-name="LOLLOCAFE">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('lollocafe')">
+              <span class="flex-1 text-[#1c0f07] text-sm">LOLLOCAFE</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="eurocaf" data-brand-slug="eurocaf" data-brand-name="EUROCAF">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('eurocaf')">
+              <span class="flex-1 text-[#1c0f07] text-sm">EUROCAF</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="bianchi " data-brand-slug="bianchi" data-brand-name="BIANCHI ">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('bianchi')">
+              <span class="flex-1 text-[#1c0f07] text-sm">BIANCHI </span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="biancaffe" data-brand-slug="biancafe" data-brand-name="BIANCAFFE">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('biancafe')">
+              <span class="flex-1 text-[#1c0f07] text-sm">BIANCAFFE</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="rema caffe" data-brand-slug="rema-caffe" data-brand-name="REMA CAFFE">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('rema-caffe')">
+              <span class="flex-1 text-[#1c0f07] text-sm">REMA CAFFE</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="molini" data-brand-slug="molini" data-brand-name="MOLINI">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('molini')">
+              <span class="flex-1 text-[#1c0f07] text-sm">MOLINI</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="kimbo" data-brand-slug="kimbo" data-brand-name="KIMBO">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('kimbo')">
+              <span class="flex-1 text-[#1c0f07] text-sm">KIMBO</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="amann" data-brand-slug="amann" data-brand-name="AMANN">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('amann')">
+              <span class="flex-1 text-[#1c0f07] text-sm">AMANN</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="garibaldi" data-brand-slug="garibaldi" data-brand-name="GARIBALDI">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('garibaldi')">
+              <span class="flex-1 text-[#1c0f07] text-sm">GARIBALDI</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name=" vergnano" data-brand-slug=" vergnano" data-brand-name=" VERGNANO">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter(' vergnano')">
+              <span class="flex-1 text-[#1c0f07] text-sm"> VERGNANO</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="borbone " data-brand-slug="borbone" data-brand-name="BORBONE ">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('borbone')">
+              <span class="flex-1 text-[#1c0f07] text-sm">BORBONE </span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="julius meinl" data-brand-slug="julius-meinl" data-brand-name="JULIUS MEINL">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('julius-meinl')">
+              <span class="flex-1 text-[#1c0f07] text-sm">JULIUS MEINL</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="lavazza" data-brand-slug="lavazza" data-brand-name="LAVAZZA">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('lavazza')">
+              <span class="flex-1 text-[#1c0f07] text-sm">LAVAZZA</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="tezzoro" data-brand-slug="tezzoro" data-brand-name="TEZZORO">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('tezzoro')">
+              <span class="flex-1 text-[#1c0f07] text-sm">TEZZORO</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="este" data-brand-slug="este" data-brand-name="ESTE">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('este')">
+              <span class="flex-1 text-[#1c0f07] text-sm">ESTE</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="elia" data-brand-slug="elia" data-brand-name="ELIA">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('elia')">
+              <span class="flex-1 text-[#1c0f07] text-sm">ELIA</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="nescafe" data-brand-slug="nescafe" data-brand-name="NESCAFE">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('nescafe')">
+              <span class="flex-1 text-[#1c0f07] text-sm">NESCAFE</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="foodness" data-brand-slug="foodness" data-brand-name="FoodNess">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('foodness')">
+              <span class="flex-1 text-[#1c0f07] text-sm">FoodNess</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="illy" data-brand-slug="illy" data-brand-name="ILLY">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('illy')">
+              <span class="flex-1 text-[#1c0f07] text-sm">ILLY</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="caffitaly" data-brand-slug="caffitaly" data-brand-name="CAFFITALY">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('caffitaly')">
+              <span class="flex-1 text-[#1c0f07] text-sm">CAFFITALY</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                        <label class="brand-item flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer" data-name="jacobs" data-brand-slug="jacobs" data-brand-name="JACOBS">
+              <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('jacobs')">
+              <span class="flex-1 text-[#1c0f07] text-sm">JACOBS</span>
+              <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+            </label>
+                      </div>
+        </div>
+      </div>
+
+      
+      <div class="flex flex-col w-full">
+        <button onclick="toggleFilterSection('sila')" class="flex items-center justify-between py-3 w-full cursor-pointer">
+          <p id="sila-label" class="flex-1 font-bold text-sm text-left text-[#c08a5a] tracking-[0.01em]">СИЛА</p>
+          <img id="sila-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-4 h-4 object-contain opacity-60 rotate-180 transition-transform duration-200">
+        </button>
+        <div id="sila-content" class="flex flex-col w-full">
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="weak" onclick="event.stopPropagation(); toggleStrengthFilter('weak')"><span class="flex-1 text-[#1c0f07] text-sm">Леко</span></label>
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="medium" onclick="event.stopPropagation(); toggleStrengthFilter('medium')"><span class="flex-1 text-[#1c0f07] text-sm">Средно</span></label>
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="strong" onclick="event.stopPropagation(); toggleStrengthFilter('strong')"><span class="flex-1 text-[#1c0f07] text-sm">Силно</span></label>
+        </div>
+      </div>
+
+      
+      <div class="flex flex-col w-full">
+        <button onclick="toggleFilterSection('decaf')" class="flex items-center justify-between py-3 w-full cursor-pointer">
+          <p id="decaf-label" class="flex-1 font-bold text-sm text-left text-[#c08a5a] tracking-[0.01em]">БЕЗКОФЕИНОВО</p>
+          <img id="decaf-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-4 h-4 object-contain opacity-60 rotate-180 transition-transform duration-200">
+        </button>
+        <div id="decaf-content" class="flex flex-col w-full">
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox decaf-checkbox" data-value="yes" onclick="event.stopPropagation(); toggleDecafFilter('yes')"><span class="flex-1 text-[#1c0f07] text-sm">Да</span></label>
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox decaf-checkbox" data-value="no" onclick="event.stopPropagation(); toggleDecafFilter('no')"><span class="flex-1 text-[#1c0f07] text-sm">Не</span></label>
+        </div>
+      </div>
+
+      
+      <div class="flex flex-col w-full">
+        <button onclick="toggleFilterSection('aromas')" class="flex items-center justify-between py-3 w-full cursor-pointer">
+          <p id="aromas-label" class="flex-1 font-bold text-sm text-left text-[#c08a5a] tracking-[0.01em]">АРОМАТИ</p>
+          <img id="aromas-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-4 h-4 object-contain opacity-60 rotate-180 transition-transform duration-200">
+        </button>
+        <div id="aromas-content" class="flex flex-col w-full">
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox aromas-checkbox" data-value="yes" onclick="event.stopPropagation(); toggleAromasFilter('yes')"><span class="flex-1 text-[#1c0f07] text-sm">Да</span></label>
+          <label class="flex items-center gap-2 py-2.5 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox aromas-checkbox" data-value="no" onclick="event.stopPropagation(); toggleAromasFilter('no')"><span class="flex-1 text-[#1c0f07] text-sm">Не</span></label>
+        </div>
+      </div>
+
+    </div>
+
+    
+    <div class="flex-1 min-w-0">
+
+            <div class="hidden lg:block px-4 pt-10 pb-0 lg:pl-4 lg:pr-[120px]">
+                <h1 class="font-bold text-[32px] text-[#1c0f07] leading-tight">Вендинг Зона</h1>
+      </div>
+      
+            <div class="lg:hidden px-4 pt-3 pb-0">
+                <h1 class="font-bold text-2xl text-[#1c0f07] leading-tight">Вендинг Зона</h1>
+      </div>
+      
+      
+      <div id="active-filter-badge" class="hidden px-4 pt-4 lg:pl-4 lg:pr-[120px] lg:pt-6">
+        <div class="inline-flex items-center gap-2 bg-[#ede4d8] border border-[#c08a5a] rounded-full px-4 py-2 text-sm text-[#1c0f07]">
+          <span>Марка: <strong id="active-filter-text"></strong></span>
+          <button onclick="applyBrandFilter('')" class="text-[#c08a5a] hover:text-[#1c0f07] transition-colors font-bold">&times;</button>
+        </div>
+      </div>
+      <div id="active-strength-badge" class="hidden px-4 pt-2 lg:pl-4 lg:pr-[120px]">
+        <div class="inline-flex items-center gap-2 bg-[#ede4d8] border border-[#c08a5a] rounded-full px-4 py-2 text-sm text-[#1c0f07]">
+          <span>Сила: <strong id="active-strength-text"></strong></span>
+          <button onclick="clearStrengthFilter()" class="text-[#c08a5a] hover:text-[#1c0f07] transition-colors font-bold">&times;</button>
+        </div>
+      </div>
+      <div id="active-decaf-badge" class="hidden px-4 pt-2 lg:pl-4 lg:pr-[120px]">
+        <div class="inline-flex items-center gap-2 bg-[#ede4d8] border border-[#c08a5a] rounded-full px-4 py-2 text-sm text-[#1c0f07]">
+          <span>Безкофеиново: <strong id="active-decaf-text"></strong></span>
+          <button onclick="clearDecafFilter()" class="text-[#c08a5a] hover:text-[#1c0f07] transition-colors font-bold">&times;</button>
+        </div>
+      </div>
+      <div id="active-aromas-badge" class="hidden px-4 pt-2 lg:pl-4 lg:pr-[120px]">
+        <div class="inline-flex items-center gap-2 bg-[#ede4d8] border border-[#c08a5a] rounded-full px-4 py-2 text-sm text-[#1c0f07]">
+          <span>Аромати: <strong id="active-aromas-text"></strong></span>
+          <button onclick="clearAromasFilter()" class="text-[#c08a5a] hover:text-[#1c0f07] transition-colors font-bold">&times;</button>
+        </div>
+      </div>
+
+      <div class="px-4 pt-4 pb-8 lg:pt-8 lg:pb-8 lg:pl-4 lg:pr-[120px]">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 lg:gap-4">
+                      <div class="col-span-full py-16 text-center">
+              <p class="text-[#888] text-base">Няма намерени продукти.</p>
+            </div>
+                  </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<div id="mobile-filter" class="fixed inset-0 z-50 hidden bg-white flex-col overflow-y-auto">
+  <div class="flex items-center justify-between px-4 py-4 border-b border-[#f7f2ee] flex-shrink-0 sticky top-0 bg-white z-10">
+    <div class="flex items-center gap-2">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M7 12H17M10 18H14" stroke="#888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <p class="text-[#888] text-base font-normal tracking-[0.01em]">ФИЛТРИ</p>
+    </div>
+    <button onclick="closeMobileFilter()" class="w-8 h-8 flex items-center justify-center"><img src="/assets/icon-x-large.svg" alt="Затвори" class="w-5 h-5 object-contain"></button>
+  </div>
+  <div class="flex flex-col gap-0 px-4 pb-8">
+    
+    <div class="border-b border-[#f7f2ee]">
+      <button onclick="toggleMobileFilterSection('mob-marka')" class="flex items-center justify-between py-4 w-full cursor-pointer">
+        <p id="mob-marka-label" class="font-bold text-base text-[#c08a5a] tracking-[0.01em]">МАРКА</p>
+        <img id="mob-marka-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-5 h-5 object-contain opacity-60 rotate-180 transition-transform duration-200">
+      </button>
+      <div id="mob-marka-content" class="flex flex-col pb-2">
+        <div class="flex items-center bg-white border border-[#6b3f1f] rounded-full pl-4 mb-3"><input type="text" id="brand-search-mobile" placeholder="Търси марка..." oninput="filterBrandList('brand-search-mobile', 'brand-list-mobile')" class="flex-1 text-[#888] text-sm py-2.5 outline-none bg-transparent placeholder:text-[#888] min-w-0"></div>
+        <div id="brand-list-mobile">
+          <button id="clear-brand-filter-mobile" onclick="applyBrandFilter('')" class="hidden w-full flex items-center gap-2 py-2 mb-1 text-[#c08a5a] text-sm hover:underline">&times; Премахни марка филтъра</button>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="lollocafe" data-brand-slug="lollocafe" data-brand-name="LOLLOCAFE">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('lollocafe')">
+            <span class="flex-1 text-[#1c0f07] text-sm">LOLLOCAFE</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="eurocaf" data-brand-slug="eurocaf" data-brand-name="EUROCAF">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('eurocaf')">
+            <span class="flex-1 text-[#1c0f07] text-sm">EUROCAF</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="bianchi " data-brand-slug="bianchi" data-brand-name="BIANCHI ">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('bianchi')">
+            <span class="flex-1 text-[#1c0f07] text-sm">BIANCHI </span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="biancaffe" data-brand-slug="biancafe" data-brand-name="BIANCAFFE">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('biancafe')">
+            <span class="flex-1 text-[#1c0f07] text-sm">BIANCAFFE</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="rema caffe" data-brand-slug="rema-caffe" data-brand-name="REMA CAFFE">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('rema-caffe')">
+            <span class="flex-1 text-[#1c0f07] text-sm">REMA CAFFE</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="molini" data-brand-slug="molini" data-brand-name="MOLINI">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('molini')">
+            <span class="flex-1 text-[#1c0f07] text-sm">MOLINI</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="kimbo" data-brand-slug="kimbo" data-brand-name="KIMBO">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('kimbo')">
+            <span class="flex-1 text-[#1c0f07] text-sm">KIMBO</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="amann" data-brand-slug="amann" data-brand-name="AMANN">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('amann')">
+            <span class="flex-1 text-[#1c0f07] text-sm">AMANN</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="garibaldi" data-brand-slug="garibaldi" data-brand-name="GARIBALDI">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('garibaldi')">
+            <span class="flex-1 text-[#1c0f07] text-sm">GARIBALDI</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name=" vergnano" data-brand-slug=" vergnano" data-brand-name=" VERGNANO">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter(' vergnano')">
+            <span class="flex-1 text-[#1c0f07] text-sm"> VERGNANO</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="borbone " data-brand-slug="borbone" data-brand-name="BORBONE ">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('borbone')">
+            <span class="flex-1 text-[#1c0f07] text-sm">BORBONE </span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="julius meinl" data-brand-slug="julius-meinl" data-brand-name="JULIUS MEINL">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('julius-meinl')">
+            <span class="flex-1 text-[#1c0f07] text-sm">JULIUS MEINL</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="lavazza" data-brand-slug="lavazza" data-brand-name="LAVAZZA">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('lavazza')">
+            <span class="flex-1 text-[#1c0f07] text-sm">LAVAZZA</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="tezzoro" data-brand-slug="tezzoro" data-brand-name="TEZZORO">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('tezzoro')">
+            <span class="flex-1 text-[#1c0f07] text-sm">TEZZORO</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="este" data-brand-slug="este" data-brand-name="ESTE">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('este')">
+            <span class="flex-1 text-[#1c0f07] text-sm">ESTE</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="elia" data-brand-slug="elia" data-brand-name="ELIA">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('elia')">
+            <span class="flex-1 text-[#1c0f07] text-sm">ELIA</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="nescafe" data-brand-slug="nescafe" data-brand-name="NESCAFE">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('nescafe')">
+            <span class="flex-1 text-[#1c0f07] text-sm">NESCAFE</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="foodness" data-brand-slug="foodness" data-brand-name="FoodNess">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('foodness')">
+            <span class="flex-1 text-[#1c0f07] text-sm">FoodNess</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="illy" data-brand-slug="illy" data-brand-name="ILLY">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('illy')">
+            <span class="flex-1 text-[#1c0f07] text-sm">ILLY</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="caffitaly" data-brand-slug="caffitaly" data-brand-name="CAFFITALY">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('caffitaly')">
+            <span class="flex-1 text-[#1c0f07] text-sm">CAFFITALY</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                    <label class="brand-item flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer" data-name="jacobs" data-brand-slug="jacobs" data-brand-name="JACOBS">
+            <input type="checkbox" class="filter-checkbox" onclick="event.stopPropagation(); applyBrandFilter('jacobs')">
+            <span class="flex-1 text-[#1c0f07] text-sm">JACOBS</span>
+            <span class="text-[#b8a898] text-sm whitespace-nowrap">0</span>
+          </label>
+                  </div>
+      </div>
+    </div>
+    
+    <div class="border-b border-[#f7f2ee]">
+      <button onclick="toggleMobileFilterSection('mob-sila')" class="flex items-center justify-between py-4 w-full cursor-pointer">
+        <p id="mob-sila-label" class="font-bold text-base text-[#c08a5a] tracking-[0.01em]">СИЛА</p>
+        <img id="mob-sila-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-5 h-5 object-contain opacity-60 rotate-180 transition-transform duration-200">
+      </button>
+      <div id="mob-sila-content" class="flex flex-col pb-2">
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="weak" onclick="event.stopPropagation(); toggleStrengthFilter('weak')"><span class="flex-1 text-[#1c0f07] text-sm">Леко</span></label>
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="medium" onclick="event.stopPropagation(); toggleStrengthFilter('medium')"><span class="flex-1 text-[#1c0f07] text-sm">Средно</span></label>
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox strength-checkbox" data-value="strong" onclick="event.stopPropagation(); toggleStrengthFilter('strong')"><span class="flex-1 text-[#1c0f07] text-sm">Силно</span></label>
+      </div>
+    </div>
+    
+    <div class="border-b border-[#f7f2ee]">
+      <button onclick="toggleMobileFilterSection('mob-decaf')" class="flex items-center justify-between py-4 w-full cursor-pointer">
+        <p id="mob-decaf-label" class="font-bold text-base text-[#c08a5a] tracking-[0.01em]">БЕЗКОФЕИНОВО</p>
+        <img id="mob-decaf-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-5 h-5 object-contain opacity-60 rotate-180 transition-transform duration-200">
+      </button>
+      <div id="mob-decaf-content" class="flex flex-col pb-2">
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox decaf-checkbox" data-value="yes" onclick="event.stopPropagation(); toggleDecafFilter('yes')"><span class="flex-1 text-[#1c0f07] text-sm">Да</span></label>
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox decaf-checkbox" data-value="no" onclick="event.stopPropagation(); toggleDecafFilter('no')"><span class="flex-1 text-[#1c0f07] text-sm">Не</span></label>
+      </div>
+    </div>
+    
+    <div class="border-b border-[#f7f2ee]">
+      <button onclick="toggleMobileFilterSection('mob-aromas')" class="flex items-center justify-between py-4 w-full cursor-pointer">
+        <p id="mob-aromas-label" class="font-bold text-base text-[#c08a5a] tracking-[0.01em]">АРОМАТИ</p>
+        <img id="mob-aromas-chevron" src="/assets/icon-chevron-down.svg" alt="" class="w-5 h-5 object-contain opacity-60 rotate-180 transition-transform duration-200">
+      </button>
+      <div id="mob-aromas-content" class="flex flex-col pb-2">
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox aromas-checkbox" data-value="yes" onclick="event.stopPropagation(); toggleAromasFilter('yes')"><span class="flex-1 text-[#1c0f07] text-sm">Да</span></label>
+        <label class="flex items-center gap-3 py-3 border-b border-[#f7f2ee] cursor-pointer"><input type="checkbox" class="filter-checkbox aromas-checkbox" data-value="no" onclick="event.stopPropagation(); toggleAromasFilter('no')"><span class="flex-1 text-[#1c0f07] text-sm">Не</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="sticky bottom-0 bg-white border-t border-[#f7f2ee] px-4 py-4 flex-shrink-0">
+    <button onclick="closeMobileFilter()" class="bg-[#2c1810] text-white font-bold text-base py-3 px-6 rounded-full w-full">Приложи филтрите</button>
+  </div>
+</div>
+
+
+
+<footer class="bg-[#1c0f07] text-[#f5f5f5] pt-8 lg:pt-0">
+
+  <div class="hidden lg:flex items-center justify-between px-[120px] py-8 border-b border-[rgba(237,228,216,0.2)] max-w-[1440px] mx-auto w-full">
+    <a href="/" class="flex items-center gap-2 flex-shrink-0">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-10 h-10">
+      <span class="font-light text-xl leading-7 text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <div class="flex items-center gap-2.5">
+      <nav class="flex items-center">
+        <a href="/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Начало</a>
+        <a href="/blog/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Блог</a>
+        <a href="/privacy/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Общи условия</a>
+        <a href="/cookie-settings/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors whitespace-nowrap">Настройки на бисквитките</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="lg:hidden flex flex-col gap-5 px-4 pb-5">
+    <a href="/" class="flex items-center gap-1 self-start">
+      <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+      <span class="font-light text-lg text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+    </a>
+    <nav class="flex flex-col">
+      <a href="/" class="py-2 text-sm text-[#f5f5f5] underline">Начало</a>
+      <a href="/blog/" class="py-2 text-sm text-[#f5f5f5] underline">Блог</a>
+      <a href="/privacy/" class="py-2 text-sm text-[#f5f5f5] underline">Общи условия</a>
+      <a href="/cookie-settings/" class="py-2 text-sm text-[#f5f5f5] underline">Настройки на бисквитките</a>
+    </nav>
+  </div>
+
+  <div class="hidden lg:flex items-start gap-[116px] px-[120px] py-8 max-w-[1440px] mx-auto w-full">
+    <div class="flex flex-col gap-[30px] w-[309px]">
+      <p class="text-[#c08a5a] text-base">Пазарувайте по категория</p>
+      <nav class="flex flex-col">
+                <a href="/kafe-na-zyrna/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Кафе на зърна</a>
+                <a href="/kapsuli/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Капсули</a>
+                <a href="/kafe-dozi/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Кафе дози</a>
+                <a href="/raztvorimo kafe/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Разтворимо кафе</a>
+                <a href="/vending-zona/" class="px-6 py-3 text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">Вендинг Зона</a>
+              </nav>
+    </div>
+    <div class="flex flex-col gap-[30px] w-[309px]">
+      <p class="text-[#c08a5a] text-base">Контакти</p>
+      <div class="flex flex-col gap-0">
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-phone-footer.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0"><a href="tel:0887 695 267" class="text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors">0887 695 267</a></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-address-footer.svg" alt="" class="w-3.5 h-4 object-contain flex-shrink-0"><span class="text-[#f5f5f5] text-base">гр. Пловдив, ул. Скопие 106А</span></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-email-footer.svg" alt="" class="w-4 h-[14px] object-contain flex-shrink-0"><a href="/cdn-cgi/l/email-protection#0000" class="text-[#f5f5f5] text-base hover:text-[#c08a5a] transition-colors"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></div>
+        <div class="flex items-center gap-3 py-2"><img src="/assets/icon-clock-footer.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0"><span class="text-[#f5f5f5] text-base">09:00 - 16:30 (в работни дни)</span></div>
+        <div class="flex items-center gap-3 py-2">
+          <img src="/assets/icon-share.svg" alt="" class="w-4 h-4 object-contain flex-shrink-0">
+          <span class="text-[#f5f5f5] flex-1 text-base">Социални мрежи</span>
+          <div class="flex gap-3 flex-shrink-0">
+            <a href="#"><img src="/assets/icon-facebook.svg" alt="Facebook" class="w-5 h-5 object-contain cursor-pointer hover:opacity-70 transition-opacity"></a>
+            <a href="#"><img src="/assets/icon-linkedin.svg" alt="LinkedIn" class="w-5 h-5 object-contain cursor-pointer hover:opacity-70 transition-opacity"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col gap-[30px] w-[402px]">
+      <p class="text-[#c08a5a] text-base">Начини на плащане</p>
+      <div class="flex flex-col gap-4">
+        <div class="flex items-start gap-3 py-2 border-b border-[#2c1810]"><img src="/assets/icon-cash-footer.svg" alt="" class="w-[18px] h-[14px] object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Наложен платеж</span><span class="text-[#b8a898] text-sm">Плащате в брой при доставка</span></div></div>
+        <div class="flex items-start gap-3 py-2 border-b border-[#2c1810]"><img src="/assets/icon-bank-footer.svg" alt="" class="w-[18px] h-[18px] object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Банков превод</span><span class="text-[#b8a898] text-sm">Превод по банкова сметка</span></div></div>
+        <div class="flex items-center gap-[30px] py-2 border-b border-[#2c1810]">
+          <div class="flex items-start gap-3"><img src="/assets/icon-card-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1.5"><span class="text-[#f5f5f5] text-base">Плащане с карта</span><span class="text-[#b8a898] text-sm">Превод по банкова сметка</span></div></div>
+          <div class="flex gap-1.5 items-center flex-shrink-0"><img src="/assets/payment-visa.png" alt="Visa" class="h-6 object-contain"><img src="/assets/payment-mastercard.png" alt="Mastercard" class="h-6 object-contain"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:hidden px-4 flex flex-col gap-5 pb-5">
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Пазарувайте по категория</p>
+            <a href="/kafe-na-zyrna/" class="py-2 text-sm text-[#f5f5f5] underline">Кафе на зърна</a>
+            <a href="/kapsuli/" class="py-2 text-sm text-[#f5f5f5] underline">Капсули</a>
+            <a href="/kafe-dozi/" class="py-2 text-sm text-[#f5f5f5] underline">Кафе дози</a>
+            <a href="/raztvorimo kafe/" class="py-2 text-sm text-[#f5f5f5] underline">Разтворимо кафе</a>
+            <a href="/vending-zona/" class="py-2 text-sm text-[#f5f5f5] underline">Вендинг Зона</a>
+          </div>
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Контакти</p>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-phone-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><a href="tel:0887 695 267" class="text-sm text-[#f5f5f5] hover:text-[#c08a5a] transition-colors">0887 695 267</a></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-address-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><span class="text-sm text-[#f5f5f5]">гр. Пловдив, ул. Скопие 106А</span></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-email-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><a href="/cdn-cgi/l/email-protection#0000" class="text-sm text-[#f5f5f5] hover:text-[#c08a5a] transition-colors"><span class="__cf_email__" data-cfemail="0000000000">[email&#160;protected]</span></a></div>
+      <div class="flex items-center gap-2 py-2"><img src="/assets/icon-clock-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0"><span class="text-sm text-[#f5f5f5]">09:00 - 16:30 (в работни дни)</span></div>
+      <div class="flex items-center gap-2 py-2">
+        <img src="/assets/icon-share.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0">
+        <span class="text-sm text-[#f5f5f5] flex-1">Социални мрежи</span>
+        <div class="flex gap-3 flex-shrink-0">
+          <a href="#"><img src="/assets/icon-facebook.svg" alt="Facebook" class="w-6 h-6 object-contain cursor-pointer"></a>
+          <a href="#"><img src="/assets/icon-linkedin.svg" alt="LinkedIn" class="w-6 h-6 object-contain cursor-pointer"></a>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <p class="text-[#c08a5a] text-sm py-2">Начини на плащане</p>
+      <div class="flex items-start gap-1.5 py-2 border-b border-[#2c1810]"><img src="/assets/icon-cash-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Наложен платеж</span><span class="text-xs text-[#b8a898]">Плащате в брой при доставка</span></div></div>
+      <div class="flex items-start gap-1.5 py-2 border-b border-[#2c1810]"><img src="/assets/icon-bank-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Банков превод</span><span class="text-xs text-[#b8a898]">Превод по банкова сметка</span></div></div>
+      <div class="flex items-center justify-between py-2 border-b border-[#2c1810] pr-4">
+        <div class="flex items-start gap-1.5"><img src="/assets/icon-card-footer.svg" alt="" class="w-6 h-6 object-contain flex-shrink-0 mt-0.5"><div class="flex flex-col gap-1"><span class="text-sm text-[#f5f5f5]">Плащане с карта</span><span class="text-xs text-[#b8a898]">Превод по банкова сметка</span></div></div>
+        <div class="flex gap-1.5 items-center flex-shrink-0"><img src="/assets/payment-mastercard.png" alt="Mastercard" class="h-[15px] object-contain"><img src="/assets/payment-visa.png" alt="Visa" class="h-[15px] object-contain"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-4 lg:px-[120px] py-8 max-w-[1440px] lg:mx-auto w-full">
+    <p class="text-[#f5f5f5] text-xs lg:text-sm">&copy; 2026 Kafezone. Всички права запазени.</p>
+  </div>
+
+</footer>
+
+<div id="cookie-bar" class="fixed bottom-0 left-0 right-0 z-50 bg-[#1c0f07] border-t border-[#c08a5a]/40 shadow-[0_-4px_24px_rgba(0,0,0,0.4)]" style="display:none">
+  <div class="lg:hidden flex flex-col gap-[10px] items-center pt-[6px] pb-8 px-4">
+    <div class="flex items-center gap-2 w-full">
+      <div class="w-6 h-6 flex-shrink-0"><img src="/assets/icon-cookie.svg" alt="" class="w-full h-full object-contain"></div>
+      <p class="font-bold text-[14px] text-[#f5f5f5] leading-5 tracking-[0.014em]">Използваме бисквитки</p>
+    </div>
+    <div class="w-full px-1">
+      <p class="text-[12px] text-[#f5f5f5] leading-4 tracking-[0.014em]">Използваме бисквитки, за да подобрим вашето изживяване, да анализираме трафика и да показваме подходящи оферти. Можете да изберете кои бисквитки да разрешите. <a href="/privacy/" class="text-[#c08a5a] underline">Политика за поверителност</a></p>
+    </div>
+    <div class="flex gap-3 items-stretch w-full mt-1 flex-wrap">
+      <a href="/cookie-settings/" class="text-[#c08a5a] text-[12px] underline whitespace-nowrap flex items-center">Управление</a>
+      <button onclick="CookieConsent.rejectAll()" class="flex-1 bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-5 rounded-full whitespace-nowrap">Откажете всички</button>
+      <button onclick="CookieConsent.acceptAll()" class="flex-1 bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-5 rounded-full whitespace-nowrap">Приемете всички</button>
+    </div>
+  </div>
+  <div class="hidden lg:flex items-stretch gap-6 px-[120px] py-5 max-w-[1440px] mx-auto">
+    <div class="flex-1 flex flex-col gap-[4px]">
+      <div class="flex items-center gap-2 py-1">
+        <div class="w-7 h-7 flex-shrink-0"><img src="/assets/icon-cookie.svg" alt="" class="w-full h-full object-contain"></div>
+        <p class="font-bold text-[17px] text-[#f5f5f5] leading-6 whitespace-nowrap">Използваме бисквитки</p>
+      </div>
+      <div class="py-0">
+        <p class="text-[14px] text-[#f5f5f5] leading-5 tracking-[0.014em]">Използваме бисквитки, за да подобрим вашето изживяване, да анализираме трафика и да показваме подходящи оферти. Можете да изберете кои бисквитки да разрешите. <a href="/privacy/" class="text-[#c08a5a] underline">Политика за поверителност</a></p>
+      </div>
+    </div>
+    <div class="flex gap-4 items-center flex-shrink-0 my-auto">
+      <a href="/cookie-settings/" class="text-[#c08a5a] text-[12px] underline whitespace-nowrap flex items-center">Управление</a>
+      <button onclick="CookieConsent.rejectAll()" class="bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-7 rounded-full whitespace-nowrap">Откажете всички</button>
+      <button onclick="CookieConsent.acceptAll()" class="bg-white border border-[#2c1810] text-[#2c1810] font-bold text-[12px] py-3 px-7 rounded-full whitespace-nowrap">Приемете всички</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(function ()
+{
+  var CONSENT_KEY = 'cookieConsent';
+  var SETTINGS_PATH = '/cookie-settings/';
+  var bar = document.getElementById('cookie-bar');
+
+  function getConsent()
+  {
+    try { return JSON.parse(localStorage.getItem(CONSENT_KEY)); }
+    catch (e) { return null; }
+  }
+
+  function saveConsent(state)
+  {
+    state.savedAt = new Date().toISOString();
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(state));
+    hideCookieBar();
+    applyConsent(state);
+  }
+
+  function hideCookieBar()
+  {
+    if (bar) bar.style.display = 'none';
+  }
+
+  function showCookieBar()
+  {
+    if (bar) bar.style.display = '';
+  }
+
+  function acceptAll()
+  {
+    saveConsent({ analytics: true, marketing: true, preferences: true });
+  }
+
+  function rejectAll()
+  {
+    saveConsent({ analytics: false, marketing: false, preferences: false });
+  }
+
+  /**
+   * Fires registered consent handlers.
+   * Register handlers via: window.cookieConsentHandlers = { analytics: fn, marketing: fn, preferences: fn }
+   * Each handler is called at most once per page load (guarded by a data attribute on <head>).
+   */
+  function applyConsent(state)
+  {
+    if (!state) return;
+    var handlers = window.cookieConsentHandlers || {};
+    if (state.analytics && typeof handlers.analytics === 'function' && !document.head.dataset.cookieAnalytics)
+    {
+      document.head.dataset.cookieAnalytics = '1';
+      handlers.analytics();
+    }
+    if (state.marketing && typeof handlers.marketing === 'function' && !document.head.dataset.cookieMarketing)
+    {
+      document.head.dataset.cookieMarketing = '1';
+      handlers.marketing();
+    }
+    if (state.preferences && typeof handlers.preferences === 'function' && !document.head.dataset.cookiePreferences)
+    {
+      document.head.dataset.cookiePreferences = '1';
+      handlers.preferences();
+    }
+  }
+
+  function onSettingsPage()
+  {
+    return window.location.pathname === SETTINGS_PATH ||
+           window.location.pathname === SETTINGS_PATH.replace(/\/$/, '');
+  }
+
+  function init()
+  {
+    var consent = getConsent();
+    if (onSettingsPage())
+    {
+      hideCookieBar();
+      applyConsent(consent);
+      return;
+    }
+    if (consent !== null)
+    {
+      hideCookieBar();
+      applyConsent(consent);
+    }
+    else
+    {
+      showCookieBar();
+    }
+  }
+
+  window.CookieConsent = {
+    get: getConsent,
+    save: saveConsent,
+    acceptAll: acceptAll,
+    rejectAll: rejectAll,
+    apply: applyConsent
+  };
+
+  init();
+}());
+</script>
+<script>
+
+var _activeBrands = [];
+var _activeStrengths = [];
+var _activeDecaf = '';
+var _activeAromas = '';
+
+var _strengthLabels = { weak: 'Леко', medium: 'Средно', strong: 'Силно' };
+var _yesNoLabels = { yes: 'Да', no: 'Не' };
+
+function applyFiltersFromURL()
+{
+  var params = new URLSearchParams(window.location.search);
+  _activeBrands = (params.get('brand') || '').split(',').filter(Boolean);
+  _activeStrengths = (params.get('strength') || '').split(',').filter(Boolean);
+  _activeDecaf = params.get('decaf') || '';
+  _activeAromas = params.get('aromas') || '';
+  filterProducts();
+}
+
+function applyBrandFilter(slug)
+{
+  if (!slug) { _activeBrands = []; }
+  else
+  {
+    var idx = _activeBrands.indexOf(slug);
+    if (idx === -1) _activeBrands.push(slug); else _activeBrands.splice(idx, 1);
+  }
+  pushFiltersToURL(); filterProducts();
+}
+
+function toggleStrengthFilter(value)
+{
+  var idx = _activeStrengths.indexOf(value);
+  if (idx === -1) _activeStrengths.push(value); else _activeStrengths.splice(idx, 1);
+  pushFiltersToURL(); filterProducts();
+}
+function clearStrengthFilter() { _activeStrengths = []; pushFiltersToURL(); filterProducts(); }
+
+function toggleDecafFilter(value) { _activeDecaf = (_activeDecaf === value) ? '' : value; pushFiltersToURL(); filterProducts(); }
+function clearDecafFilter() { _activeDecaf = ''; pushFiltersToURL(); filterProducts(); }
+
+function toggleAromasFilter(value) { _activeAromas = (_activeAromas === value) ? '' : value; pushFiltersToURL(); filterProducts(); }
+function clearAromasFilter() { _activeAromas = ''; pushFiltersToURL(); filterProducts(); }
+
+function pushFiltersToURL()
+{
+  var params = new URLSearchParams(window.location.search);
+  if (_activeBrands.length) params.set('brand', _activeBrands.join(',')); else params.delete('brand');
+  if (_activeStrengths.length) params.set('strength', _activeStrengths.join(',')); else params.delete('strength');
+  if (_activeDecaf) params.set('decaf', _activeDecaf); else params.delete('decaf');
+  if (_activeAromas) params.set('aromas', _activeAromas); else params.delete('aromas');
+  history.pushState(null, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''));
+}
+
+function filterProducts()
+{
+  var items = document.querySelectorAll('.product-item');
+  var count = 0;
+  items.forEach(function(item)
+  {
+    var show = (!_activeBrands.length || _activeBrands.indexOf(item.dataset.brand) !== -1)
+      && (!_activeStrengths.length || _activeStrengths.indexOf(item.dataset.strength) !== -1)
+      && (!_activeDecaf || item.dataset.decaf === _activeDecaf)
+      && (!_activeAromas || item.dataset.aromas === _activeAromas);
+    item.style.display = show ? '' : 'none';
+    if (show) count++;
+  });
+
+  var countEl = document.getElementById('product-count');
+  if (countEl) countEl.textContent = count;
+
+  document.querySelectorAll('.brand-item').forEach(function(label)
+  {
+    var cb = label.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = _activeBrands.indexOf(label.getAttribute('data-brand-slug') || '') !== -1;
+  });
+  document.querySelectorAll('.strength-checkbox').forEach(function(cb) { cb.checked = _activeStrengths.indexOf(cb.dataset.value) !== -1; });
+  document.querySelectorAll('.decaf-checkbox').forEach(function(cb) { cb.checked = cb.dataset.value === _activeDecaf; });
+  document.querySelectorAll('.aromas-checkbox').forEach(function(cb) { cb.checked = cb.dataset.value === _activeAromas; });
+
+  var badge = document.getElementById('active-filter-badge');
+  if (badge)
+  {
+    if (_activeBrands.length)
+    {
+      badge.classList.remove('hidden');
+      var nameMap = {};
+      document.querySelectorAll('.brand-item').forEach(function(l) { var s = l.getAttribute('data-brand-slug') || ''; if (_activeBrands.indexOf(s) !== -1 && !nameMap[s]) nameMap[s] = l.getAttribute('data-brand-name') || s; });
+      var bt = document.getElementById('active-filter-text');
+      if (bt) bt.textContent = _activeBrands.map(function(s){ return nameMap[s] || s; }).filter(Boolean).join(', ');
+    }
+    else badge.classList.add('hidden');
+  }
+
+  var sb = document.getElementById('active-strength-badge');
+  if (sb) { if (_activeStrengths.length) { sb.classList.remove('hidden'); var st = document.getElementById('active-strength-text'); if (st) st.textContent = _activeStrengths.map(function(v){ return _strengthLabels[v]||v; }).join(', '); } else sb.classList.add('hidden'); }
+
+  var db = document.getElementById('active-decaf-badge');
+  if (db) { if (_activeDecaf) { db.classList.remove('hidden'); var dt = document.getElementById('active-decaf-text'); if (dt) dt.textContent = _yesNoLabels[_activeDecaf]||_activeDecaf; } else db.classList.add('hidden'); }
+
+  var ab = document.getElementById('active-aromas-badge');
+  if (ab) { if (_activeAromas) { ab.classList.remove('hidden'); var at = document.getElementById('active-aromas-text'); if (at) at.textContent = _yesNoLabels[_activeAromas]||_activeAromas; } else ab.classList.add('hidden'); }
+
+  var clearDesktop = document.getElementById('clear-brand-filter-desktop');
+  var clearMobile = document.getElementById('clear-brand-filter-mobile');
+  if (clearDesktop) clearDesktop.classList.toggle('hidden', !_activeBrands.length);
+  if (clearMobile) clearMobile.classList.toggle('hidden', !_activeBrands.length);
+
+  var ml = document.getElementById('marka-label'); if (ml) ml.innerHTML = 'МАРКА' + (_activeBrands.length ? ' &bull;' : '');
+  var mml = document.getElementById('mob-marka-label'); if (mml) mml.innerHTML = 'МАРКА' + (_activeBrands.length ? ' &bull;' : '');
+  var sl = document.getElementById('sila-label'); if (sl) sl.innerHTML = 'СИЛА' + (_activeStrengths.length ? ' &bull;' : '');
+  var msl = document.getElementById('mob-sila-label'); if (msl) msl.innerHTML = 'СИЛА' + (_activeStrengths.length ? ' &bull;' : '');
+  var dl = document.getElementById('decaf-label'); if (dl) dl.innerHTML = 'БЕЗКОФЕИНОВО' + (_activeDecaf ? ' &bull;' : '');
+  var mdl = document.getElementById('mob-decaf-label'); if (mdl) mdl.innerHTML = 'БЕЗКОФЕИНОВО' + (_activeDecaf ? ' &bull;' : '');
+  var al = document.getElementById('aromas-label'); if (al) al.innerHTML = 'АРОМАТИ' + (_activeAromas ? ' &bull;' : '');
+  var mal = document.getElementById('mob-aromas-label'); if (mal) mal.innerHTML = 'АРОМАТИ' + (_activeAromas ? ' &bull;' : '');
+
+  var noMsg = document.getElementById('no-products-msg');
+  if (noMsg) noMsg.classList.toggle('hidden', count > 0);
+}
+
+function filterBrandList(inputId, listId)
+{
+  var term = document.getElementById(inputId).value.toLowerCase();
+  document.getElementById(listId).querySelectorAll('.brand-item').forEach(function(item)
+  {
+    item.style.display = (item.getAttribute('data-name') || '').indexOf(term) !== -1 ? '' : 'none';
+  });
+}
+
+window.addEventListener('popstate', applyFiltersFromURL);
+
+function openMobileFilter() { var f = document.getElementById('mobile-filter'); f.classList.remove('hidden'); f.classList.add('flex'); document.body.style.overflow = 'hidden'; }
+function closeMobileFilter() { var f = document.getElementById('mobile-filter'); f.classList.add('hidden'); f.classList.remove('flex'); document.body.style.overflow = ''; }
+
+function toggleFilterSection(id)
+{
+  var content = document.getElementById(id + '-content');
+  var chevron = document.getElementById(id + '-chevron');
+  var isOpen = !content.classList.contains('hidden');
+  if (isOpen) { content.classList.add('hidden'); if (chevron) chevron.classList.remove('rotate-180'); }
+  else { content.classList.remove('hidden'); if (chevron) chevron.classList.add('rotate-180'); }
+}
+
+function toggleMobileFilterSection(id)
+{
+  var content = document.getElementById(id + '-content');
+  var chevron = document.getElementById(id + '-chevron');
+  var isOpen = !content.classList.contains('hidden');
+  if (isOpen) { content.classList.add('hidden'); if (chevron) chevron.classList.remove('rotate-180'); }
+  else { content.classList.remove('hidden'); if (chevron) chevron.classList.add('rotate-180'); }
+}
+
+applyFiltersFromURL();
+
+</script>
+
+</body>
+</html>
