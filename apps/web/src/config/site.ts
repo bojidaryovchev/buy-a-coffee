@@ -4,6 +4,20 @@
  * Everything a rebrand touches lives here and in `tokens.css`. Nothing in the
  * application hardcodes a brand name, phone number or legal detail.
  *
+ * These are plain constants rather than environment variables, for two
+ * reasons. First, they are not deployment-varying: there is one shop, and a
+ * change to its name or phone number belongs in a commit someone can review,
+ * not in a dashboard field with no history. Second, an env-driven brand did not
+ * actually work — `siteConfig` is imported by client components, and Next.js
+ * only inlines a `NEXT_PUBLIC_*` value it can see written as a literal
+ * `process.env.NAME` expression. Reading them through a helper meant the
+ * browser silently fell back to these defaults no matter what the deployment
+ * was configured with.
+ *
+ * `url` is the one exception: it genuinely differs between localhost and
+ * production, so it stays an environment variable — written as a static
+ * reference so it is inlined.
+ *
  * The brand name and tagline are real. Company registration details are
  * intentionally left empty rather than invented: publishing a fabricated
  * company number would be a legal problem, not a cosmetic one.
@@ -41,45 +55,51 @@ export interface SiteConfig {
   };
 }
 
-const env = (key: string, fallback = ""): string => process.env[key]?.trim() || fallback;
+/** TODO: the shop's real number and inbox. Placeholders until the business supplies them. */
+const CONTACT_PHONE = "+359 000 000 000";
+const CONTACT_EMAIL = "hello@example.com";
 
-const companyName = env("NEXT_PUBLIC_LEGAL_COMPANY_NAME");
-const companyId = env("NEXT_PUBLIC_LEGAL_COMPANY_ID");
-const address = env("NEXT_PUBLIC_LEGAL_ADDRESS");
+/**
+ * Company registration details. Deliberately empty — see the note above. Fill
+ * these in once they are real; nothing else needs to change.
+ */
+const LEGAL_COMPANY_NAME = "";
+const LEGAL_COMPANY_ID = "";
+const LEGAL_VAT_ID = "";
+const LEGAL_ADDRESS = "";
 
 export const siteConfig: SiteConfig = {
-  name: env("NEXT_PUBLIC_SITE_NAME", "Buy a Coffee"),
-  shortName: env("NEXT_PUBLIC_SITE_SHORT_NAME", "Buy a Coffee"),
-  tagline: env("NEXT_PUBLIC_SITE_TAGLINE", "Кафе, подбрано с грижа"),
-  description: env(
-    "NEXT_PUBLIC_SITE_DESCRIPTION",
+  name: "Buy a Coffee",
+  shortName: "Buy a Coffee",
+  tagline: "Кафе, подбрано с грижа",
+  description:
     "Кафе на зърна, капсули и дози от марки, които си заслужават. Поръчка на една стъпка — ние ви звъним, за да потвърдим.",
-  ),
-  locale: env("NEXT_PUBLIC_SITE_LOCALE", "bg-BG"),
-  currency: env("NEXT_PUBLIC_CURRENCY", "EUR"),
-  url: env("NEXT_PUBLIC_SITE_URL", "http://localhost:3000"),
+  // The shop sells only in Bulgaria: all customer-facing copy is Bulgarian.
+  locale: "bg-BG",
+  currency: "EUR",
+  url: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000",
 
   contact: {
-    phone: env("NEXT_PUBLIC_CONTACT_PHONE", "+359 000 000 000"),
-    phoneHref: env("NEXT_PUBLIC_CONTACT_PHONE", "+359 000 000 000").replace(/[^+\d]/g, ""),
-    email: env("NEXT_PUBLIC_CONTACT_EMAIL", "hello@example.com"),
-    hours: env("NEXT_PUBLIC_CONTACT_HOURS", "Пон–Пет, 9:00–18:00"),
+    phone: CONTACT_PHONE,
+    phoneHref: CONTACT_PHONE.replace(/[^+\d]/g, ""),
+    email: CONTACT_EMAIL,
+    hours: "Пон–Пет, 9:00–18:00",
   },
 
   social: {},
 
   legal: {
-    companyName,
-    companyId,
-    vatId: env("NEXT_PUBLIC_LEGAL_VAT_ID"),
-    address,
+    companyName: LEGAL_COMPANY_NAME,
+    companyId: LEGAL_COMPANY_ID,
+    vatId: LEGAL_VAT_ID,
+    address: LEGAL_ADDRESS,
     // Placeholders must never be presented as real registration details.
-    isComplete: Boolean(companyName && companyId && address),
+    isComplete: Boolean(LEGAL_COMPANY_NAME && LEGAL_COMPANY_ID && LEGAL_ADDRESS),
   },
 
   features: {
-    newsletter: env("NEXT_PUBLIC_FEATURE_NEWSLETTER", "true") !== "false",
-    blog: env("NEXT_PUBLIC_FEATURE_BLOG", "true") !== "false",
+    newsletter: true,
+    blog: true,
   },
 };
 

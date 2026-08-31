@@ -134,7 +134,7 @@ export function SiteFooter({ categories }: { categories: readonly CategoryView[]
 
       {usingPlaceholderBrand() && process.env.NODE_ENV !== "production" && (
         <div className="bg-clay-100 py-2 text-center text-xs text-clay-600">
-          Бележка за разработка: попълнете променливите <code>NEXT_PUBLIC_LEGAL_*</code> преди пускане.
+          Бележка за разработка: попълнете правните данни в <code>src/config/site.ts</code> преди пускане.
         </div>
       )}
     </footer>

@@ -10,10 +10,10 @@ answer, or a legal one.
 
 | | Item | Owner |
 | --- | --- | --- |
-| ⛔ | **The brand.** Name, wordmark and legal identity are placeholders by design — `src/config/site.ts` plus the `NEXT_PUBLIC_*` variables, the token block at the top of `globals.css`, and `components/layout/wordmark.tsx`. Until the legal variables are set the footer says plainly that company details are not configured, and the structured data omits them rather than publishing invented identifiers. | business |
+| ⛔ | **The brand.** Name, wordmark and legal identity are placeholders by design — `src/config/site.ts` (plain constants, not environment variables), the token block at the top of `globals.css`, and `components/layout/wordmark.tsx`. Until the legal constants are filled in the footer says plainly that company details are not configured, and the structured data omits them rather than publishing invented identifiers. | business |
 | ⛔ | **Legal review.** `src/content/legal.ts` is written for this business rather than copied, and sections marked `REVIEW REQUIRED` render as visible callouts until they are completed. A lawyer has not seen them. | business + lawyer |
 | ⛔ | **The commercial relationship with the source.** The brief states there is one. Nothing in this repository records what it is, and `robots.txt` permission is not permission under a site's terms of service. This is the one risk the code cannot mitigate — the originality checks answer *copyright*, not *authorisation*. | business |
-| ⛔ | **Production environment.** `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_IMAGE_BASE_URL`, `RATE_LIMIT_SALT`, and `NEXT_PUBLIC_ENVIRONMENT=production` — **any other value makes `robots.txt` disallow everything**, which is what keeps a staging deployment out of search results. | us |
+| ⛔ | **Production environment.** `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_IMAGE_BASE_URL` and `RATE_LIMIT_SALT` — the whole list is `apps/web/.env.example`, and nothing else belongs in the dashboard. On Vercel `robots.txt` reads `VERCEL_ENV`, so previews are blocked automatically; on any other host set `NEXT_PUBLIC_ENVIRONMENT=production`, because **any other value makes `robots.txt` disallow everything**. | us |
 | ⛔ | **A notification provider.** Orders persist without one and are never lost, but nobody is told they arrived. Implement `NotificationSink` and call `setNotificationSink` once at start-up. | us |
 
 ## Infrastructure, once
@@ -64,7 +64,7 @@ into nothing.
 
 ## After a brand change
 
-`NEXT_PUBLIC_*` values are inlined at build time and the prerender cache can
-serve a stale page: a rename once updated `/brands` while `/` kept the old name.
+Brand values in `src/config/site.ts` are compiled into the bundle and the
+prerender cache can serve a stale page: a rename once updated `/brands` while `/` kept the old name.
 **Delete `.next` and rebuild**, then check the built HTML rather than trusting a
 running server.

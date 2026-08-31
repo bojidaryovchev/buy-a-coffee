@@ -10,12 +10,20 @@ import { absoluteUrl } from "@/config/site";
  *
  * A staging deployment blocks everything, because the single most expensive
  * SEO accident is a staging site getting indexed alongside production.
+ *
+ * On a host that tells us which environment we are in, that answer wins
+ * outright. On Vercel `VERCEL_ENV` is `production` only for the production
+ * deployment, so previews block crawlers with nothing to configure — and an
+ * env var scoped to Preview by mistake cannot re-open them, which is the
+ * failure this check exists to prevent. `NEXT_PUBLIC_ENVIRONMENT` is the
+ * fallback for hosts that provide no such signal.
  */
 export default function robots(): MetadataRoute.Robots {
-  const isProduction =
-    process.env.VERCEL_ENV === "production" ||
-    process.env.NEXT_PUBLIC_ENVIRONMENT === "production" ||
-    (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_ENVIRONMENT === undefined);
+  const hostEnvironment = process.env.VERCEL_ENV;
+  const isProduction = hostEnvironment
+    ? hostEnvironment === "production"
+    : process.env.NEXT_PUBLIC_ENVIRONMENT === "production" ||
+      (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_ENVIRONMENT === undefined);
 
   if (!isProduction) {
     return {

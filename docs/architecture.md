@@ -317,10 +317,15 @@ pnpm --filter @catalog/web start
 ```
 
 Required in production: `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`,
-`NEXT_PUBLIC_IMAGE_BASE_URL`, `RATE_LIMIT_SALT`, and
-`NEXT_PUBLIC_ENVIRONMENT=production` (any other value makes `robots.txt`
-disallow everything, which is what keeps a staging deployment out of search
-results).
+`NEXT_PUBLIC_IMAGE_BASE_URL` and `RATE_LIMIT_SALT`. That is the whole list.
+Brand, contact, legal and feature values are constants in `src/config/site.ts`,
+not environment variables.
+
+`robots.txt` blocks every crawler unless the deployment is production. On a host
+that announces its own environment — Vercel sets `VERCEL_ENV` — that is decided
+automatically and previews are blocked with nothing to configure. Elsewhere, set
+`NEXT_PUBLIC_ENVIRONMENT=production`; any other value keeps the site out of
+search results.
 
 ## Catalog freshness
 
@@ -329,16 +334,17 @@ without a redeploy. No customer request ever waits on the sync.
 
 ## Changing the branding
 
-`NEXT_PUBLIC_*` values are inlined at build time, and the prerender cache can
+Brand values are compiled into the bundle, and the prerender cache can
 serve a stale page after a brand change — a rename once updated `/brands` while
 `/` kept the old name. **Delete `.next` and rebuild** after changing any brand
 value, and check the built HTML rather than trusting a running server.
 
-1. Edit `src/config/site.ts` defaults, or set the `NEXT_PUBLIC_*` variables.
+1. Edit `src/config/site.ts`. Every brand, contact and legal value is a plain
+   constant there; none of them is an environment variable.
 2. Edit the token block at the top of `src/app/globals.css` for colour, type,
    spacing and radii.
 3. Replace `src/components/layout/wordmark.tsx` if a real logo exists.
-4. Fill in the legal variables. Until they are set, the footer says plainly that
+4. Fill in the legal constants. Until they are set, the footer says plainly that
    company details are not configured and the structured data omits them
    entirely rather than publishing invented identifiers.
 5. Have a lawyer review `src/content/legal.ts`. Sections marked
