@@ -118,6 +118,28 @@ describe("transliterate / slugify", () => {
     expect(slugify("Капсули")).toBe("kapsuli");
   });
 
+  /*
+   * `catalog_translit()` in `packages/db/migrations/0003_search_translit.sql`
+   * is a hand-written SQL copy of this mapping, because search folds both the
+   * catalog and the query through it inside the database. The two must agree
+   * character for character or a product's slug and its search entry stop
+   * describing the same word — so every letter that is not a straight 1:1
+   * substitution is pinned here.
+   */
+  it("pins the multi-character mappings the SQL function mirrors", () => {
+    expect(transliterate("жцчшщюя")).toBe("zhtschshshtyuya");
+    // `ъ` and `ь` have no Latin letter of their own; they are not dropped.
+    expect(transliterate("ъь")).toBe("ay");
+    expect(transliterate("Ще жълт чай шише цар юни яйце ъгъл")).toBe(
+      "shte zhalt chay shishe tsar yuni yaytse agal",
+    );
+  });
+
+  it("leaves Latin text untouched, which is what lets one folded form serve both scripts", () => {
+    expect(transliterate("Lavazza Crema E Gusto")).toBe("lavazza crema e gusto");
+    expect(transliterate(transliterate("Капсули"))).toBe(transliterate("Капсули"));
+  });
+
   it("produces clean slugs from mixed-script product names", () => {
     expect(slugify("Кафе на зърна Lavazza Super Crema 1кг.")).toBe(
       "kafe-na-zarna-lavazza-super-crema-1kg",

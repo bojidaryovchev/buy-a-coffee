@@ -110,3 +110,40 @@ export function availabilitySchemaUrl(availability: string): string {
       return "https://schema.org/LimitedAvailability";
   }
 }
+
+/**
+ * Price per cup, formatted.
+ *
+ * Kept at four decimals internally so the cheapest products sort against each
+ * other correctly, and rounded to the customary two only here, at the last
+ * moment, exactly like every other price in the shop.
+ *
+ * The label always says "на чаша" because the number is meaningless without
+ * it, and an estimated figure says so: for ground coffee the number of cups in
+ * a bag depends on the machine and the drinker, not on the bag.
+ */
+export function toPerServingView(
+  pricePerServing: string | null | undefined,
+  currency: string | null | undefined,
+  options: { readonly estimated?: boolean } = {},
+): { readonly formatted: string; readonly estimated: boolean } | null {
+  const price = toPriceView(pricePerServing, currency);
+  if (!price) return null;
+
+  const estimated = options.estimated === true;
+  return {
+    formatted: `${estimated ? "≈ " : ""}${price.formatted} на чаша`,
+    estimated,
+  };
+}
+
+/**
+ * Bulgarian plural for a counted noun.
+ *
+ * "1 продукта" is wrong in a way that makes a page look machine-generated, and
+ * Bulgarian splits on one versus many rather than on the English rule, so
+ * `count === 1` is the whole decision.
+ */
+export function pluralize(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}

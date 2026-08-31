@@ -40,6 +40,16 @@ export default function robots(): MetadataRoute.Robots {
           "/*?category=",
           "/*?sort=",
           "/*?page=",
+          // The wizard's answer permutations. The unanswered wizard and the
+          // machine pages stay crawlable; every answered state is the same
+          // page with different state, exactly like a filtered listing.
+          "/wizard/result",
+          "/*?brew=",
+          "/*?system=",
+          "/*?taste=",
+          "/*?volume=",
+          "/*?budget=",
+          "/*?requirements=",
         ],
       },
     ],

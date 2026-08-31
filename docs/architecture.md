@@ -52,6 +52,10 @@ source key, so it never disturbs synchronised data.
 | `/products/[slug]` | Product detail, gallery, quick order, related products |
 | `/promotions` | Products with a genuine reduction |
 | `/search` | Server-side search over PostgreSQL |
+| `/wizard` | Recommendation wizard. One question per URL, step derived from the answers |
+| `/wizard/result` | The recommendation, with the reasons behind each pick |
+| `/wizard/machines` | Machine brands, and how to recognise each capsule system |
+| `/wizard/machines/[slug]` | Every model of one brand, grouped by the system it takes |
 | `/contact` | Contact details and message form |
 | `/journal` | Blog capability; no articles yet |
 | `/privacy`, `/terms`, `/cookies` | Legal documents written for this business |
@@ -129,16 +133,61 @@ already be indexed or bookmarked, and a dead end helps nobody. That page is
 
 ## Search
 
-PostgreSQL, using two complementary strategies:
+Product names mix both alphabets in one string — "Капсули Nespresso Rema Caffè
+Cookies" — and nobody switches keyboard layout mid-search. So every comparison
+folds both the catalog and the query into one canonical form first, using the
+`catalog_translit()` SQL function: `rema` finds „Рема", `рема` finds „Rema".
+
+Latin is the canonical form because transliteration only runs one way without
+ambiguity — `щ` is always `sht`, but `sht` could be `щ` or `шт` — and because
+Latin text folds to itself, so one folded column serves both scripts. The
+function is a character-for-character copy of `transliterate()` in
+`@catalog/shared`, which is what keeps a product's slug and its search entry
+describing the same word; `packages/shared/test/text.test.ts` pins the mapping.
+
+Over that folded text, three complementary strategies:
 
 - a generated `tsvector` over name, SKU, pack size and description, with the
   `simple` configuration — the catalog is Bulgarian and PostgreSQL ships no
   Bulgarian stemmer, so a language-specific configuration would quietly do
   nothing useful;
-- trigram similarity for partial and misspelled input, which is what a search
-  box actually receives, and which works identically for Cyrillic and Latin.
+- substring matching for partial words ("lavaz", „капсул"), which full text
+  cannot do;
+- word similarity (`%>`) for misspellings, which neither of the others can do.
+  Not plain `similarity()`: that scores the term against the *whole* name, so
+  "lavaza" against „Кафе на зърна Lavazza Crema E Aroma 1кг." lands at 0.15,
+  below any threshold that also rejects nonsense. `%>` scores against the best
+  matching run of words instead, putting that typo at 0.71 while "zzzzqqqq"
+  stays at 0.14.
 
-Both are indexed. Queries are length-bounded and parameterised.
+All three are indexed. Queries are length-bounded and parameterised, and `%`
+and `_` are escaped before they reach a `LIKE` pattern.
+
+The predicate is defined once, in `lib/catalog/search.ts`, and shared by the
+results page, the facet counts and the typeahead — so the dropdown can never
+suggest a product the results page then fails to find.
+
+### Typeahead
+
+`/api/search/suggest` is the one place the storefront serves catalog JSON. It
+returns products with their images and prices, matching brands and categories,
+and the total, so the dropdown can offer "виж всички N резултата".
+
+It exists because a debounced keystroke handler cannot call a server action
+without queueing behind the router. It is rate limited and its term is bounded;
+it exposes nothing that is not already on the results page.
+
+The field itself is still a real `GET` form and still works with no JavaScript
+at all — the dropdown is layered on top, never in the way. Requests are
+debounced, cancelled when the term moves on, and cached per session so
+backspacing through a word asks the database nothing new. (Cancelled requests
+make Next log `The destination stream closed early`; that is the abort working,
+not a fault.)
+
+Known limitation: folding handles transliteration, not phonetic spelling. „Рема"
+finds "Rema", but „Лаваца" — a Bulgarian phonetic rendering of an Italian name
+— folds to `lavatsa` and does not reach "Lavazza". Closing that gap needs a
+synonym list, not a better transliterator.
 
 ## Quick order
 
@@ -158,6 +207,51 @@ provider configured it logs a redacted line; the record is always stored.
 To add a real provider, implement `NotificationSink` and call
 `setNotificationSink` once at start-up.
 
+## The recommendation wizard
+
+Four questions, then three suggestions with the reasons behind each. The
+decisions behind it are in [decisions.md](decisions.md#the-recommendation-wizard);
+this is how it is put together.
+
+```
+answers in the URL ──▶ hard rules (compatibility, requirements) ──▶ soft scores ──▶ 3 picks + reasons
+                              │                                                          │
+                        machine database                                        price per cup, pack fit
+                       (our own, checked in)                                     strength, intensity
+```
+
+| Module | Responsibility |
+| --- | --- |
+| [`lib/recommend/systems.ts`](../apps/web/src/lib/recommend/systems.ts) | The brewing systems, and the ones we deliberately do not stock |
+| [`content/machines.ts`](../apps/web/src/content/machines.ts) | Machine brand → model → system. Editorial data, written by hand |
+| [`lib/recommend/answers.ts`](../apps/web/src/lib/recommend/answers.ts) | The questions, URL parsing and serialisation, and the step machine |
+| [`lib/recommend/score.ts`](../apps/web/src/lib/recommend/score.ts) | Ranking. Pure: no database, no clock, no randomness |
+| [`lib/recommend/summary.ts`](../apps/web/src/lib/recommend/summary.ts) | The answer chips, and what clearing an answer implies |
+| [`@catalog/shared/serving`](../packages/shared/src/serving.ts) | Servings per pack and price per serving, in exact decimals |
+
+Two queries serve the whole flow, both in `queries.ts` with everything else:
+`getSystemAvailability()` counts products per system in one round trip — it is
+what hides an empty system and what triggers the short-circuit — and
+`listRecommendationCandidates()` loads a system's whole compatible set, since
+the scorer ranks products against each other and scores price against the
+pool's own range.
+
+Servings and price per cup are computed in TypeScript from
+`@catalog/shared`, not in SQL. The grams-per-serving figure is a business
+assumption, and one copy of it is what stops the number the wizard ranked by
+from disagreeing with the number on the product page.
+
+### What it will not do
+
+- **It will not recommend something that does not fit.** Compatibility is a
+  filter, never a weight.
+- **It will not return an empty page.** Constraints are relaxed one at a time,
+  least meaningful first.
+- **It will not relax one quietly.** The page states it and the card carries the
+  specific warning.
+- **It will not need JavaScript.** Every control is a link; an end-to-end test
+  drives the flow with scripting disabled.
+
 ## SEO
 
 - Per-page metadata, canonical URLs and Open Graph via the Next.js metadata API.
@@ -167,8 +261,11 @@ To add a real provider, implement `NotificationSink` and call
 - `SearchAction` is declared only because the search route genuinely exists.
 - Sitemap generated from the live catalog, so it can never advertise a product
   we no longer sell.
-- `robots.txt` disallows search and filtered permutations, and disallows
-  everything on non-production deployments.
+- `robots.txt` disallows search, filtered permutations and answered wizard
+  states, and disallows everything on non-production deployments.
+- The machine compatibility pages *are* indexed and sitemapped. "Which capsules
+  fit a Krups Piccolo" is a real query, answered from our own stable data rather
+  than from the catalog.
 
 ## Accessibility
 

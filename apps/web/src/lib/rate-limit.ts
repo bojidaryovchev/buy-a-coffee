@@ -97,3 +97,10 @@ export function idempotencyKey(parts: readonly string[], windowMs = 5 * 60_000, 
 export const inquiryLimiter = createRateLimiter({ limit: 5, windowMs: 10 * 60_000 });
 export const newsletterLimiter = createRateLimiter({ limit: 3, windowMs: 60 * 60_000 });
 export const contactLimiter = createRateLimiter({ limit: 3, windowMs: 30 * 60_000 });
+/*
+ * Search suggestions are a read, not a write, and one visitor genuinely makes
+ * many of them — the client debounces, but a fast typist still fires several
+ * requests per search. The limit is set to stop a script from turning the
+ * typeahead into a load generator, and is far above what typing produces.
+ */
+export const suggestLimiter = createRateLimiter({ limit: 60, windowMs: 60_000 });

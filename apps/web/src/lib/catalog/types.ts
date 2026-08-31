@@ -96,3 +96,34 @@ export interface ProductListResult {
   readonly pageCount: number;
   readonly facets: CatalogFacets;
 }
+
+/**
+ * Typeahead payloads.
+ *
+ * Deliberately narrower than `ProductCardView`: these cross the wire on every
+ * few keystrokes, so they carry only what the dropdown row actually draws.
+ */
+export interface ProductSuggestion {
+  readonly slug: string;
+  readonly name: string;
+  readonly brandName: string | null;
+  readonly weight: string | null;
+  readonly price: PriceView | null;
+  readonly image: ProductImageView | null;
+}
+
+export interface LinkSuggestion {
+  readonly slug: string;
+  readonly name: string;
+  readonly productCount: number;
+}
+
+export interface SearchSuggestions {
+  /** Echoed back so a client can discard a response for a stale term. */
+  readonly term: string;
+  readonly products: readonly ProductSuggestion[];
+  readonly brands: readonly LinkSuggestion[];
+  readonly categories: readonly LinkSuggestion[];
+  /** Total product matches, so the dropdown can offer "see all N". */
+  readonly total: number;
+}

@@ -65,3 +65,34 @@ export function attributeKeyLabel(key: string): string {
 export function attributeValueLabel(key: string, value: string): string {
   return ATTRIBUTE_VALUE_LABELS[key]?.[value] ?? value;
 }
+
+/** A parsed intensity reading, together with the scale it was declared on. */
+export interface IntensityReading {
+  readonly value: number;
+  readonly max: number;
+  /** Position on its own scale, 0–1, so different scales can be compared. */
+  readonly fraction: number;
+}
+
+/**
+ * Parse the source's intensity attribute.
+ *
+ * It arrives as free text on at least four different scales — "4 от 5",
+ * "8 от 10", "10 от 12", "12 от 13" — so the raw number is meaningless on its
+ * own: an 8 is near the top of one scale and the middle of another. Comparing
+ * products means comparing the fraction, not the numeral.
+ *
+ * Returns null for anything that does not parse, which is normal: 23 of the
+ * catalog's products declare no intensity at all.
+ */
+export function parseIntensity(raw: string | null | undefined): IntensityReading | null {
+  if (!raw) return null;
+  const match = /^\s*(\d{1,3})\s*(?:от|\/|of)\s*(\d{1,3})\s*$/iu.exec(raw);
+  if (!match) return null;
+
+  const value = Number(match[1]);
+  const max = Number(match[2]);
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0 || value > max) return null;
+
+  return { value, max, fraction: value / max };
+}

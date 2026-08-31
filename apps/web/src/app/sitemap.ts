@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { getCategoryTree, listAllProductSlugs, listBrands } from "@/lib/catalog/queries";
+import { MACHINE_BRANDS } from "@/content/machines";
 
 /**
  * Sitemap.
@@ -28,6 +29,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/categories"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/brands"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/promotions"), lastModified: now, changeFrequency: "daily", priority: 0.7 },
+    { url: absoluteUrl("/wizard"), lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    {
+      url: absoluteUrl("/wizard/machines"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     { url: absoluteUrl("/contact"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: absoluteUrl("/terms"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
@@ -48,6 +56,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
+    /*
+     * Machine compatibility pages. They answer a question people actually
+     * type — "which capsules fit a Krups Piccolo" — and they are built from
+     * our own data rather than the catalog, so they are stable enough to
+     * advertise.
+     */
+    ...MACHINE_BRANDS.map((brand) => ({
+      url: absoluteUrl(`/wizard/machines/${brand.slug}`),
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     ...flattenCategories(categories).map((category) => ({
       url: absoluteUrl(`/categories/${category.slug}`),
       lastModified: now,

@@ -17,7 +17,24 @@ export type AnalyticsEvent =
   | { name: "filter_applied"; filter: string; value: string; resultCount: number }
   | { name: "quick_order_started"; productSlug: string }
   | { name: "quick_order_submitted"; productSlug: string; outcome: "success" | "error" }
-  | { name: "newsletter_submitted"; outcome: "success" | "error" };
+  | { name: "newsletter_submitted"; outcome: "success" | "error" }
+  /*
+   * Wizard events carry the answers, not the visitor. They are what tells us
+   * which questions actually change the outcome and which are ceremony — and
+   * an answer set that produced nothing is the clearest signal we have about
+   * what we should be stocking.
+   */
+  | { name: "wizard_step_viewed"; step: string }
+  | {
+      name: "wizard_completed";
+      system: string;
+      taste: string | null;
+      volume: string | null;
+      budget: string | null;
+      requirements: string;
+      resultCount: number;
+      relaxed: string;
+    };
 
 export interface AnalyticsSink {
   track(event: AnalyticsEvent): void;

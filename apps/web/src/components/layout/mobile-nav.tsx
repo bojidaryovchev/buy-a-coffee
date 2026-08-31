@@ -148,6 +148,11 @@ export function MobileNav({ categories }: { categories: readonly CategoryView[] 
 
               <ul className="space-y-0.5">
                 <li>
+                  <Link href="/wizard" className="block rounded-sm px-3 py-3 text-base font-medium hover:bg-paper-sunken">
+                    Кое кафе е за вас
+                  </Link>
+                </li>
+                <li>
                   <Link href="/brands" className="block rounded-sm px-3 py-3 text-base font-medium hover:bg-paper-sunken">
                     Марки
                   </Link>

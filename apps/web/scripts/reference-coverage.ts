@@ -347,6 +347,9 @@ function renderDocument(rows: readonly Row[]): string {
     "- **Filtering and search run on the server.** The reference filters a fully-rendered list in the browser and searches an embedded copy of the catalog. Ours query PostgreSQL, so filtered views are server-rendered, shareable and crawlable, and the whole catalog is not shipped to every visitor.",
   );
   lines.push(
+    "- **Search matches across both alphabets, and suggests as you type.** The reference matches the query string literally against an embedded catalog, so a Latin query never reaches a Cyrillic name and there is no type-ahead. Ours folds both the catalog and the query to one canonical form before comparing — `rema` finds „Рема“ and „рема“ finds “Rema” — and `/api/search/suggest` returns products with their images while the visitor is still typing.",
+  );
+  lines.push(
     "- **Listings paginate and can be sorted.** The reference renders every product at once with no sort control. Pagination and sorting are additions, not omissions.",
   );
   lines.push(
@@ -354,6 +357,12 @@ function renderDocument(rows: readonly Row[]): string {
   );
   lines.push(
     "- **Removed products get a real page.** The reference has no concept of a retired product. Ours keeps the URL and explains that the item is gone, rather than 404ing a link that may be indexed.",
+  );
+  lines.push(
+    "- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/wizard` asks four questions and ranks the compatible catalog against the answers; `/wizard/machines` answers \"which capsule fits my machine\" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.",
+  );
+  lines.push(
+    "- **Price per cup.** Derived from pack size and price, shown alongside the pack price. The reference shows pack price only, which reverses the true ordering: 100 capsules at EUR 33.25 is cheaper per cup than 16 at EUR 5.60.",
   );
   lines.push("");
   return lines.join("\n");

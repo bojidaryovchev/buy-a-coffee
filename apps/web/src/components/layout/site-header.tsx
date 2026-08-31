@@ -130,6 +130,12 @@ export function SiteHeader({ categories }: { categories: readonly CategoryView[]
 
             <li className="ml-auto flex items-center gap-7">
               <Link
+                href="/wizard"
+                className="inline-flex border-b-2 border-transparent py-3 text-sm font-medium text-ink-700 transition-colors hover:border-clay-500 hover:text-ink-900"
+              >
+                Кое кафе е за вас
+              </Link>
+              <Link
                 href="/brands"
                 className="inline-flex border-b-2 border-transparent py-3 text-sm font-medium text-ink-700 transition-colors hover:border-clay-500 hover:text-ink-900"
               >

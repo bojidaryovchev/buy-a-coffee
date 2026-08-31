@@ -66,7 +66,8 @@ storefront does not implement and nobody has recorded why.
 ```
 apps/
   scraper/            CLI, Lambda handler, command implementations
-  web/                Next.js storefront: catalog pages, search, quick order
+  web/                Next.js storefront: catalog pages, search, quick order,
+                      recommendation wizard and machine compatibility
 packages/
   shared/             URL canonicalisation, exact decimals, money, weights,
                       hashing, structured logging  (no I/O, no dependencies)

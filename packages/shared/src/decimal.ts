@@ -98,3 +98,34 @@ export function stripTrailingZeros(decimalString: string): string {
   const trimmed = decimalString.replace(/0+$/, "").replace(/\.$/, "");
   return trimmed === "" || trimmed === "-" ? "0" : trimmed;
 }
+
+/**
+ * Divide exactly, then round to `targetScale` (half-away-from-zero).
+ *
+ * Division is the one arithmetic operation whose exact result may not be
+ * representable as a decimal at all — 1/7 has no terminating expansion — so
+ * unlike the other helpers this one always rounds, and the caller must say at
+ * what scale. Price per serving is the reason it exists: a 1 kg pack divided
+ * by 7 g per cup is exactly such a case.
+ */
+export function divideDecimal(value: Decimal, divisor: Decimal, targetScale: number): Decimal {
+  if (divisor.unscaled === 0n) throw new RangeError("Division by zero");
+
+  /*
+   * value / divisor, expressed at targetScale, is
+   *   (vu * 10^(ds + ts)) / (du * 10^vs)
+   * with both sides taken positive so the rounding rule stays symmetric.
+   */
+  const numerator = value.unscaled * pow10(divisor.scale + targetScale);
+  const denominator = divisor.unscaled * pow10(value.scale);
+
+  const negative = numerator < 0n !== denominator < 0n;
+  const absNumerator = numerator < 0n ? -numerator : numerator;
+  const absDenominator = denominator < 0n ? -denominator : denominator;
+
+  const quotient = absNumerator / absDenominator;
+  const remainder = absNumerator % absDenominator;
+  const rounded = remainder * 2n >= absDenominator ? quotient + 1n : quotient;
+
+  return { unscaled: negative ? -rounded : rounded, scale: targetScale };
+}

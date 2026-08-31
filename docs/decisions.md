@@ -134,12 +134,34 @@ always points at the clean first page.
 **Pagination and sorting are additions, not omissions.** The source has neither
 and renders every product at once.
 
-**Search uses two complementary strategies.** A generated `tsvector` with the
-`simple` configuration — the catalog is Bulgarian and PostgreSQL ships no
-Bulgarian stemmer, so a language-specific configuration would quietly do nothing
-useful — plus trigram similarity for partial and misspelled input, which is what
-a search box actually receives and which works identically for Cyrillic and
-Latin.
+**Search folds both scripts into one canonical form before comparing.** Product
+names mix Cyrillic and Latin in a single string and visitors type whichever is
+under their fingers, so matching the two against each other pairwise does not
+scale. Both the catalog and the query pass through `catalog_translit()` first,
+and Latin is the canonical form for two reasons: transliteration only runs one
+way without ambiguity (`щ` is always `sht`; `sht` could be `щ` or `шт`), and
+Latin text folds to itself, so one folded column covers both alphabets instead
+of two.
+
+**Search uses three complementary strategies over that folded text.** A
+generated `tsvector` with the `simple` configuration — the catalog is Bulgarian
+and PostgreSQL ships no Bulgarian stemmer, so a language-specific configuration
+would quietly do nothing useful — plus substring matching for partial words,
+plus word similarity (`%>`) for misspellings. Word similarity rather than plain
+`similarity()`, which scores a short term against the whole product name and so
+cannot separate a typo from nonsense.
+
+**The search predicate is defined once and shared.** The results page, the facet
+counts and the typeahead all match with the same expression. A dropdown that
+offers a product the results page then cannot find is worse than no dropdown.
+
+**The typeahead is an upgrade to the form, not a replacement for it.** The field
+stays a real `GET` form that works before hydration and without JavaScript; the
+dropdown is layered on top. It was previously argued that a type-ahead was a
+poor trade because ours queries a database rather than filtering an embedded
+copy of the catalog in the browser. Debouncing, per-session caching and a
+bounded, rate-limited endpoint make that trade a good one — and the images and
+prices in the dropdown are worth more than the request they cost.
 
 **A retail price layer sits alongside the source price.**
 `retail_price_override` defaults to null, meaning "track the source price". A
@@ -156,6 +178,86 @@ button cannot create two orders.
 **No `aggregateRating`, no reviews** in the structured data. The shop has none,
 and inventing them would be both a policy violation and a lie. `SearchAction` is
 declared only because the search route genuinely exists.
+
+## The recommendation wizard
+
+**Compatibility is the product, not taste.** Five mutually incompatible capsule
+systems are stocked, and customers know their machine rather than their system —
+"a Krups thing", not "Dolce Gusto". Closing that gap is the reason the wizard
+exists; every other question is a refinement. So compatibility is asked first,
+answered from our own machine database, and is the one thing the scorer will
+never trade away.
+
+**The machine database is ours, written by hand.** Nothing about compatibility
+is scraped or inferred. A compatibility claim is a promise to a customer, so it
+needs an owner who can be asked why — and a model is listed only when we know
+which capsule it takes. Machines we cannot supply are listed too, pointing at an
+explanation: someone with a Vertuo deserves a straight "nothing here fits it"
+rather than a wizard that quietly runs out of answers.
+
+**Hard rules exclude; soft scores rank.** There are only three hard rules —
+compatibility, an explicit requirement, and decaf, which is excluded unless it
+was asked for. Everything else is a weighted score that can never empty the
+page. A preference nothing in the catalog satisfies costs the visitor a better
+match, never a dead end.
+
+**Nothing is relaxed in silence.** When a constraint cannot be met the page says
+so in plain words and the card carries the specific warning — "съдържа кофеин"
+on a caffeinated coffee shown to someone who asked for decaf, and equally "без
+кофеин" the other way round. One system in this catalog holds a single product
+and it happens to be decaffeinated, so this is not hypothetical.
+
+**Three suggestions, each with its reasons.** One answer reads as a guess and
+gives the visitor nothing to judge. The reason phrases are generated from the
+criteria that actually contributed to the score, so a card cannot claim a match
+the ranking did not make. A recommendation that cannot explain itself is a
+filter wearing a costume.
+
+**Questions are asked with concrete anchors, never abstract scales.** "Strong"
+means high caffeine to one person and bitter to another. Each taste option is
+described by a situation instead, which is what makes answers comparable
+between visitors.
+
+**Below five compatible products the questions are skipped.** Three of the
+systems here hold three products each. Asking four questions to narrow three
+items wastes the visitor's time and reads as a form for its own sake.
+
+**Price is scored relative to the compatible pool, and there is no "premium"
+option.** Beans run about EUR 0.09-0.16 a cup and capsules EUR 0.25-0.54, so a
+fixed budget threshold would empty one system while telling capsule buyers
+nothing. And with no ratings and no cupping scores there is no basis for
+claiming a dearer coffee is a better one; the honest third choice is "price is
+not the point".
+
+**Price per cup is computed, shown, and derived from one constant.** Pack price
+reverses the true ordering — 100 capsules at EUR 33.25 undercuts 16 at EUR 5.60
+per cup. Servings come from the piece count where there is one and from weight
+at `GRAMS_PER_SERVING` otherwise; anything derived from weight is marked
+estimated and displayed as an approximation, because how much coffee a shot uses
+is a property of the machine, not the bag. The constant lives in
+`@catalog/shared` so the wizard cannot rank by a number the product page
+contradicts.
+
+**Answers live in the URL and the step is derived from them.** Same reasoning as
+the catalog filters: shareable, bookmarkable, back-button-safe, and working with
+JavaScript off. Deriving the step rather than storing a cursor means an edited
+link can never land on a step that contradicts its own answers.
+
+**Scoring is a pure function with no database, clock or randomness.** The same
+reasoning as the diff engine and the circuit breaker: the logic that decides
+something consequential is the logic that must be exhaustively testable, and
+"why did it suggest that?" has to be answerable.
+
+**A system binds to its categories by slug *and* source key.** The slug is
+derived from the category's Bulgarian name and would change if the source
+renamed it; the source key would not. A system that resolves to nothing is not
+offered at all, so an upstream rename degrades to one fewer option rather than
+to an empty result.
+
+**The machine pages are indexed; the answered wizard is not.** "Which capsules
+fit a Krups Piccolo" is a question people type, and it is answered from our own
+stable data. Every answered permutation of the wizard is the same page with
+different state, which is the filtered-listing problem again.
 
 ## Infrastructure
 

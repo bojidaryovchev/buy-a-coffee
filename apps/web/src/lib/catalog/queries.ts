@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   brands,
@@ -8,11 +8,26 @@ import {
   productImages,
   products,
 } from "@catalog/db/schema";
+import { packServings, pricePerServing } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
 import { discountPercent, toPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
+import {
+  BREWING_SYSTEMS,
+  type BrewingSystem,
+  type BrewingSystemId,
+} from "@/lib/recommend/systems";
+import type { RecommendationCandidate } from "@/lib/recommend/score";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./attributes";
+import {
+  brandNameMatch,
+  categoryNameMatch,
+  searchMatch,
+  searchMatchProductsOnly,
+  searchRank,
+  suggestionRank,
+} from "./search";
 import type {
   BrandView,
   CatalogFacets,
@@ -20,6 +35,7 @@ import type {
   ProductCardView,
   ProductDetailView,
   ProductListResult,
+  SearchSuggestions,
 } from "./types";
 
 /**
@@ -42,12 +58,6 @@ import type {
 const retailPrice = sql<string | null>`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
 const retailOldPrice = sql<string | null>`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
 
-/**
- * The generated tsvector column. It is created by `0002_search_indexes.sql`
- * rather than by the schema DSL, which cannot express a generated column, so
- * it is referenced by name here.
- */
-const searchVector = sql`products.search_vector`;
 
 /** Self-join alias for resolving a category's parent. */
 const parentCategories = alias(categories, "parent_categories");
@@ -186,19 +196,7 @@ function buildFilterConditions(query: CatalogQuery, extra: SQL[] = []): SQL[] {
     );
   }
   if (query.q) {
-    /*
-     * Full-text handles whole words with ranking; trigram similarity handles
-     * partial and misspelled input, which is what a search box actually
-     * receives. Both are indexed, and both are parameterised.
-     */
-    conditions.push(
-      or(
-        sql`${searchVector} @@ plainto_tsquery('simple', ${query.q})`,
-        sql`${products.name} ilike ${`%${query.q}%`}`,
-        sql`similarity(${products.name}, ${query.q}) > 0.25`,
-        sql`${brands.name} ilike ${`%${query.q}%`}`,
-      ) as SQL,
-    );
+    conditions.push(searchMatch(query.q));
   }
   return conditions;
 }
@@ -219,11 +217,7 @@ function buildOrderBy(query: CatalogQuery): SQL[] {
     case "relevance":
     default:
       if (query.q) {
-        return [
-          sql`ts_rank(${searchVector}, plainto_tsquery('simple', ${query.q})) desc`,
-          sql`similarity(${products.name}, ${query.q}) desc`,
-          asc(products.name),
-        ];
+        return [...searchRank(query.q), asc(products.name)];
       }
       // With no query there is no relevance signal; in-stock first, then name.
       return [sql`(${products.availability} = 'in_stock') desc`, asc(products.name)];
@@ -314,16 +308,12 @@ function emptyFacets(): CatalogFacets {
  */
 async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFacets> {
   const scope = and(isVisible, ...extra);
-  const scopeWithSearch = query.q
-    ? and(
-        scope,
-        or(
-          sql`${searchVector} @@ plainto_tsquery('simple', ${query.q})`,
-          sql`${products.name} ilike ${`%${query.q}%`}`,
-          sql`similarity(${products.name}, ${query.q}) > 0.25`,
-        ) as SQL,
-      )
-    : scope;
+  /*
+   * The brand clause is left out here: the attribute and category facet
+   * queries do not join `brands`, and a facet count must be counted over the
+   * same rows for every facet or the numbers disagree with each other.
+   */
+  const scopeWithSearch = query.q ? and(scope, searchMatchProductsOnly(query.q)) : scope;
 
   const [brandRows, attributeRows, categoryRows] = await Promise.all([
     db
@@ -405,6 +395,115 @@ async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFac
         count: aromaCounts.get(value) ?? 0,
       })),
     categories: categoryRows.map((row) => ({ value: row.value, label: row.label, count: row.count })),
+  };
+}
+
+/** How many of each kind of suggestion the dropdown shows. */
+const SUGGESTION_PRODUCT_LIMIT = 6;
+const SUGGESTION_LINK_LIMIT = 3;
+/** Below this, a term matches too much of the catalog to be a useful hint. */
+export const MIN_SUGGESTION_TERM_LENGTH = 2;
+
+/**
+ * Products in a category *or any of its children*.
+ *
+ * On this source, products hang off the subcategory: „Капсули" has 57 products
+ * underneath it and not one attached directly. Counting only direct links
+ * would suggest the category with a count of zero — or, with an inner join,
+ * not suggest it at all.
+ *
+ * The outer reference is written as bare `categories.id` rather than through
+ * the schema object: Drizzle renders a column unqualified in a select list, so
+ * `${categories.id}` there would resolve against `c2` inside this subquery.
+ */
+const categorySuggestionCount = sql<number>`(
+  select count(distinct p.id)::int
+  from ${products} p
+  join ${productCategories} pc on pc.product_id = p.id
+  join ${categories} c2 on c2.id = pc.category_id
+  where p.status = 'active'
+    and (c2.id = categories.id or c2.parent_id = categories.id)
+)`;
+
+/**
+ * Typeahead suggestions.
+ *
+ * Matched with the same predicate as the results page, so every suggestion is
+ * something `/search?q=` would also return — a dropdown that offers a product
+ * the results page then cannot find is worse than no dropdown.
+ *
+ * Four small queries plus the image lookup, all bounded and all indexed. The
+ * counts are deliberately included: "виж всички 34 резултата" is often the row
+ * a visitor actually wants.
+ */
+export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
+  const trimmed = term.trim();
+  if (trimmed.length < MIN_SUGGESTION_TERM_LENGTH) {
+    return { term: trimmed, products: [], brands: [], categories: [], total: 0 };
+  }
+
+  const match = and(isVisible, searchMatch(trimmed));
+
+  const [rows, totalResult, brandRows, categoryRows] = await Promise.all([
+    db
+      .select(productColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(match)
+      .orderBy(...suggestionRank(trimmed), asc(products.name))
+      .limit(SUGGESTION_PRODUCT_LIMIT),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(match),
+    db
+      .select({
+        slug: brands.slug,
+        name: brands.name,
+        productCount: sql<number>`count(${products.id})::int`,
+      })
+      .from(brands)
+      .innerJoin(products, and(eq(products.brandId, brands.id), isVisible))
+      .where(and(eq(brands.status, "active"), brandNameMatch(trimmed)))
+      .groupBy(brands.slug, brands.name)
+      .orderBy(desc(sql`count(${products.id})`), asc(brands.name))
+      .limit(SUGGESTION_LINK_LIMIT),
+    db
+      .select({
+        slug: categories.slug,
+        name: categories.name,
+        productCount: categorySuggestionCount,
+      })
+      .from(categories)
+      .where(and(eq(categories.status, "active"), categoryNameMatch(trimmed)))
+      .orderBy(desc(categorySuggestionCount), asc(categories.name))
+      // Widened, then narrowed in code: empty categories are dropped below, and
+      // a `LIMIT` here could spend the whole budget on them.
+      .limit(SUGGESTION_LINK_LIMIT * 3),
+  ]);
+
+  const typed = rows as unknown as ProductRow[];
+  const images = await loadPrimaryImages(typed.map((row) => row.id));
+
+  return {
+    term: trimmed,
+    products: typed.map((row) => {
+      const card = toCard(row, images.get(row.id));
+      return {
+        slug: card.slug,
+        name: card.name,
+        brandName: card.brand?.name ?? null,
+        weight: card.weight,
+        price: card.price,
+        image: card.image,
+      };
+    }),
+    brands: brandRows,
+    categories: categoryRows
+      .filter((row) => row.productCount > 0)
+      .slice(0, SUGGESTION_LINK_LIMIT),
+    total: totalResult[0]?.count ?? 0,
   };
 }
 
@@ -762,4 +861,104 @@ export async function getCatalogSummary(): Promise<{
     brands: brandRow?.count ?? 0,
     categories: categoryRow?.count ?? 0,
   };
+}
+
+/* --- Recommendation wizard ---------------------------------------------- *
+ *
+ * The wizard needs two things the listing queries do not provide: how many
+ * products exist per brewing system (so a system with nothing in it is never
+ * offered, and one with almost nothing skips the questions), and the full
+ * compatible set in one go, since scoring ranks a system's products against
+ * each other rather than paginating them.
+ *
+ * A system is matched on the category slug *or* the source key behind it. The
+ * slug is derived from the category's Bulgarian name and would change if the
+ * source renamed it; the source key would not. Matching either means an
+ * upstream rename costs us nothing.
+ */
+
+/** Categories belonging to a brewing system, by slug or by source key. */
+function systemCategoryCondition(system: BrewingSystem): SQL {
+  return sql`exists (
+    select 1 from ${productCategories} pc
+    join ${categories} c on c.id = pc.category_id
+    where pc.product_id = ${products.id}
+      and (
+        c.slug = any(${sql.param([...system.categorySlugs])}::text[])
+        or c.source_key = any(${sql.param([...system.categorySourceKeys])}::text[])
+      )
+  )`;
+}
+
+/**
+ * How many products each brewing system currently holds.
+ *
+ * One query for every system rather than one per system: the wizard's first
+ * two steps both need the whole picture, and a system that has fallen to zero
+ * must disappear from the options rather than lead to an empty result.
+ */
+export async function getSystemAvailability(): Promise<Readonly<Record<BrewingSystemId, number>>> {
+  const columns = Object.fromEntries(
+    BREWING_SYSTEMS.map((system) => [
+      system.id,
+      sql<number>`count(*) filter (where ${systemCategoryCondition(system)})::int`,
+    ]),
+  );
+
+  const [row] = await db.select(columns).from(products).where(isVisible);
+
+  return Object.fromEntries(
+    BREWING_SYSTEMS.map((system) => [system.id, Number(row?.[system.id] ?? 0)]),
+  ) as Record<BrewingSystemId, number>;
+}
+
+/**
+ * Every product compatible with a brewing system, ready for scoring.
+ *
+ * Deliberately unpaginated: the largest system holds 50 products, the scorer
+ * ranks them against each other, and per-cup price is scored against the
+ * pool's own range — all of which need the whole set. The bound is the
+ * catalog, and `MAX_RECOMMENDATION_CANDIDATES` keeps it a bound rather than a
+ * promise.
+ */
+export const MAX_RECOMMENDATION_CANDIDATES = 200;
+
+export async function listRecommendationCandidates(
+  system: BrewingSystem,
+): Promise<readonly RecommendationCandidate[]> {
+  const rows = await db
+    .select({
+      ...productColumns,
+      weightValue: products.weightValue,
+      weightUnit: products.weightUnit,
+    })
+    .from(products)
+    .leftJoin(brands, eq(products.brandId, brands.id))
+    .where(and(isVisible, systemCategoryCondition(system)))
+    .orderBy(asc(products.name))
+    .limit(MAX_RECOMMENDATION_CANDIDATES);
+
+  const typed = rows as unknown as Array<
+    ProductRow & { weightValue: string | null; weightUnit: string | null }
+  >;
+  const images = await loadPrimaryImages(typed.map((row) => row.id));
+
+  return typed.map((row) => {
+    const card = toCard(row, images.get(row.id));
+    /*
+     * Servings and per-cup price are computed here, in TypeScript, from the
+     * shared exact-decimal helpers rather than in SQL. The grams-per-serving
+     * figure is a business assumption; having one copy of it means the number
+     * on the product page can never disagree with the number the wizard
+     * ranked by.
+     */
+    const servings = packServings(row.weightValue, row.weightUnit);
+    return {
+      ...card,
+      attributes: row.attributes ?? {},
+      pricePerServing: pricePerServing(row.price, servings),
+      servings: servings?.whole ?? null,
+      servingsEstimated: servings?.estimated ?? false,
+    };
+  });
 }
