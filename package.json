@@ -27,7 +27,8 @@
     "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
     "check:originality": "pnpm --filter @catalog/web check:originality",
     "build": "pnpm --filter @catalog/web build",
-    "dev": "pnpm --filter @catalog/web dev"
+    "dev": "pnpm --filter @catalog/web dev",
+    "env:check": "pnpm --filter @catalog/web env:check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

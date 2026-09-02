@@ -74,7 +74,26 @@ export function createRateLimiter(options: {
  * rate limiting works while the stored value is not personal data we have to
  * account for.
  */
-export function clientFingerprint(headers: Headers, salt = process.env.RATE_LIMIT_SALT ?? "catalog-storefront"): string {
+/**
+ * The fallback salt, and a complaint about using it.
+ *
+ * Rate limiting keeps working without `RATE_LIMIT_SALT`, which is precisely the
+ * problem: nothing breaks, so nobody notices that the IP fingerprint is now
+ * identical and predictable across every deployment of this code. Warned about
+ * once at startup rather than thrown, because refusing to boot the storefront
+ * over a salt would be a worse outage than the weakness it prevents.
+ */
+const FALLBACK_SALT = "catalog-storefront";
+
+if (!process.env.RATE_LIMIT_SALT && process.env.NODE_ENV === "production") {
+  console.error(
+    "RATE_LIMIT_SALT is not set. Rate-limit fingerprints are using a public " +
+      "default and are predictable across deployments. Set it to a long " +
+      "random value.",
+  );
+}
+
+export function clientFingerprint(headers: Headers, salt = process.env.RATE_LIMIT_SALT ?? FALLBACK_SALT): string {
   const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const address = forwarded || headers.get("x-real-ip") || "unknown";
   const agent = headers.get("user-agent") ?? "";

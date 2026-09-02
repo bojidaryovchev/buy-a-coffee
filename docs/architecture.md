@@ -33,7 +33,7 @@ docker compose up -d
 pnpm db:migrate
 pnpm sync:catalog          # populate the catalog from the source
 cp apps/web/.env.example apps/web/.env.local
-pnpm dev                   # http://localhost:3100
+pnpm dev                   # http://localhost:3000
 ```
 
 With no network access, `pnpm --filter @catalog/web seed:dev` writes a small,
