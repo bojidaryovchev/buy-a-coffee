@@ -33,8 +33,30 @@ export function organizationJsonLd(): Record<string, unknown> {
   if (siteConfig.legal.isComplete) {
     base.legalName = siteConfig.legal.companyName;
     base.identifier = siteConfig.legal.companyId;
-    base.address = { "@type": "PostalAddress", streetAddress: siteConfig.legal.address };
-    if (siteConfig.legal.vatId) base.vatID = siteConfig.legal.vatId;
+    /**
+     * The address in parts rather than the one-line prose form.
+     *
+     * It used to put the whole string into `streetAddress`, which is what the
+     * shape allowed while the address was empty — locality, region and country
+     * simply were not available. They are now, and the difference matters:
+     * `addressCountry` and `addressLocality` are what let a consumer resolve
+     * this to a place rather than a sentence, and they are what Google reads
+     * when it reconciles an entity against a Business Profile.
+     */
+    base.address = {
+      "@type": "PostalAddress",
+      streetAddress: siteConfig.legal.streetAddress,
+      addressLocality: siteConfig.legal.addressLocality,
+      addressRegion: siteConfig.legal.addressRegion,
+      addressCountry: siteConfig.legal.addressCountry,
+    };
+    if (siteConfig.legal.vatId) {
+      base.vatID = siteConfig.legal.vatId;
+      /* The ЕИК is also the tax identifier. `identifier` above is the generic
+         slot; `taxID` is the one a consumer looking for a company number reads,
+         and the vend repos publish both. */
+      base.taxID = siteConfig.legal.companyId;
+    }
   }
   return base;
 }

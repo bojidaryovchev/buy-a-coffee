@@ -40,10 +40,12 @@ import {
  * Webhooks carry metadata only: no body, no attachments. Both need a second
  * call to the Received Emails API.
  *
- * ⚠ Idle until the shop's real address exists and its domain has an MX record.
- * `siteConfig.contact.email` is still `hello@example.com` — see the TODO in
- * `config/site.ts`. Without MX, Resend is never handed the mail and never posts
- * an event, so this route is correct and never called.
+ * ⚠ Idle until `buy-a-coffee.com` has an MX record pointed at Resend. The
+ * address itself is real now — `siteConfig.contact.email` is
+ * `info@buy-a-coffee.com` — but receiving is a separate DNS operation from
+ * sending. Without MX, Resend is never handed the mail and never posts an
+ * event, so this route is correct and never called. The sibling sites have
+ * theirs; this domain was only just decided.
  */
 
 /**

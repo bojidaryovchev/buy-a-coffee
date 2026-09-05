@@ -44,7 +44,13 @@ export interface SiteConfig {
     readonly companyName: string;
     readonly companyId: string;
     readonly vatId: string;
+    /** The one-line form, for the footer and the legal pages. */
     readonly address: string;
+    /** The same address in parts, for schema.org `PostalAddress`. */
+    readonly streetAddress: string;
+    readonly addressLocality: string;
+    readonly addressRegion: string;
+    readonly addressCountry: string;
     readonly isComplete: boolean;
   };
   readonly features: {
@@ -55,18 +61,47 @@ export interface SiteConfig {
   };
 }
 
-/** TODO: the shop's real number and inbox. Placeholders until the business supplies them. */
-const CONTACT_PHONE = "+359 000 000 000";
-const CONTACT_EMAIL = "hello@example.com";
+/**
+ * The real company, supplied by the client on 2 August 2026 and already in use
+ * on the three sibling sites. Identical there — same legal entity, same ЕИК,
+ * same handset — so these values are copied rather than re-sourced.
+ *
+ * Note on ЕИК and VAT: the client supplied "BG204578516", which is the VAT
+ * form. A Bulgarian VAT number is the ЕИК prefixed with BG, so the ЕИК is the
+ * digits alone. Worth one line of confirmation, since a company can be
+ * registered without being VAT-registered — the same open question the vend
+ * repos carry.
+ */
+const CONTACT_PHONE = "+359 897 943 424";
 
 /**
- * Company registration details. Deliberately empty — see the note above. Fill
- * these in once they are real; nothing else needs to change.
+ * ⚠ THIS MAILBOX DOES NOT EXIST YET.
+ *
+ * Written the way the three sibling sites write theirs — `info@` at the site's
+ * own domain, never the client's Gmail, because a shop printing a gmail.com
+ * address next to a phone order reads as a man with a van. On those sites it is
+ * a real inbox: the domain holds an MX record in Resend, and `/api/inbound`
+ * forwards what arrives to `MAIL_TO`. That route exists here too.
+ *
+ * What does not exist is the DNS. `buy-a-coffee.com` was only just decided, so
+ * until it is verified in Resend for sending (SPF + DKIM) and pointed at Resend
+ * for receiving (MX), this address takes mail nowhere. It is on the launch
+ * checklist. Until then the phone number is the working channel, which is what
+ * the shop leads with anyway.
  */
-const LEGAL_COMPANY_NAME = "";
-const LEGAL_COMPANY_ID = "";
-const LEGAL_VAT_ID = "";
-const LEGAL_ADDRESS = "";
+const CONTACT_EMAIL = "info@buy-a-coffee.com";
+
+/* Address in parts, so the prose line and the PostalAddress in the structured
+   data cannot drift apart. "местност Бедрозов бунар" is a locality name rather
+   than a street — Bulgarian village addresses often have no street at all. */
+const LEGAL_STREET = "местност Бедрозов бунар № 42";
+const LEGAL_LOCALITY = "с. Марково";
+const LEGAL_REGION = "Пловдив";
+
+const LEGAL_COMPANY_NAME = "Лидер офис МЛ ЕООД";
+const LEGAL_COMPANY_ID = "204578516";
+const LEGAL_VAT_ID = "BG204578516";
+const LEGAL_ADDRESS = `${LEGAL_LOCALITY}, ${LEGAL_STREET}, обл. ${LEGAL_REGION}`;
 
 export const siteConfig: SiteConfig = {
   name: "Buy a Coffee",
@@ -93,6 +128,10 @@ export const siteConfig: SiteConfig = {
     companyId: LEGAL_COMPANY_ID,
     vatId: LEGAL_VAT_ID,
     address: LEGAL_ADDRESS,
+    streetAddress: LEGAL_STREET,
+    addressLocality: LEGAL_LOCALITY,
+    addressRegion: LEGAL_REGION,
+    addressCountry: "BG",
     // Placeholders must never be presented as real registration details.
     isComplete: Boolean(LEGAL_COMPANY_NAME && LEGAL_COMPANY_ID && LEGAL_ADDRESS),
   },

@@ -5,6 +5,7 @@ import { AnalyticsProvider } from "@/components/analytics-provider";
 import { siteConfig, absoluteUrl } from "@/config/site";
 import { getCategoryTree } from "@/lib/catalog/queries";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
+import { SHARE_CARD } from "@/lib/seo/share-card";
 import { JsonLd } from "@/components/seo/json-ld";
 
 /**
@@ -34,11 +35,19 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: absoluteUrl("/"),
     locale: siteConfig.locale.replace("-", "_"),
+    /* Explicit, because setting `openGraph` at all drops the image inherited
+       from `app/opengraph-image.tsx`. See the note in `lib/seo/share-card.ts`;
+       without this line every page on the shop shares as a grey box. */
+    images: [{ url: absoluteUrl(SHARE_CARD) }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
+    /* X reads `og:image` when there is no `twitter:image`, but the card type
+       above promises a full-width image and it is cheaper to be explicit than
+       to rely on that fallback holding. */
+    images: [{ url: absoluteUrl(SHARE_CARD) }],
   },
   robots: {
     index: true,

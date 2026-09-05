@@ -69,6 +69,9 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: absoluteUrl("/sitemap.xml"),
-    host: absoluteUrl("/").replace(/\/$/, ""),
+    /* No `host`. It is a Yandex directive that Google and Bing ignore, this was
+       the last copy of it across the four repos, and a robots.txt line no major
+       crawler reads is a line that can only ever be wrong. The canonicals
+       already say which origin is authoritative. */
   };
 }

@@ -1,27 +1,46 @@
+import Image from "next/image";
 import { siteConfig } from "@/config/site";
 
 /**
- * Text-based wordmark.
+ * The wordmark.
  *
- * Deliberately typographic rather than an image: the brand is not final, and a
- * placeholder logo file would be harder to replace than a line of markup. The
- * bean glyph is drawn here, not borrowed from anywhere.
+ * ⚠ WAS A DRAWN PLACEHOLDER, and the note it carried said why: "the brand is
+ * not final, and a placeholder logo file would be harder to replace than a line
+ * of markup". The brand is final now — `public/logo.png` is the real lockup —
+ * so the drawn bean and the typeset name are both retired in its favour.
+ *
+ * It renders `logo-lockup.png` rather than `logo.png` directly. The supplied
+ * artwork carries roughly 240px of transparent margin above and below the
+ * lettering, which is invisible until something tries to size it: at
+ * `h-8` the actual mark would occupy half that and sit off-centre in the
+ * header. `pnpm brand:assets` trims it, and the same command cuts every icon
+ * out of the same file, so nothing here can fall out of step with the favicon.
+ *
+ * Intrinsic size is the trimmed artwork's own 1579x402. Height is fixed in CSS
+ * and the width follows, so the aspect is never the thing that breaks.
  */
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`flex items-center gap-2.5 ${className}`}>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 shrink-0 text-pine-700" fill="none">
-        <ellipse cx="12" cy="12" rx="7" ry="9.5" transform="rotate(-32 12 12)" fill="currentColor" />
-        <path
-          d="M8.2 17.6C10.6 15 10.9 9.6 15.8 6.4"
-          stroke="var(--color-paper)"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="font-display text-xl leading-none font-semibold tracking-tight text-ink-900">
-        {siteConfig.name}
-      </span>
+    <span className={`flex items-center ${className}`}>
+      <Image
+        src="/logo-lockup.png"
+        alt={siteConfig.name}
+        width={1579}
+        height={402}
+        /* The header is above the fold on every page and this is the only image
+           in it, so it loads eagerly rather than costing a layout shift. */
+        priority
+        /**
+         * ⚠ REQUIRED, not an optimisation. Without it Next sizes the srcSet
+         * from the `width` prop and asks for `w=3840` — a 3840px raster of a
+         * logo that renders 110px wide, fetched eagerly, in the header of every
+         * page. `h-7` is 28px and the artwork is 1579:402, so 110px is the real
+         * display width; this lets Next pick a 256px candidate for a 2x screen
+         * instead. Move it if the header height moves.
+         */
+        sizes="110px"
+        className="h-7 w-auto"
+      />
     </span>
   );
 }

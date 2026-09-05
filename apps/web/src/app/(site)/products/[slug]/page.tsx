@@ -14,9 +14,10 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGallery } from "@/components/catalog/product-gallery";
 import { getProductBySlug, getRelatedProducts } from "@/lib/catalog/queries";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/seo/json-ld";
+import { SHARE_CARD } from "@/lib/seo/share-card";
 import { attributeKeyLabel, attributeValueLabel } from "@/lib/catalog/attributes";
 import { sanitizeHtml, htmlToPlainText } from "@/lib/sanitize";
-import { siteConfig } from "@/config/site";
+import { absoluteUrl, siteConfig } from "@/config/site";
 
 export const revalidate = 300;
 
@@ -43,7 +44,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: product.name,
       description: description.slice(0, 300),
       url: `/products/${product.slug}`,
-      images: product.images.length > 0 ? [{ url: product.images[0]!.url }] : undefined,
+      /**
+       * The product's own photograph when there is one — a picture of the bag
+       * earns more clicks than the shop's mark — and the generated card when
+       * there is not.
+       *
+       * `undefined` was the old fallback and it is the one value that must
+       * never appear here: setting `openGraph` at all drops the image inherited
+       * from `app/opengraph-image.tsx`, so an unphotographed product shared
+       * with no image of any kind. See `lib/seo/share-card.ts`.
+       */
+      images:
+        product.images.length > 0
+          ? [{ url: product.images[0]!.url }]
+          : [{ url: absoluteUrl(SHARE_CARD) }],
     },
     // A product we no longer sell should not keep attracting search traffic.
     robots: product.status === "active" ? undefined : { index: false, follow: true },
