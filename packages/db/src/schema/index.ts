@@ -4,3 +4,4 @@ export * from "./catalog.ts";
 export * from "./sync.ts";
 export * from "./observations.ts";
 export * from "./storefront.ts";
+export * from "./mail.ts";

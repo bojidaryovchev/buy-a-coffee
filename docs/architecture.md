@@ -42,25 +42,39 @@ source key, so it never disturbs synchronised data.
 
 ## Routes
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Home. Every module is catalog-driven; empty sections are omitted rather than rendered blank |
-| `/categories` | Category index with live counts |
-| `/categories/[slug]` | Category listing. Parent categories include their children's products |
-| `/brands` | Brand index. Brands with no stock are listed but not linked |
-| `/brands/[slug]` | Brand listing |
-| `/products/[slug]` | Product detail, gallery, quick order, related products |
-| `/promotions` | Products with a genuine reduction |
-| `/search` | Server-side search over PostgreSQL |
-| `/wizard` | Recommendation wizard. One question per URL, step derived from the answers |
-| `/wizard/result` | The recommendation, with the reasons behind each pick |
-| `/wizard/machines` | Machine brands, and how to recognise each capsule system |
-| `/wizard/machines/[slug]` | Every model of one brand, grouped by the system it takes |
-| `/contact` | Contact details and message form |
-| `/journal` | Blog capability; no articles yet |
-| `/privacy`, `/terms`, `/cookies` | Legal documents written for this business |
-| `/sitemap.xml`, `/robots.txt` | Generated from the live catalog |
-| `/media/[...key]` | Development-only local image serving; disabled in production |
+| Route                            | Purpose                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `/`                              | Home. Every module is catalog-driven; empty sections are omitted rather than rendered blank |
+| `/categories`                    | Category index with live counts                                                             |
+| `/categories/[slug]`             | Category listing. Parent categories include their children's products                       |
+| `/brands`                        | Brand index. Brands with no stock are listed but not linked                                 |
+| `/brands/[slug]`                 | Brand listing                                                                               |
+| `/products/[slug]`               | Product detail, gallery, quick order, related products                                      |
+| `/promotions`                    | Products with a genuine reduction                                                           |
+| `/search`                        | Server-side search over PostgreSQL                                                          |
+| `/wizard`                        | Recommendation wizard. One question per URL, step derived from the answers                  |
+| `/wizard/result`                 | The recommendation, with the reasons behind each pick                                       |
+| `/wizard/machines`               | Machine brands, and how to recognise each capsule system                                    |
+| `/wizard/machines/[slug]`        | Every model of one brand, grouped by the system it takes                                    |
+| `/contact`                       | Contact details and message form                                                            |
+| `/journal`                       | Blog capability; no articles yet                                                            |
+| `/privacy`, `/terms`, `/cookies` | Legal documents written for this business                                                   |
+| `/sitemap.xml`, `/robots.txt`    | Generated from the live catalog                                                             |
+| `/media/[...key]`                | Development-only local image serving; disabled in production                                |
+| `/admin`                         | Panel index: what is waiting                                                                |
+| `/admin/vhod`                    | Password login. Outside the panel group, which would otherwise redirect it                  |
+| `/admin/zayavki`, `/[id]`        | Order enquiries. Phone number on the list, because dialling it is the next move             |
+| `/admin/sabshteniya`, `/[id]`    | Contact-form messages                                                                       |
+| `/admin/poshta`, `/[id]`         | The `info@` mailbox: inbound threads, answered as the shop                                  |
+| `/admin/byuletin`                | Newsletter subscribers. A list and an unsubscribe, and deliberately not a sender            |
+| `/api/inbound`                   | Resend `email.received` webhook                                                             |
+
+**Two route groups, no URL change.** `src/app/(site)/` holds the shop and
+`src/app/(admin)/` the panel; a group name in parentheses is not part of any
+path. The split exists so the admin does not inherit the storefront layout — the
+header runs `getCategoryTree()` on every render, and the `robots` metadata there
+declares the page indexable. `app/layout.tsx` above both is deliberately almost
+empty: `<html>`, `<body>`, the two fonts and the stylesheet.
 
 ## Catalog queries
 
@@ -120,12 +134,12 @@ tag always points at the clean first page.
 
 The sync owns reconciliation; the storefront just respects it.
 
-| State | Behaviour |
-| --- | --- |
-| `active`, in stock | Listed, orderable |
-| `active`, out of stock | Listed with an out-of-stock badge, order button disabled |
-| `missing` | Hidden from listings. The sync is unsure, so we do not advertise it |
-| `removed` | Hidden from listings. The URL still resolves to a page explaining that the product is gone, with a route back into the catalog |
+| State                  | Behaviour                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `active`, in stock     | Listed, orderable                                                                                                              |
+| `active`, out of stock | Listed with an out-of-stock badge, order button disabled                                                                       |
+| `missing`              | Hidden from listings. The sync is unsure, so we do not advertise it                                                            |
+| `removed`              | Hidden from listings. The URL still resolves to a page explaining that the product is gone, with a route back into the catalog |
 
 A removed product returns a real page rather than a 404 because its URL may
 already be indexed or bookmarked, and a dead end helps nobody. That page is
@@ -154,7 +168,7 @@ Over that folded text, three complementary strategies:
 - substring matching for partial words ("lavaz", „капсул"), which full text
   cannot do;
 - word similarity (`%>`) for misspellings, which neither of the others can do.
-  Not plain `similarity()`: that scores the term against the *whole* name, so
+  Not plain `similarity()`: that scores the term against the _whole_ name, so
   "lavaza" against „Кафе на зърна Lavazza Crema E Aroma 1кг." lands at 0.15,
   below any threshold that also rejects nonsense. `%>` scores against the best
   matching run of words instead, putting that typo at 0.71 while "zzzzqqqq"
@@ -202,10 +216,58 @@ Submissions are idempotent within a five-minute window, keyed on the phone
 number and product, so a double-clicked button cannot create two orders.
 
 Notifications go through an abstraction in
-[`src/lib/notifications.ts`](../apps/web/src/lib/notifications.ts). With no
-provider configured it logs a redacted line; the record is always stored.
-To add a real provider, implement `NotificationSink` and call
-`setNotificationSink` once at start-up.
+[`src/lib/notifications.ts`](../apps/web/src/lib/notifications.ts). The provider
+is chosen by configuration rather than by a wiring call: with `RESEND_API_KEY`
+and `MAIL_TO` both set the notification is emailed, otherwise a redacted line
+goes to the log. The record is stored either way.
+
+**The notification carries a link, not the customer.** Subject, one-line summary
+and a URL into the panel — never the phone number or the email. Those stay in
+the record behind the panel password, which is the access control this module
+always assumed and could not point at until there was a panel.
+
+`setNotificationSink` remains, as an override for tests or a shop that wires its
+own provider.
+
+## The admin panel
+
+Everything the forms collect was write-only until this existed: rows went into
+Postgres and nothing in the application could read them back.
+
+`/admin` is one password (`ADMIN_PASSWORD`) and an HMAC-signed session cookie —
+one shop, one operator, no users table. **With no password set the panel is
+disabled rather than defaulted**, because a shipped default is worse than no
+panel on a screen that reads every customer's phone number and can send mail
+over the shop's DKIM signature. Every server action re-checks the session: the
+layout's redirect is a rendering decision, and an action id in a client bundle
+can be POSTed to directly.
+
+## The mailbox
+
+`/api/inbound` receives Resend's `email.received` webhook, verifies the svix
+signature over the **raw** request body, and then does two things in a fixed
+order. It **records** the message — so the conversation can be answered from the
+panel and leave as the shop's own address — and then **forwards** a copy to
+`MAIL_TO`, because a panel nobody has open notifies nobody.
+
+Recording first is the whole design. A forward that fails costs a notification;
+a record that never happens costs the conversation. Only a failed record is
+answered with a 500, which is what makes Resend retry.
+
+Threading is by `References`/`In-Reply-To` first, then by correspondent plus
+normalised subject. The string half lives in
+[`lib/mail/threading.ts`](../apps/web/src/lib/mail/threading.ts) with no imports,
+so it can be tested without a database.
+
+Answering an order enquiry or a contact message opens an ordinary mailbox thread
+keyed on a reproducible subject — `Вашата заявка A1B2C3D4` — which is how the
+customer's reply finds its way back to the same conversation. There is no column
+linking a record to a thread, and deliberately so: the subject is the join, and
+it survives a round trip through any mail client.
+
+Attachment bytes stay in Resend. `/admin/poshta/fail/[messageId]/[index]` asks
+for a fresh signed URL per click and streams it through the session, so no
+bearer URL is ever put in the page.
 
 ## The recommendation wizard
 
@@ -220,14 +282,14 @@ answers in the URL ──▶ hard rules (compatibility, requirements) ──▶ 
                        (our own, checked in)                                     strength, intensity
 ```
 
-| Module | Responsibility |
-| --- | --- |
-| [`lib/recommend/systems.ts`](../apps/web/src/lib/recommend/systems.ts) | The brewing systems, and the ones we deliberately do not stock |
-| [`content/machines.ts`](../apps/web/src/content/machines.ts) | Machine brand → model → system. Editorial data, written by hand |
+| Module                                                                 | Responsibility                                                     |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`lib/recommend/systems.ts`](../apps/web/src/lib/recommend/systems.ts) | The brewing systems, and the ones we deliberately do not stock     |
+| [`content/machines.ts`](../apps/web/src/content/machines.ts)           | Machine brand → model → system. Editorial data, written by hand    |
 | [`lib/recommend/answers.ts`](../apps/web/src/lib/recommend/answers.ts) | The questions, URL parsing and serialisation, and the step machine |
-| [`lib/recommend/score.ts`](../apps/web/src/lib/recommend/score.ts) | Ranking. Pure: no database, no clock, no randomness |
-| [`lib/recommend/summary.ts`](../apps/web/src/lib/recommend/summary.ts) | The answer chips, and what clearing an answer implies |
-| [`@catalog/shared/serving`](../packages/shared/src/serving.ts) | Servings per pack and price per serving, in exact decimals |
+| [`lib/recommend/score.ts`](../apps/web/src/lib/recommend/score.ts)     | Ranking. Pure: no database, no clock, no randomness                |
+| [`lib/recommend/summary.ts`](../apps/web/src/lib/recommend/summary.ts) | The answer chips, and what clearing an answer implies              |
+| [`@catalog/shared/serving`](../packages/shared/src/serving.ts)         | Servings per pack and price per serving, in exact decimals         |
 
 Two queries serve the whole flow, both in `queries.ts` with everything else:
 `getSystemAvailability()` counts products per system in one round trip — it is
@@ -263,7 +325,7 @@ from disagreeing with the number on the product page.
   we no longer sell.
 - `robots.txt` disallows search, filtered permutations and answered wizard
   states, and disallows everything on non-production deployments.
-- The machine compatibility pages *are* indexed and sitemapped. "Which capsules
+- The machine compatibility pages _are_ indexed and sitemapped. "Which capsules
   fit a Krups Piccolo" is a real query, answered from our own stable data rather
   than from the catalog.
 
@@ -291,6 +353,14 @@ The honeypot field is hidden off-screen with `tabindex="-1"` inside an
   stored or logged.
 - The development-only `/media` route rejects path traversal and refuses to
   serve at all when a production image host is configured.
+- The admin panel is password-gated, `noindex` at the layout level and
+  disallowed in `robots.txt`. Every admin server action re-checks the session
+  independently of the layout.
+- Mail bodies in the panel are rendered as **text, never as the sender's HTML**.
+  `isomorphic-dompurify` is a dependency of this app and is deliberately not used
+  there: sanitising means betting on the sanitiser, flattening means never
+  rendering a stranger's markup at all, and in a support thread the markup only
+  ever adds a signature image.
 - Security headers are set in `next.config.ts`.
 
 ## Testing

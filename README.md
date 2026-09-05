@@ -61,13 +61,31 @@ Functional parity with the reference site is tracked in
 not hand-maintained: the check fails when the crawler observes a capability the
 storefront does not implement and nobody has recorded why.
 
+## The admin panel
+
+`/admin` reads what the storefront collects and answers it.
+
+Order enquiries, contact messages and newsletter signups have been written to
+Postgres since the beginning, and until now **nothing in the application could
+read them back** — there was no screen, and `notify()` logged a redacted line to
+a server console on a serverless host. The panel is the other end of that: the
+enquiries, their statuses, and an `info@` mailbox that receives mail through a
+Resend webhook and replies **as the shop** rather than from whoever happens to
+press Reply in Gmail.
+
+One password (`ADMIN_PASSWORD`) and a signed cookie. **Unset, the panel is
+disabled rather than defaulted.** See
+[`docs/architecture.md`](docs/architecture.md) for the mailbox design and why
+recording precedes forwarding.
+
 ## Architecture
 
 ```
 apps/
   scraper/            CLI, Lambda handler, command implementations
   web/                Next.js storefront: catalog pages, search, quick order,
-                      recommendation wizard and machine compatibility
+                      recommendation wizard and machine compatibility;
+                      plus the admin panel at /admin
 packages/
   shared/             URL canonicalisation, exact decimals, money, weights,
                       hashing, structured logging  (no I/O, no dependencies)
@@ -113,7 +131,7 @@ worthless.
 
 **Price extraction is strict.** On a product page the price sits next to the
 pack size: `<span>1 кг.</span><span>€30.00</span>`. A "contains a currency
-symbol" test matches the *parent*, yielding `"1 кг. €30.00"`, which a money
+symbol" test matches the _parent_, yielding `"1 кг. €30.00"`, which a money
 parser reads as **€1.00**. Only elements whose entire text is a price qualify.
 
 **Money never touches floating point.** Prices are parsed into exact decimals
@@ -122,7 +140,7 @@ backed by `BigInt` and stored as `numeric(12,2)`.
 **Two independent catalog sources.** The primary source is the site's own
 `window.FILTER_INIT` blob on `/search/`; the fallback is the server-rendered
 `.product-item` cards on category pages. If the blob disappears, sync keeps
-working from HTML *and* parser confidence drops, which the circuit breaker
+working from HTML _and_ parser confidence drops, which the circuit breaker
 notices.
 
 ## Local setup
@@ -143,22 +161,22 @@ writes mirrored images to `.storage/` on disk.
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `pnpm crawl:discovery` | Full public-surface crawl, then export `reference/latest/` |
-| `pnpm sync:catalog` | Synchronise the catalog into PostgreSQL |
-| `pnpm reference:export` | Re-export the reference artifacts |
-| `pnpm images:gc` | Report unreferenced mirrored images (`--apply` to delete) |
-| `pnpm db:migrate` | Apply database migrations |
-| `pnpm db:generate` | Generate a migration from schema changes |
-| `pnpm test` | Unit, parser-fixture and integration tests |
-| `pnpm typecheck` | Strict TypeScript across every package |
-| `pnpm lint` | ESLint |
-| `pnpm dev` | Run the storefront locally |
-| `pnpm build` | Production build of the storefront |
-| `pnpm test:e2e` | Playwright, desktop and mobile |
-| `pnpm reference:coverage` | Verify storefront parity with the reference artifacts |
-| `pnpm check:originality` | Verify no source branding reaches the storefront |
+| Command                   | What it does                                               |
+| ------------------------- | ---------------------------------------------------------- |
+| `pnpm crawl:discovery`    | Full public-surface crawl, then export `reference/latest/` |
+| `pnpm sync:catalog`       | Synchronise the catalog into PostgreSQL                    |
+| `pnpm reference:export`   | Re-export the reference artifacts                          |
+| `pnpm images:gc`          | Report unreferenced mirrored images (`--apply` to delete)  |
+| `pnpm db:migrate`         | Apply database migrations                                  |
+| `pnpm db:generate`        | Generate a migration from schema changes                   |
+| `pnpm test`               | Unit, parser-fixture and integration tests                 |
+| `pnpm typecheck`          | Strict TypeScript across every package                     |
+| `pnpm lint`               | ESLint                                                     |
+| `pnpm dev`                | Run the storefront locally                                 |
+| `pnpm build`              | Production build of the storefront                         |
+| `pnpm test:e2e`           | Playwright, desktop and mobile                             |
+| `pnpm reference:coverage` | Verify storefront parity with the reference artifacts      |
+| `pnpm check:originality`  | Verify no source branding reaches the storefront           |
 
 Useful flags (pass after `--`, e.g. `pnpm sync:catalog -- --dry-run`):
 
@@ -181,10 +199,22 @@ source misbehaved".
 
 ## Environment variables
 
-Every variable is documented in [`.env.example`](.env.example). The database is
+Every variable is documented in [`.env.example`](.env.example), which is
+generated from [`apps/web/env.schema.mjs`](apps/web/env.schema.mjs) — the one
+manifest behind `env:check`, `env:push` and the example file. The database is
 addressed purely through `DATABASE_URL`, so any standard PostgreSQL deployment
 works — local Docker, Neon, RDS, or anything else. Nothing is wired to a
 specific managed vendor.
+
+Mail and the panel are optional and degrade rather than break:
+`RESEND_API_KEY` + `MAIL_TO` turn notifications from a log line into an email,
+`RESEND_WEBHOOK_SECRET` enables the inbound mailbox, and `ADMIN_PASSWORD` enables
+`/admin`. `pnpm --filter @catalog/web env:check` reports what each absence
+actually costs.
+
+⚠ Sending needs a real, verified address. `siteConfig.contact.email` is still
+`hello@example.com` — see the TODO in `apps/web/src/config/site.ts` — and Resend
+refuses to send from an unverified domain.
 
 ## How synchronisation works
 
@@ -215,7 +245,7 @@ previously active key now absent    -> increment consecutive_missing_count
 A product is never removed because of one bad request.
 
 **Missing-count threshold.** Absence increments a counter. Only
-`SYNC_MISSING_THRESHOLD` (default 3) consecutive *successful* syncs with the
+`SYNC_MISSING_THRESHOLD` (default 3) consecutive _successful_ syncs with the
 product absent promote it to `removed`. Reappearing resets the counter to zero
 immediately.
 
@@ -239,22 +269,22 @@ cannot slowly ratchet the bar down until mass removal starts to look normal.
 
 Every successful discovery run writes `reference/latest/`:
 
-| File | Contents |
-| --- | --- |
-| `manifest.json` | Source host, timestamp, git commit, crawler version, counts, SHA-256 per file |
-| `report.md` | Human-readable summary of the observed site |
-| `pages.json` | Every page reached, with type, confidence and evidence |
-| `site-map.json` | Link graph: nodes and edges |
-| `route-patterns.json` | Observed URL patterns per page type |
-| `page-types.json` | Page-type counts and URLs |
-| `products.json` | Normalised catalog snapshot |
-| `categories.json` | Category taxonomy with parents |
-| `brands.json` | Brands with product counts |
-| `filters.json` | Filters, their URL parameters and values |
-| `forms.json` | Public forms (never submitted) |
-| `features.json` | Observed storefront capabilities with evidence URLs |
-| `relationships.json` | Entity relationships and data-quality counts |
-| `errors.json` | Failures, soft-404s, stale sitemap entries |
+| File                  | Contents                                                                      |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `manifest.json`       | Source host, timestamp, git commit, crawler version, counts, SHA-256 per file |
+| `report.md`           | Human-readable summary of the observed site                                   |
+| `pages.json`          | Every page reached, with type, confidence and evidence                        |
+| `site-map.json`       | Link graph: nodes and edges                                                   |
+| `route-patterns.json` | Observed URL patterns per page type                                           |
+| `page-types.json`     | Page-type counts and URLs                                                     |
+| `products.json`       | Normalised catalog snapshot                                                   |
+| `categories.json`     | Category taxonomy with parents                                                |
+| `brands.json`         | Brands with product counts                                                    |
+| `filters.json`        | Filters, their URL parameters and values                                      |
+| `forms.json`          | Public forms (never submitted)                                                |
+| `features.json`       | Observed storefront capabilities with evidence URLs                           |
+| `relationships.json`  | Entity relationships and data-quality counts                                  |
+| `errors.json`         | Failures, soft-404s, stale sitemap entries                                    |
 
 Output is deterministic: object keys are sorted recursively and every list has
 an explicit sort, so a diff between two exports shows real changes to the
@@ -321,11 +351,11 @@ See [`infra/terraform/README.md`](infra/terraform/README.md).
 
 ## Documentation
 
-| Document | Contents |
-| --- | --- |
-| [docs/decisions.md](docs/decisions.md) | Every decision that governs this repo, with its reason — crawler, storefront, infrastructure, and the legal boundaries |
-| [docs/source-recon.md](docs/source-recon.md) | What the source site actually does, and the evidence |
-| [docs/architecture.md](docs/architecture.md) | How the storefront is built, as built |
-| [docs/reference-coverage.md](docs/reference-coverage.md) | Generated. Functional parity against the crawler's artifacts — do not edit by hand |
-| [docs/launch.md](docs/launch.md) | What still stands between this and a shop that can take an order |
-| [infra/terraform/README.md](infra/terraform/README.md) | Deployment, alarms and failure recovery |
+| Document                                                 | Contents                                                                                                               |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [docs/decisions.md](docs/decisions.md)                   | Every decision that governs this repo, with its reason — crawler, storefront, infrastructure, and the legal boundaries |
+| [docs/source-recon.md](docs/source-recon.md)             | What the source site actually does, and the evidence                                                                   |
+| [docs/architecture.md](docs/architecture.md)             | How the storefront is built, as built                                                                                  |
+| [docs/reference-coverage.md](docs/reference-coverage.md) | Generated. Functional parity against the crawler's artifacts — do not edit by hand                                     |
+| [docs/launch.md](docs/launch.md)                         | What still stands between this and a shop that can take an order                                                       |
+| [infra/terraform/README.md](infra/terraform/README.md)   | Deployment, alarms and failure recovery                                                                                |

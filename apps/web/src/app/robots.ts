@@ -40,6 +40,13 @@ export default function robots(): MetadataRoute.Robots {
           "/search",
           "/api/",
           "/media/",
+          /* Belt to the layout's braces. `(admin)/layout.tsx` sets `noindex`,
+             which is the directive that actually keeps a page out of the index
+             — robots.txt only stops the fetch, and a URL linked from anywhere
+             can be indexed without ever being fetched. This line is still worth
+             having on a path that answers with a password form. */
+          "/admin",
+          "/admin/",
           // Filtered and sorted permutations of listings.
           "/*?brand=",
           "/*?strength=",

@@ -28,7 +28,9 @@
     "check:originality": "pnpm --filter @catalog/web check:originality",
     "build": "pnpm --filter @catalog/web build",
     "dev": "pnpm --filter @catalog/web dev",
-    "env:check": "pnpm --filter @catalog/web env:check"
+    "env:check": "pnpm --filter @catalog/web env:check",
+    "env:push": "pnpm --filter @catalog/web env:push",
+    "env:example": "pnpm --filter @catalog/web env:example"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
