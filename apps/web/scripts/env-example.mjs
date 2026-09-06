@@ -55,17 +55,11 @@ const wrap = (text, prefix = "# ") => {
 const out = [];
 
 out.push(
-  "# GENERATED FILE - do not edit.",
+  "# GENERATED - edit env.schema.mjs, then run `npm run env:example`.",
   "#",
-  "# Written by `npm run env:example` from env.schema.mjs, which is also what",
-  "# `npm run env:check` reads and what `npm run env:push` applies to Vercel.",
-  "# Edit the manifest, not this file.",
-  "#",
-  "# Copy to .env.local (or .env - Next loads both, .env.local winning) and fill",
-  "# in. Nothing here is required to run the site in development.",
-  "#",
-  "# One difference worth knowing: Next skips .env.local when NODE_ENV=test and",
-  "# loads .env, so a value only in .env.local is invisible to the test run.",
+  "# Copy to .env and fill in. Nothing here is required for local development.",
+  "# Values marked [manifest] are committed and deployed from the manifest;",
+  "# set them here only to override locally.",
   "",
 );
 
@@ -83,7 +77,7 @@ for (const { name, specs } of sections) {
   out.push(rule(name));
 
   for (const spec of specs) {
-    if (spec.summary) out.push(...wrap(spec.summary));
+    if (spec.summary && spec.kind !== "system") out.push(...wrap(spec.summary));
 
     if (spec.detail?.length) {
       out.push("#");
@@ -91,37 +85,18 @@ for (const { name, specs } of sections) {
     }
 
     if (spec.kind === "system") {
-      out.push(`# Supplied by the platform. Documented here, never set by you.`);
-      out.push(`#   ${spec.name}`);
+      out.push(`#   ${spec.name}  (set by the platform)`);
     } else if (spec.kind === "local") {
       out.push(`${spec.name}=${spec.example ?? ""}`);
     } else {
-      if (spec.kind === "secret") {
-        out.push("#");
-        out.push(
-          ...wrap(
-            "Secret: never committed. env:push reads this from your local .env and sends it to Vercel encrypted.",
-          ),
-        );
-      } else if (spec.value !== undefined) {
-        out.push("#");
-        out.push(
-          ...wrap(
-            `Committed in env.schema.mjs as "${spec.value}", which is the source of truth. Set it here only to override locally.`,
-          ),
-        );
-      }
       if (spec.example && spec.value === undefined) out.push(`# e.g. ${spec.example}`);
-      out.push(`${spec.name}=`);
+      out.push(`${spec.name}=${spec.value !== undefined ? `   # [manifest] ${spec.value}` : ""}`);
     }
     out.push("");
   }
 }
 
-const rendered = `${out
-  .join("\n")
-  .replace(/\n{3,}/g, "\n\n")
-  .trimEnd()}\n`;
+const rendered = `${out.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
 
 if (CHECK) {
   let current = "";
