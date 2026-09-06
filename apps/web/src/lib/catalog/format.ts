@@ -1,6 +1,6 @@
-import { moneyFromDecimalString } from "@catalog/shared";
+import { moneyFromDecimalString, pricePerUnitMeasure } from "@catalog/shared";
 import { siteConfig } from "@/config/site";
-import type { PriceView } from "./types";
+import type { PriceView, UnitPriceView } from "./types";
 
 /**
  * Money formatting.
@@ -134,6 +134,38 @@ export function toPerServingView(
   return {
     formatted: `${estimated ? "≈ " : ""}${price.formatted} на чаша`,
     estimated,
+  };
+}
+
+/**
+ * The unit price, ready to print beside the pack price.
+ *
+ * Rounded to two fraction digits for display while `pricePerUnitMeasure` keeps
+ * four — the extra digits exist so that two nearly-identical packs do not
+ * collapse into the same number when sorted, which is not a display concern.
+ *
+ * Returns null for anything sold by the piece. That is the correct answer, not
+ * a gap: the unit-price rule covers goods sold by weight or volume, and a box
+ * of capsules is neither. `pricePerServingView` above is the comparison that
+ * belongs on those.
+ */
+export function unitPriceView(
+  price: string | null | undefined,
+  weightValue: string | null | undefined,
+  weightUnit: string | null | undefined,
+  currency: string | null | undefined,
+): UnitPriceView | null {
+  const perUnit = pricePerUnitMeasure(price, weightValue, weightUnit);
+  if (!perUnit) return null;
+
+  const money = toPriceView(perUnit.amount, currency);
+  if (!money) return null;
+
+  const label = perUnit.unit === "kg" ? "кг" : "л";
+  return {
+    amount: perUnit.amount,
+    currency: money.currency,
+    formatted: `${money.formatted} / ${label}`,
   };
 }
 

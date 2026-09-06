@@ -11,7 +11,7 @@ import {
 import { packServings, pricePerServing } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
-import { discountPercent, toPriceView } from "./format";
+import { discountPercent, toPriceView, unitPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
 import {
   BREWING_SYSTEMS,
@@ -523,6 +523,11 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
       descriptionHtml: products.descriptionHtml,
       sku: products.sku,
       gtin: products.gtin,
+      /* The normalised pack size, for the unit price below. `productColumns`
+         carries only `weight`, which is the source's free text ("0.250кг.")
+         and cannot be divided into. */
+      weightValue: products.weightValue,
+      weightUnit: products.weightUnit,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -535,6 +540,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     descriptionHtml: string | null;
     sku: string | null;
     gtin: string | null;
+    weightValue: string | null;
+    weightUnit: string | null;
   };
 
   const [imageRows, categoryRows] = await Promise.all([
@@ -592,6 +599,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     ...card,
     image: images[0] ?? null,
     status: typed.status as ProductDetailView["status"],
+    /* Null for capsules and anything with no recorded pack size — see
+       `pricePerUnitMeasure`. The page renders nothing rather than a guess. */
+    unitPrice: unitPriceView(typed.price, typed.weightValue, typed.weightUnit, typed.currency),
     descriptionHtml: typed.descriptionHtml,
     descriptionText: typed.descriptionText,
     sku: typed.sku,

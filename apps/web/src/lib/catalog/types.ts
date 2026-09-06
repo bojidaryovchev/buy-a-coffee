@@ -16,6 +16,20 @@ export interface PriceView {
   readonly formatted: string;
 }
 
+/**
+ * Price per kilogram or litre — the unit price a price label must carry for
+ * goods sold by weight or volume (Dir. 98/6/EC, and Bulgarian law with it).
+ *
+ * Separate from `PriceView` because it carries the reference unit, and null
+ * for anything sold by the piece, where the rule does not reach.
+ */
+export interface UnitPriceView {
+  readonly amount: string;
+  readonly currency: string;
+  /** Ready to print, e.g. "39,80 € / кг". */
+  readonly formatted: string;
+}
+
 export interface ProductImageView {
   readonly url: string;
   readonly alt: string;
@@ -40,6 +54,8 @@ export interface ProductCardView {
 
 export interface ProductDetailView extends ProductCardView {
   readonly status: ProductStatus;
+  /** Null for packs sold by the piece, and for any pack with no recorded size. */
+  readonly unitPrice: UnitPriceView | null;
   readonly descriptionHtml: string | null;
   readonly descriptionText: string | null;
   readonly sku: string | null;

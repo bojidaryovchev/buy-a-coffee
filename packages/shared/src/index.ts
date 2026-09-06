@@ -4,6 +4,7 @@ export * from "./hash.ts";
 export * from "./logger.ts";
 export * from "./money.ts";
 export * from "./serving.ts";
+export * from "./unit-price.ts";
 export * from "./text.ts";
 export * from "./url.ts";
 export * from "./weight.ts";

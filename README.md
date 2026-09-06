@@ -212,9 +212,10 @@ Mail and the panel are optional and degrade rather than break:
 `/admin`. `pnpm --filter @catalog/web env:check` reports what each absence
 actually costs.
 
-⚠ Sending needs a real, verified address. `siteConfig.contact.email` is still
-`hello@example.com` — see the TODO in `apps/web/src/config/site.ts` — and Resend
-refuses to send from an unverified domain.
+⚠ **The domain is not verified in Resend yet.** The address is real —
+`info@buy-a-coffee.com` — but sending needs SPF and DKIM on `buy-a-coffee.com`,
+and the inbound mailbox additionally needs an MX record. Both are DNS
+operations; neither is something this repository can check.
 
 ## How synchronisation works
 

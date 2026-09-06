@@ -126,20 +126,34 @@ export default async function ProductPage({ params }: PageProps) {
             )}
           </div>
 
-          <div className="mt-6 flex items-baseline gap-3">
-            {product.price ? (
-              <>
-                <p className="font-display text-3xl font-semibold text-ink-900">
-                  {product.price.formatted}
+          <div className="mt-6">
+            <div className="flex items-baseline gap-3">
+              {product.price ? (
+                <>
+                  <p className="font-display text-3xl font-semibold text-ink-900">
+                    {product.price.formatted}
+                  </p>
+                  {product.oldPrice && (
+                    <p className="text-lg text-ink-300 line-through">{product.oldPrice.formatted}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-lg text-ink-500">
+                  Цена при запитване — обадете ни се и ще ви я кажем.
                 </p>
-                {product.oldPrice && (
-                  <p className="text-lg text-ink-300 line-through">{product.oldPrice.formatted}</p>
-                )}
-              </>
-            ) : (
-              <p className="text-lg text-ink-500">
-                Цена при запитване — обадете ни се и ще ви я кажем.
-              </p>
+              )}
+            </div>
+
+            {/*
+              The unit price, immediately under the pack price rather than in
+              the specification table. Price indication rules want it beside the
+              selling price, and it is also the number that makes a 250 g bag
+              comparable to a 1 kg one — which is the question a customer is
+              actually asking. Absent for capsules, which are not sold by
+              weight; those carry a per-cup figure elsewhere instead.
+            */}
+            {product.unitPrice && (
+              <p className="mt-1.5 text-sm text-ink-500">{product.unitPrice.formatted}</p>
             )}
           </div>
 

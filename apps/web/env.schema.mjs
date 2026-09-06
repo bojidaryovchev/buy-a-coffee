@@ -204,9 +204,10 @@ export const vars = [
       "to send from an unverified domain, so a real key against an unverified one",
       "fails every send.",
       "",
-      "⚠ There is no real address to verify yet. siteConfig.contact.email is",
-      "still hello@example.com - see the TODO in src/config/site.ts. Fill that in",
-      "first; MAIL_FROM only overrides it.",
+      "⚠ The address is real now - siteConfig.contact.email is",
+      "info@buy-a-coffee.com - but the DOMAIN is not yet verified. Until",
+      "buy-a-coffee.com carries SPF and DKIM, a real key here fails every send",
+      "and the shop is worse off than with no key at all, which at least logs.",
     ],
     missing: {
       level: "warning",
@@ -217,14 +218,15 @@ export const vars = [
   {
     name: "MAIL_FROM",
     kind: "config",
-    /* No committed value: there is no verified address to commit yet, and the
-       code default already reads the one place a real one would go. */
+    /* No committed value: the code default already reads the one place the
+       real address lives, and the only genuine use is overriding it on a
+       preview. */
     targets: [],
     required: false,
     section: "Email",
-    example: "Buy a Coffee <hello@example.com>",
+    example: "Buy a Coffee <info@buy-a-coffee.com>",
     summary:
-      "Sender override. Defaults to siteConfig.name and siteConfig.contact.email, which is still a placeholder.",
+      "Sender override. Defaults to siteConfig.name and siteConfig.contact.email, which is correct for production once the domain is verified.",
     detail: [
       "Set it on a preview deploy, which has no business sending as the live",
       "shop. Accepts a display name.",
