@@ -20,11 +20,16 @@ export const dynamic = "force-dynamic";
  * been required to carry, and where a sender omits it the markup is flattened
  * rather than trusted.
  *
- * `isomorphic-dompurify` is a dependency of this app and is deliberately NOT
+ * The app has a sanitiser — `lib/sanitize.ts` — and it is deliberately NOT
  * used here. Sanitising would mean choosing to render a stranger's markup and
  * betting on the sanitiser; flattening means never rendering it at all. The
  * bet is only worth taking where the markup adds something, and in a support
  * thread it adds a signature image.
+ *
+ * (That sanitiser used to be `isomorphic-dompurify`, named here by package.
+ * It is now `sanitize-html`, because the former could not load in Vercel's
+ * bundle — see `lib/sanitize.ts`. Naming the module rather than the vendor
+ * means this note survives the next such change.)
  */
 
 /** Last-resort readable text for a message that arrived as HTML only. */
