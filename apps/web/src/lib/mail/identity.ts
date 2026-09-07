@@ -16,11 +16,11 @@ import { siteConfig, absoluteUrl } from "@/config/site";
  * `"Name via Brand" <...>` produces `<Buy a Coffee <hello@...>>`, which is not
  * so much a rejected address as an unparseable one.
  *
- * ⚠ The fallback is `siteConfig.contact.email`, now `info@buy-a-coffee.com` —
- * a real address on a domain that is not yet verified in Resend. Resend refuses
- * to send from an unverified domain, so until `buy-a-coffee.com` carries SPF
- * and DKIM, nothing here sends at all. That is the right failure: a silent
- * fallback to some other sender would be worse. It is on the launch checklist.
+ * The fallback is `siteConfig.contact.email`, `info@buy-a-coffee.com`, and the
+ * domain is verified in Resend for sending — so the fallback is a working
+ * sender rather than a trap. Were it ever unverified, Resend would refuse the
+ * send outright, which is the right failure: a silent fallback to some other
+ * sender would be worse than an error.
  */
 
 /** The complete From header. */

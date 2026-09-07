@@ -40,12 +40,14 @@ import {
  * Webhooks carry metadata only: no body, no attachments. Both need a second
  * call to the Received Emails API.
  *
- * ⚠ Idle until `buy-a-coffee.com` has an MX record pointed at Resend. The
- * address itself is real now — `siteConfig.contact.email` is
- * `info@buy-a-coffee.com` — but receiving is a separate DNS operation from
- * sending. Without MX, Resend is never handed the mail and never posts an
- * event, so this route is correct and never called. The sibling sites have
- * theirs; this domain was only just decided.
+ * Live as of 7 September 2026. `buy-a-coffee.com` is verified in Resend for
+ * receiving as well as sending, and the `email.received` webhook is registered
+ * against this endpoint — so mail to `info@buy-a-coffee.com` reaches this
+ * route and is forwarded to `MAIL_TO`.
+ *
+ * Worth remembering that receiving is a separate DNS operation from sending: a
+ * domain can be verified to send and still have no MX, in which case Resend is
+ * never handed the mail and this route is correct but never called.
  */
 
 /**

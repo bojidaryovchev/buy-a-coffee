@@ -75,19 +75,17 @@ export interface SiteConfig {
 const CONTACT_PHONE = "+359 897 943 424";
 
 /**
- * ⚠ THIS MAILBOX DOES NOT EXIST YET.
+ * A real inbox, not a decoration.
  *
  * Written the way the three sibling sites write theirs — `info@` at the site's
  * own domain, never the client's Gmail, because a shop printing a gmail.com
- * address next to a phone order reads as a man with a van. On those sites it is
- * a real inbox: the domain holds an MX record in Resend, and `/api/inbound`
- * forwards what arrives to `MAIL_TO`. That route exists here too.
+ * address next to a phone order reads as a man with a van.
  *
- * What does not exist is the DNS. `buy-a-coffee.com` was only just decided, so
- * until it is verified in Resend for sending (SPF + DKIM) and pointed at Resend
- * for receiving (MX), this address takes mail nowhere. It is on the launch
- * checklist. Until then the phone number is the working channel, which is what
- * the shop leads with anyway.
+ * `buy-a-coffee.com` is verified in Resend for both sending and receiving
+ * (checked 7 September 2026), so this address works in both directions: mail
+ * sent from it is signed, and mail arriving at it is handed to `/api/inbound`,
+ * which forwards it to `MAIL_TO`. Changing this address means changing the DNS
+ * too.
  */
 const CONTACT_EMAIL = "info@buy-a-coffee.com";
 
