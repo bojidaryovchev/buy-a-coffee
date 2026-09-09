@@ -53,8 +53,18 @@ customer request — a rule enforced by both a source scan
 pnpm dev                  # http://localhost:3100
 pnpm build
 pnpm reference:coverage   # functional parity against the crawler's artifacts
-pnpm check:originality    # no source branding in the customer-facing app
+pnpm check:originality    # no source branding, and no source copy, in the app
+pnpm copy:apply           # publish our own product descriptions
 ```
+
+Product descriptions are ours, not the source's. The sync records what the
+source publishes and never shows it: the storefront reads an override column,
+written from [`apps/web/content/product-copy.ts`](apps/web/content/product-copy.ts).
+Both shops sell the same catalogue, so shared product text would be duplicate
+content across two domains — and it lands in the meta description and the
+Product JSON-LD as well as on the page. `pnpm check:originality` fails when a
+product has no copy of its own or when too much of the source's phrasing
+survives a rewrite.
 
 Functional parity with the reference site is tracked in
 [`docs/reference-coverage.md`](docs/reference-coverage.md), which is generated,
@@ -161,22 +171,23 @@ writes mirrored images to `.storage/` on disk.
 
 ## Commands
 
-| Command                   | What it does                                               |
-| ------------------------- | ---------------------------------------------------------- |
-| `pnpm crawl:discovery`    | Full public-surface crawl, then export `reference/latest/` |
-| `pnpm sync:catalog`       | Synchronise the catalog into PostgreSQL                    |
-| `pnpm reference:export`   | Re-export the reference artifacts                          |
-| `pnpm images:gc`          | Report unreferenced mirrored images (`--apply` to delete)  |
-| `pnpm db:migrate`         | Apply database migrations                                  |
-| `pnpm db:generate`        | Generate a migration from schema changes                   |
-| `pnpm test`               | Unit, parser-fixture and integration tests                 |
-| `pnpm typecheck`          | Strict TypeScript across every package                     |
-| `pnpm lint`               | ESLint                                                     |
-| `pnpm dev`                | Run the storefront locally                                 |
-| `pnpm build`              | Production build of the storefront                         |
-| `pnpm test:e2e`           | Playwright, desktop and mobile                             |
-| `pnpm reference:coverage` | Verify storefront parity with the reference artifacts      |
-| `pnpm check:originality`  | Verify no source branding reaches the storefront           |
+| Command                   | What it does                                                |
+| ------------------------- | ----------------------------------------------------------- |
+| `pnpm crawl:discovery`    | Full public-surface crawl, then export `reference/latest/`  |
+| `pnpm sync:catalog`       | Synchronise the catalog into PostgreSQL                     |
+| `pnpm reference:export`   | Re-export the reference artifacts                           |
+| `pnpm images:gc`          | Report unreferenced mirrored images (`--apply` to delete)   |
+| `pnpm db:migrate`         | Apply database migrations                                   |
+| `pnpm db:generate`        | Generate a migration from schema changes                    |
+| `pnpm test`               | Unit, parser-fixture and integration tests                  |
+| `pnpm typecheck`          | Strict TypeScript across every package                      |
+| `pnpm lint`               | ESLint                                                      |
+| `pnpm dev`                | Run the storefront locally                                  |
+| `pnpm build`              | Production build of the storefront                          |
+| `pnpm test:e2e`           | Playwright, desktop and mobile                              |
+| `pnpm reference:coverage` | Verify storefront parity with the reference artifacts       |
+| `pnpm check:originality`  | Verify no source branding or source copy reaches the front  |
+| `pnpm copy:apply`         | Publish `content/product-copy.ts` into the override columns |
 
 Useful flags (pass after `--`, e.g. `pnpm sync:catalog -- --dry-run`):
 

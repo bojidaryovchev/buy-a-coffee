@@ -36,6 +36,13 @@
       "when": 1788626779436,
       "tag": "0004_talented_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788626780436,
+      "tag": "0005_description_overrides",
+      "breakpoints": true
     }
   ]
 }

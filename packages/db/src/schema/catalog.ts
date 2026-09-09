@@ -139,6 +139,30 @@ export const products = pgTable(
     descriptionHtml: text("description_html"),
     descriptionText: text("description_text"),
 
+    /**
+     * Original-copy layer.
+     *
+     * The storefront shows `descriptionTextOverride ?? descriptionText` and
+     * `descriptionHtmlOverride ?? descriptionHtml`. Leaving an override null
+     * means "publish the source copy", which is the state every product starts
+     * in.
+     *
+     * This exists for the same reason the retail-price layer does: the sync
+     * owns the source columns and rewrites them on every run, so copy written
+     * into them would not survive the next `pnpm sync:catalog`. Keeping the
+     * two apart also means the source text stays available to diff against,
+     * which is what `pnpm check:originality` uses to prove we are not
+     * republishing it.
+     *
+     * `descriptionTextOverride` is the one-sentence summary: it is the lead
+     * paragraph, the meta description and the Product JSON-LD `description`.
+     * `descriptionHtmlOverride` is the longer body copy.
+     *
+     * The sync deliberately never writes these columns.
+     */
+    descriptionTextOverride: text("description_text_override"),
+    descriptionHtmlOverride: text("description_html_override"),
+
     /** Raw pack-size text plus its normalised form. */
     weight: text("weight"),
     weightValue: numeric("weight_value", { precision: 14, scale: 4 }),

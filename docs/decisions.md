@@ -23,6 +23,32 @@ coverage matrix is generated rather than claimed —
 observes something the storefront does not implement and nobody has written down
 why.
 
+**Product copy is written, not synchronised.** For a while "original copy"
+described the pages around the catalog but not the catalog itself: the sync
+wrote the source's product descriptions straight into `description_text`, and
+the storefront rendered them. That is the one duplication that actually costs
+something. Both shops sell the same products, so identical descriptions put the
+same paragraphs on two domains, and `description_text` feeds the visible copy,
+the `<meta name="description">` and the Product JSON-LD at once — the three
+fields a search engine compares. Neither site gains; the one judged to be the
+copy loses.
+
+So product copy now lives in [`apps/web/content/product-copy.ts`](../apps/web/content/product-copy.ts)
+and is published into two override columns, `description_text_override` and
+`description_html_override`. The shape is deliberately the same as the
+retail-price layer: the source value stays where the sync put it, ours sits
+beside it, and the storefront reads `coalesce(override, source)`. Writing the
+rewrite *into* the source columns was the obvious alternative and it does not
+survive — `upsertProduct` overwrites them on every `pnpm sync:catalog`, so the
+copy would quietly revert on the next run.
+
+Keeping both values also makes the check possible rather than merely claimed.
+`pnpm check:originality` compares what we publish against what the crawler
+observed and fails when too much of the source's phrasing survives, when a
+product has no copy of its own, or when two of our own products share one
+summary — the same duplication pointed inward. It reads the reference
+artifacts, not the database, so it runs in CI where there is no catalog.
+
 **Scope stops at the observed behaviour.** There is no cart, no checkout and no
 payment, because the source storefront has none: ordering there is a phone
 number and a callback. Building a checkout would be inventing a requirement the

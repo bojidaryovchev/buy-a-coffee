@@ -1,23 +1,13 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import {
-  brands,
-  categories,
-  productCategories,
-  productImages,
-  products,
-} from "@catalog/db/schema";
+import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
 import { packServings, pricePerServing } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
 import { discountPercent, toPriceView, unitPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
-import {
-  BREWING_SYSTEMS,
-  type BrewingSystem,
-  type BrewingSystemId,
-} from "@/lib/recommend/systems";
+import { BREWING_SYSTEMS, type BrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
 import type { RecommendationCandidate } from "@/lib/recommend/score";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./attributes";
 import {
@@ -55,9 +45,28 @@ import type {
  */
 
 /** The price the customer sees. */
-const retailPrice = sql<string | null>`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
-const retailOldPrice = sql<string | null>`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
+const retailPrice = sql<
+  string | null
+>`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
+const retailOldPrice = sql<
+  string | null
+>`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
 
+/*
+ * The copy the customer sees.
+ *
+ * Same shape as the price layer above, and for the same reason: the sync owns
+ * the source columns and rewrites them on every run, so our own copy lives
+ * beside them rather than in them. Reading it through these two expressions is
+ * what keeps that a single decision — the description reaches the page, the
+ * meta description, the JSON-LD and the search vector by this route only.
+ */
+const publishedDescriptionText = sql<
+  string | null
+>`coalesce(${products.descriptionTextOverride}, ${products.descriptionText})`;
+const publishedDescriptionHtml = sql<
+  string | null
+>`coalesce(${products.descriptionHtmlOverride}, ${products.descriptionHtml})`;
 
 /** Self-join alias for resolving a category's parent. */
 const parentCategories = alias(categories, "parent_categories");
@@ -75,7 +84,7 @@ const productColumns = {
   availability: products.availability,
   weight: products.weight,
   attributes: products.attributes,
-  descriptionText: products.descriptionText,
+  descriptionText: publishedDescriptionText,
   brandSlug: brands.slug,
   brandName: brands.name,
   lastChangedAt: products.lastChangedAt,
@@ -99,7 +108,8 @@ type ProductRow = {
 
 function toCard(
   row: ProductRow,
-  image: { url: string; alt: string | null; width: number | null; height: number | null } | undefined,
+  image:
+    { url: string; alt: string | null; width: number | null; height: number | null } | undefined,
   options: { readonly resolveUrl?: boolean } = {},
 ): ProductCardView {
   const price = toPriceView(row.price, row.currency);
@@ -136,7 +146,11 @@ function toCard(
 
 /** Load the primary image for many products in one query. */
 async function loadPrimaryImages(productIds: readonly string[]) {
-  if (productIds.length === 0) return new Map<string, { url: string; alt: string | null; width: number | null; height: number | null }>();
+  if (productIds.length === 0)
+    return new Map<
+      string,
+      { url: string; alt: string | null; width: number | null; height: number | null }
+    >();
 
   const rows = await db
     .select({
@@ -158,7 +172,10 @@ async function loadPrimaryImages(productIds: readonly string[]) {
     )
     .orderBy(asc(productImages.ordinal));
 
-  const map = new Map<string, { url: string; alt: string | null; width: number | null; height: number | null }>();
+  const map = new Map<
+    string,
+    { url: string; alt: string | null; width: number | null; height: number | null }
+  >();
   for (const row of rows) {
     if (map.has(row.productId)) continue; // first by ordinal wins
     const url = row.publicUrl ?? row.objectKey;
@@ -276,9 +293,7 @@ export async function listProducts(options: ListProductsOptions): Promise<Produc
       .from(products)
       .leftJoin(brands, eq(products.brandId, brands.id))
       .where(where),
-    options.includeFacets === false
-      ? Promise.resolve(emptyFacets())
-      : loadFacets(extra, query),
+    options.includeFacets === false ? Promise.resolve(emptyFacets()) : loadFacets(extra, query),
   ]);
 
   const typed = rows as unknown as ProductRow[];
@@ -394,7 +409,11 @@ async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFac
         label: AROMAS_LABELS[value] ?? value,
         count: aromaCounts.get(value) ?? 0,
       })),
-    categories: categoryRows.map((row) => ({ value: row.value, label: row.label, count: row.count })),
+    categories: categoryRows.map((row) => ({
+      value: row.value,
+      label: row.label,
+      count: row.count,
+    })),
   };
 }
 
@@ -500,9 +519,7 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
       };
     }),
     brands: brandRows,
-    categories: categoryRows
-      .filter((row) => row.productCount > 0)
-      .slice(0, SUGGESTION_LINK_LIMIT),
+    categories: categoryRows.filter((row) => row.productCount > 0).slice(0, SUGGESTION_LINK_LIMIT),
     total: totalResult[0]?.count ?? 0,
   };
 }
@@ -520,7 +537,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     .select({
       ...productColumns,
       status: products.status,
-      descriptionHtml: products.descriptionHtml,
+      descriptionHtml: publishedDescriptionHtml,
       sku: products.sku,
       gtin: products.gtin,
       /* The normalised pack size, for the unit price below. `productColumns`
@@ -647,7 +664,9 @@ export async function getRelatedProducts(
           .from(products)
           .innerJoin(productCategories, eq(productCategories.productId, products.id))
           .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-          .where(and(isVisible, ne(products.id, product.id), inArray(categories.slug, categorySlugs))),
+          .where(
+            and(isVisible, ne(products.id, product.id), inArray(categories.slug, categorySlugs)),
+          ),
     brandSlug === null
       ? Promise.resolve([] as Array<{ id: string }>)
       : db
@@ -690,7 +709,9 @@ export async function getRelatedProducts(
       score: scores.get(row.id) ?? 0,
       // Closeness of price only breaks ties; it never outranks relevance.
       priceGap:
-        anchor !== null && row.price !== null ? Math.abs(Number(row.price) - anchor) : Number.MAX_SAFE_INTEGER,
+        anchor !== null && row.price !== null
+          ? Math.abs(Number(row.price) - anchor)
+          : Number.MAX_SAFE_INTEGER,
     }))
     .sort(
       (a, b) =>
@@ -770,7 +791,9 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryView | nu
   return flatten(await getCategoryTree()).find((category) => category.slug === slug) ?? null;
 }
 
-export async function listBrands(options: { withProductsOnly?: boolean } = {}): Promise<readonly BrandView[]> {
+export async function listBrands(
+  options: { withProductsOnly?: boolean } = {},
+): Promise<readonly BrandView[]> {
   const [rows, counts] = await Promise.all([
     db
       .select({
@@ -813,7 +836,9 @@ export async function countPromotions(): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(products)
-    .where(and(isVisible, sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`));
+    .where(
+      and(isVisible, sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`),
+    );
   return row?.count ?? 0;
 }
 
@@ -833,7 +858,9 @@ export async function listNewArrivals(limit = 8): Promise<readonly ProductCardVi
 }
 
 /** Every active product slug, for the sitemap. */
-export async function listAllProductSlugs(): Promise<ReadonlyArray<{ slug: string; updatedAt: Date | null }>> {
+export async function listAllProductSlugs(): Promise<
+  ReadonlyArray<{ slug: string; updatedAt: Date | null }>
+> {
   return db
     .select({ slug: products.slug, updatedAt: products.lastChangedAt })
     .from(products)
