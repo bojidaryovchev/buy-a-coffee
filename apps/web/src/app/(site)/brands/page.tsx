@@ -38,7 +38,7 @@ export default async function BrandsPage() {
       {stocked.length === 0 ? (
         <EmptyState
           title="Още няма марки"
-          description="Каталогът все още се синхронизира. Моля, проверете отново скоро."
+          description="Асортиментът се обновява. Моля, проверете отново скоро."
         />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

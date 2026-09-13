@@ -38,7 +38,7 @@ export default function JournalPage() {
 
       <EmptyState
         title="Още нищо публикувано"
-        description="Пишем първите текстове. Междувременно асортиментът е по-интересното четиво."
+        description="Пишем първите текстове. Междувременно можете да разгледате асортимента."
         action={
           <ButtonLink href="/categories" variant="secondary">
             Разгледай асортимента

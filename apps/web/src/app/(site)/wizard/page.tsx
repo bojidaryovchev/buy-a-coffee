@@ -207,7 +207,7 @@ function SystemStep({
     <>
       <StepHeading
         title="Коя система използва машината ви?"
-        description="Капсулите не са взаимозаменяеми — това е единственото нещо тук, което трябва да е точно."
+        description="Капсулите от различните системи не са взаимозаменяеми, затова тук изборът трябва да е точен."
       />
       {options.length > 0 ? (
         <OptionList options={options} />
@@ -309,7 +309,7 @@ async function PreferencesStep({ answers }: { answers: WizardAnswers }) {
     <>
       <StepHeading
         title="Нещо задължително?"
-        description="По желание. Показваме само неща, които наистина имаме за вашата машина."
+        description="По желание. Показваме само възможностите, които имаме за вашата машина."
       />
 
       {available.length > 0 && (

@@ -113,7 +113,7 @@ export default async function WizardResultPage({ searchParams }: PageProps) {
         {result.picks.length === 0 ? (
           <EmptyState
             title="Нямаме подходящо предложение"
-            description="Това не бива да се случва. Обадете ни се и ще намерим нещо за машината ви."
+            description="Обадете ни се и ще намерим нещо за машината ви."
             action={<ButtonLink href="/contact">Свържете се с нас</ButtonLink>}
           />
         ) : (

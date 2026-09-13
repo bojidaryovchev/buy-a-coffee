@@ -122,7 +122,7 @@ export default async function HomePage() {
         <section className="shell py-14">
           <SectionHeading
             title="Изберете по вид"
-            description="Целият асортимент, подреден така, както кафето наистина се купува."
+            description="Целият асортимент, подреден по категории."
           />
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {populatedCategories.map((category) => (

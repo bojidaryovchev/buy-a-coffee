@@ -31,7 +31,7 @@ export default async function CategoriesPage() {
 
       {categories.length === 0 ? (
         <EmptyState
-          title="Каталогът все още се синхронизира"
+          title="Асортиментът се обновява"
           description="Моля, проверете отново скоро."
         />
       ) : (
