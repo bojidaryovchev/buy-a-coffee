@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import * as React from "react";
 import { createElement } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -15,9 +14,6 @@ vi.mock("next/image", async () => {
     }),
   };
 });
-
-// The vitest config compiles JSX with the classic transform; the component expects React in scope.
-(globalThis as { React?: typeof React }).React = React;
 
 afterEach(cleanup);
 

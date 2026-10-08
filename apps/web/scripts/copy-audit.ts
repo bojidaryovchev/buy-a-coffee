@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseWeight } from "@catalog/shared";
 import type { ProductCopy } from "../content/product-copy.ts";
+import { brandDisplayName } from "../src/lib/catalog/brand-display.ts";
 import { type FallbackCopyFacts, composeFallbackCopy } from "../src/lib/catalog/fallback-copy.ts";
 
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -242,7 +243,11 @@ export function generatedSentenceFor(
 
 export interface ReferenceSnapshot {
   readonly products: readonly ReferenceProduct[];
-  /** Brand display name by the `brandKey` products carry. */
+  /**
+   * Brand display name by the `brandKey` products carry — the name the page
+   * shows (`brandDisplayName`), not the supplier's capitals, so a sentence
+   * printed here reads as it does on the storefront.
+   */
   readonly brandNames: ReadonlyMap<string, string>;
 }
 
@@ -264,10 +269,35 @@ export async function loadReferenceSnapshot(
     const brands =
       (JSON.parse(rawBrands) as { brands?: Array<{ sourceKey: string; name: string }> }).brands ??
       [];
-    for (const brand of brands) brandNames.set(brand.sourceKey, brand.name);
+    for (const brand of brands) {
+      brandNames.set(
+        brand.sourceKey,
+        brandDisplayName({ name: brand.name, sourceKey: brand.sourceKey }),
+      );
+    }
   } catch {
     // Brands are optional here: without them the sentence simply names none.
   }
 
   return { products, brandNames };
+}
+
+/** A page of `pages.json`, as far as its text goes. */
+export interface ReferencePage {
+  readonly pageType?: string;
+  readonly path?: string;
+  readonly metaDescription?: string | null;
+  readonly isSoft404?: boolean;
+}
+
+/** The crawl's pages, or none when `pages.json` has not been exported. */
+export async function loadReferencePages(
+  directory: string = REFERENCE_DIR,
+): Promise<readonly ReferencePage[]> {
+  try {
+    const raw = await readFile(path.join(directory, "pages.json"), "utf8");
+    return (JSON.parse(raw) as { pages?: ReferencePage[] }).pages ?? [];
+  } catch {
+    return [];
+  }
 }

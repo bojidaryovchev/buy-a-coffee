@@ -1,4 +1,3 @@
-import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -31,15 +30,6 @@ import { FIXTURE_FIGURES } from "./journal-fixtures";
  * a browser with JavaScript off receives — so "works without JavaScript" is
  * what is being asserted, not assumed.
  */
-
-/*
- * The unit-test transform compiles JSX to `React.createElement` (the app's
- * tsconfig says `jsx: preserve`, which leaves the choice to the bundler, and
- * Vitest's default is the classic runtime). Next.js supplies the automatic
- * runtime in the real build; here the global is supplied by hand so the
- * component under test is the unmodified one.
- */
-(globalThis as { React?: typeof React }).React = React;
 
 const render = (blocks: readonly Block[]): string =>
   renderToStaticMarkup(createElement(ArticleBody, { blocks }));

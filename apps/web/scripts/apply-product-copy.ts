@@ -26,31 +26,11 @@
  * product publishes a sentence generated from its attributes
  * (`lib/catalog/fallback-copy.ts`) — never the source's description.
  */
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { createDatabase } from "@catalog/db";
 import { products } from "@catalog/db/schema";
 import { productCopy } from "../content/product-copy.ts";
-
-/**
- * Escape before wrapping in `<p>`.
- *
- * The copy file holds plain text, and it is a text file a human edits — an
- * ampersand or an angle bracket typed into a sentence must not become markup
- * on the way to the database. The sanitiser on the render path would catch
- * malformed output, but relying on it would mean deliberately storing broken
- * HTML and hoping something downstream fixes it.
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function toHtml(paragraphs: readonly string[]): string {
-  return paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n");
-}
+import { publishProductCopy } from "./product-copy-publish.ts";
 
 async function main(): Promise<void> {
   // Read inside `main` so that `pnpm copy:apply -- --dry-run` and
@@ -75,43 +55,18 @@ async function main(): Promise<void> {
       })
       .from(products);
 
-    const bySlug = new Map(rows.map((row) => [row.slug, row]));
-
-    let matched = 0;
-    let written = 0;
-    let unchanged = 0;
-    const orphaned: string[] = [];
-
-    for (const [slug, copy] of Object.entries(productCopy)) {
-      const row = bySlug.get(slug);
-      if (!row) {
-        orphaned.push(slug);
-        continue;
-      }
-      matched += 1;
-
-      const html = toHtml(copy.body);
-      // Both columns are compared: an edit to the body alone leaves the
-      // summary identical and still has to be written.
-      if (row.currentText === copy.summary && row.currentHtml === html) {
-        unchanged += 1;
-        continue;
-      }
-
-      if (!dryRun) {
-        await db
-          .update(products)
-          .set({
-            descriptionTextOverride: copy.summary,
-            descriptionHtmlOverride: html,
-            // Deliberately not touching `lastChangedAt`: that column tracks
-            // when the *source* changed, and the sync's diff reads it. Our
-            // editorial changes are not source changes.
-          })
-          .where(eq(products.id, row.id));
-      }
-      written += 1;
-    }
+    const { matched, written, unchanged, orphaned } = await publishProductCopy(
+      db,
+      rows.map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        status: row.status,
+        currentText: row.currentText,
+        currentHtml: row.currentHtml,
+      })),
+      productCopy,
+      { dryRun },
+    );
 
     const active = rows.filter((row) => row.status === "active");
     const withoutCopy = active.filter((row) => !Object.hasOwn(productCopy, row.slug));

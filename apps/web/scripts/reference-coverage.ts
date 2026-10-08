@@ -9,6 +9,32 @@
  * The point is to make regressions loud: if a future crawl discovers a new
  * feature, this check fails until someone either builds it or writes down why
  * it is not being built. Silence is the failure mode it exists to prevent.
+ *
+ * Two things make a claim here believable, and both are checked for every
+ * capability of every kind (features, page types, filters, forms):
+ *
+ *   - each route it names resolves to a page or route handler in `src/app`;
+ *   - each other file it names, and each test, exists.
+ *
+ * An earlier version checked only one file per *feature*. Page types, filters
+ * and forms were plain strings nothing verified, and the doc was rewritten on
+ * every run, so a moved or deleted file could not fail the check and the
+ * committed matrix kept saying PASS. It took the pages moving into the
+ * `(site)` route group — and the check being run in CI for the first time — to
+ * show six features claiming files that had not existed for a month.
+ *
+ * Modes:
+ *
+ *   pnpm reference:coverage         CHECK. Writes nothing. Fails on an unmet or
+ *                                   unverifiable claim, and when
+ *                                   docs/reference-coverage.md no longer
+ *                                   matches what this would generate.
+ *   pnpm reference:coverage:write   Regenerates the document (only when every
+ *                                   claim holds, so a failing matrix is never
+ *                                   committed over a good one).
+ *
+ * A check that CI runs must not edit tracked files: it would pass on the build
+ * machine, discard the edit, and let the committed document drift unseen.
  */
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -21,12 +47,14 @@ const ARTIFACT_DIR = path.join(REPO_ROOT, "reference/latest");
 const OUTPUT_DOC = path.join(REPO_ROOT, "docs/reference-coverage.md");
 
 interface Implementation {
-  /** Route or component that implements the capability. */
+  /** Prose for the matrix: what implements the capability. */
   readonly implementation: string;
-  /** Test that proves it works. */
-  readonly test: string;
-  /** File that must exist for the claim to be credible. */
-  readonly proofFile: string;
+  /** Route patterns, e.g. `/categories/[slug]`. Each must resolve to a page or route handler. */
+  readonly routes?: readonly string[];
+  /** Other files that must exist for the claim to be credible, relative to `apps/web`. */
+  readonly files?: readonly string[];
+  /** Tests that prove it works, relative to `apps/web`. Each must exist. */
+  readonly tests: readonly string[];
 }
 
 /**
@@ -36,74 +64,78 @@ interface Implementation {
 const FEATURE_COVERAGE: Record<string, Implementation> = {
   "category-browsing": {
     implementation: "/categories, /categories/[slug]",
-    test: "e2e/catalog.spec.ts",
-    proofFile: "src/app/categories/[slug]/page.tsx",
+    routes: ["/categories", "/categories/[slug]"],
+    tests: ["e2e/catalog.spec.ts"],
   },
   "brand-browsing": {
     implementation: "/brands, /brands/[slug]",
-    test: "e2e/catalog.spec.ts",
-    proofFile: "src/app/brands/[slug]/page.tsx",
+    routes: ["/brands", "/brands/[slug]"],
+    tests: ["e2e/catalog.spec.ts"],
   },
   "product-detail": {
     implementation: "/products/[slug]",
-    test: "e2e/product.spec.ts",
-    proofFile: "src/app/products/[slug]/page.tsx",
-  },
-  "product-search": {
-    implementation: "/search (PostgreSQL full-text + trigram)",
-    test: "e2e/search.spec.ts",
-    proofFile: "src/app/search/page.tsx",
+    routes: ["/products/[slug]"],
+    tests: ["e2e/product.spec.ts"],
   },
   "catalog-filters": {
     implementation: "URL-driven filters on every listing",
-    test: "test/filters.test.ts, e2e/catalog.spec.ts",
-    proofFile: "src/components/catalog/filter-panel.tsx",
+    files: ["src/lib/catalog/filters.ts", "src/components/catalog/filter-panel.tsx"],
+    tests: ["test/filters.test.ts", "e2e/catalog.spec.ts"],
   },
   promotions: {
     implementation: "/promotions",
-    test: "e2e/catalog.spec.ts",
-    proofFile: "src/app/promotions/page.tsx",
+    routes: ["/promotions"],
+    tests: ["e2e/catalog.spec.ts"],
   },
   "quick-order": {
     implementation: "Quick-order form on every product page, stored in order_inquiries",
-    test: "e2e/quick-order.spec.ts, test/forms.test.ts",
-    proofFile: "src/components/forms/quick-order-form.tsx",
+    files: ["src/components/forms/quick-order-form.tsx"],
+    tests: ["e2e/quick-order.spec.ts", "test/forms.test.ts"],
   },
   "newsletter-signup": {
     implementation: "Footer newsletter form, stored in newsletter_subscribers",
-    test: "test/forms.test.ts",
-    proofFile: "src/components/forms/newsletter-form.tsx",
+    files: ["src/components/forms/newsletter-form.tsx"],
+    tests: ["test/forms.test.ts"],
   },
   "related-products": {
     implementation: "Related products on product pages (category, then brand)",
-    test: "e2e/product.spec.ts",
-    proofFile: "src/lib/catalog/queries.ts",
+    files: ["src/lib/catalog/queries.ts"],
+    tests: ["e2e/product.spec.ts"],
   },
   breadcrumbs: {
     implementation: "Breadcrumbs plus BreadcrumbList structured data",
-    test: "e2e/product.spec.ts",
-    proofFile: "src/components/ui/primitives.tsx",
+    files: ["src/components/ui/primitives.tsx"],
+    tests: ["e2e/product.spec.ts"],
   },
   blog: {
-    implementation: "/journal",
-    test: "e2e/routes.spec.ts",
-    proofFile: "src/app/journal/page.tsx",
+    implementation: "/journal, and an article page at /journal/[slug]",
+    routes: ["/journal", "/journal/[slug]"],
+    files: ["content/journal/index.ts"],
+    tests: ["e2e/routes.spec.ts", "e2e/sections.spec.ts", "test/journal-content.test.ts"],
   },
   "legal-pages": {
     implementation: "/privacy, /terms, /cookies",
-    test: "e2e/routes.spec.ts",
-    proofFile: "src/content/legal.ts",
+    routes: ["/privacy", "/terms", "/cookies"],
+    files: ["src/content/legal.ts"],
+    tests: ["e2e/routes.spec.ts"],
   },
   "phone-contact": {
     implementation: "Phone links in header, footer and /contact",
-    test: "e2e/routes.spec.ts",
-    proofFile: "src/app/contact/page.tsx",
+    routes: ["/contact"],
+    files: ["src/config/site.ts"],
+    tests: ["e2e/routes.spec.ts"],
   },
-  "site-notice": {
-    implementation: "Not reproduced — see omissions",
-    test: "n/a",
-    proofFile: "src/config/site.ts",
-  },
+};
+
+/**
+ * Not a feature id from `features.json`: search is observed as a page type and
+ * as a function of the catalog, so it is claimed here and checked with the rest.
+ */
+const SEARCH: Implementation = {
+  implementation: "/search (PostgreSQL full-text + trigram)",
+  routes: ["/search"],
+  files: ["src/lib/catalog/search.ts"],
+  tests: ["e2e/search.spec.ts"],
 };
 
 /**
@@ -115,38 +147,155 @@ const OMISSIONS: Record<string, string> = {
     "The reference banner announces the source shop's own closure dates. It is their operational content, not a storefront capability, and reproducing it would mean publishing another business's opening hours as our own. The mechanism is trivial to add when this shop needs one.",
 };
 
+/** A page type with no storefront equivalent, and why. */
+interface NotApplicable {
+  readonly notApplicable: string;
+}
+
 /** Page types the storefront must have an equivalent for. */
-const PAGE_TYPE_COVERAGE: Record<string, string> = {
-  home: "/",
-  category: "/categories/[slug]",
-  subcategory: "/categories/[slug]",
-  product: "/products/[slug]",
-  brand: "/brands/[slug]",
-  brand_index: "/brands",
-  promotion: "/promotions",
-  search: "/search",
-  blog_index: "/journal",
-  legal: "/privacy, /terms, /cookies",
-  contact: "/contact",
+const PAGE_TYPE_COVERAGE: Record<string, Implementation | NotApplicable> = {
+  home: { implementation: "/", routes: ["/"], tests: ["e2e/routes.spec.ts"] },
+  category: {
+    // The reference's `vending-zona` is one of its five category pages; ours is
+    // a section of its own, because it also serves business buyers.
+    implementation: "/categories/[slug], and /vending for the reference's vending category",
+    routes: ["/categories/[slug]", "/vending"],
+    tests: ["e2e/routes.spec.ts", "e2e/sections.spec.ts"],
+  },
+  subcategory: {
+    implementation: "/categories/[slug]",
+    routes: ["/categories/[slug]"],
+    tests: ["e2e/routes.spec.ts"],
+  },
+  product: {
+    implementation: "/products/[slug]",
+    routes: ["/products/[slug]"],
+    tests: ["e2e/routes.spec.ts"],
+  },
+  brand: {
+    implementation: "/brands/[slug]",
+    routes: ["/brands/[slug]"],
+    tests: ["e2e/routes.spec.ts"],
+  },
+  brand_index: { implementation: "/brands", routes: ["/brands"], tests: ["e2e/routes.spec.ts"] },
+  promotion: {
+    implementation: "/promotions",
+    routes: ["/promotions"],
+    tests: ["e2e/routes.spec.ts"],
+  },
+  search: SEARCH,
+  blog_index: { implementation: "/journal", routes: ["/journal"], tests: ["e2e/routes.spec.ts"] },
+  blog_article: {
+    implementation: "/journal/[slug]",
+    routes: ["/journal/[slug]"],
+    tests: ["e2e/sections.spec.ts"],
+  },
+  legal: {
+    implementation: "/privacy, /terms, /cookies",
+    routes: ["/privacy", "/terms", "/cookies"],
+    tests: ["e2e/routes.spec.ts"],
+  },
+  contact: { implementation: "/contact", routes: ["/contact"], tests: ["e2e/routes.spec.ts"] },
   // Not storefront pages.
-  soft_404: "n/a — the source's not-found shell; our 404 is a real 404",
-  asset: "n/a — static assets",
-  other: "n/a — unclassified",
-  blog_article: "n/a — the reference blog has no articles to model",
+  soft_404: { notApplicable: "the source's not-found shell; our 404 is a real 404" },
+  asset: { notApplicable: "static assets" },
+  other: { notApplicable: "unclassified" },
 };
 
-const FILTER_COVERAGE: Record<string, string> = {
-  brand: "brand search parameter, multi-value",
-  strength: "strength search parameter, multi-value",
-  decaf: "decaf search parameter",
-  aromas: "aromas search parameter",
-  category: "category search parameter, multi-value",
+/**
+ * Routes this storefront has that the reference does not. They are not
+ * reference capabilities, so they are not rows in the matrix — but they are
+ * claimed in the document, and held to the same standard: the route and its
+ * test must exist.
+ */
+const ADDITIONS: ReadonlyArray<{ readonly name: string } & Implementation> = [
+  {
+    name: "Delivery and payment terms",
+    implementation: "/delivery, from `siteConfig.commerce`",
+    routes: ["/delivery"],
+    tests: ["e2e/sections.spec.ts"],
+  },
+  {
+    name: "Consumables for business buyers",
+    implementation: "/consumables",
+    routes: ["/consumables"],
+    tests: ["e2e/sections.spec.ts"],
+  },
+  {
+    name: "Journal articles",
+    implementation: "/journal/[slug], from `content/journal/`",
+    routes: ["/journal/[slug]"],
+    tests: ["e2e/sections.spec.ts"],
+  },
+  {
+    name: "Recommendation wizard and machine finder",
+    implementation: "/wizard, /wizard/result, /wizard/machines",
+    routes: ["/wizard", "/wizard/result", "/wizard/machines"],
+    tests: ["e2e/wizard.spec.ts", "test/recommend.test.ts"],
+  },
+];
+
+const FILTER_COVERAGE: Record<string, Implementation> = {
+  brand: filter("brand search parameter, multi-value"),
+  strength: filter("strength search parameter, multi-value"),
+  decaf: filter("decaf search parameter"),
+  aromas: filter("aromas search parameter"),
+  category: filter("category search parameter, multi-value"),
 };
 
-const FORM_COVERAGE: Record<string, string> = {
-  "quick-order": "Quick-order form, POSTs to our own server action",
-  newsletter: "Newsletter form, POSTs to our own server action",
+function filter(implementation: string): Implementation {
+  return {
+    implementation,
+    files: ["src/lib/catalog/filters.ts"],
+    tests: ["test/filters.test.ts"],
+  };
+}
+
+const FORM_COVERAGE: Record<string, Implementation> = {
+  "quick-order": {
+    implementation: "Quick-order form, POSTs to our own server action",
+    files: ["src/components/forms/quick-order-form.tsx"],
+    tests: ["test/forms.test.ts"],
+  },
+  newsletter: {
+    implementation: "Newsletter form, POSTs to our own server action",
+    files: ["src/components/forms/newsletter-form.tsx"],
+    tests: ["test/forms.test.ts"],
+  },
 };
+
+/* --- Verifying a claim --------------------------------------------------- */
+
+/**
+ * Where a route pattern lives. Pages sit in the `(site)` route group; the
+ * unprefixed location is accepted too so a page moving back is not a failure
+ * of this check. Anything else must be a claim about a file that exists.
+ */
+function routeCandidates(route: string): string[] {
+  const segments = route === "/" ? [] : route.replace(/^\/+/, "").split("/");
+  const base = segments.join("/");
+  const suffixes = ["page.tsx", "page.ts", "route.ts"];
+  const roots = ["src/app/(site)", "src/app"];
+  return roots.flatMap((root) => suffixes.map((suffix) => path.posix.join(root, base, suffix)));
+}
+
+/** Every problem with a claim, each naming the path that is wrong. */
+function verifyClaim(claim: Implementation): string[] {
+  const problems: string[] = [];
+  for (const route of claim.routes ?? []) {
+    const candidates = routeCandidates(route);
+    if (!candidates.some((candidate) => existsSync(path.join(WEB_ROOT, candidate)))) {
+      problems.push(`route ${route} has no page: looked for ${candidates[0]}`);
+    }
+  }
+  for (const file of claim.files ?? []) {
+    if (!existsSync(path.join(WEB_ROOT, file))) problems.push(`file ${file} does not exist`);
+  }
+  for (const test of claim.tests) {
+    if (!existsSync(path.join(WEB_ROOT, test))) problems.push(`test ${test} does not exist`);
+  }
+  return problems;
+}
 
 interface Row {
   readonly area: string;
@@ -163,7 +312,34 @@ async function readJson<T>(name: string): Promise<T | null> {
   return JSON.parse(await readFile(file, "utf8")) as T;
 }
 
+const testColumn = (claim: Implementation): string => claim.tests.join(", ");
+
+/** Add a row for `claim`, recording each problem with a path as a failure. */
+function judge(
+  rows: Row[],
+  failures: string[],
+  row: Omit<Row, "implementation" | "test" | "status">,
+  claim: Implementation | undefined,
+  missingMessage: string,
+): void {
+  if (!claim) {
+    failures.push(missingMessage);
+    rows.push({ ...row, implementation: "—", test: "—", status: "MISSING" });
+    return;
+  }
+  const problems = verifyClaim(claim);
+  for (const problem of problems) failures.push(`${row.area} "${row.reference}": ${problem}.`);
+  rows.push({
+    ...row,
+    implementation: claim.implementation,
+    test: testColumn(claim),
+    status: problems.length > 0 ? "MISSING" : "PASS",
+  });
+}
+
 async function main(): Promise<void> {
+  const write = process.argv.includes("--write");
+
   if (!existsSync(ARTIFACT_DIR)) {
     console.error(
       `FAIL: reference artifacts not found at ${ARTIFACT_DIR}.\n` +
@@ -173,7 +349,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const features = await readJson<{ features: Array<{ id: string; name: string; evidenceUrls: string[] }> }>("features.json");
+  const features = await readJson<{
+    features: Array<{ id: string; name: string; evidenceUrls: string[] }>;
+  }>("features.json");
   const filters = await readJson<{ filters: Array<{ id: string; name: string }> }>("filters.json");
   const forms = await readJson<{ forms: Array<{ id: string; name: string }> }>("forms.json");
   const pageTypes = await readJson<{ counts: Record<string, number> }>("page-types.json");
@@ -182,10 +360,7 @@ async function main(): Promise<void> {
   const failures: string[] = [];
 
   for (const feature of features?.features ?? []) {
-    const omission = OMISSIONS[feature.id];
-    const coverage = FEATURE_COVERAGE[feature.id];
-
-    if (omission) {
+    if (OMISSIONS[feature.id]) {
       rows.push({
         area: "Feature",
         reference: feature.name,
@@ -196,82 +371,70 @@ async function main(): Promise<void> {
       });
       continue;
     }
-    if (!coverage) {
-      failures.push(`Feature "${feature.id}" (${feature.name}) has no implementation mapping.`);
-      rows.push({
-        area: "Feature",
-        reference: feature.name,
-        evidence: feature.evidenceUrls[0] ?? "—",
-        implementation: "—",
-        test: "—",
-        status: "MISSING",
-      });
-      continue;
-    }
-    // A mapping is only believable if the file it names actually exists.
-    if (!existsSync(path.join(WEB_ROOT, coverage.proofFile))) {
-      failures.push(
-        `Feature "${feature.id}" claims ${coverage.proofFile}, which does not exist.`,
-      );
-      rows.push({
-        area: "Feature",
-        reference: feature.name,
-        evidence: feature.evidenceUrls[0] ?? "—",
-        implementation: coverage.implementation,
-        test: coverage.test,
-        status: "MISSING",
-      });
-      continue;
-    }
-    rows.push({
-      area: "Feature",
-      reference: feature.name,
-      evidence: feature.evidenceUrls[0] ?? "—",
-      implementation: coverage.implementation,
-      test: coverage.test,
-      status: "PASS",
-    });
+    judge(
+      rows,
+      failures,
+      { area: "Feature", reference: feature.name, evidence: feature.evidenceUrls[0] ?? "—" },
+      FEATURE_COVERAGE[feature.id],
+      `Feature "${feature.id}" (${feature.name}) has no implementation mapping.`,
+    );
   }
 
-  for (const filter of filters?.filters ?? []) {
-    const coverage = FILTER_COVERAGE[filter.id];
-    if (!coverage) failures.push(`Filter "${filter.id}" is not implemented.`);
-    rows.push({
-      area: "Filter",
-      reference: filter.name,
-      evidence: "filters.json",
-      implementation: coverage ?? "—",
-      test: "test/filters.test.ts",
-      status: coverage ? "PASS" : "MISSING",
-    });
+  for (const entry of filters?.filters ?? []) {
+    judge(
+      rows,
+      failures,
+      { area: "Filter", reference: entry.name, evidence: "filters.json" },
+      FILTER_COVERAGE[entry.id],
+      `Filter "${entry.id}" is not implemented.`,
+    );
   }
 
   for (const form of forms?.forms ?? []) {
-    const coverage = FORM_COVERAGE[form.id];
-    if (!coverage) failures.push(`Form "${form.id}" is not implemented.`);
-    rows.push({
-      area: "Form",
-      reference: form.name,
-      evidence: "forms.json",
-      implementation: coverage ?? "—",
-      test: "test/forms.test.ts",
-      status: coverage ? "PASS" : "MISSING",
-    });
+    judge(
+      rows,
+      failures,
+      { area: "Form", reference: form.name, evidence: "forms.json" },
+      FORM_COVERAGE[form.id],
+      `Form "${form.id}" is not implemented.`,
+    );
   }
 
   for (const [pageType, count] of Object.entries(pageTypes?.counts ?? {})) {
     if (count === 0) continue;
     const coverage = PAGE_TYPE_COVERAGE[pageType];
-    if (!coverage) failures.push(`Page type "${pageType}" has no equivalent route.`);
-    rows.push({
-      area: "Page type",
-      reference: `${pageType} (${count})`,
-      evidence: "page-types.json",
-      implementation: coverage ?? "—",
-      test: "e2e/routes.spec.ts",
-      status: coverage ? "PASS" : "MISSING",
-    });
+    const reference = `${pageType} (${count})`;
+    if (coverage && "notApplicable" in coverage) {
+      rows.push({
+        area: "Page type",
+        reference,
+        evidence: "page-types.json",
+        implementation: `n/a — ${coverage.notApplicable}`,
+        test: "n/a",
+        status: "PASS",
+      });
+      continue;
+    }
+    judge(
+      rows,
+      failures,
+      { area: "Page type", reference, evidence: "page-types.json" },
+      coverage,
+      `Page type "${pageType}" has no equivalent route.`,
+    );
   }
+
+  // Routes of our own are held to the same standard even though no reference
+  // row asks for them. They are not in the tally: that counts the reference.
+  for (const addition of ADDITIONS) {
+    for (const problem of verifyClaim(addition)) {
+      failures.push(`Addition "${addition.name}": ${problem}.`);
+    }
+  }
+
+  // Search is a capability of the catalog rather than a feature id; verify it
+  // even when no page type of the snapshot happens to name it.
+  for (const problem of verifyClaim(SEARCH)) failures.push(`Search: ${problem}.`);
 
   const tally = (area: string) => {
     const subset = rows.filter((row) => row.area === area);
@@ -286,19 +449,39 @@ async function main(): Promise<void> {
   console.log(`  Page types: ${tally("Page type")}`);
   console.log(`  Runtime source-domain dependency: NONE (see check:originality)\n`);
 
-  await writeFile(OUTPUT_DOC, renderDocument(rows), "utf8");
-  console.log(`Coverage matrix written to ${path.relative(REPO_ROOT, OUTPUT_DOC)}`);
-
   if (failures.length > 0) {
-    console.error(`\nFAIL: ${failures.length} uncovered reference capability/capabilities:\n`);
-    for (const failure of failures) console.error(`  - ${failure}`);
+    console.error(`FAIL: ${failures.length} unmet or unverifiable claim(s):\n`);
+    for (const failure of [...new Set(failures)]) console.error(`  - ${failure}`);
     console.error(
-      "\nEither implement it, or add it to OMISSIONS with a written reason.",
+      "\nEither implement it, fix the path in scripts/reference-coverage.ts, " +
+        "or add it to OMISSIONS with a written reason.",
     );
     process.exitCode = 1;
     return;
   }
-  console.log("\nPASS: every observed reference capability is covered or explicitly omitted.");
+
+  const document = renderDocument(rows);
+  const relativeDoc = path.relative(REPO_ROOT, OUTPUT_DOC);
+
+  if (write) {
+    await writeFile(OUTPUT_DOC, document, "utf8");
+    console.log(`Coverage matrix written to ${relativeDoc}`);
+  } else {
+    const committed = existsSync(OUTPUT_DOC)
+      ? (await readFile(OUTPUT_DOC, "utf8")).replace(/\r\n/g, "\n")
+      : null;
+    if (committed !== document) {
+      console.error(
+        `FAIL: ${relativeDoc} is ${committed === null ? "missing" : "out of date"}.\n` +
+          "It is generated from this script and the reference artifacts. Run " +
+          "`pnpm reference:coverage:write` and commit the result.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+  console.log("PASS: every observed reference capability is covered or explicitly omitted,");
+  console.log("      every file, route and test it names exists, and the matrix is current.");
 }
 
 function renderDocument(rows: readonly Row[]): string {
@@ -306,12 +489,13 @@ function renderDocument(rows: readonly Row[]): string {
   lines.push("# Reference coverage matrix");
   lines.push("");
   lines.push(
-    "Generated by `pnpm --filter @catalog/web reference:coverage`. Do not edit by hand.",
+    "Generated by `pnpm reference:coverage:write`. Do not edit by hand. `pnpm reference:coverage` checks it and writes nothing.",
   );
   lines.push("");
   lines.push(
     "Every capability observed on the reference site, and what implements it here. " +
-      "The check fails CI when something observed has no implementation and no written reason for its absence.",
+      "The check fails CI when something observed has no implementation and no written reason for its absence, " +
+      "when a route, file or test named below does not exist, and when this document no longer matches what the check generates.",
   );
   lines.push("");
 
@@ -323,12 +507,23 @@ function renderDocument(rows: readonly Row[]): string {
     lines.push("| Reference capability | Our implementation | Test | Status |");
     lines.push("| --- | --- | --- | --- |");
     for (const row of subset) {
-      lines.push(
-        `| ${row.reference} | ${row.implementation} | ${row.test} | ${row.status} |`,
-      );
+      lines.push(`| ${row.reference} | ${row.implementation} | ${row.test} | ${row.status} |`);
     }
     lines.push("");
   }
+
+  lines.push("## Routes with no counterpart in the reference");
+  lines.push("");
+  lines.push(
+    "These are not reference capabilities, so they are not rows above. They are listed so that the matrix is not mistaken for the whole route table, and the check holds them to the same standard: the route and its test must exist.",
+  );
+  lines.push("");
+  lines.push("| Capability | Our implementation | Test |");
+  lines.push("| --- | --- | --- |");
+  for (const addition of ADDITIONS) {
+    lines.push(`| ${addition.name} | ${addition.implementation} | ${testColumn(addition)} |`);
+  }
+  lines.push("");
 
   if (Object.keys(OMISSIONS).length > 0) {
     lines.push("## Intentional omissions");
@@ -359,7 +554,7 @@ function renderDocument(rows: readonly Row[]): string {
     "- **Removed products get a real page.** The reference has no concept of a retired product. Ours keeps the URL and explains that the item is gone, rather than 404ing a link that may be indexed.",
   );
   lines.push(
-    "- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/wizard` asks four questions and ranks the compatible catalog against the answers; `/wizard/machines` answers \"which capsule fits my machine\" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.",
+    '- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/wizard` asks four questions and ranks the compatible catalog against the answers; `/wizard/machines` answers "which capsule fits my machine" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.',
   );
   lines.push(
     "- **Price per cup.** Derived from pack size and price, shown alongside the pack price. The reference shows pack price only, which reverses the true ordering: 100 capsules at EUR 33.25 is cheaper per cup than 16 at EUR 5.60.",
