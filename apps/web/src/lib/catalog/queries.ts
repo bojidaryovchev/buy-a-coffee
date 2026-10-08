@@ -623,6 +623,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
       descriptionHtml: ownDescriptionHtml,
       sku: products.sku,
       gtin: products.gtin,
+      arabicaPercent: products.arabicaPercent,
+      origin: products.origin,
+      roast: products.roast,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -635,6 +638,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     descriptionHtml: string | null;
     sku: string | null;
     gtin: string | null;
+    arabicaPercent: number | null;
+    origin: string | null;
+    roast: string | null;
   };
 
   const [imageRows, categoryRows] = await Promise.all([
@@ -652,6 +658,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     db
       .select({
         slug: categories.slug,
+        sourceKey: categories.sourceKey,
         name: categories.name,
         isPrimary: productCategories.isPrimary,
         // A real aliased join, not a select-list subquery, so the column
@@ -701,12 +708,23 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     /* The same override-or-generated sentence the card carries, so the lead
        paragraph, the meta description and the JSON-LD cannot disagree. */
     descriptionText: card.shortDescription,
-    sku: typed.sku,
+    /* A blank code is no code: the page and the JSON-LD both test for null. */
+    sku: typed.sku?.trim() || null,
     gtin: typed.gtin,
+    pack:
+      typed.weightValue && typed.weightUnit
+        ? { value: typed.weightValue, unit: typed.weightUnit }
+        : null,
+    /* Null until the sync has read the product's own page, and null for good
+       when that page does not state the fact. Blank text counts as absent. */
+    arabicaPercent: typed.arabicaPercent,
+    origin: typed.origin?.trim() || null,
+    roast: typed.roast?.trim() || null,
     attributes: typed.attributes ?? {},
     images,
     categories: categoryRows.map((row) => ({
       slug: row.slug,
+      sourceKey: row.sourceKey,
       name: row.name,
       isPrimary: row.isPrimary,
       parentSlug: row.parentSlug,
@@ -722,6 +740,11 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
  * deterministic rule rather than an invented one: same category first, then
  * same brand, never the product itself, ordered by closeness of price so the
  * suggestions are plausible alternatives rather than random stock.
+ *
+ * One rule outranks all of that: a product that belongs to a brewing system is
+ * only ever shown beside products of the same system. "Same brand" used to let
+ * a Dolce Gusto capsule sit under a Nespresso one, which is a suggestion to
+ * buy something that does not go in the machine.
  */
 export async function getRelatedProducts(
   product: ProductDetailView,
@@ -776,11 +799,19 @@ export async function getRelatedProducts(
 
   if (candidateIds.length === 0) return [];
 
-  const rows = (await db
+  const loaded = (await db
     .select(productColumns)
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .where(inArray(products.id, candidateIds.slice(0, 200)))) as unknown as ProductRow[];
+
+  // Compared on the resolved system, exactly as the cards' own badges are.
+  const rows =
+    product.systemId === null
+      ? loaded
+      : loaded.filter(
+          (row) => resolveProductFormat(row.categoryKeys).system?.id === product.systemId,
+        );
 
   const anchor = product.price ? Number(product.price.amount) : null;
   const ranked = rows
