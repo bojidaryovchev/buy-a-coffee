@@ -64,10 +64,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
    * The navigation is catalog-driven, so a system that sells out leaves the
    * menu and a category the sync adds joins it, without a code change.
    *
-   * This is still the only read the frame makes. The rail is organised by
-   * brewing system now, but which systems have products — and how many — is
-   * already in the tree, so the header, the drawer and the footer are all
-   * drawn from this one call.
+   * The rail is organised by brewing system, but which systems have products —
+   * and how many — is already in the tree, so the header, the drawer and the
+   * footer are all drawn from that one read. The second, a count, decides
+   * whether "Промоции" is worth a link; the two run together.
    */
   const [categories, promotionCount] = await Promise.all([getCategoryTree(), countPromotions()]);
   const navigation = buildNavigation(categories, {

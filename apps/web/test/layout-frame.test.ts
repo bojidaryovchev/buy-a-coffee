@@ -287,10 +287,11 @@ describe("the announcement bar", () => {
     expect(markup).toContain(`href="tel:${siteConfig.contact.phoneHref}"`);
   });
 
-  it("has no close button until JavaScript runs, and its space is already there", () => {
+  it("cannot be dismissed: it is where the hours and the phone number live", () => {
     const markup = html(createElement(AnnouncementBar, { commerce: WITH_THRESHOLD }));
     expect(markup).not.toContain("<button");
-    expect(markup).toMatch(/<span class="[^"]*h-6 w-6[^"]*"><\/span><\/div><\/aside>$/);
+    expect(markup).toMatch(/^<aside aria-label="Доставка и поръчка"/);
+    expect(markup).toContain("tel:");
   });
 });
 
