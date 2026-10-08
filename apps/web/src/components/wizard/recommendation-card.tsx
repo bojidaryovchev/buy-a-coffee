@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Badge, ButtonLink, cx } from "@/components/ui/primitives";
 import { IMAGE_SIZES, PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ProductImage } from "@/components/catalog/product-image";
 import { toPerServingView } from "@/lib/catalog/format";
 import type { ScoredRecommendation } from "@/lib/recommend/score";
 
@@ -42,7 +42,7 @@ export function RecommendationCard({
       )}
     >
       <div className="relative aspect-4/5 w-24 shrink-0 overflow-hidden rounded-sm border border-line bg-paper-sunken sm:w-32">
-        <Image
+        <ProductImage
           src={product.image?.url ?? PLACEHOLDER_IMAGE}
           alt={product.image?.alt ?? product.name}
           fill
