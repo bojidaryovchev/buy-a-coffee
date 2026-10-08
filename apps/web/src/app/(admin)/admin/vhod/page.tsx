@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/admin/login-form";
-import { isAdminConfigured, isSignedIn } from "@/lib/auth";
+import { AdminDisabled } from "@/components/admin/admin-disabled";
+import { adminGate, isAdminConfigured, isSignedIn } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Вход",
@@ -13,17 +14,11 @@ export const metadata: Metadata = {
  * a login page behind a login gate is a redirect loop.
  */
 export default async function AdminLoginPage() {
+  /* `isAdminConfigured` first: it is what writes the reason to the server log
+     on a deployment that is misconfigured. */
   if (!isAdminConfigured()) {
-    return (
-      <div className="shell max-w-2xl py-20">
-        <h1 className="font-display text-3xl font-semibold text-ink-900">
-          Администрацията е изключена
-        </h1>
-        <p className="mt-4 leading-relaxed text-ink-500">
-          Не е зададена променлива <code className="font-mono text-sm">ADMIN_PASSWORD</code>.
-        </p>
-      </div>
-    );
+    const gate = adminGate();
+    return <AdminDisabled reason={gate.enabled ? "no_password" : gate.reason} />;
   }
 
   if (await isSignedIn()) redirect("/admin");

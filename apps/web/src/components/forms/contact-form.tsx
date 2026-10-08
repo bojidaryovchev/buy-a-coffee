@@ -6,11 +6,24 @@ import { submitContactMessage } from "@/lib/forms/actions";
 import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
 import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
+import { ConsentCheckbox } from "@/components/forms/consent-checkbox";
+import {
+  ERROR_CLASS,
+  HELPER_CLASS,
+  INPUT_CLASS,
+  LABEL_CLASS,
+  TEXTAREA_CLASS,
+} from "@/components/forms/field-styles";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+    <Button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending || undefined}
+      className="w-full sm:w-auto sm:min-w-40"
+    >
       {pending ? "Изпраща се…" : "Изпрати съобщение"}
     </Button>
   );
@@ -31,12 +44,18 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium">
-        {label} {required && <span className="text-critical">*</span>}
+      <label htmlFor={id} className={LABEL_CLASS}>
+        {label}
+        {required && (
+          <span aria-hidden="true" className="text-critical">
+            {" "}
+            *
+          </span>
+        )}
       </label>
       {children}
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-critical">
+        <p id={`${id}-error`} className={ERROR_CLASS}>
           {error}
         </p>
       )}
@@ -70,21 +89,25 @@ export function ContactForm({
     return (
       <div role="status" className="rounded-md border border-pine-500/40 bg-pine-100 p-5">
         <p className="font-display text-lg font-semibold text-pine-900">Съобщението е изпратено</p>
-        <p className="mt-1 text-sm text-pine-900/80">{state.message}</p>
+        <p className="mt-1 text-sm text-ink-700">{state.message}</p>
       </div>
     );
   }
 
   const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
-  const inputClass =
-    "h-11 w-full rounded-sm border border-line-strong bg-paper-raised px-3 text-base outline-none focus:border-pine-700 aria-[invalid]:border-critical";
+  const inputClass = INPUT_CLASS;
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="relative space-y-4">
       <HoneypotField />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id={nameId} label="Вашето име" required {...(errors.name ? { error: errors.name } : {})}>
+        <Field
+          id={nameId}
+          label="Вашето име"
+          required
+          {...(errors.name ? { error: errors.name } : {})}
+        >
           <input
             id={nameId}
             name="name"
@@ -97,12 +120,18 @@ export function ContactForm({
           />
         </Field>
 
-        <Field id={emailId} label="Имейл" required {...(errors.email ? { error: errors.email } : {})}>
+        <Field
+          id={emailId}
+          label="Имейл"
+          required
+          {...(errors.email ? { error: errors.email } : {})}
+        >
           <input
             id={emailId}
             name="email"
             type="email"
             required
+            inputMode="email"
             autoComplete="email"
             aria-invalid={errors.email ? true : undefined}
             aria-describedby={errors.email ? `${emailId}-error` : undefined}
@@ -110,11 +139,16 @@ export function ContactForm({
           />
         </Field>
 
-        <Field id={phoneId} label="Телефон (по избор)" {...(errors.phone ? { error: errors.phone } : {})}>
+        <Field
+          id={phoneId}
+          label="Телефон (по избор)"
+          {...(errors.phone ? { error: errors.phone } : {})}
+        >
           <input
             id={phoneId}
             name="phone"
             type="tel"
+            inputMode="tel"
             autoComplete="tel"
             aria-invalid={errors.phone ? true : undefined}
             aria-describedby={errors.phone ? `${phoneId}-error` : undefined}
@@ -134,7 +168,12 @@ export function ContactForm({
         </Field>
       </div>
 
-      <Field id={messageId} label="Съобщение" required {...(errors.message ? { error: errors.message } : {})}>
+      <Field
+        id={messageId}
+        label="Съобщение"
+        required
+        {...(errors.message ? { error: errors.message } : {})}
+      >
         <textarea
           id={messageId}
           name="message"
@@ -143,17 +182,19 @@ export function ContactForm({
           maxLength={4000}
           aria-invalid={errors.message ? true : undefined}
           aria-describedby={errors.message ? `${messageId}-error` : undefined}
-          className="w-full rounded-sm border border-line-strong bg-paper-raised px-3 py-2 text-base outline-none focus:border-pine-700 aria-[invalid]:border-critical"
+          className={TEXTAREA_CLASS}
         />
       </Field>
 
-      <p aria-live="polite" className="min-h-5 text-sm">
+      <ConsentCheckbox affects="съобщението" />
+
+      <p aria-live="polite" className="min-h-6 text-sm">
         {state.status === "error" && <span className="text-critical">{state.message}</span>}
       </p>
 
       <SubmitButton />
 
-      <p className="text-xs text-ink-500">
+      <p className={HELPER_CLASS}>
         Използваме данните ви само за да отговорим на това съобщение. Вижте нашата{" "}
         <a href="/privacy" className="underline underline-offset-2">
           политика за поверителност

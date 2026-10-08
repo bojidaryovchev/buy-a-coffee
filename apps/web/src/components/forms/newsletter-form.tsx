@@ -4,19 +4,17 @@ import { useActionState, useEffect, useId, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { subscribeToNewsletter } from "@/lib/forms/actions";
 import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
+import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
+import { INPUT_CLASS } from "@/components/forms/field-styles";
 import { useAnalytics } from "@/components/analytics-provider";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="h-11 shrink-0 rounded-sm bg-pine-900 px-4 text-sm font-medium text-paper hover:bg-pine-700 disabled:opacity-60"
-    >
+    <Button type="submit" disabled={pending} aria-busy={pending || undefined} className="shrink-0">
       {pending ? "…" : "Абонирай ме"}
-    </button>
+    </Button>
   );
 }
 
@@ -54,7 +52,7 @@ export function NewsletterForm({ source }: { source: string }) {
   const emailError = state.status === "error" ? state.fieldErrors?.email : undefined;
 
   return (
-    <form ref={formRef} action={formAction}>
+    <form ref={formRef} action={formAction} className="relative">
       <input type="hidden" name="source" value={source} />
       <HoneypotField />
 
@@ -68,21 +66,24 @@ export function NewsletterForm({ source }: { source: string }) {
           type="email"
           required
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder="name@example.com"
           aria-invalid={emailError ? true : undefined}
           aria-describedby={emailError ? `${emailId}-error` : undefined}
-          className="h-11 min-w-0 flex-1 rounded-sm border border-line-strong bg-paper-raised px-3 text-base outline-none focus:border-pine-700 aria-[invalid]:border-critical"
+          inputMode="email"
+          className={`${INPUT_CLASS} min-w-0 flex-1`}
         />
         <SubmitButton />
       </div>
 
-      <p aria-live="polite" className="mt-1.5 min-h-4 text-xs">
+      <p aria-live="polite" className="mt-1.5 min-h-4 text-sm">
         {emailError && (
           <span id={`${emailId}-error`} className="text-critical">
             {emailError}
           </span>
         )}
-        {state.status === "error" && !emailError && <span className="text-critical">{state.message}</span>}
+        {state.status === "error" && !emailError && (
+          <span className="text-critical">{state.message}</span>
+        )}
       </p>
     </form>
   );

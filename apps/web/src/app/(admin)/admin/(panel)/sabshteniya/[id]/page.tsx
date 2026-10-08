@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getContact } from "@/lib/admin-queries";
+import { getContact, getSubscriberByEmail } from "@/lib/admin-queries";
 import { updateContactStatus } from "@/lib/admin-actions";
 import type { InquiryStatus } from "@/lib/inquiry-status";
 import { MAIL_ADDRESS } from "@/lib/mail/identity";
 import { recordReference } from "@/lib/mail/reply";
 import { StatusPicker } from "@/components/admin/status-picker";
 import { RecordReplyForm } from "@/components/admin/record-reply-form";
+import { NewsletterMarkForm } from "@/components/admin/newsletter-mark-form";
 
 export const metadata: Metadata = { title: "Съобщение" };
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function AdminContactPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const message = await getContact(id);
   if (!message) notFound();
+  const subscriber = message.email ? await getSubscriberByEmail(message.email) : null;
 
   return (
     <>
@@ -65,6 +67,15 @@ export default async function AdminContactPage({ params }: { params: Promise<{ i
           />
         </div>
       </div>
+
+      {message.email && (
+        <NewsletterMarkForm
+          recordId={message.id}
+          kind="contact"
+          email={message.email}
+          current={subscriber}
+        />
+      )}
 
       {message.email ? (
         <RecordReplyForm

@@ -50,13 +50,36 @@ export const honeypotSchema = z
   .optional()
   .refine((value) => !value || value.trim() === "", "Отказано.");
 
+/**
+ * An HTML checkbox: the browser sends its value when it is ticked and nothing
+ * at all when it is not. Anything but a plain "ticked" reads as not ticked, and
+ * this never fails — a consent box is optional, so it must not be able to be
+ * the reason a form is refused.
+ */
+export const checkboxSchema = z.preprocess(
+  (value) => value === "on" || value === "true" || value === "1",
+  z.boolean(),
+);
+
 export const orderInquirySchema = z.object({
   productSlug: z.string().trim().min(1).max(200),
   phone: phoneSchema,
   customerName: z.string().trim().max(120).optional().or(z.literal("")),
   email: z.union([emailSchema, z.literal("")]).optional(),
-  quantity: z.coerce.number().int().min(1, "Количеството трябва да е поне 1.").max(99, "За по-големи поръчки, моля, обадете ни се.").default(1),
-  notes: z.string().trim().max(1000, "Моля, ограничете бележката до 1000 знака.").optional().or(z.literal("")),
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(1, "Количеството трябва да е поне 1.")
+    .max(99, "За по-големи поръчки, моля, обадете ни се.")
+    .default(1),
+  notes: z
+    .string()
+    .trim()
+    .max(1000, "Моля, ограничете бележката до 1000 знака.")
+    .optional()
+    .or(z.literal("")),
+  /** Unticked by default. Only means anything when an email was given. */
+  newsletterConsent: checkboxSchema,
   website: honeypotSchema,
 });
 
@@ -76,6 +99,7 @@ export const contactSchema = z.object({
     .trim()
     .min(10, "Моля, напишете малко повече, за да можем да помогнем.")
     .max(4000, "Моля, ограничете съобщението до 4000 знака."),
+  newsletterConsent: checkboxSchema,
   website: honeypotSchema,
 });
 

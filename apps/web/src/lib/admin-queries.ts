@@ -132,6 +132,22 @@ export interface SubscriberRow {
   unsubscribedAt: Date | null;
 }
 
+/** Where a person stands on the list, for the record page that offers to add them. */
+export async function getSubscriberByEmail(
+  email: string,
+): Promise<Pick<SubscriberRow, "consentAt" | "consentSource" | "unsubscribedAt"> | null> {
+  const [row] = await db
+    .select({
+      consentAt: newsletterSubscribers.consentAt,
+      consentSource: newsletterSubscribers.consentSource,
+      unsubscribedAt: newsletterSubscribers.unsubscribedAt,
+    })
+    .from(newsletterSubscribers)
+    .where(eq(newsletterSubscribers.email, email.trim().toLowerCase()))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function listSubscribers(): Promise<SubscriberRow[]> {
   return db
     .select({
@@ -182,8 +198,9 @@ export async function panelCounts(): Promise<{
    Appended as one block. Its imports sit here, not in the header, so that the
    block can be added or removed without touching what the other screens use. */
 
-import { and } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 import { products, syncChanges, syncRuns } from "@catalog/db/schema";
+import { MANUAL_LINK_RUN_KIND } from "@/lib/sync-health";
 
 export type SyncRunRow = typeof syncRuns.$inferSelect;
 
@@ -203,6 +220,11 @@ export async function lastSuccessfulSync(): Promise<{ at: Date; runId: string } 
         eq(syncRuns.status, "succeeded"),
         eq(syncRuns.dryRun, false),
         eq(syncRuns.circuitBreakerTripped, false),
+        /* A manual `catalog:link` writes a run of its own to hang its audit
+           trail on. It reads nothing from the source, so it is not "the
+           catalog was brought up to date". `is distinct from` keeps rows whose
+           metadata has no `kind` at all. */
+        sql`${syncRuns.metadata}->>'kind' is distinct from ${MANUAL_LINK_RUN_KIND}`,
       ),
     )
     .orderBy(desc(syncRuns.startedAt))

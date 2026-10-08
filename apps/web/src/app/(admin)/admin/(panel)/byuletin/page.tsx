@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listSubscribers } from "@/lib/admin-queries";
 import { unsubscribeSubscriber } from "@/lib/admin-actions";
+import { consentSourceLabel } from "@/lib/forms/consent";
 
 export const metadata: Metadata = { title: "Бюлетин" };
 export const dynamic = "force-dynamic";
@@ -20,9 +21,9 @@ export const dynamic = "force-dynamic";
  * reply rather than by clicking a link.
  *
  * `consentSource` and `consentAt` are shown because they are the record that
- * makes acting on a subscription lawful. Unsubscribing stamps a date rather than
- * deleting the row, so that record survives the unsubscribe — see
- * `unsubscribeSubscriber`.
+ * makes acting on a subscription lawful: every row answers "who agreed, when,
+ * and how". Unsubscribing stamps a date rather than deleting the row, so that
+ * record survives the unsubscribe — see `unsubscribeSubscriber`.
  */
 export default async function AdminNewsletterPage() {
   const subscribers = await listSubscribers();
@@ -50,12 +51,12 @@ export default async function AdminNewsletterPage() {
         </p>
       ) : (
         <div className="mt-8 overflow-x-auto rounded-md border border-line bg-paper-raised">
-          <table className="w-full min-w-[40rem] text-sm">
+          <table className="w-full min-w-[48rem] text-sm">
             <thead className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Имейл</th>
-                <th className="px-4 py-3 font-medium">Съгласие</th>
-                <th className="px-4 py-3 font-medium">Източник</th>
+                <th className="px-4 py-3 font-medium">Съгласие (UTC)</th>
+                <th className="px-4 py-3 font-medium">Как е дадено</th>
                 <th className="px-4 py-3 font-medium">Състояние</th>
               </tr>
             </thead>
@@ -64,9 +65,11 @@ export default async function AdminNewsletterPage() {
                 <tr key={subscriber.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3 text-ink-900">{subscriber.email}</td>
                   <td className="px-4 py-3 text-ink-500 tabular-nums">
-                    {subscriber.consentAt.toISOString().slice(0, 10)}
+                    {subscriber.consentAt.toISOString().slice(0, 16).replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 text-ink-500">{subscriber.consentSource ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink-700">
+                    {consentSourceLabel(subscriber.consentSource)}
+                  </td>
                   <td className="px-4 py-3">
                     {subscriber.unsubscribedAt ? (
                       <span className="text-ink-500">
