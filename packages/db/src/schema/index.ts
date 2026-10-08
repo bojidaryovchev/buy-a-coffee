@@ -6,3 +6,4 @@ export * from "./observations.ts";
 export * from "./storefront.ts";
 export * from "./mail.ts";
 export * from "./alerts.ts";
+export * from "./rate-limit.ts";

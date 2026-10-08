@@ -28,7 +28,10 @@ import {
  * hand-rolled token, and the same function is the only entry point.
  *
  * Every action follows the same order:
- *   1. rate limit  — before any parsing work is done
+ *   1. rate limit  — before any parsing work is done. Shared across
+ *                    instances through PostgreSQL, and it fails open: if
+ *                    the limiter cannot reach its table the submission
+ *                    still goes ahead (see `lib/rate-limit.ts`)
  *   2. validate    — Zod, including the honeypot
  *   3. persist     — the record is safe before anything else can fail
  *   4. notify      — best effort; a failure here never fails the request
@@ -56,7 +59,7 @@ export async function submitOrderInquiry(
 ): Promise<FormState> {
   const { fingerprint, metadata } = await requestContext();
 
-  const limit = inquiryLimiter.check(fingerprint);
+  const limit = await inquiryLimiter.check(fingerprint);
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = orderInquirySchema.safeParse({
@@ -145,7 +148,7 @@ export async function subscribeToNewsletter(
 ): Promise<FormState> {
   const { fingerprint, metadata } = await requestContext();
 
-  const limit = newsletterLimiter.check(fingerprint);
+  const limit = await newsletterLimiter.check(fingerprint);
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = newsletterSchema.safeParse({
@@ -196,7 +199,7 @@ export async function submitContactMessage(
 ): Promise<FormState> {
   const { fingerprint, metadata } = await requestContext();
 
-  const limit = contactLimiter.check(fingerprint);
+  const limit = await contactLimiter.check(fingerprint);
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = contactSchema.safeParse({

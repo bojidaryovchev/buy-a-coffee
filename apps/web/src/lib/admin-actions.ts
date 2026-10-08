@@ -1,11 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { contactMessages, newsletterSubscribers, orderInquiries } from "@catalog/db/schema";
 import { db } from "@/lib/db";
-import { createSession, destroySession, isSignedIn, passwordMatches } from "@/lib/auth";
+import {
+  createSession,
+  destroySession,
+  isAdminConfigured,
+  isSignedIn,
+  passwordMatches,
+} from "@/lib/auth";
+import { networkFingerprint, sharedStore } from "@/lib/rate-limit";
+import { attemptSignIn, createSignInGuard } from "@/lib/sign-in-guard";
 import { MAIL_THREAD_STATUSES, setThreadStatus, type MailThreadStatus } from "@/lib/mail/store";
 import { INQUIRY_STATUSES, type InquiryStatus } from "@/lib/inquiry-status";
 import {
@@ -32,13 +41,40 @@ async function requireAdmin(): Promise<boolean> {
 
 export type LoginState = { error?: string };
 
+/*
+ * Two messages, and neither says anything about the password that was typed.
+ * "Too many attempts" is returned before the password is compared, so it is
+ * the same for a right guess and a wrong one. It carries no countdown: how
+ * long is left is in the server log, for the operator, not on a public form.
+ */
+const WRONG_PASSWORD = "Грешна парола.";
+const TOO_MANY_ATTEMPTS = "Твърде много опити. Изчакайте и опитайте отново.";
+
+/** Shares the rate limiters' store, so the counts hold across instances. */
+const signInGuard = createSignInGuard({ store: sharedStore });
+
 export async function signIn(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  /* The pages hide the form when the panel is disabled, but this action is
+     reachable without them. Answer as for any wrong password, and before
+     spending a database round trip on a form that cannot succeed. */
+  if (!isAdminConfigured()) return { error: WRONG_PASSWORD };
+
   const password = String(formData.get("password") ?? "");
 
-  if (!passwordMatches(password)) {
-    // Deliberately vague, and deliberately slow enough to discourage guessing.
+  const outcome = await attemptSignIn({
+    guard: signInGuard,
+    client: networkFingerprint(await headers()),
+    matches: () => passwordMatches(password),
+    log: (entry) => console.warn(JSON.stringify(entry)),
+  });
+
+  if (!outcome.ok) {
+    if (outcome.reason !== "bad_password") return { error: TOO_MANY_ATTEMPTS };
+    /* No longer what bounds guessing — the guard does that, and on serverless
+       a sleep per instance bounds nothing. Kept because it still costs a
+       single patient client something and costs the operator one typo. */
     await new Promise((r) => setTimeout(r, 600));
-    return { error: "Грешна парола." };
+    return { error: WRONG_PASSWORD };
   }
 
   await createSession();
