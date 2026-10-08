@@ -93,7 +93,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
         <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">
           {brand.name}
         </h1>
-        {brand.tagline && <p className="mt-1.5 text-base text-clay-600 italic">{brand.tagline}</p>}
+        {brand.tagline && <p className="mt-1.5 text-base text-ink-500 italic">{brand.tagline}</p>}
         {brand.description && <p className="mt-3 text-base text-ink-500">{brand.description}</p>}
         {summary && (
           <p className="mt-3 text-base text-ink-500">

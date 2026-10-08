@@ -23,5 +23,5 @@
  */
 export function asHtml(text: string): string {
   const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return `<div style="font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1f2b26;white-space:pre-wrap">${escaped}</div>`;
+  return `<div style="font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#23180f;white-space:pre-wrap">${escaped}</div>`;
 }

@@ -78,7 +78,7 @@ export default async function AdminMailboxPage() {
                   <p className="font-semibold text-ink-900">
                     {thread.correspondentName ?? thread.correspondent}
                     {awaitingReply(thread) && (
-                      <span className="ml-2 rounded-sm bg-clay-100 px-1.5 py-0.5 align-middle text-xs font-semibold text-clay-600">
+                      <span className="ml-2 rounded-sm bg-caution-100 px-1.5 py-0.5 align-middle text-xs font-semibold text-caution">
                         чака отговор
                       </span>
                     )}

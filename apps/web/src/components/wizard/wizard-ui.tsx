@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cx } from "@/components/ui/primitives";
+import { ChipLink, cx } from "@/components/ui/primitives";
 import { STEP_LABELS, STEP_SEQUENCE, type WizardStep } from "@/lib/recommend/answers";
 
 /**
@@ -160,17 +160,9 @@ export function AnswerSummary({
       <ul className="flex flex-wrap gap-2">
         {entries.map((entry) => (
           <li key={entry.label}>
-            <Link
-              href={entry.href}
-              className="inline-flex items-baseline gap-1.5 rounded-sm border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink-700 hover:border-pine-500"
-            >
-              <span className="text-2xs tracking-wide text-ink-300 uppercase">{entry.label}</span>
-              <span className="font-medium text-ink-900">{entry.value}</span>
-              <span aria-hidden className="text-ink-300">
-                ✕
-              </span>
-              <span className="sr-only">— промяна на отговора</span>
-            </Link>
+            <ChipLink kind="answer" href={entry.href} label={entry.label}>
+              {entry.value}
+            </ChipLink>
           </li>
         ))}
       </ul>

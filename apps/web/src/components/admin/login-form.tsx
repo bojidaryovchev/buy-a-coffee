@@ -3,17 +3,15 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { signIn, type LoginState } from "@/lib/admin-actions";
+import { INPUT_CLASS, LABEL_CLASS } from "@/components/forms/field-styles";
+import { Button } from "@/components/ui/primitives";
 
 function Submit() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="h-12 w-full rounded-sm bg-pine-700 text-sm font-semibold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
-    >
-      {pending ? "Проверка..." : "Вход"}
-    </button>
+    <Button type="submit" size="lg" disabled={pending} aria-busy={pending} className="w-full">
+      {pending ? "Проверка…" : "Вход"}
+    </Button>
   );
 }
 
@@ -23,7 +21,7 @@ export function LoginForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <div>
-        <label htmlFor="password" className="block text-sm font-semibold text-ink-900">
+        <label htmlFor="password" className={LABEL_CLASS}>
           Парола
         </label>
         <input
@@ -33,12 +31,14 @@ export function LoginForm() {
           required
           autoComplete="current-password"
           autoFocus
-          className="mt-2 h-12 w-full rounded-sm border border-line-strong bg-paper-raised px-3.5 text-base focus:border-pine-500 focus:outline-none"
+          aria-invalid={state.error ? true : undefined}
+          aria-describedby={state.error ? "password-error" : undefined}
+          className={INPUT_CLASS}
         />
       </div>
 
       {state.error && (
-        <p role="alert" className="text-sm font-medium text-critical">
+        <p id="password-error" role="alert" className="-mt-3 text-sm text-critical">
           {state.error}
         </p>
       )}
