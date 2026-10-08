@@ -39,10 +39,11 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   return (
     <Button
       type="submit"
+      variant="accent"
       size="lg"
       disabled={pending || disabled}
       aria-busy={pending || undefined}
-      className="w-full sm:w-auto sm:min-w-40"
+      className="w-full"
     >
       {pending ? "Изпраща се…" : "Поискай обаждане"}
     </Button>
@@ -108,7 +109,7 @@ export function QuickOrderForm({
         регистрация.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+      <div className="mt-4 grid gap-3">
         <div>
           <label htmlFor={phoneId} className={LABEL_CLASS}>
             Телефонен номер{" "}
@@ -135,9 +136,7 @@ export function QuickOrderForm({
           )}
         </div>
 
-        <div className="flex items-end">
-          <SubmitButton disabled={disabled} />
-        </div>
+        <SubmitButton disabled={disabled} />
       </div>
 
       <details className="mt-3" open={detailsOpen || undefined}>

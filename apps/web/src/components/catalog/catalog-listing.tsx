@@ -113,14 +113,8 @@ export function CatalogListing({
           />
         ) : (
           <>
-            {/*
-             * Beside the rail the grid is three columns wide, not the four it
-             * uses at full width. `ProductGrid` belongs to the card and takes
-             * no column count, so the narrower grid is set from here.
-             */}
-            <div className="lg:[&>ul]:grid-cols-3">
-              <ProductGrid products={result.items} />
-            </div>
+            {/* Beside the rail the grid is three columns wide, not four. */}
+            <ProductGrid products={result.items} columns={3} />
             <Pagination
               page={result.page}
               pageCount={result.pageCount}

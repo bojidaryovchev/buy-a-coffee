@@ -61,7 +61,9 @@ export function ProductCard({
           <ImagePlaceholder />
         )}
 
-        {reduced && product.discountPercent !== null && (
+        {/* A reduction under one percent rounds to zero: the struck old price
+            says it; a "−0%" badge would only look like a mistake. */}
+        {reduced && product.discountPercent !== null && product.discountPercent >= 1 && (
           <div className="absolute top-2 left-2 flex">
             <Badge tone="reduction">−{product.discountPercent}%</Badge>
           </div>

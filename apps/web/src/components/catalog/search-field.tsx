@@ -336,7 +336,7 @@ function SuggestionPanel({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-ink-900">{product.name}</span>
                   <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                    <SystemBadge systemId={suggestionSystemId(product)} size="sm" />
+                    <SystemBadge systemId={product.systemId} size="sm" />
                     <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">
                       {[product.brandName, product.weight].filter(Boolean).join(" · ")}
                     </span>
@@ -408,20 +408,6 @@ function SuggestionPanel({
       )}
     </>
   );
-}
-
-/**
- * The brewing system of a suggested product, when the suggestion carries one.
- *
- * `ProductSuggestion` does not declare `systemId` yet, so today this is always
- * undefined and no badge is drawn. Reading it this way means the badge appears
- * the moment the suggest endpoint starts sending the field, with no change
- * here — and never before, because a badge is a compatibility claim and is not
- * guessed from a product's name.
- */
-function suggestionSystemId(product: SearchSuggestions["products"][number]): string | null {
-  const systemId = (product as { readonly systemId?: unknown }).systemId;
-  return typeof systemId === "string" ? systemId : null;
 }
 
 function GroupLabel({ children }: { children: React.ReactNode }) {

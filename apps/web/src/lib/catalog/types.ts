@@ -173,6 +173,8 @@ export interface ProductListResult {
 export interface ProductSuggestion {
   readonly slug: string;
   readonly name: string;
+  /** The brewing system, as on a card; null when the product belongs to none. */
+  readonly systemId: BrewingSystemId | null;
   readonly brandName: string | null;
   readonly weight: string | null;
   readonly price: PriceView | null;

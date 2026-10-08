@@ -660,6 +660,7 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
       return {
         slug: card.slug,
         name: card.name,
+        systemId: card.systemId,
         brandName: card.brand?.name ?? null,
         weight: card.weight,
         price: card.price,
