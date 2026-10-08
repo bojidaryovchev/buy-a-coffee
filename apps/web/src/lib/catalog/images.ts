@@ -41,6 +41,20 @@ export function isAllowedImageUrl(url: string): boolean {
 }
 
 /**
+ * True on a deployed host (Vercel sets `VERCEL` on every runtime, build and
+ * preview included). Deliberately not `NODE_ENV`: the end-to-end suite runs a
+ * production build on a laptop, where `/media` reads the local disk and works.
+ */
+function isDeployedHost(): boolean {
+  return Boolean(process.env.VERCEL);
+}
+
+/** True when the resolved URL is the placeholder, i.e. there is no real image. */
+export function isPlaceholderImage(url: string | null | undefined): boolean {
+  return !url || url === PLACEHOLDER_IMAGE;
+}
+
+/**
  * Turn a stored object key or URL into something renderable.
  * Returns the local placeholder when the URL is not ours.
  */
@@ -53,9 +67,11 @@ export function resolveImageUrl(urlOrKey: string): string {
 
   const base = imageBaseUrl();
   const key = urlOrKey.replace(/^\/+/, "");
+  if (base) return `${base}/${key}`;
   // With no configured host, serve through our own local media route so
-  // development works without any object storage at all.
-  return base ? `${base}/${key}` : `/media/${key}`;
+  // development works without any object storage at all. That route reads the
+  // local disk, which a deployed host does not have: every URL would 404.
+  return isDeployedHost() ? PLACEHOLDER_IMAGE : `/media/${key}`;
 }
 
 export const PLACEHOLDER_IMAGE = "/placeholder-product.svg";

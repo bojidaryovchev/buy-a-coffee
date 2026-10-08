@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { IMAGE_SIZES, PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ProductImage } from "@/components/catalog/product-image";
 import { cx } from "@/components/ui/primitives";
 import type { ProductImageView } from "@/lib/catalog/types";
 
@@ -31,7 +31,7 @@ export function ProductGallery({
   if (images.length === 0) {
     return (
       <div className="relative aspect-square overflow-hidden rounded-md border border-line bg-paper-sunken">
-        <Image
+        <ProductImage
           src={PLACEHOLDER_IMAGE}
           alt=""
           fill
@@ -46,7 +46,7 @@ export function ProductGallery({
   return (
     <div>
       <figure className="relative aspect-square overflow-hidden rounded-md border border-line bg-paper-sunken">
-        <Image
+        <ProductImage
           key={active?.url}
           src={active?.url ?? PLACEHOLDER_IMAGE}
           alt={active?.alt ?? productName}
@@ -68,10 +68,12 @@ export function ProductGallery({
                 aria-current={index === activeIndex}
                 className={cx(
                   "relative block h-20 w-20 overflow-hidden rounded-sm border bg-paper-sunken",
-                  index === activeIndex ? "border-pine-700" : "border-line hover:border-line-strong",
+                  index === activeIndex
+                    ? "border-pine-700"
+                    : "border-line hover:border-line-strong",
                 )}
               >
-                <Image
+                <ProductImage
                   src={image.url}
                   alt=""
                   fill

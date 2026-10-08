@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AvailabilityBadge, Badge } from "@/components/ui/primitives";
 import { IMAGE_SIZES, PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ProductImage } from "@/components/catalog/product-image";
 import type { ProductCardView } from "@/lib/catalog/types";
 
 /**
@@ -27,7 +27,7 @@ export function ProductCard({
   return (
     <article className="group relative flex h-full flex-col">
       <div className="relative aspect-4/5 overflow-hidden rounded-md border border-line bg-paper-sunken">
-        <Image
+        <ProductImage
           src={product.image?.url ?? PLACEHOLDER_IMAGE}
           alt={product.image?.alt ?? product.name}
           fill
@@ -68,7 +68,9 @@ export function ProductCard({
             <>
               <span className="text-lg font-semibold text-ink-900">{product.price.formatted}</span>
               {product.oldPrice && (
-                <span className="text-sm text-ink-300 line-through">{product.oldPrice.formatted}</span>
+                <span className="text-sm text-ink-300 line-through">
+                  {product.oldPrice.formatted}
+                </span>
               )}
             </>
           ) : (

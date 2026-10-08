@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
 import { PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ProductImage } from "@/components/catalog/product-image";
 import type { SearchSuggestions } from "@/lib/catalog/types";
 import { useAnalytics } from "@/components/analytics-provider";
 
@@ -229,7 +229,14 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
             type="submit"
             className="flex shrink-0 items-center gap-1.5 bg-pine-900 px-4 text-sm font-medium text-paper hover:bg-pine-700"
           >
-            <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="11" cy="11" r="7" />
               <path d="M16.5 16.5L21 21" strokeLinecap="round" />
             </svg>
@@ -312,7 +319,7 @@ function SuggestionPanel({
                 onSelect={onSelect}
               >
                 <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-xs bg-paper-sunken">
-                  <Image
+                  <ProductImage
                     src={product.image?.url ?? PLACEHOLDER_IMAGE}
                     alt=""
                     fill
@@ -363,7 +370,9 @@ function SuggestionPanel({
                 onHover={onHover}
                 onSelect={onSelect}
               >
-                <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{category.name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-ink-900">
+                  {category.name}
+                </span>
                 <span className="shrink-0 text-2xs text-ink-300">{category.productCount}</span>
               </SuggestionRow>
             ))}
