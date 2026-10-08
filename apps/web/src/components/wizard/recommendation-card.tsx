@@ -57,6 +57,7 @@ export function RecommendationCard({
             fill
             sizes={IMAGE_SIZES.thumb}
             className="object-contain"
+            placeholderLabel="from-sm"
           />
         ) : (
           /* At 96 px the words do not fit; they return with the wider well. */
