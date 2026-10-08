@@ -166,13 +166,14 @@ export function classifyPage(input: ClassificationInput): Classification {
     return { pageType: "category", confidence: "low", evidence };
   }
 
-  // A JSON-LD type is authoritative when present. This site ships none today,
-  // but relying on it first keeps the classifier correct if that changes.
-  const jsonLdType = firstJsonLdType(page.structuredData);
-  if (jsonLdType) {
-    evidence.push(`JSON-LD @type is ${jsonLdType}`);
+  // A JSON-LD type is authoritative when it names a page type. Every page on
+  // the source carries a `WebSite` block that says nothing about the page, so
+  // the first block that maps to a type decides, not simply the first block.
+  for (const jsonLdType of jsonLdTypes(page.structuredData)) {
     const mapped = mapJsonLdType(jsonLdType);
-    if (mapped) return { pageType: mapped, confidence: "high", evidence };
+    if (!mapped) continue;
+    evidence.push(`JSON-LD @type is ${jsonLdType}`);
+    return { pageType: mapped, confidence: "high", evidence };
   }
 
   if (signals.h1Count === 0 && !signals.hasMain) {
@@ -184,15 +185,16 @@ export function classifyPage(input: ClassificationInput): Classification {
   return { pageType: "other", confidence: "low", evidence };
 }
 
-function firstJsonLdType(blocks: readonly unknown[]): string | null {
+function jsonLdTypes(blocks: readonly unknown[]): string[] {
+  const types: string[] = [];
   for (const block of blocks) {
     if (block && typeof block === "object" && "@type" in block) {
       const type = (block as { "@type": unknown })["@type"];
-      if (typeof type === "string") return type;
-      if (Array.isArray(type) && typeof type[0] === "string") return type[0];
+      if (typeof type === "string") types.push(type);
+      else if (Array.isArray(type) && typeof type[0] === "string") types.push(type[0]);
     }
   }
-  return null;
+  return types;
 }
 
 function mapJsonLdType(type: string): PageType | null {

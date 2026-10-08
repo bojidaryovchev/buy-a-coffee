@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Страницата не е намерена — KafeZona</title>
+  <meta name="robots" content="noindex">
+  <meta name="description" content="Тази страница не съществува в KafeZona.">
+  <link rel="stylesheet" href="/assets/tailwind.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'kz-xdark':  '#1c0f07',
+            'kz-dark':   '#2c1810',
+            'kz-medium': '#c08a5a',
+            'kz-light':  '#ede4d8',
+            'kz-xlight': '#f7f2ee',
+            'kz-smed':   '#b8a898',
+            'kz-slight': '#ddd5c8',
+          },
+          fontFamily: {
+            sans: ['Roboto', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; }
+  </style>
+</head>
+<body class="bg-white text-[#141414] min-h-screen flex flex-col">
+
+  <header class="sticky top-0 z-40 bg-white shadow-sm">
+    <div class="flex items-center justify-between p-4 lg:px-[120px] lg:py-8 max-w-[1440px] mx-auto w-full lg:border-b lg:border-[#ede4d8]">
+      <a href="/" class="flex items-center gap-1 lg:gap-2">
+        <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7 lg:w-10 lg:h-10">
+        <span class="font-light text-lg lg:text-xl leading-7 text-[#1c0f07]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+      </a>
+      <a href="tel:0895733143" class="hidden sm:flex items-center gap-1.5 text-[#2c1810] text-sm lg:text-base hover:text-[#c08a5a] transition-colors">
+        0895 733 143
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-1 bg-[#f7f2ee] flex flex-col items-center justify-center px-4 py-16 lg:py-24 text-center">
+    <div class="bg-[#ede4d8] border border-[#ddd5c8] rounded-full w-[72px] h-[72px] lg:w-[110px] lg:h-[110px] flex items-center justify-center mb-8">
+      <svg class="w-8 h-8 lg:w-12 lg:h-12 text-[#c08a5a]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 8h13v7a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M8 4.5c.4.8.4 1.6 0 2.4M11 4.5c.4.8.4 1.6 0 2.4M14 4.5c.4.8.4 1.6 0 2.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p class="text-[#c08a5a] text-[64px] lg:text-[96px] font-light leading-none tracking-tight">404</p>
+    <h1 class="mt-4 text-xl lg:text-2xl font-normal text-[#1c0f07]">Страницата не е намерена</h1>
+    <p class="mt-3 max-w-[420px] text-sm lg:text-base text-[#888] leading-relaxed">
+      Адресът може да е грешен или страницата вече не съществува. Върнете се към началото или потърсете продукт.
+    </p>
+    <div class="mt-8 flex flex-col sm:flex-row items-center gap-3">
+      <a href="/" class="bg-[#2c1810] text-white font-bold text-sm py-3 px-8 rounded-full hover:bg-[#1c0f07] transition-colors">Към началото</a>
+      <a href="/search/" class="border border-[#b8a898] text-[#2c1810] font-bold text-sm py-3 px-8 rounded-full hover:bg-white transition-colors">Търсене</a>
+    </div>
+    <nav class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-[#888]">
+      <a href="/blog/" class="hover:text-[#c08a5a] transition-colors">Блог</a>
+      <a href="/promo/" class="hover:text-[#c08a5a] transition-colors">Промоции</a>
+      <a href="/privacy/" class="hover:text-[#c08a5a] transition-colors">Общи условия</a>
+    </nav>
+  </main>
+
+  <footer class="bg-[#1c0f07] text-[#f5f5f5]">
+    <div class="px-4 lg:px-[120px] py-8 max-w-[1440px] mx-auto w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <a href="/" class="flex items-center gap-1 self-start">
+        <img src="/assets/logo-icon.png" alt="KafeZona" class="w-7 h-7">
+        <span class="font-light text-lg text-[#f7f2ee]">KafeZona<span class="text-[#c08a5a] tracking-[-0.06em]">.com</span></span>
+      </a>
+      <p class="text-xs lg:text-sm text-[#b8a898]">&copy; 2026 Kafezone. Всички права запазени.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

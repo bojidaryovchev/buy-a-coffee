@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import type { Logger } from "@catalog/shared";
 import { Fetcher, isRetryableStatus } from "../src/fetch/fetcher.ts";
 import { isPathAllowed, isUrlAllowed, parseRobotsTxt, selectGroup } from "../src/fetch/robots.ts";
 import { loadConfig } from "../src/config.ts";
@@ -201,6 +205,137 @@ describe("Fetcher", () => {
       const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
       const calibration = await fetcher.calibrateSoft404();
       expect(calibration.shellHash).toBeNull();
+    });
+
+    describe("when the probe comes back as a real 404 (how the source behaves now)", () => {
+      /** The source's own 404 page, as captured in the fixture. */
+      const NOT_FOUND = readFileSync(
+        path.resolve(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../../fixtures/kafezona/not-found-404.html",
+        ),
+        "utf8",
+      );
+
+      function recordingLogger() {
+        const lines: Array<{ level: string; message: string; context?: Record<string, unknown> }> = [];
+        const logger: Logger = {
+          debug: (message, context) => void lines.push({ level: "debug", message, context }),
+          info: (message, context) => void lines.push({ level: "info", message, context }),
+          warn: (message, context) => void lines.push({ level: "warn", message, context }),
+          error: (message, context) => void lines.push({ level: "error", message, context }),
+          child: () => logger,
+        };
+        return { logger, lines };
+      }
+
+      it("logs \"not applicable\", learns no shell, and does not warn", async () => {
+        const { logger, lines } = recordingLogger();
+        const fetchImpl = vi.fn(async () => response(NOT_FOUND, { status: 404 }));
+        const fetcher = new Fetcher({
+          config,
+          logger,
+          fetchImpl: fetchImpl as unknown as typeof fetch,
+        });
+
+        const calibration = await fetcher.calibrateSoft404();
+
+        expect(calibration).toEqual({ shellHash: null, shellTitle: null });
+        expect(fetcher.getShellHash()).toBeNull();
+        const notApplicable = lines.find((line) => line.message === "soft404.not_applicable");
+        expect(notApplicable?.level).toBe("info");
+        expect(notApplicable?.context).toMatchObject({ outcome: "http_error", statusCode: 404 });
+        expect(lines.some((line) => line.message === "soft404.calibrated")).toBe(false);
+        // An expected 404 is not a failure worth a warning.
+        expect(lines.filter((line) => line.level === "warn")).toEqual([]);
+      });
+
+      it("asks once: a 404 is not retried, and is not asked again on the next call", async () => {
+        const fetchImpl = vi.fn(async () => response(NOT_FOUND, { status: 404 }));
+        const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
+        await fetcher.calibrateSoft404();
+        await fetcher.calibrateSoft404();
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+      });
+
+      it("sends the probe to a path that cannot exist, with the configured user agent", async () => {
+        const fetchImpl = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+          response(NOT_FOUND, { status: 404 }),
+        );
+        const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
+        await fetcher.calibrateSoft404();
+        const [url, init] = fetchImpl.mock.calls[0] ?? [];
+        expect(String(url)).toMatch(/^https:\/\/www\.kafezona\.com\/__catalog-sync-probe-[0-9a-f]{12}\/$/);
+        expect((init?.headers as Record<string, string>)["user-agent"]).toBe(config.userAgent);
+      });
+
+      it("then reports a missing page as an HTTP error, not as a soft 404", async () => {
+        const fetchImpl = vi.fn(async (input: string | URL | Request) =>
+          /\/gone-1\/|__catalog-sync-probe/.test(String(input))
+            ? response(NOT_FOUND, { status: 404 })
+            : response("<html><title>Real</title></html>"),
+        );
+        const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
+        await fetcher.calibrateSoft404();
+
+        const gone = await fetcher.get("https://www.kafezona.com/gone-1/");
+        expect(gone.outcome).toBe("http_error");
+        expect(gone.statusCode).toBe(404);
+        expect(gone.body).toBe("");
+
+        const real = await fetcher.get("https://www.kafezona.com/real-1/");
+        expect(real.outcome).toBe("ok");
+        expect(fetcher.getStats().soft404s).toBe(0);
+      });
+
+      it("never flags a page by title once there is no shell to compare with", async () => {
+        // The 404 page's own title must not make a later 200 look like one.
+        const fetchImpl = vi.fn(async (input: string | URL | Request) =>
+          String(input).includes("__catalog-sync-probe")
+            ? response(NOT_FOUND, { status: 404 })
+            : response(NOT_FOUND),
+        );
+        const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
+        await fetcher.calibrateSoft404();
+        expect((await fetcher.get("https://www.kafezona.com/x-1/")).outcome).toBe("ok");
+      });
+
+      it("tries again after a transient failure, because that says nothing about the site", async () => {
+        let calls = 0;
+        const fetchImpl = vi.fn(async () => {
+          calls += 1;
+          return calls <= 3 ? response("busy", { status: 503 }) : response(SHELL);
+        });
+        const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
+        expect((await fetcher.calibrateSoft404()).shellHash).toBeNull();
+        expect((await fetcher.calibrateSoft404()).shellHash).not.toBeNull();
+      });
+    });
+
+    it("keeps both behaviours working on the same fixtures", async () => {
+      // The source has answered unknown routes both ways. With the home page as
+      // the shell, a stale URL is a soft 404; with a real 404, it is an error.
+      const home = readFileSync(
+        path.resolve(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../../fixtures/kafezona/soft-404.html",
+        ),
+        "utf8",
+      );
+      const soft = new Fetcher({
+        config,
+        fetchImpl: vi.fn(async () => response(home)) as unknown as typeof fetch,
+      });
+      await soft.calibrateSoft404();
+      expect((await soft.get("https://www.kafezona.com/amann-cascada/")).outcome).toBe("soft_404");
+      expect((await soft.get("https://www.kafezona.com/")).outcome).toBe("ok");
+
+      const hard = new Fetcher({
+        config,
+        fetchImpl: vi.fn(async () => response("not found", { status: 404 })) as unknown as typeof fetch,
+      });
+      await hard.calibrateSoft404();
+      expect((await hard.get("https://www.kafezona.com/amann-cascada/")).outcome).toBe("http_error");
     });
   });
 

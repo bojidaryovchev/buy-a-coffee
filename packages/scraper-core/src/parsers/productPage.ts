@@ -1,8 +1,11 @@
 import * as cheerio from "cheerio";
 import type { Cheerio, CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
-import { normalizeLabel, normalizeWhitespace } from "@catalog/shared";
+import { decodeEntities, normalizeLabel, normalizeWhitespace } from "@catalog/shared";
 import { findPrices } from "./price.ts";
+import { type ProductCharacteristic, type ProductFacts, deriveProductFacts } from "./productFacts.ts";
+
+export type { ProductCharacteristic, ProductFacts } from "./productFacts.ts";
 
 /**
  * Product detail page parser.
@@ -24,6 +27,7 @@ const CURRENCY_PATTERN = /(?:€|\$|£|лв\.?|EUR|BGN|USD)\s*[\d.,]+|[\d.,]+\s*
 /** Attribute labels observed on the source, mapped to stable keys. */
 const ATTRIBUTE_LABELS: ReadonlyArray<readonly [RegExp, string]> = [
   [/^наличност$/iu, "availability"],
+  [/^код$/iu, "code"],
   [/^интензивност$/iu, "intensity"],
   [/^интензитет$/iu, "intensity"],
   [/^тегло$/iu, "weight"],
@@ -54,8 +58,20 @@ export interface ProductPageQuickOrder {
   readonly submitLabel: string | null;
 }
 
-export interface ProductPageParseResult {
+export interface ProductPageParseResult extends ProductFacts {
   readonly name: string | null;
+  /**
+   * The product code printed on the page ("Код: 00112"), exactly as printed:
+   * a string, because leading zeros are part of it. Null when absent or when
+   * the page prints two different codes.
+   */
+  readonly sku: string | null;
+  /**
+   * The labelled list under the "Характеристики" heading, in page order and
+   * de-duplicated (the page renders it once per breakpoint). Empty when the
+   * page has no such list.
+   */
+  readonly characteristics: ProductCharacteristic[];
   readonly descriptionText: string | null;
   readonly descriptionHtml: string | null;
   readonly priceText: string | null;
@@ -92,35 +108,60 @@ function uniqueInOrder(values: readonly string[]): string[] {
   return out;
 }
 
+const RELATED_HEADING = /свързани продукти|related products/iu;
+
 /**
- * Split `<main>` into the product region and the related-products region.
- * Falls back to a heading scan when the section structure changes.
+ * Split `<main>` into the product region, the descriptive content below it
+ * and the related-products region.
+ *
+ * The source used to render two sections (product, related). It now renders
+ * three: product, a long description with its characteristics, related. The
+ * related section is the one carrying the related-products heading. With no
+ * such heading the old rule applies and everything after the first section is
+ * treated as related, which can only err towards ignoring text, never towards
+ * reading a neighbour's.
  */
 export function splitProductRegions($: CheerioAPI): {
   detail: Cheerio<AnyNode>;
+  content: Cheerio<AnyNode>;
   related: Cheerio<AnyNode>;
 } {
   const main = $("main").first();
   const scope = main.length > 0 ? main : $("body");
   const sections = scope.children("section");
+  const empty = $([] as unknown as AnyNode[]);
 
   if (sections.length >= 2) {
-    return { detail: sections.first(), related: sections.slice(1) };
+    const rest = sections.slice(1).toArray();
+    const relatedByHeading = rest.filter((el) =>
+      $(el)
+        .find("h2, h3, p")
+        .toArray()
+        .some((heading) => RELATED_HEADING.test($(heading).text())),
+    );
+    if (relatedByHeading.length > 0) {
+      return {
+        detail: sections.first(),
+        content: $(rest.filter((el) => !relatedByHeading.includes(el))),
+        related: $(relatedByHeading),
+      };
+    }
+    return { detail: sections.first(), content: empty, related: sections.slice(1) };
   }
 
   // Fallback: everything after a heading that introduces related products.
   const relatedHeading = scope
     .find("h2, h3, p")
-    .filter((_, el) => /свързани продукти|related products/iu.test($(el).text()))
+    .filter((_, el) => RELATED_HEADING.test($(el).text()))
     .first();
 
   if (relatedHeading.length > 0) {
     const container = relatedHeading.closest("section").length
       ? relatedHeading.closest("section")
       : relatedHeading.parent();
-    return { detail: scope, related: container };
+    return { detail: scope, content: empty, related: container };
   }
-  return { detail: scope, related: $([] as unknown as AnyNode[]) };
+  return { detail: scope, content: empty, related: empty };
 }
 
 function parseAttributeRows(rows: readonly string[]): {
@@ -146,6 +187,85 @@ function parseAttributeRows(rows: readonly string[]): {
     if (mapped === "weight") weight ??= value;
   }
   return { attributes, availability, weight };
+}
+
+const CHARACTERISTICS_HEADING = /^характеристики\s*:?$/iu;
+
+// Private-use markers: they cannot occur in page text, so they survive the
+// tag stripping below and delimit labels and blocks.
+const LABEL_OPEN = "\u0001";
+const LABEL_CLOSE = "\u0002";
+const BLOCK_END = "\u0003";
+
+/**
+ * Read "label: value" pairs from the blocks that follow a "Характеристики"
+ * heading, up to the next heading.
+ *
+ * The source writes these lists by hand, so the markup varies: a `<ul>` of
+ * `<li><strong>Label:</strong> value</li>` is the norm, but one page uses bare
+ * paragraphs and another packs two pairs into one `<li>`. The strong label,
+ * not the element around it, is therefore what delimits a pair; a value runs
+ * to the next label or to the end of its block. A strong run with no colon
+ * ("БЕЗ КОФЕИН") is a flag, not a pair, and is skipped.
+ */
+export function parseCharacteristics(
+  $: CheerioAPI,
+  scope: Cheerio<AnyNode>,
+): ProductCharacteristic[] {
+  const headings = scope
+    .find("h1, h2, h3, h4, h5, h6")
+    .filter((_, el) => CHARACTERISTICS_HEADING.test(normalizeLabel($(el).text())));
+
+  const pairs: ProductCharacteristic[] = [];
+  const seen = new Set<string>();
+
+  headings.each((_, heading) => {
+    let html = "";
+    for (let node = $(heading).next(); node.length > 0; node = node.next()) {
+      if (/^h[1-6]$/i.test(node.prop("tagName") ?? "")) break;
+      html += `${$.html(node)}\n`;
+    }
+
+    const marked = html
+      .replace(/<\/(?:li|p|ul|ol|div)>|<br\s*\/?>/gi, BLOCK_END)
+      .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_match, _tag, inner: string) => {
+        const label = normalizeLabel(inner.replace(/<[^>]+>/g, " "));
+        return `${LABEL_OPEN}${label}${LABEL_CLOSE}`;
+      })
+      .replace(/<[^>]+>/g, " ");
+    const text = decodeEntities(marked);
+
+    for (const block of text.split(BLOCK_END)) {
+      // The first piece is whatever precedes the first label in this block.
+      for (const part of block.split(LABEL_OPEN).slice(1)) {
+        const closeAt = part.indexOf(LABEL_CLOSE);
+        if (closeAt === -1) continue;
+        const rawLabel = part.slice(0, closeAt);
+        const rest = part.slice(closeAt + 1);
+        const hasColon = /[:：]\s*$/u.test(rawLabel) || /^\s*[:：]/u.test(rest);
+        if (!hasColon) continue;
+        const label = normalizeLabel(rawLabel.replace(/[:：]\s*$/u, ""));
+        const value = normalizeLabel(rest.replace(/^\s*[:：]/u, "")).replace(/[\s\-–—]+$/u, "");
+        if (!label || !value) continue;
+        const key = `${label}\u0000${value}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        pairs.push({ label, value });
+      }
+    }
+  });
+
+  return pairs;
+}
+
+/** Every distinct heading, paragraph and list item under a scope, in order. */
+function proseOf($: CheerioAPI, scope: Cheerio<AnyNode>): string[] {
+  return uniqueInOrder(
+    scope
+      .find("h1, h2, h3, h4, h5, h6, p, li")
+      .toArray()
+      .map((el) => textOf($(el))),
+  );
 }
 
 function parseQuickOrder($: CheerioAPI, html: string): ProductPageQuickOrder {
@@ -230,7 +350,7 @@ export function parseBreadcrumbs($: CheerioAPI): ProductPageBreadcrumb[] {
 
 export function parseProductPage(html: string): ProductPageParseResult {
   const $ = cheerio.load(html);
-  const { detail, related } = splitProductRegions($);
+  const { detail, content, related } = splitProductRegions($);
 
   const name = uniqueInOrder($("h1").toArray().map((el) => normalizeLabel($(el).text())))[0] ?? null;
 
@@ -283,8 +403,14 @@ export function parseProductPage(html: string): ProductPageParseResult {
       onclick.match(/window\.location\s*=\s*['"]([^'"]+)['"]/)?.[1] ?? node.attr("href") ?? "";
     if (!href || href.startsWith("#") || seenRelated.has(href)) return;
     seenRelated.add(href);
-    const card = node.closest("div").length > 0 ? node.closest("div") : node;
+    // A card that is itself the link is the anchor; `closest("div")` would
+    // climb to the grid holding every card and give each the first one's
+    // image and price. Click-handler cards are the div that carries it.
+    const isAnchor = node.is("a");
+    const card = isAnchor ? node : node.closest("div").length > 0 ? node.closest("div") : node;
     const image = card.find("img").first();
+    // Links in this region that are not cards (a "see all" link) have no image.
+    if (isAnchor && image.length === 0) return;
     const priceNode = card
       .find("p, span")
       .filter((_, priceEl) => CURRENCY_PATTERN.test(textOf($(priceEl))))
@@ -299,6 +425,21 @@ export function parseProductPage(html: string): ProductPageParseResult {
 
   const quickOrder = parseQuickOrder($, html);
 
+  const codes = uniqueInOrder(
+    rawAttributeRows
+      .map((row) => /^код\s*:\s*(.+)$/iu.exec(row)?.[1]?.trim() ?? "")
+      .filter((value) => /^[\p{L}\p{N}][\p{L}\p{N}._/-]{0,63}$/u.test(value)),
+  );
+  const sku = codes.length === 1 ? (codes[0] ?? null) : null;
+
+  // Characteristics sit with the description. A page that put them in the
+  // product block would still be read; related cards never are.
+  const characteristics = parseCharacteristics($, detail.add(content));
+  const facts = deriveProductFacts({
+    characteristics,
+    prose: [...(descriptionText ? [descriptionText] : []), ...proseOf($, content)],
+  });
+
   const signals = [
     name !== null,
     rawAttributeRows.length > 0,
@@ -311,6 +452,9 @@ export function parseProductPage(html: string): ProductPageParseResult {
 
   return {
     name,
+    sku,
+    characteristics,
+    ...facts,
     descriptionText,
     descriptionHtml,
     priceText,
