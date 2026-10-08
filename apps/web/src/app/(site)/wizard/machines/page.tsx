@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs, SectionHeading } from "@/components/ui/primitives";
 import { WizardNotice } from "@/components/wizard/wizard-ui";
+import { CapsuleDiagram, hasCapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -65,15 +66,35 @@ export default function MachinesIndexPage() {
         ))}
       </ul>
 
-      <section className="mt-12 max-w-prose">
+      <section className="mt-12 max-w-3xl">
         <h2 className="font-display text-xl font-semibold text-ink-900">
           Системите, за които предлагаме кафе
         </h2>
-        <dl className="mt-4 space-y-4">
+        {/*
+         * The drawings share one scale with each other, not with the screen,
+         * and saying so is what stops someone measuring their capsule against
+         * a phone and concluding it is the wrong one.
+         */}
+        <p className="mt-2 max-w-prose text-sm text-ink-500">
+          Рисунките са схематични и в един и същ мащаб помежду си, с капака нагоре. Не са в реален
+          размер на екрана — сравнявайте формата и коя капсула е по-голяма.
+        </p>
+        <dl className="mt-6 divide-y divide-line border-y border-line">
           {BREWING_SYSTEMS.map((system) => (
-            <div key={system.id}>
-              <dt className="font-medium text-ink-900">{system.name}</dt>
-              <dd className="text-sm text-ink-500">{system.recognise}</dd>
+            <div
+              key={system.id}
+              className="flex flex-col gap-x-8 gap-y-3 py-5 sm:flex-row sm:items-center"
+            >
+              <div className="min-w-0 sm:flex-1">
+                <dt className="font-medium text-ink-900">{system.name}</dt>
+                <dd className="mt-1 text-sm text-ink-500">{system.recognise}</dd>
+              </div>
+              {hasCapsuleDiagram(system.id) && (
+                /* Fixed column, so the side profiles line up down the page. */
+                <dd className="sm:w-80 sm:shrink-0">
+                  <CapsuleDiagram system={system} />
+                </dd>
+              )}
             </div>
           ))}
         </dl>

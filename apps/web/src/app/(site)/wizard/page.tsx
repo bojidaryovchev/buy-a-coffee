@@ -10,6 +10,7 @@ import {
   WizardNotice,
   type WizardOption,
 } from "@/components/wizard/wizard-ui";
+import { CapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import {
   BUDGET_OPTIONS,
   REQUIREMENT_OPTIONS,
@@ -201,6 +202,8 @@ function SystemStep({
     label: system.name,
     detail: system.summary,
     meta: pluralize(availability[system.id] ?? 0, "продукт", "продукта"),
+    /* Decorative: the option's label already names the system. */
+    figure: <CapsuleDiagram system={system} variant="compact" decorative />,
   }));
 
   return (
