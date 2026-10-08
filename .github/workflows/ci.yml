@@ -2,14 +2,22 @@
 #
 # Two jobs:
 #
-#   verify  typecheck, lint, formatting, unit and integration tests (against a
-#           real PostgreSQL), the originality and reference-coverage guards,
-#           and a production build.
-#   e2e     the Playwright suite, desktop and mobile, against a production
-#           build backed by the deterministic seed (`seed:dev`). CI cannot
-#           crawl the source site, so the seed is the only data there is.
-#           See the comment on the "Run the end-to-end suite" step for exactly
-#           which specs this leaves out and why.
+#   verify  typecheck, lint, formatting, unit tests, then — against a real
+#           PostgreSQL holding the reference catalog — integration tests, the
+#           originality and reference-coverage guards, and a production build.
+#   e2e     the whole Playwright suite, desktop and mobile, against a
+#           production build backed by the same catalog. Nothing is excluded.
+#
+# The catalog is `seed:reference`: the committed snapshot in reference/latest/
+# (110 products, 15 brands, 8 categories, a generated image per product, our
+# written copy). CI cannot crawl the source, and this is the one offline copy
+# of the data the specs and the database-backed tests were written against.
+# `seed:dev` (six invented products) is not used: it has none of it.
+#
+# "Unit" and "integration" are defined once, by file name, in vitest.shared.ts;
+# `pnpm test` and `pnpm test:integration` run the two groups and this file
+# runs those commands, so a test cannot be in one group locally and the other
+# here.
 #
 # Third-party actions are pinned to a major version tag, not a commit SHA:
 # the SHAs could not be verified from where this file was written. Resolve them
@@ -83,30 +91,30 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      # The root Vitest config also picks up the integration file, so it is
-      # excluded here and run on its own below. (`pnpm test:integration` is not
-      # used: it filters on a Vitest project that no config defines.)
+      # No database is configured for the unit group (see vitest.shared.ts), so
+      # nothing here can pass or fail on what happens to be in PostgreSQL.
       - name: Unit tests
-        run: |
-          pnpm exec vitest run --exclude '**/*.integration.test.ts'
-          pnpm --filter @catalog/web test
+        run: pnpm test
 
       # Applies packages/db/migrations and then migrations-pending/*.sql.
       - name: Migrate database
         run: pnpm db:migrate
 
+      # The database-backed tests that read the catalog (search synonyms, the
+      # vending blends) are written against this snapshot and skip without it.
+      - name: Seed database
+        run: pnpm seed:reference
+
+      # With CI set, an unreachable database fails the run instead of skipping
+      # the tests (vitest.integration-setup.ts).
       - name: Integration tests
-        run: pnpm exec vitest run integration
+        run: pnpm test:integration
 
       - name: Originality check
         run: pnpm check:originality
 
       - name: Reference coverage
         run: pnpm reference:coverage
-
-      # The seed gives the build a catalog to prerender against.
-      - name: Seed database
-        run: pnpm --filter @catalog/web seed:dev
 
       - name: Build
         run: pnpm build
@@ -145,7 +153,7 @@ jobs:
       - name: Migrate and seed database
         run: |
           pnpm db:migrate
-          pnpm --filter @catalog/web seed:dev
+          pnpm seed:reference
 
       - name: Build
         run: pnpm build
@@ -154,84 +162,21 @@ jobs:
       - name: Install browser
         run: pnpm --filter @catalog/web exec playwright install --with-deps chromium
 
-      # WHY SOME TESTS ARE LEFT OUT
+      # Every spec runs, desktop and mobile. Measured against this exact setup
+      # (reference seed, production build) the whole suite passes; an earlier
+      # version of this job excluded 39 specs by title because it was seeded
+      # with six invented products. If a spec ever cannot pass in CI, exclude it
+      # here with --grep-invert and write the reason next to the title — do not
+      # shrink the seed or the assertion.
       #
-      # The suite is written against the real synchronised catalog. The seed
-      # (apps/web/scripts/seed-dev.ts) has six products, two brands and the
-      # category slugs `beans`, `capsules` and `capsules-espresso`; the specs
-      # hard-code the real slug `/categories/kapsuli`, the brand `lavazza`, and
-      # expect mirrored product images and wizard brew systems. Measured against
-      # the seed on 190 tests (95 per project): 112 pass and 78 fail, all of the
-      # failures timing out on, or asserting about, data the seed lacks. With
-      # the titles below excluded by --grep-invert, the remaining 112 all pass
-      # (one of them, "form controls have accessible names" on mobile, failed
-      # once on a cold server and passed on the re-run: watch it for flakiness).
-      # No spec file is edited. Removing a line below is all
-      # it takes to bring a test back when the seed (or a committed fixture
-      # catalog) can satisfy it.
-      #
-      # Known to need the real catalog, by spec file:
-      #   catalog.spec.ts      category listing, brand filter, sort, clear,
-      #                        shareable filter URL, empty state, malformed params
-      #   product.spec.ts      everything that opens a product from /categories/kapsuli
-      #   quick-order.spec.ts  every test (all start from a product page)
-      #   search.spec.ts       brand search, scripts, misspelling, SQL text,
-      #                        header field, every typeahead test that needs a hit
-      #   wizard.spec.ts       the walk, price per cup, machine finder, no-JS
-      #   originality.spec.ts  "full browse" and "every rendered image"
-      #   accessibility.spec.ts  mobile filter sheet (opens on /categories/kapsuli)
-      #
-      # Left IN and expected to be informative today: routes, and the accessibility
-      # and originality checks that do not depend on products.
+      # The Playwright config supplies throwaway admin credentials to the server
+      # it starts, so the admin-gate spec does not depend on the runner's env.
       - name: Run the end-to-end suite
         env:
           # CI=true makes Playwright retry twice, use two workers and write an
           # HTML report. The port is the config default.
           E2E_PORT: "8765"
-        run: |
-          skip=(
-            "a category lists synchronised products with prices"
-            "an impossible filter combination shows a helpful empty state"
-            "clearing filters returns to the unfiltered listing"
-            "filtering by brand changes the result set and the URL"
-            "filters are shareable: a filtered URL renders server-side"
-            "malformed filter parameters do not break the page"
-            "sorting by price changes the order"
-            "breadcrumbs lead back to the category"
-            "no network request during a product page view touches the source domain"
-            "product detail shows name, price and availability"
-            "product images load from our own storage, never the source domain"
-            "quick-order form validates without submitting anything"
-            "related products are shown and are different from this product"
-            "structured data describes the product"
-            "the canonical URL points at our own domain"
-            "submitting a valid number is accepted and confirms to the customer"
-            "submitting twice does not create a second order"
-            "the form explains what happens to the phone number"
-            "the quick-order form is present with a phone field"
-            "there is no cart or checkout anywhere"
-            "a Cyrillic query finds Latin product names"
-            "a misspelled query still finds the product"
-            "a query containing SQL syntax is treated as text"
-            "both scripts return the same result count"
-            "search works from the header field"
-            "searching a known brand returns matching products"
-            "Enter with nothing highlighted runs the full search"
-            "Escape closes the dropdown without running the search"
-            "suggestions and results agree"
-            "suggests across scripts, like the results page"
-            "suggests products with images as you type"
-            "the keyboard alone can reach a product"
-            "every recommendation explains itself and shows a price per cup"
-            "the machine finder answers which capsule a model takes"
-            "the wizard walks from brew method to a recommendation"
-            "the wizard works with JavaScript disabled"
-            "every rendered image points at our own infrastructure"
-            "no request during a full browse touches the source domain"
-            "the filter sheet opens on small screens"
-          )
-          pattern=$(IFS='|'; echo "${skip[*]}")
-          pnpm --filter @catalog/web test:e2e --grep-invert "$pattern"
+        run: pnpm --filter @catalog/web test:e2e
 
       - name: Upload Playwright report
         if: failure()

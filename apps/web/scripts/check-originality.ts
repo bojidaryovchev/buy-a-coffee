@@ -15,6 +15,11 @@
  *      passes, and the damage is that two domains publish the same paragraphs
  *      and a search engine picks one.
  *
+ *      The same standard applies to everything else we wrote by hand — the
+ *      category introductions, the Vending and Consumables pages and the
+ *      journal articles (`content-audit.ts`): none may share a long run of
+ *      words with a text the snapshot holds, and no two may repeat each other.
+ *
  *      A product with no copy of its own is *not* a failure. It publishes a
  *      sentence generated from its attributes (`lib/catalog/fallback-copy.ts`)
  *      and never the source's text, and the sync adds such products on its own
@@ -31,7 +36,20 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { productCopy } from "../content/product-copy.ts";
-import { auditProductCopy, loadReferenceSnapshot } from "./copy-audit.ts";
+import {
+  auditOwnContent,
+  ownContentPieces,
+  productCopyPieces,
+  sourceTexts,
+  MAX_INTERNAL_RUN_WORDS,
+  MAX_SOURCE_RUN_WORDS,
+} from "./content-audit.ts";
+import {
+  MAX_SOURCE_OVERLAP,
+  auditProductCopy,
+  loadReferencePages,
+  loadReferenceSnapshot,
+} from "./copy-audit.ts";
 
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -62,7 +80,7 @@ const ALLOWLIST: ReadonlyArray<{ file: string; reason: string }> = [
     reason: "reads the reference artifacts produced by the crawler",
   },
   {
-    file: "e2e/support/source-guard.ts",
+    file: "e2e/support/source-patterns.ts",
     reason: "the single place the test suite names the source, so specs need not",
   },
   {
@@ -113,6 +131,79 @@ async function checkProductCopy() {
     return null;
   }
   return auditProductCopy(snapshot.products, productCopy);
+}
+
+/**
+ * Check the rest of our hand-written content against the same snapshot.
+ *
+ * Prints what was and was not compared. The snapshot holds product
+ * descriptions and a few pages' meta descriptions; it holds no category
+ * description, no brand description and no blog article. Saying so is the point:
+ * a pass here means "shares nothing with the text we have", not "shares nothing
+ * with the source".
+ */
+async function checkWrittenContent(): Promise<void> {
+  const snapshot = await loadReferenceSnapshot();
+  if (!snapshot) {
+    console.log(
+      "\nWritten content — skipped: no reference artifacts. Run `pnpm reference:export`.",
+    );
+    return;
+  }
+  const pages = await loadReferencePages();
+  const sources = sourceTexts(snapshot.products, pages);
+  const pieces = ownContentPieces();
+  const audit = auditOwnContent([...pieces, ...productCopyPieces()], sources);
+
+  const count = (kind: string) => pieces.filter((piece) => piece.kind === kind).length;
+  const productSources = sources.filter((source) => source.id.startsWith("product:")).length;
+  console.log(
+    `\nWritten content — ${pieces.length} pieces: ${count("category")} category introductions, ` +
+      `${count("business")} business pages (Vending, Consumables), ${count("journal")} journal articles`,
+  );
+  console.log(
+    `  compared with ${sources.length} source texts the snapshot holds: ` +
+      `${productSources} product descriptions, ${sources.length - productSources} page meta descriptions.`,
+  );
+  console.log(
+    "  NOT compared with: category descriptions (the snapshot holds none), brand descriptions " +
+      "(none), blog articles (only the blog index was recorded), the source's page titles.",
+  );
+  console.log(
+    "  A pass therefore means these share nothing with the text we have, not that they " +
+      "share nothing with the source's category or blog pages.",
+  );
+
+  if (audit.findings.length === 0) {
+    console.log(
+      `  PASS: longest run shared with a source text is ${audit.maxSourceRun} words (limit ${
+        MAX_SOURCE_RUN_WORDS - 1
+      }), highest source overlap ${Math.round(audit.maxSourceOverlap * 100)}% (limit ${Math.round(
+        MAX_SOURCE_OVERLAP * 100,
+      )}%).`,
+    );
+    console.log(
+      `  PASS: no two of our pieces repeat each other — longest shared run ${
+        audit.maxInternalRun
+      } words (limit ${MAX_INTERNAL_RUN_WORDS}), highest overlap ${Math.round(
+        audit.maxInternalOverlap * 100,
+      )}% (limit ${Math.round(MAX_SOURCE_OVERLAP * 100)}%), checked also against ${
+        Object.keys(productCopy).length
+      } product copy entries.`,
+    );
+    return;
+  }
+
+  console.error(`  FAIL: ${audit.findings.length} problem(s) with the content we wrote.\n`);
+  for (const finding of audit.findings) {
+    console.error(`    ${finding.piece}  vs  ${finding.against}`);
+    console.error(`      ${finding.detail}`);
+  }
+  console.error(
+    "\n  Rewrite the passage in our own words: content/category-copy.ts, content/vending.ts " +
+      "or content/journal/.",
+  );
+  process.exitCode = 1;
 }
 
 async function* walk(directory: string): AsyncGenerator<string> {
@@ -224,6 +315,8 @@ async function main(): Promise<void> {
       for (const slug of copy.unverifiedEntries) console.log(`    ${slug}`);
     }
   }
+
+  await checkWrittenContent();
 }
 
 main().catch((error: unknown) => {

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -22,15 +22,6 @@ import { parseCatalogQuery } from "@/lib/catalog/filters";
 import type { ProductCardView, ProductListResult } from "@/lib/catalog/types";
 import type { SectionListing } from "@/lib/catalog/vending";
 import { consumablesCopy, vendingCopy, type BusinessSectionCopy } from "../content/vending";
-
-/*
- * This package's Vitest config has no JSX setting, so `.tsx` files compile to
- * the classic `React.createElement` calls and expect a global `React` that
- * Next.js never needs. Supplying it here keeps the fix inside the one test
- * that renders components; setting `esbuild.jsx: "automatic"` in
- * `vitest.config.ts` would make this line unnecessary.
- */
-(globalThis as { React?: unknown }).React = React;
 
 /**
  * The two business pages, rendered to HTML without a database.
@@ -85,7 +76,7 @@ function render(props: {
   blends?: readonly ProductCardView[];
 }): string {
   return renderToStaticMarkup(
-    React.createElement(BusinessSectionView, {
+    createElement(BusinessSectionView, {
       copy: props.copy,
       path: props.path,
       query,

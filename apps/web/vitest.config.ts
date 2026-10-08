@@ -1,24 +1,17 @@
 import { defineConfig } from "vitest/config";
-import path from "node:path";
+import { webBase } from "./vitest.base.ts";
 
+/**
+ * The storefront's tests on their own, for an editor or `vitest` run from this
+ * directory: unit and integration together.
+ *
+ * `pnpm test` and `pnpm test:integration` (and CI) go through the root
+ * `vitest.config.ts`, which splits them into the `web-unit` and
+ * `web-integration` projects. The split is by file name; see
+ * `vitest.shared.ts` at the root.
+ */
 export default defineConfig({
-  /*
-   * Compile JSX with the automatic runtime, as Next.js does. Without it a
-   * component under test needs `React` in scope, which no component here has.
-   */
-  esbuild: { jsx: "automatic" },
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
-      /**
-       * `server-only` throws on import outside a Next.js server context, which
-       * is exactly its job — but it also means server modules cannot be unit
-       * tested. Aliasing it to an empty module keeps the guard in the real
-       * build while letting the tests exercise the code it protects.
-       */
-      "server-only": path.resolve(import.meta.dirname, "./test/stubs/server-only.ts"),
-    },
-  },
+  ...webBase,
   test: {
     environment: "node",
     include: ["test/**/*.test.ts"],

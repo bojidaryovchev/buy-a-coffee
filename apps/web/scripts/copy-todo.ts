@@ -25,6 +25,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { createDatabase } from "@catalog/db";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { productCopy } from "../content/product-copy.ts";
+import { brandDisplayName } from "../src/lib/catalog/brand-display.ts";
 import { composeFallbackCopy } from "../src/lib/catalog/fallback-copy.ts";
 import { generatedSentenceFor, loadReferenceSnapshot } from "./copy-audit.ts";
 
@@ -61,6 +62,7 @@ async function fromDatabase(): Promise<TodoList | null> {
         slug: products.slug,
         name: products.name,
         brandName: brands.name,
+        brandSourceKey: brands.sourceKey,
         weightValue: products.weightValue,
         weightUnit: products.weightUnit,
         attributes: products.attributes,
@@ -88,7 +90,10 @@ async function fromDatabase(): Promise<TodoList | null> {
         slug: row.slug,
         name: row.name,
         generated: composeFallbackCopy({
-          brandName: row.brandName,
+          // The name the page shows, so the sentence printed here is the one a visitor reads.
+          brandName: row.brandName
+            ? brandDisplayName({ name: row.brandName, sourceKey: row.brandSourceKey })
+            : null,
           categoryKeys: row.categoryKeys,
           packValue: row.weightValue,
           packUnit: row.weightUnit,

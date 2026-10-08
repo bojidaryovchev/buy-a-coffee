@@ -1,23 +1,16 @@
 import { expect } from "@playwright/test";
+import { SOURCE_PATTERNS, referencesSource } from "./source-patterns";
 
 /**
- * The one place in the test suite that names the source site.
+ * Assertions that the source site is absent.
  *
- * Specs import these helpers instead of writing the domain inline. That keeps
- * the originality scanner's allowlist to a single file rather than growing an
- * exception every time a test asserts the domain is absent — and the scanner
- * stays strict, which is the point of it.
+ * Specs import these helpers instead of writing the domain inline. The names
+ * themselves live in `source-patterns.ts`, the one file the originality
+ * scanner allows to hold them, so the allowlist does not grow an exception
+ * every time a test asserts the domain is absent — and the scanner stays
+ * strict, which is the point of it.
  */
-export const SOURCE_PATTERNS: readonly RegExp[] = [
-  /kafezona/i,
-  /КафеЗона/i,
-  /airacms/i,
-];
-
-/** True when a string refers to the source site in any form. */
-export function referencesSource(value: string): boolean {
-  return SOURCE_PATTERNS.some((pattern) => pattern.test(value));
-}
+export { SOURCE_PATTERNS, referencesSource };
 
 /** Assert that a blob of text carries no trace of the source site. */
 export function expectNoSourceReference(value: string | null | undefined, context: string): void {

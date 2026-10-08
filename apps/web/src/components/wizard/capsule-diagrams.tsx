@@ -1,9 +1,3 @@
-/*
- * The pragma is for the unit tests: Vitest compiles this file without Next's
- * compiler, and would otherwise fall back to the classic JSX transform and
- * look for a `React` global. Next already uses the automatic runtime.
- */
-/** @jsxRuntime automatic */
 import { useId } from "react";
 import { cx } from "@/components/ui/primitives";
 import type { BrewingSystem, BrewingSystemId } from "@/lib/recommend/systems";
