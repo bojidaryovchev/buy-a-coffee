@@ -1,5 +1,6 @@
 import { or, sql, type SQL } from "drizzle-orm";
 import { brands, categories, products } from "@catalog/db/schema";
+import { expandSearchTerm } from "./search-synonyms";
 
 /**
  * The search predicate, defined once.
@@ -12,6 +13,12 @@ import { brands, categories, products } from "@catalog/db/schema";
  * (see `0003_search_translit.sql`), which is what makes `rema` find „Рема“ and
  * „рема“ find „Rema“. Latin text folds to itself, so this costs nothing for the
  * half of the catalog that is already written in it.
+ *
+ * Before any of that, the term is expanded by `search-synonyms.ts`: „лаваца"
+ * becomes `lavazza` as well, because folding alone yields `lavatsa`. Expansion
+ * only adds alternatives (the typed term is always one of them) and every
+ * alternative goes through exactly the same comparisons, so all consumers get
+ * synonyms at once and the typeahead still cannot disagree with the results.
  *
  * Every fragment below is parameterised. A search term is never spliced into
  * SQL as text.
@@ -52,6 +59,20 @@ function contains(column: SQL, term: string): SQL {
   return sql`${column} like '%' || ${foldedPattern(term)} || '%' escape '\\'`;
 }
 
+/** Any one of the alternatives satisfies `build`. One alternative is the usual case. */
+function anyVariant(term: string, build: (variant: string) => SQL): SQL {
+  const variants = expandSearchTerm(term);
+  return (variants.length === 1 ? build(variants[0]!) : or(...variants.map(build))) as SQL;
+}
+
+/** The best of `build` over the alternatives, for ordering. */
+function bestVariant(term: string, build: (variant: string) => SQL): SQL {
+  const variants = expandSearchTerm(term);
+  return variants.length === 1
+    ? build(variants[0]!)
+    : sql`greatest(${sql.join(variants.map(build), sql`, `)})`;
+}
+
 /**
  * Products matching a search term.
  *
@@ -72,11 +93,15 @@ function contains(column: SQL, term: string): SQL {
  * All three are index-backed.
  */
 export function searchMatchProductsOnly(term: string): SQL {
-  return or(
-    sql`${searchVector} @@ plainto_tsquery('simple', ${folded(term)})`,
-    contains(foldedName, term),
-    sql`${foldedName} %> ${folded(term)}`,
-  ) as SQL;
+  return anyVariant(
+    term,
+    (variant) =>
+      or(
+        sql`${searchVector} @@ plainto_tsquery('simple', ${folded(variant)})`,
+        contains(foldedName, variant),
+        sql`${foldedName} %> ${folded(variant)}`,
+      ) as SQL,
+  );
 }
 
 /**
@@ -85,24 +110,30 @@ export function searchMatchProductsOnly(term: string): SQL {
  * in their own name. Requires the caller to have joined `brands`.
  */
 export function searchMatch(term: string): SQL {
-  return or(searchMatchProductsOnly(term), contains(foldedBrandName, term)) as SQL;
+  return or(searchMatchProductsOnly(term), brandNameMatch(term)) as SQL;
 }
 
 /** A brand whose name matches the term. Requires `brands` in the query. */
 export function brandNameMatch(term: string): SQL {
-  return contains(foldedBrandName, term);
+  return anyVariant(term, (variant) => contains(foldedBrandName, variant));
 }
 
 /** A category whose name matches the term. Requires `categories` in the query. */
 export function categoryNameMatch(term: string): SQL {
-  return contains(foldedCategoryName, term);
+  return anyVariant(term, (variant) => contains(foldedCategoryName, variant));
 }
 
-/** Relevance ordering for a search term, best first. */
+/**
+ * Relevance ordering for a search term, best first.
+ *
+ * Each signal takes the best score over the alternatives, so a product found
+ * through a synonym ranks as a direct hit on the catalog's own spelling would —
+ * not below it for having been reached by a detour.
+ */
 export function searchRank(term: string): SQL[] {
   return [
-    sql`ts_rank(${searchVector}, plainto_tsquery('simple', ${folded(term)})) desc`,
-    sql`word_similarity(${folded(term)}, ${foldedName}) desc`,
+    sql`${bestVariant(term, (variant) => sql`ts_rank(${searchVector}, plainto_tsquery('simple', ${folded(variant)}))`)} desc`,
+    sql`${bestVariant(term, (variant) => sql`word_similarity(${folded(variant)}, ${foldedName})`)} desc`,
   ];
 }
 
@@ -114,13 +145,16 @@ export function searchRank(term: string): SQL[] {
  * only then the ranked signals.
  */
 export function suggestionRank(term: string): SQL[] {
-  const pattern = foldedPattern(term);
+  const startsWith = anyVariant(
+    term,
+    (variant) => sql`${foldedName} like ${foldedPattern(variant)} || '%' escape '\\'`,
+  );
+  const containsTerm = anyVariant(
+    term,
+    (variant) => sql`${foldedName} like '%' || ${foldedPattern(variant)} || '%' escape '\\'`,
+  );
   return [
-    sql`case
-          when ${foldedName} like ${pattern} || '%' escape '\\' then 0
-          when ${foldedName} like '%' || ${pattern} || '%' escape '\\' then 1
-          else 2
-        end asc`,
+    sql`case when ${startsWith} then 0 when ${containsTerm} then 1 else 2 end asc`,
     sql`(${products.availability} = 'in_stock') desc`,
     ...searchRank(term),
   ];
