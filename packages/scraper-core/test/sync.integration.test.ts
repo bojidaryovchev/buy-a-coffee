@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "@catalog/db";
 import {
@@ -7,6 +7,7 @@ import {
   productCategories,
   productImages,
   products,
+  scrapeErrors,
   syncChanges,
   syncRuns,
 } from "@catalog/db/schema";
@@ -19,6 +20,7 @@ import {
   parsePathSourceKey,
   planProductLink,
 } from "../src/catalog/link.ts";
+import { runCatalogEnrich } from "../src/catalog/enrich.ts";
 import { runCatalogSync } from "../src/catalog/sync.ts";
 import { formatCatalogVerifyReport, verifyCatalog } from "../src/catalog/verify.ts";
 import { LocalStorageDriver } from "../src/storage/driver.ts";
@@ -29,7 +31,7 @@ import {
   createFakeFetch,
 } from "./helpers/fakeSource.ts";
 import { isDatabaseAvailable, resetTestDatabase, setupTestDatabase } from "./helpers/testDb.ts";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -70,21 +72,28 @@ describeIntegration("catalog sync (integration)", () => {
     await resetTestDatabase(db);
   });
 
-  /** Run one sync against a synthetic catalog. */
-  async function sync(
-    catalog: readonly FakeProduct[],
-    options: {
-      missingThreshold?: number;
-      dryRun?: boolean;
-      skipImages?: boolean;
-      searchStatus?: number;
-      listingProducts?: readonly FakeProduct[];
-      breakerRatio?: number;
-      minAbsolute?: number;
-      /** The brands and categories the fake source publishes. */
-      site?: Pick<FakeSiteOptions, "brands" | "categories">;
-    } = {},
-  ) {
+  interface WorldOptions {
+    missingThreshold?: number;
+    searchStatus?: number;
+    listingProducts?: readonly FakeProduct[];
+    breakerRatio?: number;
+    minAbsolute?: number;
+    /** The brands and categories the fake source publishes. */
+    site?: Pick<FakeSiteOptions, "brands" | "categories">;
+    /**
+     * Product pages a sync may read. Off unless a test asks: most tests here
+     * are about the listing, and must not depend on what product pages say.
+     */
+    enrichMax?: number;
+    lookupMax?: number;
+    productPages?: FakeSiteOptions["productPages"];
+  }
+
+  /** Paths requested by the most recent `sync()`. */
+  let lastRequests: string[] = [];
+
+  /** A fake source, and the config and fetcher pointed at it. */
+  function world(catalog: readonly FakeProduct[], options: WorldOptions = {}) {
     const config = loadConfig(
       {
         baseUrl: "https://fake.test/",
@@ -97,25 +106,39 @@ describeIntegration("catalog sync (integration)", () => {
         missingThreshold: options.missingThreshold ?? 3,
         breakerMaxDisappearedRatio: options.breakerRatio ?? 0.2,
         breakerMinAbsoluteProducts: options.minAbsolute ?? 5,
+        enrichMaxPerRun: options.enrichMax ?? 0,
+        enrichLookupMax: options.lookupMax ?? 10,
         storageDriver: "local",
         storageLocalDir: storageDir,
       },
       {},
     );
 
-    const { fetchImpl } = createFakeFetch({
+    const { fetchImpl, requests } = createFakeFetch({
       products: catalog,
       ...options.site,
       ...(options.searchStatus !== undefined ? { searchStatus: options.searchStatus } : {}),
       ...(options.listingProducts !== undefined
         ? { listingProducts: options.listingProducts }
         : {}),
+      ...(options.productPages !== undefined ? { productPages: options.productPages } : {}),
     });
+
+    return { config, requests, fetcher: new Fetcher({ config, fetchImpl, logger: silentLogger }) };
+  }
+
+  /** Run one sync against a synthetic catalog. */
+  async function sync(
+    catalog: readonly FakeProduct[],
+    options: WorldOptions & { dryRun?: boolean; skipImages?: boolean } = {},
+  ) {
+    const { config, fetcher, requests } = world(catalog, options);
+    lastRequests = requests;
 
     return runCatalogSync({
       config,
       db,
-      fetcher: new Fetcher({ config, fetchImpl, logger: silentLogger }),
+      fetcher,
       storage: new LocalStorageDriver(storageDir),
       logger: silentLogger,
       dryRun: options.dryRun ?? false,
@@ -1408,5 +1431,730 @@ describeIntegration("catalog sync (integration)", () => {
       sourcePath: "/rema-caffe-intenso/",
       sourceVariantKey: null,
     });
+  });
+
+  // --- Product-page enrichment ------------------------------------------------------
+
+  /** What every generated product page states. */
+  const STATED = [
+    ["Състав", "100% арабика"],
+    ["Произход", "Бразилия"],
+  ] as const;
+
+  /** `Coffee number 7 1кг.` -> `00007`: a code that survives a renamed URL. */
+  const codeOf = (product: FakeProduct): string =>
+    (/number (\d+)/.exec(product.h1)?.[1] ?? "999").padStart(5, "0");
+
+  const withPages = (product: FakeProduct) => ({ code: codeOf(product), characteristics: STATED });
+
+  /** Requests for product pages in the last sync, as opposed to the listing. */
+  const pageRequests = () =>
+    lastRequests.filter(
+      (pathname) =>
+        pathname !== "/search/" &&
+        pathname !== "/robots.txt" &&
+        !pathname.startsWith("/__") &&
+        !pathname.startsWith("/img/"),
+    );
+
+  const enrichedRows = async () =>
+    db
+      .select({
+        id: products.id,
+        sourceKey: products.sourceKey,
+        slug: products.slug,
+        name: products.name,
+        status: products.status,
+        sku: products.sku,
+        arabicaPercent: products.arabicaPercent,
+        origin: products.origin,
+        roast: products.roast,
+        characteristics: products.characteristics,
+        attributes: products.attributes,
+        semanticHash: products.semanticHash,
+        enrichedAt: products.enrichedAt,
+        enrichAttemptedAt: products.enrichAttemptedAt,
+        lastChangedAt: products.lastChangedAt,
+        sourceData: products.sourceData,
+      })
+      .from(products)
+      .orderBy(products.sourceKey);
+
+  it("stores the product code and the stated facts from the product page", async () => {
+    const fixtures = path.resolve(import.meta.dirname, "../../../fixtures/kafezona");
+    const amann = await readFile(path.join(fixtures, "product-amann-cascada.html"), "utf8");
+    const rosso = await readFile(path.join(fixtures, "product-eurocaf-rosso-fuoco.html"), "utf8");
+    const foodness = await readFile(path.join(fixtures, "product-foodness.html"), "utf8");
+
+    const result = await sync(
+      [
+        { h1: "Amann Cascada 0.500кг.", url: "/amann-cascada-500/", weight: "0.500кг." },
+        { h1: "Eurocaf Rosso Fuoco 1кг.", url: "/eurocaf-rosso-fuoco-1/" },
+        {
+          h1: "Foodness Mermaid Latte 10 бр.",
+          url: "/dg-foodness-marmaid-latte-10/",
+          weight: "10 бр.",
+        },
+      ],
+      {
+        enrichMax: 20,
+        minAbsolute: 0,
+        productPages: {
+          "/amann-cascada-500/": { html: amann },
+          "/eurocaf-rosso-fuoco-1/": { html: rosso },
+          "/dg-foodness-marmaid-latte-10/": { html: foodness },
+        },
+      },
+    );
+
+    expect(result.status).toBe("succeeded");
+    expect(result.enrichment).toMatchObject({ requests: 3, enriched: 3, failed: 0, deferred: 0 });
+
+    const rows = await enrichedRows();
+    expect(rows.find((row) => row.sourceKey === "/amann-cascada-500/#500g")).toMatchObject({
+      sku: "00072",
+      arabicaPercent: 100,
+      origin: "Finca Flor del Rosario, San Cristóbal Verapaz, Гватемала",
+      roast: null,
+    });
+    expect(rows.find((row) => row.sourceKey === "/eurocaf-rosso-fuoco-1/#1000g")).toMatchObject({
+      sku: "00001",
+      arabicaPercent: null,
+      origin: "Уганда и Индия",
+      roast: "средно тъмно",
+    });
+    // Absent stays null: this page states no composition, origin or roast.
+    expect(rows.find((row) => row.sku === "00182")).toMatchObject({
+      arabicaPercent: null,
+      origin: null,
+      roast: null,
+    });
+
+    for (const row of rows) {
+      expect(row.enrichedAt).toBeInstanceOf(Date);
+      // The whole labelled list, readable without parsing anything again.
+      expect(row.characteristics.length).toBeGreaterThan(0);
+      expect(row.characteristics[0]).toEqual({
+        label: expect.any(String),
+        value: expect.any(String),
+      });
+      // The listing's own attributes are untouched by it.
+      expect(Object.keys(row.attributes).sort()).toEqual([
+        "aromas",
+        "decaf",
+        "intensity",
+        "strength",
+      ]);
+      // And the product is still keyed by path and pack size.
+      expect(row.sourceKey.startsWith("/")).toBe(true);
+      expect(row.sourceData.identityStrategy).toBe("path_and_size");
+    }
+    expect(rows.find((row) => row.sku === "00072")?.characteristics).toContainEqual({
+      label: "Състав",
+      value: expect.stringContaining("100%"),
+    });
+
+    const run = await latestRun();
+    expect(run).toMatchObject({ enrichedCount: 3, enrichFailedCount: 0, status: "succeeded" });
+    expect(run?.metadata.enrichment).toMatchObject({ requests: 3, enriched: 3 });
+  });
+
+  it("is a no-op on the sync after an enrichment", async () => {
+    const first = await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    expect(first.enrichment).toMatchObject({ enriched: 12, failed: 0 });
+    expect(pageRequests()).toHaveLength(12);
+    const settled = await enrichedRows();
+    expect(settled.every((row) => row.sku !== null && row.arabicaPercent === 100)).toBe(true);
+    const changesBefore = (await db.select().from(syncChanges)).length;
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    const second = await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+
+    expect(second.appliedDiff.counts).toMatchObject({
+      created: 0,
+      updated: 0,
+      moved: 0,
+      restored: 0,
+      unchanged: 12,
+      marked_missing: 0,
+      removed: 0,
+    });
+    // Nothing was asked of the source beyond the listing...
+    expect(pageRequests()).toEqual([]);
+    expect(second.enrichment).toMatchObject({ requests: 0, enriched: 0, failed: 0, deferred: 0 });
+    // ...and no row differs in any column: not the code the listing lacks, not
+    // the hash, not either clock.
+    expect(await enrichedRows()).toEqual(settled);
+    expect(await db.select().from(syncChanges)).toHaveLength(changesBefore);
+    expect(await latestRun()).toMatchObject({
+      unchangedCount: 12,
+      updatedCount: 0,
+      enrichedCount: 0,
+      enrichFailedCount: 0,
+    });
+
+    // A third, for good measure: the two writers have stopped disagreeing.
+    const third = await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    expect(third.appliedDiff.counts.unchanged).toBe(12);
+    expect(await enrichedRows()).toEqual(settled);
+  });
+
+  it("reports a real change without naming the product code as changed", async () => {
+    await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    const changed = baseCatalog().map((product, index) =>
+      index === 0 ? { ...product, price: "€99.99" } : product,
+    );
+
+    const result = await sync(changed, { enrichMax: 20, productPages: withPages });
+
+    expect(result.appliedDiff.counts).toMatchObject({ updated: 1, unchanged: 11 });
+    const [audit] = await db
+      .select()
+      .from(syncChanges)
+      .where(eq(syncChanges.changeType, "updated"));
+    expect(audit?.changedFields).toEqual(["currentPrice", "semanticHash"]);
+    // The changed product's page is read again; nobody else's is.
+    expect(pageRequests()).toEqual(["/coffee-1/"]);
+    const [row] = await db
+      .select()
+      .from(products)
+      .where(eq(products.sourceKey, "/coffee-1/#1000g"));
+    expect(row).toMatchObject({ sku: "00001", currentPrice: "99.99", arabicaPercent: 100 });
+  });
+
+  it("counts and records a failed product page without failing the sync", async () => {
+    const pages = (product: FakeProduct) => {
+      if (product.url === "/coffee-2/") return { status: 404 };
+      if (product.url === "/coffee-5/") return { status: 500 };
+      // Unserved: the source answers with its home page, HTTP 200.
+      if (product.url === "/coffee-9/") return null;
+      return withPages(product);
+    };
+
+    const result = await sync(baseCatalog(), { enrichMax: 20, productPages: pages });
+
+    expect(result.status).toBe("succeeded");
+    expect(result.breaker.tripped).toBe(false);
+    expect(result.appliedDiff.counts.created).toBe(12);
+    expect(result.enrichment).toMatchObject({
+      requests: 12,
+      enriched: 9,
+      failed: 3,
+      halted: false,
+    });
+    expect(await countProducts("active")).toBe(12);
+
+    const run = await latestRun();
+    expect(run).toMatchObject({
+      status: "succeeded",
+      circuitBreakerTripped: false,
+      enrichedCount: 9,
+      enrichFailedCount: 3,
+      // Enrichment failures are not sync failures.
+      failedCount: 0,
+      errorSummary: null,
+    });
+
+    const errors = await db.select().from(scrapeErrors).orderBy(scrapeErrors.url);
+    expect(
+      errors.map((error) => [error.url, error.stage, error.errorClass, error.statusCode]),
+    ).toEqual([
+      ["https://fake.test/coffee-2/", "enrich_fetch", "http_error", 404],
+      ["https://fake.test/coffee-5/", "enrich_fetch", "http_error", 500],
+      ["https://fake.test/coffee-9/", "enrich_fetch", "soft_404", 200],
+    ]);
+    expect(errors.every((error) => error.syncRunId === run?.id)).toBe(true);
+
+    const rows = await enrichedRows();
+    const failed = rows.filter((row) => row.enrichedAt === null);
+    expect(failed.map((row) => row.sourceKey)).toEqual([
+      "/coffee-2/#1000g",
+      "/coffee-5/#1000g",
+      "/coffee-9/#1000g",
+    ]);
+    expect(failed.every((row) => row.status === "active" && row.sku === null)).toBe(true);
+    expect(failed.every((row) => row.enrichAttemptedAt instanceof Date)).toBe(true);
+
+    // The next run does not ask for them again: a dead page costs one request
+    // a day, not one a run.
+    const next = await sync(baseCatalog(), { enrichMax: 20, productPages: pages });
+    expect(pageRequests()).toEqual([]);
+    expect(next.status).toBe("succeeded");
+
+    // A day later they are tried once more, and one has come back.
+    await db
+      .update(products)
+      .set({ enrichAttemptedAt: sql`now() - interval '25 hours'` })
+      .where(isNull(products.enrichedAt));
+    const later = await sync(baseCatalog(), {
+      enrichMax: 20,
+      productPages: (product) =>
+        product.url === "/coffee-9/" ? withPages(product) : pages(product),
+    });
+    expect(pageRequests().sort()).toEqual(["/coffee-2/", "/coffee-5/", "/coffee-9/"]);
+    expect(later.enrichment).toMatchObject({ enriched: 1, failed: 2 });
+    expect(later.appliedDiff.counts.unchanged).toBe(12);
+  });
+
+  it("stops asking when every product page fails, and still succeeds", async () => {
+    // No product pages served at all: each one answers with the shell.
+    const result = await sync(baseCatalog(), { enrichMax: 20 });
+
+    expect(result.status).toBe("succeeded");
+    expect(result.enrichment).toMatchObject({
+      requests: 5,
+      enriched: 0,
+      failed: 5,
+      deferred: 7,
+      halted: true,
+    });
+    expect(pageRequests()).toHaveLength(5);
+    expect(await countProducts("active")).toBe(12);
+    expect(await latestRun()).toMatchObject({ status: "succeeded", enrichFailedCount: 5 });
+  });
+
+  it("never reads more product pages in one run than the cap allows", async () => {
+    const first = await sync(baseCatalog(), { enrichMax: 5, productPages: withPages });
+    expect(pageRequests()).toHaveLength(5);
+    expect(first.enrichment).toMatchObject({ requests: 5, budget: 5, enriched: 5, deferred: 7 });
+    expect((await enrichedRows()).filter((row) => row.sku !== null)).toHaveLength(5);
+
+    // The backlog drains over the following runs, five at a time, although
+    // nothing in the listing changes.
+    const second = await sync(baseCatalog(), { enrichMax: 5, productPages: withPages });
+    expect(second.appliedDiff.counts.unchanged).toBe(12);
+    expect(pageRequests()).toHaveLength(5);
+    expect((await enrichedRows()).filter((row) => row.sku !== null)).toHaveLength(10);
+
+    await sync(baseCatalog(), { enrichMax: 5, productPages: withPages });
+    expect(pageRequests()).toHaveLength(2);
+    expect((await enrichedRows()).every((row) => row.sku !== null && row.enrichedAt !== null)).toBe(
+      true,
+    );
+
+    await sync(baseCatalog(), { enrichMax: 5, productPages: withPages });
+    expect(pageRequests()).toEqual([]);
+  });
+
+  it("reads a changed product ahead of the backlog", async () => {
+    await sync(baseCatalog(), { enrichMax: 2, productPages: withPages });
+    expect(pageRequests()).toEqual(["/coffee-1/", "/coffee-2/"]);
+
+    const changed = baseCatalog().map((product, index) =>
+      index === 11 ? { ...product, price: "€77.00" } : product,
+    );
+    await sync(changed, { enrichMax: 2, productPages: withPages });
+
+    // The edited product first, then the oldest of the backlog.
+    expect(pageRequests()).toEqual(["/coffee-12/", "/coffee-3/"]);
+  });
+
+  it("reads no product page when enrichment is switched off", async () => {
+    const result = await sync(baseCatalog(), { enrichMax: 0, productPages: withPages });
+    expect(pageRequests()).toEqual([]);
+    expect(result.enrichment).toMatchObject({ requests: 0, enriched: 0, budget: 0 });
+    expect((await enrichedRows()).every((row) => row.sku === null)).toBe(true);
+  });
+
+  it("spends the request budget the configuration documents", async () => {
+    // This helper switches robots.txt off, so every count here is one below
+    // production's: the probe and /search/ here, robots.txt as well there.
+    await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+
+    // Steady state: nothing changed, nothing in the backlog.
+    await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    expect(lastRequests.filter((pathname) => pathname === "/search/")).toHaveLength(1);
+    expect(lastRequests).toHaveLength(2);
+
+    // A day with five new products: one page each, and nothing else.
+    const five = [1, 2, 3, 4, 5].map((n) => ({
+      h1: `Coffee number ${100 + n} 1кг.`,
+      url: `/coffee-${100 + n}/`,
+    }));
+    const result = await sync([...baseCatalog(), ...five], {
+      enrichMax: 20,
+      productPages: withPages,
+    });
+    expect(result.appliedDiff.counts).toMatchObject({ created: 5, unchanged: 12 });
+    expect(pageRequests()).toEqual(five.map((product) => product.url));
+    expect(lastRequests).toHaveLength(2 + 5);
+  });
+
+  it("stores nothing from product pages on a run the breaker refused", async () => {
+    await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    const before = await enrichedRows();
+
+    // Ten of twelve vanish, and one new product appears.
+    const result = await sync(
+      [
+        ...baseCatalog().slice(0, 2),
+        { h1: "New arrival 1кг.", url: "/coffee-new/", price: "€50.00", weight: "1 кг." },
+      ],
+      { enrichMax: 20, productPages: withPages },
+    );
+
+    expect(result.breaker.tripped).toBe(true);
+    expect(result.appliedDiff.counts.created).toBe(1);
+    // The one request is the pre-diff lookup, which has to happen before the
+    // breaker can judge the diff. Nothing is read, or stored, after it.
+    expect(pageRequests()).toEqual(["/coffee-new/"]);
+    expect(result.enrichment).toMatchObject({ requests: 1, enriched: 0, deferred: 1 });
+    const after = await enrichedRows();
+    expect(after.find((row) => row.sourceKey === "/coffee-new/#1000g")).toMatchObject({
+      sku: null,
+      enrichedAt: null,
+    });
+    expect(after.filter((row) => row.sku !== null)).toEqual(before);
+    expect(await latestRun()).toMatchObject({ status: "partial", enrichedCount: 0 });
+  });
+
+  it("keeps a moved product's enriched data", async () => {
+    await sync(baseCatalog(), { enrichMax: 20, productPages: withPages });
+    const before = await enrichedRows();
+    expect(before.every((row) => row.sku !== null)).toBe(true);
+
+    // Every URL is renamed, and on this run not one product page will load.
+    const result = await sync(renamed(baseCatalog()), {
+      enrichMax: 20,
+      productPages: () => ({ status: 404 }),
+    });
+
+    expect(result.appliedDiff.counts).toMatchObject({ moved: 12, created: 0, marked_missing: 0 });
+    // Twelve unmatched products is over the lookup cap: paired by name.
+    expect(result.enrichment.lookup).toMatchObject({ skipped: "over_cap", looked: 0 });
+    expect(
+      result.appliedDiff.moved.every((move) => move.movedFrom?.matchedBy === "fingerprint"),
+    ).toBe(true);
+    expect(result.status).toBe("succeeded");
+
+    const after = await enrichedRows();
+    const byId = new Map(after.map((row) => [row.id, row]));
+    for (const was of before) {
+      const row = byId.get(was.id);
+      expect(row?.sourceKey).toBe(was.sourceKey.replace("/#", "-1/#"));
+      expect(row).toMatchObject({
+        slug: was.slug,
+        sku: was.sku,
+        arabicaPercent: 100,
+        origin: "Бразилия",
+        characteristics: was.characteristics,
+      });
+      // ...and it is due to be read again, once its page answers.
+      expect(row?.enrichedAt).toBeNull();
+    }
+
+    // When the pages are back, the moved rows are re-read under their new
+    // URLs and nothing else about them changes.
+    await db.update(products).set({ enrichAttemptedAt: null });
+    const again = await sync(renamed(baseCatalog()), { enrichMax: 20, productPages: withPages });
+    expect(again.appliedDiff.counts).toMatchObject({ unchanged: 12, moved: 0 });
+    expect(pageRequests().sort()).toEqual(
+      renamed(baseCatalog())
+        .map((product) => product.url)
+        .sort(),
+    );
+    expect((await enrichedRows()).map((row) => [row.id, row.sku]).sort()).toEqual(
+      before.map((row) => [row.id, row.sku]).sort(),
+    );
+  });
+
+  /** One product whose URL, name and brand all change in the same edit. */
+  const CODED_OLD = { h1: "Julius Meinl Clasico 1кг.", url: "/julius-meinl-clasico/" };
+  const CODED_NEW = {
+    h1: "Julius Meinl Espresso Classico 1кг.",
+    url: "/julius-meinl-classico-1/",
+    brandSlug: "otherbrand",
+  };
+  const codedPages = (product: FakeProduct) =>
+    product.url === CODED_OLD.url || product.url === CODED_NEW.url
+      ? { code: "00500", characteristics: STATED }
+      : withPages(product);
+
+  it("pairs a rename that also changed the name and the brand, by product code", async () => {
+    await sync([...baseCatalog(), CODED_OLD], { enrichMax: 20, productPages: codedPages });
+    await db
+      .update(products)
+      .set({ descriptionTextOverride: "Our own summary." })
+      .where(eq(products.sourceKey, "/julius-meinl-clasico/#1000g"));
+    const [before] = await db
+      .select()
+      .from(products)
+      .where(eq(products.sourceKey, "/julius-meinl-clasico/#1000g"));
+    expect(before?.sku).toBe("00500");
+
+    const result = await sync([...baseCatalog(), CODED_NEW], {
+      enrichMax: 20,
+      productPages: codedPages,
+    });
+
+    // Not a twin and a missing row: one product, moved.
+    expect(result.appliedDiff.counts).toMatchObject({
+      moved: 1,
+      created: 0,
+      marked_missing: 0,
+      unchanged: 12,
+    });
+    expect(result.appliedDiff.moved[0]?.movedFrom).toEqual({
+      sourceKey: "/julius-meinl-clasico/#1000g",
+      matchedBy: "sku",
+      decidedBy: null,
+    });
+    expect(result.enrichment.lookup).toMatchObject({
+      candidateCount: 1,
+      looked: 1,
+      found: 1,
+      skipped: null,
+    });
+    // The page read for the lookup is the page stored: one request, not two.
+    expect(pageRequests()).toEqual(["/julius-meinl-classico-1/"]);
+    expect(result.enrichment).toMatchObject({ requests: 1, enriched: 1, failed: 0 });
+
+    expect(await countProducts()).toBe(13);
+    const [after] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, before?.id as string));
+    expect(after).toMatchObject({
+      slug: before?.slug,
+      name: "Julius Meinl Espresso Classico 1кг.",
+      descriptionTextOverride: "Our own summary.",
+      sku: "00500",
+      status: "active",
+      // Identity is still the path and the pack size; the code only vouched.
+      sourceKey: "/julius-meinl-classico-1/#1000g",
+      sourcePath: "/julius-meinl-classico-1/",
+      sourceVariantKey: "1000g",
+      previousSourceKeys: ["/julius-meinl-clasico/#1000g"],
+    });
+    expect(after?.sourceData.identityStrategy).toBe("path_and_size");
+    expect((await enrichedRows()).some((row) => row.sourceKey.startsWith("sku:"))).toBe(false);
+
+    const [audit] = await db.select().from(syncChanges).where(eq(syncChanges.changeType, "moved"));
+    expect(audit?.after).toMatchObject({ move: { matchedBy: "sku", decidedBy: null } });
+    expect(audit?.changedFields).toEqual(expect.arrayContaining(["brandKey", "name", "sourceKey"]));
+    const verified = await verifyCatalog(db);
+    expect(verified.violations.moved).toEqual([]);
+    expect(verified.violations.duplicates).toEqual([]);
+
+    // Settled: the run after is a no-op.
+    const again = await sync([...baseCatalog(), CODED_NEW], {
+      enrichMax: 20,
+      productPages: codedPages,
+    });
+    expect(again.appliedDiff.counts).toMatchObject({ unchanged: 13, moved: 0, created: 0 });
+    expect(pageRequests()).toEqual([]);
+  });
+
+  it("reports the code-paired move on a dry run and writes nothing", async () => {
+    await sync([...baseCatalog(), CODED_OLD], { enrichMax: 20, productPages: codedPages });
+    const before = await enrichedRows();
+
+    const result = await sync([...baseCatalog(), CODED_NEW], {
+      enrichMax: 20,
+      productPages: codedPages,
+      dryRun: true,
+    });
+
+    expect(result.appliedDiff.counts).toMatchObject({ moved: 1, created: 0 });
+    expect(result.appliedDiff.moved[0]?.movedFrom?.matchedBy).toBe("sku");
+    expect(pageRequests()).toEqual(["/julius-meinl-classico-1/"]);
+    expect(result.enrichment).toMatchObject({ enriched: 0, failed: 0 });
+    expect(await enrichedRows()).toEqual(before);
+  });
+
+  it("creates the product when its page states another code than the vanished row", async () => {
+    await sync([...baseCatalog(), CODED_OLD], { enrichMax: 20, productPages: codedPages });
+
+    // Same name at a new URL would pair by name; the page says it is not it.
+    const result = await sync(
+      [...baseCatalog(), { ...CODED_OLD, url: "/julius-meinl-clasico-1/" }],
+      {
+        enrichMax: 20,
+        productPages: (product) =>
+          product.url === "/julius-meinl-clasico-1/" ? { code: "00777" } : codedPages(product),
+      },
+    );
+
+    expect(result.appliedDiff.counts).toMatchObject({ moved: 0, created: 1, marked_missing: 1 });
+    expect(await countProducts()).toBe(14);
+  });
+
+  it("skips the lookup, and pairs by name, when more products are unmatched than the cap", async () => {
+    const olds = [1, 2, 3].map((n) => ({ h1: `Blend ${n} 1кг.`, url: `/blend-${n}/` }));
+    const pages = (product: FakeProduct) => ({
+      code: `0080${/Blend (\d)/.exec(product.h1)?.[1] ?? "0"}`,
+    });
+    await sync([...baseCatalog(), ...olds], { enrichMax: 20, productPages: pages });
+
+    const news = olds.map((product) => ({ ...product, url: product.url.replace(/\/$/, "-1/") }));
+    const result = await sync([...baseCatalog(), ...news], {
+      enrichMax: 20,
+      lookupMax: 2,
+      productPages: pages,
+    });
+
+    expect(result.enrichment.lookup).toMatchObject({
+      candidateCount: 3,
+      looked: 0,
+      found: 0,
+      skipped: "over_cap",
+    });
+    expect(result.appliedDiff.counts).toMatchObject({ moved: 3, created: 0 });
+    expect(
+      result.appliedDiff.moved.every((move) => move.movedFrom?.matchedBy === "fingerprint"),
+    ).toBe(true);
+  });
+
+  it("gives neither of two products that share a page its code", async () => {
+    const shared = [
+      {
+        h1: "Borbone Crema Classica 0.500кг.",
+        url: "/borbone/",
+        price: "€10.70",
+        weight: "0.500кг.",
+      },
+      { h1: "Borbone Crema Classica 1кг.", url: "/borbone/", price: "€20.50", weight: "1 кг." },
+    ];
+    const result = await sync(shared, {
+      enrichMax: 20,
+      minAbsolute: 0,
+      productPages: () => ({ code: "00321", characteristics: STATED }),
+    });
+
+    // One page, read once, describes the coffee in both packs...
+    expect(pageRequests()).toEqual(["/borbone/"]);
+    expect(result.enrichment).toMatchObject({ requests: 1, enriched: 2 });
+    const rows = await enrichedRows();
+    expect(rows.map((row) => row.origin)).toEqual(["Бразилия", "Бразилия"]);
+    // ...but its one code cannot tell them apart, so neither takes it.
+    expect(rows.map((row) => row.sku)).toEqual([null, null]);
+  });
+
+  // --- catalog:enrich ---------------------------------------------------------------
+
+  it("plans the backfill without contacting the source or writing", async () => {
+    await sync(baseCatalog(), { enrichMax: 0 });
+    const before = await enrichedRows();
+    const { config, fetcher, requests } = world(baseCatalog(), { productPages: withPages });
+
+    const plan = await runCatalogEnrich({ config, db, fetcher, logger: silentLogger });
+
+    expect(plan).toMatchObject({
+      applied: false,
+      selected: 12,
+      requests: 0,
+      enriched: 0,
+      failed: 0,
+      before: { active: 12, withCode: 0, withoutCode: 12 },
+      after: { active: 12, withCode: 0, withoutCode: 12 },
+    });
+    expect(plan.sample[0]).toEqual({
+      slug: "coffee-number-1-1kg",
+      sourceUrl: "https://fake.test/coffee-1/",
+    });
+    expect(requests).toEqual([]);
+    expect(await enrichedRows()).toEqual(before);
+
+    // `--limit` narrows the plan too.
+    const limited = await runCatalogEnrich({ config, db, fetcher, logger: silentLogger, limit: 4 });
+    expect(limited).toMatchObject({ applied: false, selected: 4, requests: 0 });
+    expect(requests).toEqual([]);
+  });
+
+  it("applies the backfill, within its limit, and finishes when run again", async () => {
+    await sync(baseCatalog(), { enrichMax: 0 });
+    const runsBefore = (await db.select().from(syncRuns)).length;
+    const hashes = (await enrichedRows()).map((row) => [
+      row.id,
+      row.semanticHash,
+      row.lastChangedAt,
+    ]);
+    const { config, fetcher, requests } = world(baseCatalog(), {
+      productPages: (product) =>
+        product.url === "/coffee-4/" ? { status: 404 } : withPages(product),
+    });
+    const productPages = () => requests.filter((pathname) => pathname.startsWith("/coffee-"));
+
+    const first = await runCatalogEnrich({
+      config,
+      db,
+      fetcher,
+      logger: silentLogger,
+      apply: true,
+      limit: 5,
+    });
+
+    expect(first).toMatchObject({
+      applied: true,
+      selected: 5,
+      requests: 5,
+      enriched: 4,
+      failed: 1,
+      halted: false,
+      after: { active: 12, withCode: 4, withoutCode: 8 },
+      sharedCodes: [],
+    });
+    expect(first.failures).toMatchObject([
+      { url: "https://fake.test/coffee-4/", outcome: "http_error", statusCode: 404 },
+    ]);
+    expect(productPages()).toHaveLength(5);
+    const errors = await db.select().from(scrapeErrors);
+    expect(errors).toMatchObject([
+      { url: "https://fake.test/coffee-4/", stage: "enrich_fetch", syncRunId: null },
+    ]);
+
+    // The rest, with no limit: every product that still lacks a code.
+    const second = await runCatalogEnrich({
+      config,
+      db,
+      fetcher,
+      logger: silentLogger,
+      apply: true,
+    });
+    expect(second).toMatchObject({
+      selected: 8,
+      enriched: 7,
+      failed: 1,
+      after: { withCode: 11, withoutCode: 1 },
+    });
+
+    const rows = await enrichedRows();
+    expect(rows.filter((row) => row.sku === null).map((row) => row.sourceKey)).toEqual([
+      "/coffee-4/#1000g",
+    ]);
+    expect(rows.filter((row) => row.sku !== null).every((row) => row.arabicaPercent === 100)).toBe(
+      true,
+    );
+    // It is not a sync: no run recorded, no product "changed", no status moved.
+    expect(await db.select().from(syncRuns)).toHaveLength(runsBefore);
+    expect(rows.map((row) => [row.id, row.semanticHash, row.lastChangedAt])).toEqual(hashes);
+    expect(await countProducts("active")).toBe(12);
+
+    // And the sync that follows has nothing to say about any of it.
+    const after = await sync(baseCatalog(), { enrichMax: 0 });
+    expect(after.appliedDiff.counts).toMatchObject({ unchanged: 12, updated: 0 });
+    expect((await enrichedRows()).filter((row) => row.sku !== null)).toHaveLength(11);
+  });
+
+  it("reports product codes that two active products share", async () => {
+    await sync(baseCatalog().slice(0, 6), { enrichMax: 0, minAbsolute: 0 });
+    const { config, fetcher } = world(baseCatalog().slice(0, 6), {
+      productPages: (product) => ({
+        code: product.url === "/coffee-2/" ? "00001" : codeOf(product),
+      }),
+    });
+
+    const result = await runCatalogEnrich({
+      config,
+      db,
+      fetcher,
+      logger: silentLogger,
+      apply: true,
+    });
+
+    expect(result.enriched).toBe(6);
+    expect(result.sharedCodes).toEqual([
+      { sku: "00001", slugs: ["coffee-number-1-1kg", "coffee-number-2-1kg"] },
+    ]);
   });
 });

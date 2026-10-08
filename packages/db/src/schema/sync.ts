@@ -58,6 +58,11 @@ export const syncRuns = pgTable(
     imagesSkipped: integer("images_skipped").notNull().default(0),
     imagesFailed: integer("images_failed").notNull().default(0),
 
+    /** Product pages read and stored by the enrichment step in this run. */
+    enrichedCount: integer("enriched_count").notNull().default(0),
+    /** Product pages that could not be read. Never affects `status`. */
+    enrichFailedCount: integer("enrich_failed_count").notNull().default(0),
+
     /** True when mass-removal protection refused to apply the diff. */
     circuitBreakerTripped: boolean("circuit_breaker_tripped").notNull().default(false),
     circuitBreakerReason: text("circuit_breaker_reason"),

@@ -23,7 +23,11 @@ import type { NormalizedProduct } from "./normalize.ts";
  * paired — or found ambiguous — in one pass is never reconsidered by a weaker
  * one.
  *
- *   1. `sku`            both sides carry the same product code.
+ *   1. `sku`            both sides carry the same product code. The stored
+ *                       side has it from an earlier read of the product page;
+ *                       the discovered side has it only if the caller looked
+ *                       it up and passed it in (`discoveredSkus`), because
+ *                       the catalog blob does not carry one.
  *   2. `fingerprint`    brand key + normalised name + canonical pack size.
  *   3. `name_and_pack`  normalised name + pack size, the brand key differing
  *                       or absent on one side. The source re-files products
@@ -70,6 +74,14 @@ export interface UnresolvedMove {
 export interface MovePairing {
   readonly pairs: MovePair[];
   readonly unresolved: UnresolvedMove[];
+}
+
+export interface MovePairingOptions {
+  /**
+   * Product codes for discovered products, by source key, read from their
+   * product pages before the diff. A missing entry means "not known".
+   */
+  readonly discoveredSkus?: ReadonlyMap<string, string>;
 }
 
 /** Everything the matcher knows about one side of a possible move. */
@@ -129,7 +141,7 @@ function factsOfExisting(existing: ExistingProduct): Facts {
   const { snapshot } = existing;
   return {
     sourceKey: existing.sourceKey,
-    sku: text(snapshot.sku),
+    sku: text(existing.sku),
     brand: text(snapshot.brandKey),
     name: nameKey(snapshot.name),
     pack: text(snapshot.weight),
@@ -140,10 +152,14 @@ function factsOfExisting(existing: ExistingProduct): Facts {
   };
 }
 
-function factsOfDiscovered(product: NormalizedProduct): Facts {
+function factsOfDiscovered(
+  product: NormalizedProduct,
+  discoveredSkus: ReadonlyMap<string, string> | undefined,
+): Facts {
   return {
     sourceKey: product.sourceKey,
-    sku: text(product.sku),
+    // What the listing itself states wins over what was looked up for it.
+    sku: text(product.sku) ?? text(discoveredSkus?.get(product.sourceKey)),
     brand: text(product.brandKey),
     name: nameKey(product.name),
     pack: text(product.weight?.canonical),
@@ -366,16 +382,23 @@ function resolveGroup(
  * `absent` is every stored product this run did not see; `appeared` is every
  * discovered product whose key is not stored. The result is strictly
  * one-to-one: no product appears in two pairs.
+ *
+ * Still pure: any product code for the discovered side was fetched by the
+ * caller beforehand and arrives as data.
  */
 export function pairMoves(
   absent: readonly ExistingProduct[],
   appeared: readonly NormalizedProduct[],
+  options: MovePairingOptions = {},
 ): MovePairing {
   const pairs: MovePair[] = [];
   const unresolved: UnresolvedMove[] = [];
 
   let olds: OldSide[] = absent.map((existing) => ({ existing, facts: factsOfExisting(existing) }));
-  let news: NewSide[] = appeared.map((product) => ({ product, facts: factsOfDiscovered(product) }));
+  let news: NewSide[] = appeared.map((product) => ({
+    product,
+    facts: factsOfDiscovered(product, options.discoveredSkus),
+  }));
 
   for (const pass of PASSES) {
     if (olds.length === 0 || news.length === 0) break;

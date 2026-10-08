@@ -32,10 +32,20 @@ export interface RuntimeOptions {
   /** Lambda uses a single connection; a CLI run can use a small pool. */
   readonly maxConnections?: number;
   readonly context?: Record<string, unknown>;
+  /**
+   * True when the run can write. Such a run refuses to start while the user
+   * agent still names a placeholder contact (`assertCrawlerIdentity`); a dry
+   * run, a plan and a read-only command leave it false and start regardless.
+   */
+  readonly writes?: boolean;
 }
 
 export async function createRuntime(options: RuntimeOptions = {}): Promise<Runtime> {
-  const config = loadConfig(options.overrides ?? {});
+  // First, before any connection is opened: a run that may not start should
+  // not have touched anything.
+  const config = loadConfig(options.overrides ?? {}, process.env, {
+    writes: options.writes === true,
+  });
   const logger = createLogger({
     level: config.logLevel,
     base: { source: config.sourceKey, ...(options.context ?? {}) },

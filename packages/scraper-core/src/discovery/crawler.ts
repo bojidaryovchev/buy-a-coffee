@@ -11,6 +11,7 @@ import { type Classification, classifyPage } from "../parsers/classify.ts";
 import { type ParsedPage, parsePage } from "../parsers/page.ts";
 import { parseFilterContract, parseListingPage } from "../parsers/listing.ts";
 import { parseSitemap } from "../parsers/sitemap.ts";
+import { detectStorefrontSignals } from "./pageSignals.ts";
 
 /**
  * Breadth-first same-origin discovery crawl.
@@ -335,6 +336,14 @@ export async function runDiscoveryCrawl(
         structuredData: parsed.structuredData,
         signals: {
           ...parsed.signals,
+          // What the feature inventory reads: banner, payment methods, and on
+          // product pages the code and the characteristics list. A soft 404
+          // is the home page's chrome again and proves nothing about a route.
+          ...(isSoft404
+            ? {}
+            : detectStorefrontSignals(response.body, {
+                isProductPage: classification.pageType === "product",
+              })),
           listingCardCount: listing.cards.length,
           listingFilterKeys: listing.filterKeys,
           openGraph: parsed.openGraph,

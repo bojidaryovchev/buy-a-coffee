@@ -50,6 +50,9 @@ export async function handler(event: SyncEvent = {}, context?: Context): Promise
     // and idle connections would exhaust the database's slots under scale-out.
     maxConnections: 1,
     context: { requestId, job },
+    // A scheduled run writes, so it may not start under a placeholder contact.
+    // Only an explicit dry-run sync is exempt.
+    writes: job === "discovery" || event.dryRun !== true,
   });
 
   try {
@@ -98,6 +101,8 @@ export async function handler(event: SyncEvent = {}, context?: Context): Promise
         discovered: result.discovery.products.length,
         ...result.appliedDiff.counts,
         images: result.images,
+        enriched: result.enrichment.enriched,
+        enrichFailed: result.enrichment.failed,
         parserConfidence: result.discovery.confidence,
         catalogSource: result.discovery.source,
         breakerReasons: result.breaker.reasons,
@@ -139,6 +144,8 @@ function emitMetrics(sourceKey: string, response: SyncResponse): void {
     RemovedProducts: numberOr(counts.removed, 0),
     ImagesMirrored: numberOr(images.mirrored, 0),
     ImagesFailed: numberOr(images.failed, 0),
+    EnrichedProducts: numberOr(counts.enriched, 0),
+    EnrichFailedPages: numberOr(counts.enrichFailed, 0),
     ParserConfidence: numberOr(counts.parserConfidence, 1),
     DurationMs: response.durationMs,
   };

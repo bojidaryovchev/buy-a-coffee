@@ -1,5 +1,6 @@
 import type { CatalogDiscoveryResult } from "../catalog/discover.ts";
 import type { DiscoveryCrawlResult } from "./crawler.ts";
+import type { NoticeBannerSignal, StorefrontSignals } from "./pageSignals.ts";
 
 /**
  * Functional inventory of the reference storefront.
@@ -67,9 +68,58 @@ const FILTER_NAMES: Readonly<Record<string, string>> = {
   category: "Category",
 };
 
-function urlsFor(crawl: DiscoveryCrawlResult, predicate: (page: DiscoveryCrawlResult["pages"][number]) => boolean): string[] {
-  return crawl.pages.filter(predicate).map((page) => page.canonicalUrl).sort();
+type Page = DiscoveryCrawlResult["pages"][number];
+
+function urlsFor(crawl: DiscoveryCrawlResult, predicate: (page: Page) => boolean): string[] {
+  return crawl.pages
+    .filter(predicate)
+    .map((page) => page.canonicalUrl)
+    .sort();
 }
+
+/** The storefront signals the crawler recorded for a page, if it recorded any. */
+function storefront(page: Page): Partial<StorefrontSignals> {
+  return page.signals as Partial<StorefrontSignals>;
+}
+
+/**
+ * The two navigation pages the source added beside its product categories.
+ * They classify as `category` — same listing shell, same filters — so the
+ * page type cannot tell them apart; the slug and the heading can.
+ */
+const BUSINESS_PAGES = [
+  {
+    id: "vending-zone",
+    name: "Vending Zone page",
+    slug: /^\/vending-zona\/$/i,
+    heading: /вендинг/iu,
+    description:
+      "A navigation page for vending customers: a paragraph of descriptive copy above a product listing with the usual filters.",
+  },
+  {
+    id: "consumables",
+    name: "Consumables page",
+    slug: /^\/konsumativi\/$/i,
+    heading: /консуматив/iu,
+    description:
+      "A navigation page for consumables sold beside the coffee: a paragraph of descriptive copy above a product listing with the usual filters.",
+  },
+] as const;
+
+function isListingPage(page: Page): boolean {
+  return (
+    !page.isSoft404 &&
+    (page.classification.pageType === "category" || page.classification.pageType === "subcategory")
+  );
+}
+
+const BANNER_DESCRIPTIONS: Readonly<Record<NoticeBannerSignal["kind"], string>> = {
+  delivery_threshold:
+    "A dismissible banner at the top of every page. It currently states the order value above which delivery is free, beside a one-line pitch for ordering by phone.",
+  opening_hours:
+    "A dismissible banner at the top of every page. It currently announces the shop's opening hours or a closure.",
+  other: "A dismissible banner at the top of every page, carrying one short shop-wide message.",
+};
 
 export function buildFeatureInventory(
   crawl: DiscoveryCrawlResult,
@@ -85,8 +135,12 @@ export function buildFeatureInventory(
   const searchUrls = byType("search");
   const promotionUrls = byType("promotion");
   const brandIndexUrls = byType("brand_index");
-  const blogUrls = [...byType("blog_index"), ...byType("blog_article")];
+  const blogIndexUrls = byType("blog_index");
+  const blogArticleUrls = byType("blog_article");
   const legalUrls = byType("legal");
+  const emptyListingCount = crawl.pages.filter(
+    (page) => isListingPage(page) && page.signals.listingCardCount === 0,
+  ).length;
 
   const push = (feature: ObservedFeature): void => {
     if (feature.evidenceUrls.length > 0) features.push(feature);
@@ -102,9 +156,48 @@ export function buildFeatureInventory(
     outputs: ["product listing"],
     implementationNotes: [
       `${catalog.categories.length} categories observed, including nested children.`,
-      "Two navigation categories are currently empty and still render as valid pages.",
+      ...(emptyListingCount > 0
+        ? [
+            `${emptyListingCount} navigation ${emptyListingCount === 1 ? "page lists" : "pages list"} no products at the moment and still ${emptyListingCount === 1 ? "renders as a valid page" : "render as valid pages"}.`,
+          ]
+        : []),
     ],
   });
+
+  for (const business of BUSINESS_PAGES) {
+    const pages = crawl.pages.filter(
+      (page) =>
+        isListingPage(page) &&
+        (business.slug.test(page.path) ||
+          page.headings.some(
+            (heading) => heading.level === 1 && business.heading.test(heading.text),
+          )),
+    );
+    const listed = pages.reduce(
+      (sum, page) =>
+        sum +
+        (typeof page.signals.listingCardCount === "number" ? page.signals.listingCardCount : 0),
+      0,
+    );
+    push({
+      id: business.id,
+      name: business.name,
+      description: business.description,
+      evidenceUrls: pages
+        .map((page) => page.canonicalUrl)
+        .sort()
+        .slice(0, 4),
+      pageTypes: ["category"],
+      outputs: ["descriptive copy", "product listing"],
+      implementationNotes: [
+        listed === 0
+          ? "It lists no products at the moment, and renders its empty state rather than a 404."
+          : `It lists ${listed} product${listed === 1 ? "" : "s"}.`,
+        "It is absent from the structured catalog's category list: it is navigation, not a category a product belongs to.",
+        "The copy on it is the source's own and is never mirrored.",
+      ],
+    });
+  }
 
   push({
     id: "brand-browsing",
@@ -124,12 +217,65 @@ export function buildFeatureInventory(
     id: "product-detail",
     name: "Product detail page",
     description:
-      "Each product has a detail page with name, image, price, pack size, availability, intensity, a short description, breadcrumbs and related products.",
+      "Each product has a detail page with name, image, price, pack size, availability, intensity, a short description, a longer write-up, breadcrumbs and related products.",
     evidenceUrls: productUrls.slice(0, 12),
     pageTypes: ["product"],
     outputs: ["product detail"],
     implementationNotes: [
-      "Some products genuinely have no price and no pack size; both must render gracefully.",
+      "The source has listed products with no price and with no pack size before; both must render gracefully.",
+      "The longer write-up is the source's prose: the storefront writes its own or shows none.",
+    ],
+  });
+
+  const codePages = crawl.pages.filter((page) => storefront(page).hasProductCode === true);
+  push({
+    id: "product-code",
+    name: "Product code",
+    description: "Each product page prints a short product code among its attributes.",
+    evidenceUrls: codePages
+      .map((page) => page.canonicalUrl)
+      .sort()
+      .slice(0, 12),
+    pageTypes: ["product"],
+    outputs: ["product code"],
+    implementationNotes: [
+      ...(codePages.length > 0 &&
+      codePages.every((page) => storefront(page).productCodeInStructuredData === true)
+        ? ["The same code is the `sku` of the page's Product structured data."]
+        : []),
+      "It is a string: leading zeros are part of it.",
+      "The catalog listing does not carry it; it is read from the product page.",
+    ],
+  });
+
+  const characteristicPages = crawl.pages.filter(
+    (page) => (storefront(page).characteristicLabels?.length ?? 0) > 0,
+  );
+  const labelCounts = new Map<string, number>();
+  for (const page of characteristicPages) {
+    for (const label of storefront(page).characteristicLabels ?? []) {
+      labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+    }
+  }
+  const commonLabels = [...labelCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, 8)
+    .map(([label]) => label);
+  push({
+    id: "product-characteristics",
+    name: "Product characteristics list",
+    description:
+      "Below the write-up, product pages print a labelled list of characteristics: what the coffee is made of, where it comes from, how it tastes, what it fits.",
+    evidenceUrls: characteristicPages
+      .map((page) => page.canonicalUrl)
+      .sort()
+      .slice(0, 12),
+    pageTypes: ["product"],
+    outputs: ["labelled product facts"],
+    implementationNotes: [
+      `Labels seen most often: ${commonLabels.join(", ")}.`,
+      "The list is written by hand and its markup varies; a label may be missing from any page.",
+      "Only what a page states is shown: a missing label is an omitted row, never a guess.",
     ],
   });
 
@@ -151,8 +297,7 @@ export function buildFeatureInventory(
   push({
     id: "catalog-filters",
     name: "Catalog filtering",
-    description:
-      "Listing pages expose filters whose state is encoded in URL search parameters.",
+    description: "Listing pages expose filters whose state is encoded in URL search parameters.",
     evidenceUrls: crawl.filters.flatMap((filter) => filter.pageUrls).slice(0, 12),
     pageTypes: ["category", "subcategory", "brand", "promotion", "search"],
     inputs: crawl.filters.map((filter) => filter.urlParam ?? filter.key),
@@ -177,9 +322,8 @@ export function buildFeatureInventory(
     ],
   });
 
-  const quickOrderPages = urlsFor(
-    crawl,
-    (page) => page.forms.some((form) => form.fields.some((field) => field.type === "tel")),
+  const quickOrderPages = urlsFor(crawl, (page) =>
+    page.forms.some((form) => form.fields.some((field) => field.type === "tel")),
   );
   push({
     id: "quick-order",
@@ -191,14 +335,13 @@ export function buildFeatureInventory(
     inputs: ["phone number"],
     outputs: ["order enquiry"],
     implementationNotes: [
-      "There is no cart, no checkout and no payment anywhere on the reference site.",
+      "There is no cart and no online checkout anywhere on the reference site.",
       "The reference posts to a third-party CMS endpoint; ours must post to our own API and persist locally.",
     ],
   });
 
-  const newsletterPages = urlsFor(
-    crawl,
-    (page) => page.forms.some((form) => form.fields.some((field) => field.type === "email")),
+  const newsletterPages = urlsFor(crawl, (page) =>
+    page.forms.some((form) => form.fields.some((field) => field.type === "email")),
   );
   push({
     id: "newsletter-signup",
@@ -214,7 +357,8 @@ export function buildFeatureInventory(
   push({
     id: "related-products",
     name: "Related products",
-    description: "Product pages show a carousel of other products from the same area of the catalog.",
+    description:
+      "Product pages show a carousel of other products from the same area of the catalog.",
     evidenceUrls: productUrls.slice(0, 6),
     pageTypes: ["product"],
     outputs: ["product recommendations"],
@@ -234,10 +378,19 @@ export function buildFeatureInventory(
   push({
     id: "blog",
     name: "Blog",
-    description: "A blog route exists and currently has no published articles.",
-    evidenceUrls: blogUrls.slice(0, 4),
-    pageTypes: ["blog_index"],
-    implementationNotes: ["Capability only; there is no content to mirror."],
+    description:
+      blogArticleUrls.length > 0
+        ? "A blog index lists the published articles, and each article has a page of its own."
+        : "A blog route exists and currently has no published articles.",
+    evidenceUrls: [...blogIndexUrls, ...blogArticleUrls].slice(0, 4),
+    pageTypes: blogArticleUrls.length > 0 ? ["blog_index", "blog_article"] : ["blog_index"],
+    implementationNotes:
+      blogArticleUrls.length > 0
+        ? [
+            `${blogArticleUrls.length} article${blogArticleUrls.length === 1 ? "" : "s"} observed.`,
+            "An article is the source's own writing: the capability is matched, the text is never mirrored.",
+          ]
+        : ["Capability only; there is no content to mirror."],
   });
 
   push({
@@ -249,18 +402,86 @@ export function buildFeatureInventory(
     implementationNotes: ["Content must be written for our business, never copied."],
   });
 
-  const bannerPages = urlsFor(crawl, (page) =>
-    Boolean((page.signals as { hasNoticeBanner?: boolean }).hasNoticeBanner),
-  );
-  if (bannerPages.length > 0) {
-    push({
-      id: "site-notice",
-      name: "Sitewide notice banner",
-      description: "A dismissible banner announces temporary shop closures.",
-      evidenceUrls: bannerPages.slice(0, 3),
-      pageTypes: ["home"],
-    });
+  /*
+   * The banner is a mechanism; what it is used for changes. It announced
+   * closure dates once and states a delivery threshold now, so the entry
+   * describes what was actually read from it rather than assuming either —
+   * and a stated threshold is reported as a capability in its own right
+   * below, because "says when delivery is free" is something a storefront
+   * either does or does not do, whatever it uses to say it.
+   */
+  const bannerPages = crawl.pages.filter((page) => storefront(page).noticeBanner != null);
+  const bannerKinds = new Map<NoticeBannerSignal["kind"], number>();
+  for (const page of bannerPages) {
+    const kind = (storefront(page).noticeBanner as NoticeBannerSignal).kind;
+    bannerKinds.set(kind, (bannerKinds.get(kind) ?? 0) + 1);
   }
+  const bannerKind = [...bannerKinds.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "other";
+  push({
+    id: "site-notice",
+    name: "Sitewide notice banner",
+    description: BANNER_DESCRIPTIONS[bannerKind],
+    evidenceUrls: bannerPages
+      .map((page) => page.canonicalUrl)
+      .sort()
+      .slice(0, 3),
+    pageTypes: [...new Set(bannerPages.map((page) => page.classification.pageType))].sort(),
+    implementationNotes: [
+      "What the banner says is the source's own message. A storefront banner states its own terms, never these.",
+      ...(bannerPages.some((page) => storefront(page).noticeBanner?.dismissible)
+        ? ["Dismissing it is remembered in the browser, so it stays closed on later pages."]
+        : []),
+    ],
+  });
+
+  const thresholdPages = bannerPages.filter(
+    (page) => storefront(page).noticeBanner?.kind === "delivery_threshold",
+  );
+  const thresholds = [
+    ...new Set(
+      thresholdPages
+        .map((page) => storefront(page).noticeBanner?.deliveryThreshold)
+        .filter((value): value is string => typeof value === "string"),
+    ),
+  ];
+  push({
+    id: "delivery-threshold",
+    name: "Free-delivery threshold",
+    description: "The shop states, on every page, the order value above which delivery is free.",
+    evidenceUrls: thresholdPages
+      .map((page) => page.canonicalUrl)
+      .sort()
+      .slice(0, 3),
+    pageTypes: [...new Set(thresholdPages.map((page) => page.classification.pageType))].sort(),
+    outputs: ["delivery terms"],
+    implementationNotes: [
+      `Threshold stated by the source: ${thresholds.join(", ")}.`,
+      "That figure is the source's commercial term. Ours is configuration, and is shown only when it is set.",
+    ],
+  });
+
+  const paymentPages = crawl.pages.filter(
+    (page) => (storefront(page).paymentMethods?.length ?? 0) > 0,
+  );
+  const paymentMethods = [
+    ...new Set(paymentPages.flatMap((page) => storefront(page).paymentMethods ?? [])),
+  ];
+  push({
+    id: "payment-methods",
+    name: "Listed payment methods",
+    description: "The footer of every page lists the ways an order can be paid for.",
+    evidenceUrls: paymentPages
+      .map((page) => page.canonicalUrl)
+      .sort()
+      .slice(0, 3),
+    pageTypes: [...new Set(paymentPages.map((page) => page.classification.pageType))].sort(),
+    outputs: ["payment terms"],
+    implementationNotes: [
+      `Methods listed: ${paymentMethods.join(", ")}.`,
+      "Nothing is paid on the site: there is no checkout. The list informs an order placed by phone.",
+      "The source's wording for each method is not reused; ours comes from configuration.",
+    ],
+  });
 
   push({
     id: "phone-contact",
@@ -286,13 +507,18 @@ export function buildFormInventory(crawl: DiscoveryCrawlResult): ObservedForm[] 
 
       const existing = byKey.get(id);
       if (existing) {
-        if (!existing.pageUrls.includes(page.canonicalUrl)) existing.pageUrls.push(page.canonicalUrl);
+        if (!existing.pageUrls.includes(page.canonicalUrl))
+          existing.pageUrls.push(page.canonicalUrl);
         continue;
       }
 
       byKey.set(id, {
         id,
-        name: isPhone ? "Quick order (phone)" : isEmail ? "Newsletter signup (email)" : "Public form",
+        name: isPhone
+          ? "Quick order (phone)"
+          : isEmail
+            ? "Newsletter signup (email)"
+            : "Public form",
         purpose: isPhone
           ? "Submit a phone number so the shop can call back and confirm an order."
           : isEmail
@@ -327,7 +553,8 @@ export function buildFilterInventory(
       for (const brand of catalog.brands) counts.set(brand.sourceKey, brand.productCount ?? 0);
     }
     if (filter.key === "category") {
-      for (const category of catalog.categories) counts.set(category.sourceKey, category.productCount ?? 0);
+      for (const category of catalog.categories)
+        counts.set(category.sourceKey, category.productCount ?? 0);
     }
 
     return {

@@ -4,6 +4,7 @@ import {
   normalizeSourceSlug,
   resolveProductIdentity,
 } from "../src/catalog/identity.ts";
+import { normalizeProduct } from "../src/catalog/normalize.ts";
 
 describe("resolveProductIdentity", () => {
   it("combines path and normalised pack size by default", () => {
@@ -53,10 +54,38 @@ describe("resolveProductIdentity", () => {
     expect(identity.strategy).toBe("source_id");
   });
 
-  it("prefers a SKU over the path", () => {
-    const identity = resolveProductIdentity({ path: "/x/", weightText: "1 кг.", sku: "LSC-1KG" });
-    expect(identity.sourceKey).toBe("sku:LSC-1KG");
-    expect(identity.strategy).toBe("sku");
+  it("never keys a product on its product code", () => {
+    // The type refuses a code outright...
+    // @ts-expect-error a product code is not an identity input
+    const typed = resolveProductIdentity({ path: "/x/", weightText: "1 кг.", sku: "00072" });
+    expect(typed.sourceKey).toBe("/x/#1000g");
+    expect(typed.strategy).toBe("path_and_size");
+
+    // ...and one that slips past the type (untyped JSON, a cast) is ignored.
+    const smuggled = resolveProductIdentity({
+      path: "/x/",
+      weightText: "1 кг.",
+      sku: "00072",
+    } as unknown as Parameters<typeof resolveProductIdentity>[0]);
+    expect(smuggled.sourceKey).toBe("/x/#1000g");
+    expect(smuggled.strategy).toBe("path_and_size");
+  });
+
+  it("keeps a listing that states a product code on its path-shaped key", () => {
+    const withCode = normalizeProduct(
+      {
+        path: "/amann-cascada-500/",
+        url: "https://www.kafezona.com/amann-cascada-500/",
+        name: "Amann Cascada 0.500кг.",
+        weightText: "0.500кг.",
+        sku: "00072",
+      },
+      { sourceSite: "kafezona" },
+    );
+    expect(withCode.sku).toBe("00072");
+    expect(withCode.sourceKey).toBe("/amann-cascada-500/#500g");
+    expect(withCode.identityStrategy).toBe("path_and_size");
+    expect(withCode.sourceKey.startsWith("sku:")).toBe(false);
   });
 
   it("normalises path shape so trailing slashes cannot fork identity", () => {

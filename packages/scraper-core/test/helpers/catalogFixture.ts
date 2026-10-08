@@ -95,6 +95,7 @@ export function fixtureAsExisting(record: CatalogFixtureProduct): ExistingProduc
     semanticHash: record.semanticHash,
     status: "active",
     consecutiveMissingCount: 0,
+    sku: record.sku,
     snapshot: productSnapshot(fixtureAsDiscovered(record)),
   };
 }

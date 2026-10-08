@@ -209,9 +209,33 @@ export const products = pgTable(
     arabicaPercent: smallint("arabica_percent"),
     origin: text("origin"),
     roast: text("roast"),
+    /**
+     * The labelled "Характеристики" list from the source's product page, in
+     * page order: `[{ label, value }]`. Its own column rather than keys inside
+     * `attributes`, because `attributes` belongs to the catalog-blob upsert —
+     * it is rewritten on every run and takes part in the semantic hash — and
+     * this belongs to the enrichment step. Two writers, two columns.
+     */
+    characteristics: jsonb("characteristics")
+      .$type<Array<{ label: string; value: string }>>()
+      .notNull()
+      .default([]),
 
+    /**
+     * The source's product code ("Код: 00072"), read from the product page by
+     * the enrichment step. A string: leading zeros are part of it. It is a
+     * move-detection signal only — never part of `sourceKey` — and the
+     * catalog-blob upsert never writes it.
+     */
     sku: text("sku"),
     gtin: text("gtin"),
+    /**
+     * When the product page was last read successfully. Null means a read is
+     * due: the product is new, was renamed or changed, or its last read failed.
+     */
+    enrichedAt: timestamp("enriched_at", { withTimezone: true }),
+    /** Last attempt, successful or not; spaces out retries of a failing page. */
+    enrichAttemptedAt: timestamp("enrich_attempted_at", { withTimezone: true }),
 
     /** Normalised key/value attributes (intensity, decaf, aromas, strength). */
     attributes: jsonb("attributes").$type<Record<string, string>>().notNull().default({}),
@@ -242,6 +266,8 @@ export const products = pgTable(
     index("products_status_price_idx").on(table.status, table.currentPrice),
     // Promotions: active products that carry an old price.
     index("products_old_price_idx").on(table.oldPrice),
+    // Move detection looks a product code up; the code is not unique by decree.
+    index("products_sku_idx").on(table.sourceSiteId, table.sku),
   ],
 );
 

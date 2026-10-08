@@ -162,7 +162,7 @@ export function normalizeProduct(
     path: raw.path,
     weightText: raw.weightText ?? null,
     sourceId: raw.sourceId ?? null,
-    sku: raw.sku ?? null,
+    // `raw.sku` is not passed, and cannot be: a product code never keys a row.
   });
 
   const currentPrice = parseMoney(raw.priceText ?? null, {

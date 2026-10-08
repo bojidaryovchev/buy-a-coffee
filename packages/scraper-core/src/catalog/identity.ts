@@ -26,6 +26,15 @@ import { type NormalizedWeight, parseWeight, slugify } from "@catalog/shared";
  * collapse into one. That is the correct outcome for the observed case — the
  * duplicated `/eurocaf-piacere-oro/` entry is the same product typed twice
  * into the source CMS.
+ *
+ * The product code is deliberately NOT an identity. The source began printing
+ * one on its product pages ("Код: 00072") long after every row here had a
+ * path-shaped key; switching to `sku:<code>` the moment a code turns up would
+ * re-key the whole catalog a second time, and would do it piecemeal, as each
+ * page happened to be read. The code is stored on the row and used by move
+ * detection as evidence that two keys are one product (see `moves.ts`). It
+ * cannot be passed to `resolveProductIdentity` at all: the input type refuses
+ * it.
  */
 
 export const SOURCE_KEY_SEPARATOR = "#";
@@ -37,14 +46,17 @@ export interface ProductIdentityInput {
   readonly weightText?: string | null;
   /** Explicit source identifier, when the source ever exposes one. */
   readonly sourceId?: string | null;
-  /** SKU, when present. */
-  readonly sku?: string | null;
+  /**
+   * There is no product code here, on purpose — see the note above. `never`
+   * makes an attempt to pass one a compile error instead of an ignored field.
+   */
+  readonly sku?: never;
 }
 
 export interface ProductIdentity {
   readonly sourceKey: string;
   /** Which rule produced the key, for auditing and reporting. */
-  readonly strategy: "source_id" | "sku" | "path_and_size" | "path";
+  readonly strategy: "source_id" | "path_and_size" | "path";
   readonly path: string;
   readonly variantKey: string | null;
   readonly weight: NormalizedWeight | null;
@@ -54,11 +66,10 @@ export interface ProductIdentity {
  * Resolve the strongest available identity, in priority order:
  *
  *   1. an explicit stable source identifier,
- *   2. a SKU,
- *   3. canonical path + normalised pack size,
- *   4. canonical path alone.
+ *   2. canonical path + normalised pack size,
+ *   3. canonical path alone.
  *
- * Product name is never used.
+ * Product name is never used, and neither is the product code.
  */
 export function resolveProductIdentity(input: ProductIdentityInput): ProductIdentity {
   const path = normalizePathKey(input.path);
@@ -68,11 +79,6 @@ export function resolveProductIdentity(input: ProductIdentityInput): ProductIden
   const sourceId = input.sourceId?.trim();
   if (sourceId) {
     return { sourceKey: `id:${sourceId}`, strategy: "source_id", path, variantKey, weight };
-  }
-
-  const sku = input.sku?.trim();
-  if (sku) {
-    return { sourceKey: `sku:${sku}`, strategy: "sku", path, variantKey, weight };
   }
 
   if (variantKey) {
