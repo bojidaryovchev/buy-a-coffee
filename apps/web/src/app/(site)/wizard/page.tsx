@@ -217,7 +217,7 @@ function SystemStep({
       ) : (
         <WizardNotice tone="caution" title="Нямаме нищо за този вид машина">
           Обадете ни се на{" "}
-          <a href={siteConfig.contact.phoneHref} className="underline">
+          <a href={`tel:${siteConfig.contact.phoneHref}`} className="underline">
             {siteConfig.contact.phone}
           </a>{" "}
           и ще проверим какво можем да поръчаме.

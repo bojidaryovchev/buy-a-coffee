@@ -153,7 +153,7 @@ export default async function MachineBrandPage({ params }: PageProps) {
               ) : (
                 <WizardNotice tone="caution">
                   В момента нямаме нищо за тази система. Обадете ни се на{" "}
-                  <a href={siteConfig.contact.phoneHref} className="underline">
+                  <a href={`tel:${siteConfig.contact.phoneHref}`} className="underline">
                     {siteConfig.contact.phone}
                   </a>{" "}
                   и ще проверим какво можем да поръчаме.
@@ -191,7 +191,7 @@ export default async function MachineBrandPage({ params }: PageProps) {
             Вижте другите марки
           </Link>{" "}
           или ни се обадете на{" "}
-          <a href={siteConfig.contact.phoneHref} className="underline">
+          <a href={`tel:${siteConfig.contact.phoneHref}`} className="underline">
             {siteConfig.contact.phone}
           </a>
           .

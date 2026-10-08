@@ -151,7 +151,7 @@ export default async function WizardResultPage({ searchParams }: PageProps) {
 
           <p className="text-sm text-ink-500">
             Не сте убедени? Обадете ни се на{" "}
-            <a href={siteConfig.contact.phoneHref} className="underline">
+            <a href={`tel:${siteConfig.contact.phoneHref}`} className="underline">
               {siteConfig.contact.phone}
             </a>{" "}
             и ще го обсъдим. Или{" "}

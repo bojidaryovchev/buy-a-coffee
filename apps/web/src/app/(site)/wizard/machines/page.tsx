@@ -103,7 +103,7 @@ export default function MachinesIndexPage() {
       <div className="mt-10 max-w-prose">
         <WizardNotice>
           Не намирате машината си? Обадете ни се на{" "}
-          <a href={siteConfig.contact.phoneHref} className="underline">
+          <a href={`tel:${siteConfig.contact.phoneHref}`} className="underline">
             {siteConfig.contact.phone}
           </a>{" "}
           — кажете какво пише на нея и ще ви кажем какво пасва.
