@@ -139,10 +139,12 @@ describe.skipIf(!reachable || !hasCatalog)("vending blends in the catalog", () =
 
   it("leaves out coffees that merely suit automatic machines", async () => {
     const db = await realDb();
+    // By our own slug, which is frozen. The source key is the source's to
+    // rename, and it has.
     const [vandino] = await db
       .select({ slug: products.slug })
       .from(products)
-      .where(eq(products.sourceKey, "/vandino-espresso-aroma/#1000g"));
+      .where(eq(products.slug, "kafe-na-zarna-vandino-espresso-aroma-1kg"));
     expect(vandino, "the catalog copy should hold this product").toBeDefined();
 
     const slugs = (await listVendingBlends()).map((blend) => blend.slug);
