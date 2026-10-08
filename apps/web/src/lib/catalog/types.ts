@@ -1,3 +1,5 @@
+import type { BrewingSystemId } from "@/lib/recommend/systems";
+
 /**
  * Storefront view models.
  *
@@ -47,6 +49,18 @@ export interface ProductCardView {
   readonly availability: Availability;
   readonly weight: string | null;
   readonly intensity: string | null;
+  /**
+   * The brewing system this product belongs to, resolved from its categories.
+   * Null when it belongs to none: a system badge is a compatibility claim, and
+   * it is never guessed from a product's name.
+   */
+  readonly systemId: BrewingSystemId | null;
+  /**
+   * Price per cup, formatted ("0,31 € на чаша"). Null when the price or the
+   * pack size is unknown. `estimated` is true when cups are derived from
+   * weight rather than counted pieces.
+   */
+  readonly servingPrice: { readonly formatted: string; readonly estimated: boolean } | null;
   readonly brand: { readonly slug: string; readonly name: string } | null;
   readonly image: ProductImageView | null;
   /**

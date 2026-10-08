@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import type { Database } from "@catalog/db";
 import { productImages, products, syncRuns } from "@catalog/db/schema";
-import { type Logger, silentLogger } from "@catalog/shared";
+import { type Logger, packServings, silentLogger } from "@catalog/shared";
 import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { ImageMirror } from "../storage/images.ts";
@@ -501,6 +501,8 @@ function productColumns(input: {
   brandId: string | null;
 }) {
   const { product } = input;
+  // Stored so a listing can sort by price per cup; see the column comment.
+  const servings = packServings(product.weight?.value ?? null, product.weight?.unit ?? null);
   return {
     hasUrlCollision: product.hasUrlCollision,
     name: product.name,
@@ -514,6 +516,8 @@ function productColumns(input: {
     weight: product.weightText,
     weightValue: product.weight?.value ?? null,
     weightUnit: product.weight?.unit ?? null,
+    servings: servings?.exact ?? null,
+    servingsEstimated: servings?.estimated ?? null,
     sku: product.sku,
     gtin: product.gtin,
     attributes: product.attributes,

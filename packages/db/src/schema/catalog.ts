@@ -1,6 +1,5 @@
 import { relations, sql } from "drizzle-orm";
 import {
-  type AnyPgColumn,
   boolean,
   index,
   integer,
@@ -8,8 +7,10 @@ import {
   numeric,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
+  type AnyPgColumn,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -191,6 +192,23 @@ export const products = pgTable(
     weight: text("weight"),
     weightValue: numeric("weight_value", { precision: 14, scale: 4 }),
     weightUnit: text("weight_unit"),
+    /**
+     * Cups in the pack, written by the sync from `packServings()` in
+     * `@catalog/shared` — the same function the storefront displays with — so
+     * a listing can be sorted by price per cup in SQL without a second copy of
+     * the grams-per-cup assumption. `servingsEstimated` is true when the
+     * figure is derived from weight rather than counted pieces.
+     */
+    servings: numeric("servings", { precision: 14, scale: 4 }),
+    servingsEstimated: boolean("servings_estimated"),
+
+    /**
+     * Stated facts about the coffee, read from the source's product page.
+     * Null means the source does not state it; nothing here is ever inferred.
+     */
+    arabicaPercent: smallint("arabica_percent"),
+    origin: text("origin"),
+    roast: text("roast"),
 
     sku: text("sku"),
     gtin: text("gtin"),

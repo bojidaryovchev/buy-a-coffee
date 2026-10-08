@@ -104,6 +104,8 @@ function toCardView(product: ProductCardView): ProductCardView {
     availability: product.availability,
     weight: product.weight,
     intensity: product.intensity,
+    systemId: product.systemId,
+    servingPrice: product.servingPrice,
     brand: product.brand,
     image: product.image,
     shortDescription: product.shortDescription,

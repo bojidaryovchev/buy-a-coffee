@@ -46,6 +46,8 @@ function candidate(overrides: {
     availability: "in_stock",
     weight: "1кг.",
     intensity: overrides.intensity ?? null,
+    systemId: null,
+    servingPrice: null,
     brand: { slug: brand, name: brand },
     image: null,
     shortDescription: null,

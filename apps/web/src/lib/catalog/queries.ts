@@ -6,12 +6,12 @@ import { packServings, pricePerServing } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
 import { brandDisplayName } from "./brand-display";
-import { discountPercent, toPriceView, unitPriceView } from "./format";
+import { discountPercent, toPerServingView, toPriceView, unitPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
 import { BREWING_SYSTEMS, type BrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
 import type { RecommendationCandidate } from "@/lib/recommend/score";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./attributes";
-import { publishedSummary } from "./fallback-copy";
+import { publishedSummary, resolveProductFormat } from "./fallback-copy";
 import {
   brandNameMatch,
   categoryNameMatch,
@@ -163,6 +163,7 @@ function toCard(
    * lexicographically, which would advertise a fake saving.
    */
   const discount = discountPercent(row.price, row.oldPrice);
+  const servings = packServings(row.weightValue, row.weightUnit);
   const card = {
     id: row.id,
     slug: row.slug,
@@ -174,6 +175,10 @@ function toCard(
     availability: row.availability as ProductCardView["availability"],
     weight: row.weight,
     intensity: row.attributes?.intensity ?? null,
+    systemId: resolveProductFormat(row.categoryKeys).system?.id ?? null,
+    servingPrice: toPerServingView(pricePerServing(row.price, servings), row.currency, {
+      estimated: servings?.estimated ?? false,
+    }),
     brand:
       row.brandSlug && row.brandName
         ? {

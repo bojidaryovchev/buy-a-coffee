@@ -2,6 +2,11 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 export default defineConfig({
+  /*
+   * Compile JSX with the automatic runtime, as Next.js does. Without it a
+   * component under test needs `React` in scope, which no component here has.
+   */
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),

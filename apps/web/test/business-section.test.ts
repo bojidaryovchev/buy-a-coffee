@@ -54,6 +54,8 @@ function product(overrides: Partial<ProductCardView> = {}): ProductCardView {
     availability: "in_stock",
     weight: "1 кг.",
     intensity: null,
+    systemId: null,
+    servingPrice: null,
     brand: { slug: "test", name: "TEST" },
     image: null,
     shortDescription: null,
