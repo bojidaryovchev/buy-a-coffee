@@ -27,7 +27,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ term, products: [], brands: [], categories: [], total: 0 });
   }
 
-  const { allowed, resetAt } = suggestLimiter.check(clientFingerprint(request.headers));
+  const { allowed, resetAt } = await suggestLimiter.check(clientFingerprint(request.headers));
   if (!allowed) {
     return new Response(JSON.stringify({ error: "rate_limited" }), {
       status: 429,

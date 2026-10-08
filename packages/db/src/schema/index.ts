@@ -5,3 +5,4 @@ export * from "./sync.ts";
 export * from "./observations.ts";
 export * from "./storefront.ts";
 export * from "./mail.ts";
+export * from "./rate-limit.ts";

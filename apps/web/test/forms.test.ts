@@ -132,38 +132,41 @@ describe("toFieldErrors", () => {
 });
 
 describe("createRateLimiter", () => {
-  it("allows up to the limit and then blocks", () => {
+  // No store given, so each limiter counts in its own memory.
+  const base = { name: "test", onStoreError: "deny" } as const;
+
+  it("allows up to the limit and then blocks", async () => {
     const now = 0;
-    const limiter = createRateLimiter({ limit: 3, windowMs: 1000, now: () => now });
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(false);
+    const limiter = createRateLimiter({ ...base, limit: 3, windowMs: 1000, now: () => now });
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(false);
   });
 
-  it("keeps separate counters per key", () => {
+  it("keeps separate counters per key", async () => {
     const now = 0;
-    const limiter = createRateLimiter({ limit: 1, windowMs: 1000, now: () => now });
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("b").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(false);
+    const limiter = createRateLimiter({ ...base, limit: 1, windowMs: 1000, now: () => now });
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("b")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(false);
   });
 
-  it("resets once the window has passed", () => {
+  it("resets once the window has passed", async () => {
     let now = 0;
-    const limiter = createRateLimiter({ limit: 1, windowMs: 1000, now: () => now });
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(false);
+    const limiter = createRateLimiter({ ...base, limit: 1, windowMs: 1000, now: () => now });
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(false);
     now = 1001;
-    expect(limiter.check("a").allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(true);
   });
 
-  it("reports the remaining allowance", () => {
+  it("reports the remaining allowance", async () => {
     const now = 0;
-    const limiter = createRateLimiter({ limit: 2, windowMs: 1000, now: () => now });
-    expect(limiter.check("a").remaining).toBe(1);
-    expect(limiter.check("a").remaining).toBe(0);
-    expect(limiter.check("a").remaining).toBe(0);
+    const limiter = createRateLimiter({ ...base, limit: 2, windowMs: 1000, now: () => now });
+    expect((await limiter.check("a")).remaining).toBe(1);
+    expect((await limiter.check("a")).remaining).toBe(0);
+    expect((await limiter.check("a")).remaining).toBe(0);
   });
 });
 
