@@ -71,12 +71,14 @@ export const configSchema = z.object({
   imageMinDelayMs: intFromEnv(0, 10_000, 50),
 
   /** Object storage. `local` keeps development free of AWS. */
-  storageDriver: z.enum(["local", "s3"]).default("local"),
+  storageDriver: z.enum(["local", "s3", "vercel-blob"]).default("local"),
   storageLocalDir: z.string().default(".storage"),
   storagePublicBaseUrl: z.string().default(""),
   s3Bucket: z.string().default(""),
   s3Region: z.string().default("eu-central-1"),
   s3Prefix: z.string().default(""),
+  /** Vercel Blob read-write token. A secret: never log the config object. */
+  blobToken: z.string().default(""),
 
   /** Diagnostics. */
   snapshotsEnabled: booleanish.default(true),
@@ -122,6 +124,7 @@ const ENV_MAP: Readonly<Record<keyof ScraperConfig, string>> = {
   s3Bucket: "S3_BUCKET",
   s3Region: "AWS_REGION",
   s3Prefix: "S3_PREFIX",
+  blobToken: "BLOB_READ_WRITE_TOKEN",
   snapshotsEnabled: "SNAPSHOTS_ENABLED",
   logLevel: "LOG_LEVEL",
   referenceDir: "REFERENCE_DIR",
@@ -167,6 +170,17 @@ export function loadConfig(
   const config = parsed.data;
   if (config.storageDriver === "s3" && !config.s3Bucket) {
     throw new ConfigError("STORAGE_DRIVER=s3 requires S3_BUCKET to be set.");
+  }
+  if (config.storageDriver === "vercel-blob") {
+    if (!config.blobToken) {
+      throw new ConfigError("STORAGE_DRIVER=vercel-blob requires BLOB_READ_WRITE_TOKEN to be set.");
+    }
+    if (!config.storagePublicBaseUrl) {
+      throw new ConfigError(
+        "STORAGE_DRIVER=vercel-blob requires STORAGE_PUBLIC_BASE_URL to be set " +
+          "(the store's public origin, e.g. https://<store-id>.public.blob.vercel-storage.com).",
+      );
+    }
   }
   if (config.retryMaxDelayMs < config.retryBaseDelayMs) {
     throw new ConfigError(
