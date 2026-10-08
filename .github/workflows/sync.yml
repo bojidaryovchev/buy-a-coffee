@@ -1,0 +1,216 @@
+# Catalog sync, every six hours.
+#
+# Two facts about this platform shape the file:
+#
+#  1. LOGS ARE PUBLIC. This repository is public, so everything the job prints
+#     is world-readable. The sync logs catalog data only (product names,
+#     counts, URLs of the public source pages); the shared logger redacts keys
+#     such as `databaseUrl`/`token` and scrubs any `postgres://...` string, and
+#     the "Check configuration" step registers the database password and host
+#     as masked values on top of GitHub's own masking of whole secrets. Never
+#     add a step that echoes the environment, runs with `set -x`, or prints a
+#     secret, a connection string or a token.
+#
+#  2. SCHEDULED WORKFLOWS ARE DISABLED after 60 days without repository
+#     activity. A quiet repository can therefore stop syncing without any
+#     failure to notice. That is why the alarm for a missing sync lives in the
+#     storefront (it compares the last successful sync with the clock), not
+#     here: this workflow cannot report its own absence.
+#
+# Configuration needed at hook-up (names only; none exist yet, and the job
+# fails fast with a clear message while any is missing):
+#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN
+#   variables  STORAGE_DRIVER, STORAGE_PUBLIC_BASE_URL, CRAWL_USER_AGENT
+#
+# Exit codes of the CLI (apps/scraper/src/cli.ts), each reported by its own
+# step so a failure notification names the cause:
+#   0 success   1 usage/configuration   2 completed but untrusted   3 failure
+
+name: Catalog sync
+
+on:
+  schedule:
+    # Every six hours, off the hour boundary to avoid the platform's peak.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute and report the diff without changing any product"
+        type: boolean
+        default: true
+      product_limit:
+        description: "Only process the first N products (blank for all)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Exactly one sync at a time, and a running one is never cancelled: two syncs
+# racing on the same rows is what this prevents. A run queued behind it waits
+# (the platform keeps one pending run per group and drops older pending ones).
+concurrency:
+  group: catalog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync catalog
+    # Forks must not run the schedule (they have no secrets, and would crawl
+    # the source for nothing). A manual run is always the owner's own choice.
+    if: github.event_name == 'workflow_dispatch' || !github.event.repository.fork
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NODE_VERSION: "22"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
+      STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
+      CRAWL_USER_AGENT: ${{ vars.CRAWL_USER_AGENT }}
+    steps:
+      # First, so a misconfigured run costs seconds, not an install.
+      - name: Check configuration
+        env:
+          PRODUCT_LIMIT: ${{ inputs.product_limit }}
+        run: |
+          missing=()
+          [ -n "$DATABASE_URL" ]             || missing+=("secret DATABASE_URL")
+          [ -n "$BLOB_READ_WRITE_TOKEN" ]    || missing+=("secret BLOB_READ_WRITE_TOKEN")
+          [ -n "$STORAGE_DRIVER" ]           || missing+=("variable STORAGE_DRIVER")
+          [ -n "$STORAGE_PUBLIC_BASE_URL" ]  || missing+=("variable STORAGE_PUBLIC_BASE_URL")
+          [ -n "$CRAWL_USER_AGENT" ]         || missing+=("variable CRAWL_USER_AGENT")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            list=$(printf '%s, ' "${missing[@]}")
+            list=${list%, }
+            echo "::error title=Sync is not configured::Missing: ${list}. Add them under Settings > Secrets and variables > Actions."
+            {
+              echo "### Sync is not configured"
+              echo
+              echo "Missing: ${list}"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [ -n "$PRODUCT_LIMIT" ] && ! [[ "$PRODUCT_LIMIT" =~ ^[1-9][0-9]{0,5}$ ]]; then
+            echo "::error title=Bad input::product_limit must be a positive whole number."
+            exit 1
+          fi
+          # Mask the pieces of the connection string a partial log line could
+          # leak (GitHub already masks the whole value).
+          node -e '
+            try {
+              const u = new URL(process.env.DATABASE_URL);
+              for (const v of [decodeURIComponent(u.password), u.hostname]) {
+                if (v) console.log("::add-mask::" + v);
+              }
+            } catch {
+              console.log("::error title=Sync is not configured::DATABASE_URL is not a valid URL.");
+              process.exit(1);
+            }
+          '
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Never fails by itself: the exit code is recorded and judged by the
+      # steps after the summary, so the summary is written in every case.
+      - name: Run sync
+        id: sync
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          PRODUCT_LIMIT: ${{ inputs.product_limit }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ -n "$PRODUCT_LIMIT" ]; then args+=(--product-limit "$PRODUCT_LIMIT"); fi
+          set +e
+          pnpm sync:catalog "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/sync.out"
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          echo "Sync exited with code $code"
+
+      - name: Job summary
+        if: always() && steps.sync.outcome != 'skipped'
+        env:
+          EXIT_CODE: ${{ steps.sync.outputs.exit_code }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          node - <<'EOF'
+          const fs = require("node:fs");
+          const file = `${process.env.RUNNER_TEMP}/sync.out`;
+          const out = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+          const code = process.env.EXIT_CODE || "unknown";
+          const verdict = {
+            0: "succeeded",
+            1: "configuration or usage error",
+            2: "completed but UNTRUSTED (circuit breaker open or partial run)",
+            3: "failed",
+          }[code] ?? `unknown (exit ${code})`;
+
+          // The CLI prints its result as an indented JSON block between
+          // single-line JSON log records: "{" alone on a line to "}" alone.
+          let result = null;
+          let block = null;
+          for (const line of out.split(/\r?\n/)) {
+            if (line === "{") block = [line];
+            else if (block && line === "}") {
+              block.push(line);
+              try {
+                const parsed = JSON.parse(block.join("\n"));
+                if (parsed && parsed.command === "sync") result = parsed;
+              } catch {}
+              block = null;
+            } else if (block) block.push(line);
+          }
+
+          const lines = [`### Catalog sync: ${verdict}`, ""];
+          lines.push(`Mode: ${process.env.DRY_RUN === "true" ? "dry run" : "live"}`, "");
+          if (result) {
+            lines.push("| Field | Value |", "| --- | --- |");
+            for (const [key, value] of Object.entries(result)) {
+              if (key === "command") continue;
+              const shown = value !== null && typeof value === "object" ? JSON.stringify(value) : String(value);
+              lines.push(`| ${key} | ${shown.replace(/\|/g, "\\|")} |`);
+            }
+          } else {
+            lines.push("No structured result was printed (the run stopped before it produced one). See the log of the previous step.");
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          EOF
+
+      # One step per failure class: the failed step's name is what a
+      # notification shows, so "untrusted" never reads as "crashed".
+      - name: "FAILED - untrusted run (exit 2): completed but the result is not trustworthy"
+        if: steps.sync.outputs.exit_code == '2'
+        run: |
+          echo "::error title=Untrusted sync run::The sync completed but its result is not trustworthy (circuit breaker open or a partial run). Nothing crashed. Read the summary for the breaker reasons."
+          exit 1
+
+      - name: "FAILED - crashed (exit 3): unexpected failure"
+        if: steps.sync.outputs.exit_code == '3'
+        run: |
+          echo "::error title=Sync failed::The sync crashed with an unexpected error. See the 'Run sync' log."
+          exit 1
+
+      - name: "FAILED - misconfigured (exit 1): usage or configuration error"
+        if: steps.sync.outputs.exit_code == '1'
+        run: |
+          echo "::error title=Sync misconfigured::The CLI rejected its configuration or arguments. See the 'Run sync' log."
+          exit 1
+
+      - name: "FAILED - unexpected exit code"
+        if: steps.sync.outputs.exit_code != '' && !contains(fromJSON('["0","1","2","3"]'), steps.sync.outputs.exit_code)
+        run: |
+          echo "::error title=Sync failed::The sync exited with code ${{ steps.sync.outputs.exit_code }}."
+          exit 1
