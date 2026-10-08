@@ -90,7 +90,7 @@ function BlockView({ block }: { block: Block }): ReactNode {
           className={cx(
             "rounded-md border px-4 py-3 text-sm",
             block.tone === "caution"
-              ? "border-clay-500/40 bg-clay-100 text-ink-900"
+              ? "border-caution bg-caution-100 text-ink-900"
               : "border-line bg-paper-sunken text-ink-700",
           )}
         >

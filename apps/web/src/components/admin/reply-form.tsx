@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { replyToThread, type ReplyState } from "@/lib/admin-actions";
+import { TEXTAREA_CLASS } from "@/components/forms/field-styles";
 
 /**
  * The reply box, for a mailbox thread.
@@ -62,7 +63,7 @@ export function ReplyForm({ threadId, sender }: { threadId: string; sender: stri
         rows={7}
         required
         placeholder="Напишете отговора..."
-        className="mt-2 w-full rounded-sm border border-line-strong bg-paper px-3.5 py-3 text-base leading-relaxed focus:border-pine-500 focus:outline-none"
+        className={`mt-2 ${TEXTAREA_CLASS} leading-relaxed`}
       />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

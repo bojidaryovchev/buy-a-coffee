@@ -1715,17 +1715,12 @@ What existed in the repository and did not meet this document. Until each is
 changed, the token values keep it legible. Entries marked **Done** were checked
 against the code on 9 October 2026.
 
-- **Clay used for cautions.** _Partly done._ `Badge` tone `caution`,
-  `WizardNotice` tone `caution`, the recommendation caveat, the removed-product
-  panel, the footer and the legal-document notices now use `caution-100` /
-  `caution`. Still on clay: the brand taglines (`app/(site)/brands/page.tsx`,
-  `app/(site)/brands/[slug]/page.tsx`, `text-clay-600`, to become `ink-500`) and
-  the admin "new" and status markers (`(panel)/layout.tsx`, `poshta`,
-  `sabshteniya`, `zayavki`, `sinhron`, `clay-100` / `clay-600`, to become
-  `caution-100` / `caution`), and the journal's caution callout
-  (`components/journal/article-body.tsx`, `border-clay-500/40 bg-clay-100`, which
-  is not in the list above and arrived after it). All still pass AA as they are
-  (6.03:1).
+- **Done. Clay used for cautions.** `Badge` tone `caution`, `WizardNotice`,
+  the recommendation caveat, the removed-product panel, the footer, the
+  legal-document notices, the admin markers, the sync page and the journal's
+  caution callout use `caution-100` / `caution`; brand taglines use `ink-500`.
+  Clay remains only on prices, reduction badges, the promotions band and the
+  rail's link to promotions.
 - **Done. `Badge` tone `accent`** was `bg-clay-500 text-paper`, 3.10:1. It is
   now `bg-clay-600 text-paper-raised` (7.26:1), the same as tone `reduction`.
 - **Done. The home hero** used clay as an accent. It no longer does.
@@ -1733,14 +1728,12 @@ against the code on 9 October 2026.
   `text-pine-900/80`) no longer appears.
 - **Done. Packshot wells** are `bg-well` on the card, the gallery, the hero, the
   search suggestions and the recommendation card.
-- **Fields.** _Partly done._ The storefront forms take the global ring and
-  `text-input` from `components/forms/field-styles.ts`. Still on `outline-none`
-  with a border change and `text-base`: the search field
-  (`components/catalog/search-field.tsx` and its fallback) and the admin
-  sign-in and reply forms.
-- **Controls with fixed heights.** _Partly done._ Buttons are `min-h-*` with
-  padding. Still fixed: the search field's `h-11` and the admin sign-in's
-  `h-12` field and button.
+- **Done. Fields.** The storefront forms, the search field and the admin
+  sign-in and reply forms use the shared classes in
+  `components/forms/field-styles.ts` or the same treatment: the global focus
+  ring and `text-input`.
+- **Done. Controls with fixed heights.** Buttons, fields and the search field
+  are `min-h-*` with padding.
 - **Done. Hex copies of `paper`** — `app/manifest.ts` (`background_color`) and
   `app/opengraph-image.tsx` (`PAPER`) — hold the new `#faf6ee`; the mail
   templates hold no copy of it. `pine-900` is unchanged (`#002c1d`).
