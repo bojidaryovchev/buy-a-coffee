@@ -103,14 +103,24 @@ and the live source: **110 → 187 products, 86 followed to their new URL, 2
 linked by hand, 77 created, none duplicated, none lost**; every existing product
 kept its slug, its copy and its photo; a second sync was a no-op.
 
+**Second wave, same day.** Nine more branches: the storefront rebuilt to
+`DESIGN.md` (navigation, home, product card, listing, product page), product
+codes and stated facts read from the source's product pages, newsletter
+consent, the wizard using composition and roast, and test infrastructure that
+lets the whole browser suite run in CI. 1,769 unit and 293 integration tests
+pass; `reference:coverage` passes against a fresh crawl (228 pages, 187
+products, 19 of 19 observed capabilities covered); `check:originality` passes
+against all 187 of the source's descriptions. The product-code backfill read
+187 of 187 pages in 24 seconds with no failure.
+
 Tasks that are built but not ticked, and why:
 
 - **D3** — the code is done; `pnpm check:launch` fails by design until the
   business answers the open questions it lists.
-- **E1, E7** — the pages and articles exist; they are not yet linked from the
-  navigation, the sitemap or the home page.
-- **B5, B6, B16** — the parser and the rule exist; wiring them into the sync is
-  in progress.
+- **E8** — waits on the business for social links.
+- **A4, B9, F8, F9** — in progress in the third wave: the docs, copy for the 77
+  new products, the remaining design loose ends, and the performance budgets
+  together with the browser suite on the redesign.
 
 Things the first wave found that this plan did not anticipate are marked
 **Found** where they apply.
@@ -273,7 +283,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - **Found.** The two products are a pod pack that gained a pack size in its
     name and a bean blend whose name was respelled. Their commands are in H6.
 
-- [ ] **B5 · Product code as a second identity · M**
+- [x] **B5 · Product code as a second identity · M**
   - The source's product pages now print a product code. Fetch the product page
     for **created, moved and changed** products only, extend
     [productPage.ts](packages/scraper-core/src/parsers/productPage.ts) to read
@@ -284,8 +294,11 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - One backfill pass reads every product page once, at the configured rate.
   - _Done when_ every active product has a `sku` and a simulated rename with a
     simultaneous name change is still paired.
+  - **Found.** The source's product codes are not unique: two pairs of different
+    products share a code. The code is therefore a move-detection signal only,
+    never the identity, and `catalog:enrich` reports codes held twice.
 
-- [ ] **B6 · Structured attributes from the product page · M**
+- [x] **B6 · Structured attributes from the product page · M**
   - The catalog blob carries only a short description (median 122 characters).
     Composition, origin, taste profile and compatible system are a labelled
     list on the product page.
@@ -350,7 +363,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
     that is what makes a change of image host self-healing.
   - _Done when_ no active image row has a null MIME type after a second sync.
 
-- [ ] **B12 · Refresh the reference crawl · M**
+- [x] **B12 · Refresh the reference crawl · M**
   - `pnpm crawl:discovery` locally; commit the new `reference/latest/`.
   - Update [features.ts](packages/scraper-core/src/discovery/features.ts): the
     banner is now a delivery promise, so the written reason for omitting
@@ -390,7 +403,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ "is the catalog current, and if not why" is answerable without
     a database client.
 
-- [ ] **B16 · Crawler identity · S**
+- [x] **B16 · Crawler identity · S**
   - The default `CRAWL_USER_AGENT` names a placeholder contact. Make the
     contact a required setting for any non-local run; the real address arrives
     in H1.
@@ -511,7 +524,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
     `contacted` are never touched and are reported as awaiting a decision. The
     policy's promise therefore depends on enquiries being closed in the panel.
 
-- [ ] **D10 · Newsletter consent, and marking from the panel · M**
+- [x] **D10 · Newsletter consent, and marking from the panel · M**
   - An unticked consent checkbox on the quick-order and contact forms, writing
     `newsletter_subscribers` with its `consent_source`.
   - An "add to newsletter" action on an enquiry or message in the admin panel.
@@ -521,7 +534,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
     its first message.
   - _Done when_ every subscriber row can answer "who agreed, when, and how".
 
-- [ ] **D11 · After the customer presses the button · S**
+- [x] **D11 · After the customer presses the button · S**
   - The success state says what happens next and when, from the opening hours;
     outside them, it says so. Optional confirmation email when the customer
     gave an address.
@@ -538,7 +551,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
 B12's failing coverage report is the authoritative list; these are what it will
 contain.
 
-- [ ] **E1 · Vending Zone and Consumables · M**
+- [x] **E1 · Vending Zone and Consumables · M**
   - Two pages with our own copy, linking the vending blends already in the
     catalog, with a business enquiry form that reuses the contact action.
   - Built on the category mechanism, so that when the source starts listing
@@ -546,20 +559,20 @@ contain.
   - In the header, the home page tiles, the sitemap and `llms.txt`.
   - _Done when_ both pages exist and coverage passes for the two page types.
 
-- [ ] **E2 · Quick order from the product card · M**
+- [x] **E2 · Quick order from the product card · M**
   - A "Бърза поръчка" control on [product-card.tsx](apps/web/src/components/catalog/product-card.tsx)
     opening the existing form in a dialog. Without JavaScript it is a link to
     the order form on the product page.
   - _Done when_ an order can be placed from a listing in two interactions, and
     the no-script end-to-end test still passes.
 
-- [ ] **E3 · Intensity on its own scale · S**
+- [x] **E3 · Intensity on its own scale · S**
   - The source declares intensity on five different scales (out of 5, 9, 10, 12
     and 13). `parseIntensity()` already normalises them. Show the reading as a
     scale with its own maximum — "7 от 10" — on the card and the product page.
   - _Done when_ no two products on different scales look falsely comparable.
 
-- [ ] **E4 · System badge and compatibility line · S**
+- [x] **E4 · System badge and compatibility line · S**
   - Every capsule and pod product names its system on the card. The product
     page links "Става за…" to the matching machine pages.
   - _Done when_ a customer can tell from a listing whether a product fits.
@@ -576,7 +589,7 @@ contain.
     `check:originality`.
   - _Done when_ all 8 have one.
 
-- [ ] **E7 · Journal · M · `content`**
+- [x] **E7 · Journal · M · `content`**
   - Articles as files in the repository, an article route, Article JSON-LD.
   - Three to five launch articles answering questions people actually ask —
     which capsule fits which machine, what a cup really costs by format, how to
@@ -587,15 +600,15 @@ contain.
   - Render `siteConfig.social` in the footer and as `sameAs` on the
     Organization JSON-LD; both stay absent while it is empty.
 
-- [ ] **E9 · Promotions under real conditions · S**
+- [x] **E9 · Promotions under real conditions · S**
   - The source has no reduced price today, so the page has only ever rendered
     its empty state in production. Add an end-to-end case with a seeded
     reduction, and a home module that appears only when one exists.
 
-- [ ] **E10 · Product code on the page · S**
+- [x] **E10 · Product code on the page · S**
   - Show `sku` on the product page and in the JSON-LD once B5 has filled it.
 
-- [ ] **E11 · Coverage green · S**
+- [x] **E11 · Coverage green · S**
   - Update the map and the omissions in `apps/web/scripts/reference-coverage.ts`
     and regenerate [docs/reference-coverage.md](docs/reference-coverage.md).
   - _Done when_ `pnpm reference:coverage` passes against B12's crawl.
@@ -627,26 +640,32 @@ Three layers that have to agree:
     alone.
   - _Done when_ every pairing passes WCAG AA in the accessibility suite.
 
-- [ ] **F3 · The product card · M**
+- [x] **F3 · The product card · M**
   - Packshot, system badge, brand, name, intensity scale, price, price per cup,
     quick order. Equal heights; two columns on a phone.
 
-- [ ] **F4 · Home · M**
+- [x] **F4 · Home · M**
   - A hero built from real packshots; the delivery promise; shop-by-system
     tiles; an entry to the wizard; new arrivals; brands; journal; Vending Zone.
     Every module still disappears when it has nothing to show.
 
-- [ ] **F5 · Product page · M**
+- [x] **F5 · Product page · M**
   - Gallery; a facts table (system, intensity, composition, origin, pack,
     price per cup) from B6; delivery and payment; the order form;
     compatibility; related products.
+  - **Found.** Related products matched on brand alone, so a Dolce Gusto capsule
+    could be suggested under a Nespresso one. They are now restricted to the
+    same brewing system.
 
-- [ ] **F6 · Listings · M**
+- [x] **F6 · Listings · M**
   - Filter by system and by intensity band; sort by price per cup; chips for
     active filters; the category introduction; real empty states. New
     parameters join the `noindex` and robots rules.
+  - **Found.** Facet counts used a narrower search predicate than the results,
+    so searching a brand by name showed results beside zero counts. Facets now
+    use the results' predicate.
 
-- [ ] **F7 · Navigation · S**
+- [x] **F7 · Navigation · S**
   - Capsules grouped by system, "find by machine" as a first-class entry,
     Vending Zone; the mobile drawer carries the same structure.
 
@@ -670,7 +689,7 @@ Three layers that have to agree:
   - _Done when_ each of the 20 brands is found by its common Cyrillic spelling,
     in `e2e/search.spec.ts`.
 
-- [ ] **G2 · Score with real attributes · M**
+- [x] **G2 · Score with real attributes · M**
   - Use B6's composition, origin and roast as soft criteria in
     [score.ts](apps/web/src/lib/recommend/score.ts), with reason phrases, under
     the existing rule that a card may only claim what the ranking used.
@@ -686,12 +705,12 @@ Three layers that have to agree:
     recognition text claimed a machine-read barcode on Dolce Gusto capsules;
     nothing supports that, and it is removed.
 
-- [ ] **G4 · Structured data, sitemap, llms.txt · S**
+- [x] **G4 · Structured data, sitemap, llms.txt · S**
   - Article markup for E7; product code and shipping from E10 and D2; new
     routes in the sitemap with `lastModified` from `last_changed_at`; delivery
     terms in `llms.txt`.
 
-- [ ] **G5 · Internal links · S**
+- [x] **G5 · Internal links · S**
   - Product → system → machines; category introductions → wizard; journal →
     catalog.
 
