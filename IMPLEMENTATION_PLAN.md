@@ -762,7 +762,7 @@ passes.
 - [ ] **H7 · Turn on the schedule** — add the workflow's secrets, run it once
       by hand, enable the schedule, and prove the alarm by letting a preview go
       stale.
-- [ ] **H8 · Mail** — `mail-prune-foreign --dry-run`, review, export, apply.
+- [ ] **H8 · Mail** — `pnpm --filter @catalog/web mail:prune-foreign` (plan-only by default), review, `--export <file>`, then `--apply`.
       Send a real enquiry end to end and answer it from the panel. Confirm SPF
       and DKIM pass; move DMARC off `p=none` once reports are clean.
 - [ ] **H9 · Search engines** — verify the domain in Search Console, submit the
