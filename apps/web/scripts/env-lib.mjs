@@ -6,21 +6,111 @@
  * four modules - would be more structure than this deserves.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 
 /* -------------------------------------------------------------------------- */
 /* Environment loading                                                        */
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Keys that appear more than once in one env file, with the line of each.
+ *
+ * Node's own loader (and Next's) lets the LAST occurrence win without a word.
+ * That is how a developer's file once declared DATABASE_URL twice - a remote
+ * one, then a localhost one - and the localhost one is what `env:push` would
+ * have sent to production. A repeated key is never intentional, so it is an
+ * error rather than a precedence rule to remember.
+ *
+ * Only line numbers are reported. A value is never read back out, because the
+ * values in these files are credentials.
+ */
+export function findDuplicateKeys(text) {
+  const firstSeen = new Map();
+  const duplicates = [];
+  let openQuote = null;
+
+  text.split(/\r?\n/).forEach((line, index) => {
+    const lineNo = index + 1;
+
+    /* Inside a multi-line quoted value: its lines are data, not declarations. */
+    if (openQuote) {
+      if (line.includes(openQuote)) openQuote = null;
+      return;
+    }
+
+    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=(.*)$/.exec(line);
+    if (!match) return;
+    const [, key, rest] = match;
+
+    const value = rest.trim();
+    const quote = value[0];
+    if ((quote === '"' || quote === "'" || quote === "`") && !value.slice(1).includes(quote)) {
+      openQuote = quote;
+    }
+
+    if (firstSeen.has(key)) duplicates.push({ key, firstLine: firstSeen.get(key), line: lineNo });
+    else firstSeen.set(key, lineNo);
+  });
+
+  return duplicates;
+}
+
+/** A problem in an env file itself, as opposed to in what it configures. */
+export class EnvFileError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "EnvFileError";
+  }
+}
+
+/**
+ * Parse one env file's text, refusing duplicate keys. Separate from the file
+ * system so it can be tested with a string.
+ */
+export function parseEnvText(text, file) {
+  const duplicates = findDuplicateKeys(text);
+  if (duplicates.length) {
+    throw new EnvFileError(
+      duplicates
+        .map(
+          (d) =>
+            `${file}: ${d.key} is declared twice (line ${d.firstLine} and line ${d.line}).\n` +
+            "    Which one wins depends on the tool reading it, so none of them is trusted.\n" +
+            "    Keep one, and comment out the other.",
+        )
+        .join("\n  "),
+    );
+  }
+  return parseEnv(text);
+}
+
+/**
  * Load the env files the way Next does at runtime, which a plain Node script
  * does not do for itself: `.env.local` first, then `.env` filling the gaps.
  * Anything already in the real environment beats both, which is what makes
  * `VERCEL_ENV=production node scripts/env-check.mjs` work.
+ *
+ * Throws `EnvFileError` when a file declares the same key twice.
  */
 export function loadEnvFiles() {
   for (const file of [".env.local", ".env"]) {
-    if (existsSync(file)) process.loadEnvFile(file);
+    if (!existsSync(file)) continue;
+    const parsed = parseEnvText(readFileSync(file, "utf8"), file);
+    for (const [key, value] of Object.entries(parsed)) {
+      if (process.env[key] === undefined) process.env[key] = value;
+    }
+  }
+}
+
+/** For the command-line entry points: print an env-file problem and stop. */
+export function loadEnvFilesOrExit() {
+  try {
+    loadEnvFiles();
+  } catch (error) {
+    if (!(error instanceof EnvFileError)) throw error;
+    console.error(`\n${RED}${BOLD}Refusing to run.${OFF}\n  ${error.message}\n`);
+    process.exit(1);
   }
 }
 
@@ -103,7 +193,7 @@ const TARGETS = new Set(["production", "preview", "development"]);
  * rule: a secret that slipped into a committed file should fail loudly on the
  * next command anyone types, not wait to be noticed at deploy time.
  */
-export function assertManifestValid(vars) {
+export function assertManifestValid(vars, retired = []) {
   const problems = [];
 
   const leaked = vars.filter((v) => v.kind === "secret" && v.value !== undefined);
@@ -147,6 +237,11 @@ export function assertManifestValid(vars) {
       );
   }
 
+  for (const r of retired) {
+    if (seen.has(r.name)) problems.push(`${r.name} is both declared and listed as retired.`);
+    if (!r.why) problems.push(`${r.name}: a retired variable needs a reason.`);
+  }
+
   if (problems.length) {
     throw new Error(`env.schema.mjs is invalid:\n  ${problems.join("\n  ")}`);
   }
@@ -157,6 +252,133 @@ export function isRequired(spec, { isProductionish }) {
   if (spec.required === "always") return true;
   if (spec.required === "production") return isProductionish;
   return false;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Never deploy a laptop                                                      */
+/* -------------------------------------------------------------------------- */
+
+/** Variables whose value is a place, and so can be a place only your machine has. */
+export const PLACE_VARIABLES = [
+  "DATABASE_URL",
+  "NEXT_PUBLIC_SITE_URL",
+  "NEXT_PUBLIC_IMAGE_BASE_URL",
+];
+
+/**
+ * Why a URL's host could not work from anywhere but the machine that wrote it,
+ * or null when it looks like a real remote host.
+ *
+ * Loopback names and addresses, and a bare hostname with no dot (`db`,
+ * `postgres`): those resolve through a local hosts file or a container
+ * network, never on a hosting platform. Unparseable values return null; that is
+ * the variable's own `validate`'s job to report, not this guard's.
+ */
+export function localOnlyHostReason(value) {
+  let host;
+  try {
+    host = new URL(value).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  host = host.replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost")) return `host "${host}" is this machine`;
+  if (host === "::1" || host === "0.0.0.0" || /^127\./.test(host))
+    return `host "${host}" is this machine`;
+  if (!host.includes(".") && !host.includes(":"))
+    return `host "${host}" is a bare hostname with no dot, which only resolves on a local network`;
+  return null;
+}
+
+/**
+ * Entries about to be sent to a deployed target whose value points at the
+ * sender's own machine.
+ *
+ * This exists because a local .env can hold DATABASE_URL twice, or a stale
+ * localhost, and `env:push --apply` would carry it to production. It runs on
+ * the desired set, before any network call and in `--offline` too, so the
+ * mistake is visible even when nothing could have been sent.
+ *
+ * The result names the variable, the targets and the reason - never the value,
+ * which for DATABASE_URL carries a password.
+ */
+export function findLocalOnlyValues(desired) {
+  const problems = [];
+  for (const { spec, entry } of desired) {
+    if (!PLACE_VARIABLES.includes(spec.name) || !entry.target?.length) continue;
+    const reason = localOnlyHostReason(entry.value);
+    if (reason) problems.push({ name: spec.name, targets: entry.target, reason });
+  }
+  return problems;
+}
+
+/** The text a developer sees for those problems. */
+export function describeLocalOnlyValues(problems) {
+  return (
+    problems
+      .map(
+        (p) =>
+          `${p.name} would be sent to ${p.targets.join(", ")}, but its ${p.reason}.\n` +
+          "    A deployed site cannot reach that. The value is not shown here: it may hold a credential.",
+      )
+      .join("\n  ") + "\n  Fix the value in your .env (or the manifest), then run this again."
+  );
+}
+
+/**
+ * Split variables found on the platform but not in the manifest into the ones
+ * known to be retired - safe to remove - and the ones nobody has accounted for.
+ */
+export function classifyExtras(existing, declaredNames, retired = []) {
+  const reasons = new Map(retired.map((r) => [r.name, r.why]));
+  const extras = existing.filter((e) => !declaredNames.has(e.key));
+  return {
+    retired: extras
+      .filter((e) => reasons.has(e.key))
+      .map((e) => ({ ...e, why: reasons.get(e.key) })),
+    unknown: extras.filter((e) => !reasons.has(e.key)),
+  };
+}
+
+/**
+ * Evaluate every manifest variable against the current environment into a
+ * report. This is the body of `env:check`, kept here so a test calls exactly
+ * what the command calls.
+ */
+export function evaluateVars(vars, { isProductionish, onServerless, report = createReport() }) {
+  for (const spec of vars) {
+    if (spec.kind === "system") continue;
+
+    const { value, source } = resolve(spec, "local");
+
+    if (value === undefined) {
+      if (isRequired(spec, { isProductionish })) {
+        report.error(`${spec.name} is not set`, spec.missing?.message ?? spec.summary);
+      } else if (spec.missing) {
+        /* Some absences are graver on a host with no disk, and say something
+           different there. The manifest supplies both variants; this only picks
+           between them, so it never has to know which variable is which. */
+        const local = !onServerless;
+        const level =
+          local && spec.missing.levelWhenLocal ? spec.missing.levelWhenLocal : spec.missing.level;
+        const message =
+          local && spec.missing.messageWhenLocal
+            ? spec.missing.messageWhenLocal
+            : spec.missing.message;
+        report.add(level, `${spec.name} is not set`, message);
+      }
+      continue;
+    }
+
+    const verdict = spec.validate?.(value, { isProductionish });
+    if (verdict) {
+      report.add(verdict.level, `${spec.name}: ${verdict.message}`, undefined);
+      if (verdict.level === "error") continue;
+    }
+
+    report.ok(spec.name, displayValue(spec, value, source));
+  }
+  return report;
 }
 
 /* -------------------------------------------------------------------------- */

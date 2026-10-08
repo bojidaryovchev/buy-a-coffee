@@ -15,7 +15,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { vars } from "../env.schema.mjs";
+import { retired, vars } from "../env.schema.mjs";
 import { assertManifestValid, colours } from "./env-lib.mjs";
 
 const { RED, GREEN, DIM, BOLD, OFF } = colours;
@@ -25,7 +25,7 @@ const TARGET = ".env.example";
 const WIDTH = 78;
 
 try {
-  assertManifestValid(vars);
+  assertManifestValid(vars, retired);
 } catch (error) {
   console.error(`
 ${RED}${BOLD}Manifest problem.${OFF}
@@ -96,7 +96,10 @@ for (const { name, specs } of sections) {
   }
 }
 
-const rendered = `${out.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
+const rendered = `${out
+  .join("\n")
+  .replace(/\n{3,}/g, "\n\n")
+  .trimEnd()}\n`;
 
 if (CHECK) {
   let current = "";
