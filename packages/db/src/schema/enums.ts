@@ -48,12 +48,17 @@ export const productStatusEnum = pgEnum("product_status", ["active", "missing", 
 
 export const entityStatusEnum = pgEnum("entity_status", ["active", "missing", "removed"]);
 
+/**
+ * `moved` is a change of identity, not of content: the source renamed the
+ * product's URL and the sync re-pointed the existing row at the new key.
+ */
 export const changeTypeEnum = pgEnum("change_type", [
   "created",
   "updated",
   "marked_missing",
   "removed",
   "restored",
+  "moved",
 ]);
 
 export const imageStatusEnum = pgEnum("image_status", ["active", "orphaned", "failed"]);

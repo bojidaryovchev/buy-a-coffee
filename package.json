@@ -23,6 +23,8 @@
     "sync:catalog": "pnpm --filter @catalog/scraper sync:catalog",
     "reference:export": "pnpm --filter @catalog/scraper reference:export",
     "images:gc": "pnpm --filter @catalog/scraper images:gc",
+    "catalog:verify": "pnpm --filter @catalog/scraper cli catalog:verify",
+    "catalog:link": "pnpm --filter @catalog/scraper cli catalog:link",
     "test:e2e": "pnpm --filter @catalog/web test:e2e",
     "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
     "check:originality": "pnpm --filter @catalog/web check:originality",

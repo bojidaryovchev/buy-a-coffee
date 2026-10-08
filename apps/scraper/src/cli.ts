@@ -7,6 +7,7 @@ import {
   commandStatus,
   commandSync,
 } from "./commands.ts";
+import { CATALOG_HELP, runCatalogCommand } from "./commands-catalog.ts";
 import { createRuntime } from "./runtime.ts";
 
 /**
@@ -113,7 +114,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   const { command, flags } = parseArgs(argv);
 
   if (command === "help" || command === "--help" || command === "-h" || bool(flags, "help")) {
-    process.stdout.write(`${HELP}\n`);
+    process.stdout.write(`${HELP}${CATALOG_HELP}\n`);
     return EXIT.ok;
   }
 
@@ -192,6 +193,17 @@ export async function main(argv: readonly string[]): Promise<number> {
           parserConfidence: result.discovery.confidence,
           discovered: result.discovery.products.length,
           ...result.appliedDiff.counts,
+          moves: result.appliedDiff.moved.map((change) => ({
+            from: change.movedFrom?.sourceKey,
+            to: change.sourceKey,
+            matchedBy: change.movedFrom?.matchedBy,
+            decidedBy: change.movedFrom?.decidedBy,
+            alsoChanged: change.changedFields.filter(
+              (field) => field !== "sourceKey" && field !== "semanticHash",
+            ),
+          })),
+          unresolvedMoves: result.diff.unresolvedMoves,
+          taxonomy: result.taxonomy,
           images: result.images,
           circuitBreaker: {
             tripped: result.breaker.tripped,
@@ -226,6 +238,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       }
 
       default: {
+        const handled = await runCatalogCommand(runtime, command, argv.slice(1));
+        if (handled !== null) return handled;
         process.stderr.write(`Unknown command: ${command}\n${HELP}\n`);
         return EXIT.usage;
       }

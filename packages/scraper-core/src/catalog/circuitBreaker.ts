@@ -137,8 +137,10 @@ function describe(reasons: readonly BreakerReason[], input: BreakerInput): strin
 /**
  * Strip absence-driven changes from a diff.
  *
- * Creations, updates and restorations survive: they add or refresh data and
- * cannot empty the catalog. Only `marked_missing` and `removed` are dropped.
+ * Creations, updates, restorations and moves survive: they add or refresh
+ * data and cannot empty the catalog. A move in particular keeps its row — it
+ * is the opposite of a removal. Only `marked_missing` and `removed` are
+ * dropped.
  */
 export function suppressRemovals(diff: DiffResult): DiffResult {
   const kept = diff.changes.filter(
