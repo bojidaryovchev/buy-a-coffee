@@ -70,7 +70,7 @@ Changes confirmed on 2026-10-09:
 - The top-level capsule category was renamed `kapsuli` -> `kafe-kapsuli`.
 - `/vending-zona/` and `/konsumativi/` are both real navigation categories.
 - Brand slugs no longer carry stray whitespace (`" vergnano"` is now `vergnano`), but
-  three brand *display names* still do (`" VERGNANO"`, `"BORBONE "`, `"BIANCHI "`).
+  three brand _display names_ still do (`" VERGNANO"`, `"BORBONE "`, `"BIANCHI "`).
 - One product URL still carries a space inside its path: `/caffitaly-espresso-morbido-10 /`
   (kept exactly as the source prints it).
 
@@ -89,12 +89,12 @@ and it still parses completely:
 
 Scope check across pages (unchanged):
 
-| Page             | FILTER_INIT | products |
-|------------------|-------------|----------|
-| `/search/`       | yes         | **187** (full) |
-| brand pages      | yes         | none (scoped categories only) |
-| category pages   | no          | — (renders `.product-item` HTML) |
-| everything else  | no          | — |
+| Page            | FILTER_INIT | products                         |
+| --------------- | ----------- | -------------------------------- |
+| `/search/`      | yes         | **187** (full)                   |
+| brand pages     | yes         | none (scoped categories only)    |
+| category pages  | no          | — (renders `.product-item` HTML) |
+| everything else | no          | —                                |
 
 So `/search/` is the single authoritative catalog index. Category listing HTML is an
 **independent fallback** source parsed by a separate parser, which keeps sync alive if
@@ -171,6 +171,39 @@ and leaves the rest null (see `parsers/productFacts.ts`).
 Every product page also carries `Product` and `BreadcrumbList` JSON-LD, after a
 `WebSite` block that every page has. `Offer.price` matches the page's price in all 12.
 
+## Enrichment: what the product pages added
+
+The catalog blob carries no product code and no characteristics, so the sync
+reads product pages for them (`catalog/enrich.ts`), a few per run. The one-time
+backfill (`pnpm catalog:enrich --apply`) read all 187 on the rehearsal catalog:
+
+- **A code on every page** (187 of 187). The code is **not unique**: `00162` is
+  printed on two different Rema Dolce Gusto capsules (Forte and Intenso), and
+  `00405` on two different Lollo beans (Oro 1 кг, Classico 0.500 кг). It is
+  therefore stored and used as a move-detection signal, never as identity.
+- **Stated facts**, kept only where unambiguous: an arabica share on 76
+  products, an origin on 37, a roast on 22. The rest are null, by design.
+- No page failed.
+
+## Request budget
+
+What a run asks of the source, in page requests (the full account is the
+comment above the politeness settings in `packages/scraper-core/src/config.ts`):
+
+| Run                                 | Requests                                         |
+| ----------------------------------- | ------------------------------------------------ |
+| Every sync, nothing changed         | 3: `robots.txt`, the not-found probe, `/search/` |
+| A sync on a day with 5 new products | 8: the 3, plus 5 product pages                   |
+| Any one sync, at most               | 23: the 3, plus `SYNC_ENRICH_MAX_PER_RUN` (20)   |
+| The enrichment backfill, once       | 189: `robots.txt`, the probe, 187 product pages  |
+
+Images are fetched separately, with their own spacing, only for images not
+already mirrored. Retries on 5xx, 408, 429 and timeouts come on top; a 404 is
+not retried, and a product page that failed is offered again after 24 hours, so
+a dead URL costs one request a day. Five product pages failing in a row end
+product-page reads for that run. Every request carries `CRAWL_USER_AGENT`, and
+a run that writes refuses to start while it names a placeholder contact.
+
 ## Data-quality hazards
 
 Today (all verified against the 187-record blob):
@@ -204,7 +237,7 @@ the relevant text rewritten, so they stay covered if the source regresses.
   (`blog-article.html`, `Article` JSON-LD, published 2026-09-18). Classifies as
   `blog_index` and `blog_article` by route; the article is the only page under `/blog/<slug>/`.
 - **Free-delivery banner**: every page opens with "Безплатна доставка за поръчки над 49€."
-  above a quick-order tagline. It is source marketing copy and says nothing about *our*
+  above a quick-order tagline. It is source marketing copy and says nothing about _our_
   delivery terms.
 - **Footer**: category links, contact block, social links, "Начини на плащане"
   (cash on delivery, bank transfer, card). Contact details are public business details;
@@ -230,7 +263,7 @@ the relevant text rewritten, so they stay covered if the source regresses.
 - Dismissible sitewide notice banner (localStorage; the 7-day expiry was recorded earlier and not re-checked).
 
 **Neither form was ever submitted.** The third-party tenant key is deliberately not
-copied into this repository. Our storefront implements the same *intent* against our
+copied into this repository. Our storefront implements the same _intent_ against our
 own endpoint and database.
 
 ## Fixtures

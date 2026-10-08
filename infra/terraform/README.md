@@ -1,21 +1,30 @@
 # Deployment
 
+> **This is the alternative, not the runtime.** The catalog sync runs as the
+> scheduled GitHub Actions workflow in
+> [`.github/workflows/sync.yml`](../../.github/workflows/sync.yml), with its
+> alarm in the storefront (`/api/cron/sync-health`); see the
+> [README](../../README.md#deployment). This Terraform has never been applied.
+> It is kept as the documented alternative until the
+> workflow has run for 30 days, and is then deleted. The timings below were
+> measured on the August catalog of about 110 products; it now holds 187.
+
 Terraform provisions the AWS runtime around the scraper. It never performs a
 crawl itself.
 
 ## What it creates
 
-| Resource | Purpose |
-| --- | --- |
-| Lambda function | Runs the recurring catalog sync (and, on demand, discovery) |
-| IAM roles + policies | Least-privilege access for the Lambda and the Scheduler |
-| S3 bucket | Mirrored product images, crawl artifacts, diagnostic snapshots |
-| EventBridge Scheduler | Recurring sync (default: every 6 hours) and a weekly discovery schedule (disabled) |
-| SQS queue | Dead letter queue for undeliverable schedule invocations |
-| CloudWatch log group | Structured JSON logs with configurable retention |
-| CloudWatch alarms | Seven alarms, see below |
-| SNS topic | Alarm fan-out, optionally to an email address |
-| Secrets Manager secret | Holds `DATABASE_URL`; created empty unless you supply your own |
+| Resource               | Purpose                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Lambda function        | Runs the recurring catalog sync (and, on demand, discovery)                        |
+| IAM roles + policies   | Least-privilege access for the Lambda and the Scheduler                            |
+| S3 bucket              | Mirrored product images, crawl artifacts, diagnostic snapshots                     |
+| EventBridge Scheduler  | Recurring sync (default: every 6 hours) and a weekly discovery schedule (disabled) |
+| SQS queue              | Dead letter queue for undeliverable schedule invocations                           |
+| CloudWatch log group   | Structured JSON logs with configurable retention                                   |
+| CloudWatch alarms      | Seven alarms, see below                                                            |
+| SNS topic              | Alarm fan-out, optionally to an email address                                      |
+| Secrets Manager secret | Holds `DATABASE_URL`; created empty unless you supply your own                     |
 
 ## Secrets
 
@@ -90,15 +99,15 @@ would race on the same rows and double the load on the source for no benefit.
 All alarms publish to the SNS topic. Set `alarm_email` to receive them (you
 must confirm the subscription by email).
 
-| Alarm | Fires when |
-| --- | --- |
-| `lambda-errors` | The function raised an unhandled error |
-| `lambda-throttles` | The function was throttled |
-| `circuit-breaker-open` | Mass-removal protection refused a diff |
-| `parser-confidence-low` | Parser confidence dropped — the source's HTML likely changed |
-| `no-successful-sync` | No successful sync within `no_successful_sync_hours` |
-| `image-failures` | Image mirroring failed repeatedly |
-| `scheduler-dlq-not-empty` | The Scheduler could not invoke the function |
+| Alarm                     | Fires when                                                   |
+| ------------------------- | ------------------------------------------------------------ |
+| `lambda-errors`           | The function raised an unhandled error                       |
+| `lambda-throttles`        | The function was throttled                                   |
+| `circuit-breaker-open`    | Mass-removal protection refused a diff                       |
+| `parser-confidence-low`   | Parser confidence dropped — the source's HTML likely changed |
+| `no-successful-sync`      | No successful sync within `no_successful_sync_hours`         |
+| `image-failures`          | Image mirroring failed repeatedly                            |
+| `scheduler-dlq-not-empty` | The Scheduler could not invoke the function                  |
 
 `no-successful-sync` treats missing data as breaching. That is deliberate: a
 job that silently stops running produces no metrics at all, and it is the
