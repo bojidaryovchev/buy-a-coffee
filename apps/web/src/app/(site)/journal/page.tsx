@@ -1,50 +1,115 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs, ButtonLink, EmptyState } from "@/components/ui/primitives";
-import { siteConfig } from "@/config/site";
+import { JsonLd } from "@/components/seo/json-ld";
+import { absoluteUrl, siteConfig } from "@/config/site";
+import { JOURNAL_PATH, formatArticleDate, listArticles } from "@/lib/journal";
+import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
+import { SHARE_CARD } from "@/lib/seo/share-card";
 
 /**
- * Journal.
+ * Journal index.
  *
- * The reference site publishes a blog route that currently has no articles.
- * The capability is reproduced — the route exists, is linked and is styled —
- * but no content is invented to fill it, and none is copied from the source.
+ * The articles are files in the repository (`apps/web/content/journal/`), so
+ * this page is static: it reads no database and renders once at build. Newest
+ * first, which today means the order they are listed in, since the launch
+ * articles went out together.
  *
- * When the shop wants to write, the content source goes here (MDX files or a
- * small table). Until then this is an honest empty state rather than filler.
+ * The empty state is kept. A journal with every article unlisted should still
+ * say something true rather than render a heading over nothing.
  */
+
+const TITLE = "Дневник";
+const DESCRIPTION =
+  "Коя капсула за коя машина, колко струва една чаша, как се чете интензивността — кратки отговори на въпросите, които изникват преди поръчка.";
+
 export const metadata: Metadata = {
-  title: "Дневник",
-  description: `Бележки за кафето от ${siteConfig.name}.`,
-  alternates: { canonical: "/journal" },
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: JOURNAL_PATH },
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    title: `${TITLE} — ${siteConfig.name}`,
+    description: DESCRIPTION,
+    url: absoluteUrl(JOURNAL_PATH),
+    locale: siteConfig.locale.replace("-", "_"),
+    // Named explicitly: setting `openGraph` drops the inherited share card.
+    images: [{ url: absoluteUrl(SHARE_CARD) }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} — ${siteConfig.name}`,
+    description: DESCRIPTION,
+    images: [{ url: absoluteUrl(SHARE_CARD) }],
+  },
 };
 
 export default function JournalPage() {
   if (!siteConfig.features.blog) notFound();
 
+  const articles = listArticles();
+  const breadcrumbs = [
+    { name: "Начало", href: "/" },
+    { name: TITLE, href: JOURNAL_PATH },
+  ];
+
   return (
     <div className="shell pb-16">
-      <Breadcrumbs
-        items={[
-          { name: "Начало", href: "/" },
-          { name: "Дневник", href: "/journal" },
-        ]}
-      />
+      <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
+      {articles.length > 0 && (
+        <JsonLd
+          id="ld-journal"
+          data={itemListJsonLd(
+            articles.map((article) => ({ name: article.title, href: article.href })),
+            TITLE,
+          )}
+        />
+      )}
+      <Breadcrumbs items={breadcrumbs} />
 
       <header className="mb-8 max-w-prose">
-        <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">Дневник</h1>
-        <p className="mt-2 text-base text-ink-500">Кратки бележки за това какво пием и защо.</p>
+        <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">{TITLE}</h1>
+        <p className="mt-2 text-base text-ink-500">
+          Кратки отговори на въпросите, които изникват преди поръчка.
+        </p>
       </header>
 
-      <EmptyState
-        title="Още нищо публикувано"
-        description="Пишем първите текстове. Междувременно можете да разгледате асортимента."
-        action={
-          <ButtonLink href="/categories" variant="secondary">
-            Разгледай асортимента
-          </ButtonLink>
-        }
-      />
+      {articles.length === 0 ? (
+        <EmptyState
+          title="Още нищо публикувано"
+          description="Пишем първите текстове. Междувременно можете да разгледате асортимента."
+          action={
+            <ButtonLink href="/categories" variant="secondary">
+              Разгледай асортимента
+            </ButtonLink>
+          }
+        />
+      ) : (
+        <ol className="max-w-3xl divide-y divide-line border-y border-line">
+          {articles.map((article) => (
+            <li key={article.slug}>
+              <article className="py-6">
+                <p className="text-2xs tracking-wide text-ink-500 uppercase">
+                  <time dateTime={article.publishedAt}>
+                    {formatArticleDate(article.publishedAt)}
+                  </time>
+                </p>
+                <h2 className="mt-1.5 font-display text-xl font-semibold text-ink-900 md:text-2xl">
+                  <Link
+                    href={article.href}
+                    className="underline-offset-4 hover:text-pine-700 hover:underline"
+                  >
+                    {article.title}
+                  </Link>
+                </h2>
+                <p className="mt-2 max-w-prose text-sm text-ink-700">{article.description}</p>
+              </article>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
