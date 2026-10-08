@@ -1046,14 +1046,24 @@ export async function listRecommendationCandidates(
   system: BrewingSystem,
 ): Promise<readonly RecommendationCandidate[]> {
   const rows = await db
-    .select(productColumns)
+    // The stated facts are read here rather than added to `productColumns`:
+    // only the scorer uses them, and every other listing would carry them for
+    // nothing.
+    .select({
+      ...productColumns,
+      arabicaPercent: products.arabicaPercent,
+      origin: products.origin,
+      roast: products.roast,
+    })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .where(and(isVisible, systemCategoryCondition(system)))
     .orderBy(asc(products.name))
     .limit(MAX_RECOMMENDATION_CANDIDATES);
 
-  const typed = rows as unknown as ProductRow[];
+  const typed = rows as unknown as Array<
+    ProductRow & { arabicaPercent: number | null; origin: string | null; roast: string | null }
+  >;
   const images = await loadPrimaryImages(typed.map((row) => row.id));
 
   return typed.map((row) => {
@@ -1072,6 +1082,9 @@ export async function listRecommendationCandidates(
       pricePerServing: pricePerServing(row.price, servings),
       servings: servings?.whole ?? null,
       servingsEstimated: servings?.estimated ?? false,
+      arabicaPercent: row.arabicaPercent,
+      origin: row.origin,
+      roast: row.roast,
     };
   });
 }
