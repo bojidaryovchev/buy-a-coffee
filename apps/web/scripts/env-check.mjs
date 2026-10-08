@@ -19,28 +19,26 @@
  *   npm run env:check -- --strict  exit 1 on any error
  */
 
-import { crossChecks, vars } from "../env.schema.mjs";
+import { crossChecks, retired, vars } from "../env.schema.mjs";
 import {
   assertManifestValid,
   colours,
-  createReport,
-  displayValue,
+  evaluateVars,
   envValue,
-  isRequired,
   isSet,
-  loadEnvFiles,
+  loadEnvFilesOrExit,
   printReport,
   resolve,
 } from "./env-lib.mjs";
 
 const { RED, BOLD, OFF } = colours;
 
-loadEnvFiles();
+loadEnvFilesOrExit();
 
 const STRICT = process.argv.includes("--strict");
 
 try {
-  assertManifestValid(vars);
+  assertManifestValid(vars, retired);
 } catch (error) {
   console.error(`\n${RED}${BOLD}Manifest problem.${OFF}\n${error.message}\n`);
   process.exit(1);
@@ -52,42 +50,8 @@ const onServerless = isSet("VERCEL");
    platform that announces itself, we cannot tell, so we do not guess. */
 const isProductionish = hostEnv === "production";
 
-const report = createReport();
-
-/* -- per-variable -------------------------------------------------------- */
-
-for (const spec of vars) {
-  if (spec.kind === "system") continue;
-
-  const { value, source } = resolve(spec, "local");
-
-  if (value === undefined) {
-    if (isRequired(spec, { isProductionish })) {
-      report.error(`${spec.name} is not set`, spec.missing?.message ?? spec.summary);
-    } else if (spec.missing) {
-      /* Some absences are graver on a host with no disk, and say something
-         different there. The manifest supplies both variants; this file only
-         picks between them, so it never has to know which variable is which. */
-      const local = !onServerless;
-      const level =
-        local && spec.missing.levelWhenLocal ? spec.missing.levelWhenLocal : spec.missing.level;
-      const message =
-        local && spec.missing.messageWhenLocal
-          ? spec.missing.messageWhenLocal
-          : spec.missing.message;
-      report.add(level, `${spec.name} is not set`, message);
-    }
-    continue;
-  }
-
-  const verdict = spec.validate?.(value);
-  if (verdict) {
-    report.add(verdict.level, `${spec.name}: ${verdict.message}`, undefined);
-    if (verdict.level === "error") continue;
-  }
-
-  report.ok(spec.name, displayValue(spec, value, source));
-}
+/* The per-variable rules live in env-lib so a test calls exactly this. */
+const report = evaluateVars(vars, { isProductionish, onServerless });
 
 /* -- cross-field --------------------------------------------------------- */
 

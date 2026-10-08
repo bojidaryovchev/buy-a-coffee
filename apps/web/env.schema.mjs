@@ -42,15 +42,30 @@ export const vars = [
   {
     name: "NEXT_PUBLIC_SITE_URL",
     kind: "config",
-    // No committed value: no production domain yet. Add one here when there is.
-    // Deliberately not read from .env, which holds localhost.
-    targets: PROD_PREVIEW,
+    // The production domain is https://buy-a-coffee.com, and it is committed
+    // here. A `config` var is deployed from the manifest only (never from .env,
+    // which holds localhost - see the header), and a public URL that already
+    // ships in every canonical tag is not a secret, so committing it is both
+    // safe and the only way env:push can set it at all.
+    //
+    // Production ONLY, on purpose. Previews live on their own *.vercel.app
+    // hosts; handing them the production URL would point their canonicals,
+    // Open Graph tags and sitemap at the live site. This tool pushes nothing
+    // for previews and never deletes, so what a preview receives is unchanged
+    // by this entry: leave the preview value to the dashboard, or add a
+    // `preview` variant here if previews should carry one.
+    value: "https://buy-a-coffee.com",
+    targets: PROD,
     required: "always",
     section: "Required",
-    example: "https://buy-a-coffee.example",
+    example: "https://buy-a-coffee.com",
     summary: "Absolute site URL for canonicals, Open Graph, the sitemap and structured data.",
-    validate: (v) => (!/^https?:\/\//.test(v) ? { level: "error", message: "Must be absolute." } : null),
-    missing: { level: "error", message: "Falls back to http://localhost:3000, wrong everywhere but a laptop." },
+    validate: (v) =>
+      !/^https?:\/\//.test(v) ? { level: "error", message: "Must be absolute." } : null,
+    missing: {
+      level: "error",
+      message: "Falls back to http://localhost:3000, wrong everywhere but a laptop.",
+    },
   },
   {
     name: "RATE_LIMIT_SALT",
@@ -59,12 +74,17 @@ export const vars = [
     required: "production",
     section: "Required",
     example: "openssl rand -hex 32",
-    summary: "Salts the hashed client fingerprint used by rate limiting. The raw IP is never stored.",
-    detail: ["Rate limiting keeps working without it, so nothing tells you the fingerprint is predictable."],
-    validate: (v) => (v.length < 16 ? { level: "warning", message: `Only ${v.length} characters.` } : null),
+    summary:
+      "Salts the hashed client fingerprint used by rate limiting. The raw IP is never stored.",
+    detail: [
+      "Rate limiting keeps working without it, so nothing tells you the fingerprint is predictable.",
+    ],
+    validate: (v) =>
+      v.length < 16 ? { level: "warning", message: `Only ${v.length} characters.` } : null,
     missing: {
       level: "error",
-      message: "Falls back to a public default, so the fingerprint is predictable across deployments.",
+      message:
+        "Falls back to a public default, so the fingerprint is predictable across deployments.",
       levelWhenLocal: "note",
       messageWhenLocal: "Uses a public default salt. Fine locally.",
     },
@@ -75,10 +95,11 @@ export const vars = [
     kind: "config",
     // From Terraform's image_public_base_url output; differs per environment.
     targets: PROD_PREVIEW,
-    required: false,
+    required: "production",
     section: "Images",
     example: "https://d111111abcdef8.cloudfront.net",
-    summary: "CDN base for mirrored product images. Required on any host without a persistent disk.",
+    summary:
+      "CDN base for mirrored product images. Required in production, which has no persistent disk.",
     detail: [
       "Also read at BUILD time to build images.remotePatterns, so a change needs a redeploy.",
       "Must match STORAGE_PUBLIC_BASE_URL on the scraper side.",
@@ -88,14 +109,19 @@ export const vars = [
         new URL(v);
         return null;
       } catch {
-        return { level: "error", message: "Not a valid URL - next.config.ts then allows NO remote images." };
+        return {
+          level: "error",
+          message: "Not a valid URL - next.config.ts then allows NO remote images.",
+        };
       }
     },
     missing: {
       level: "error",
-      message: "Images fall back to local disk, which does not exist here. Every product image will 404.",
+      message:
+        "Images fall back to local disk, which a deployed host does not have. Every product image will 404.",
       levelWhenLocal: "note",
-      messageWhenLocal: "Images are served from STORAGE_LOCAL_DIR via /media. Correct for development.",
+      messageWhenLocal:
+        "Images are served from STORAGE_LOCAL_DIR via /media. Correct for development.",
     },
   },
   {
@@ -103,7 +129,8 @@ export const vars = [
     kind: "local",
     section: "Images",
     example: "../../.storage",
-    summary: "Where the sync wrote images under STORAGE_DRIVER=local. Resolved from the app directory.",
+    summary:
+      "Where the sync wrote images under STORAGE_DRIVER=local. Resolved from the app directory.",
   },
 
   {
@@ -113,9 +140,14 @@ export const vars = [
     required: "production",
     section: "Admin",
     summary: "Enables the admin panel. Unset means the panel is disabled, not defaulted.",
-    validate: (v) =>
+    // An error in production, where the panel sits on a public URL and a short
+    // password is a guessable one; only a warning locally, where it is yours.
+    validate: (v, { isProductionish } = {}) =>
       v.length < 12
-        ? { level: "warning", message: `Only ${v.length} characters, on a public URL. Use a passphrase.` }
+        ? {
+            level: isProductionish ? "error" : "warning",
+            message: `Only ${v.length} characters, on a public URL. Use a passphrase of at least 12.`,
+          }
         : null,
     missing: { level: "note", message: "Admin panel disabled - the safe default." },
   },
@@ -123,11 +155,42 @@ export const vars = [
     name: "ADMIN_SESSION_SECRET",
     kind: "secret",
     targets: PROD,
-    required: false,
+    required: "production",
     section: "Admin",
     example: "openssl rand -hex 32",
-    summary: "Signs the admin session cookie. Falls back to ADMIN_PASSWORD, coupling rotation to sign-out.",
-    missing: null,
+    summary:
+      "Signs the admin session cookie. Required in production, and distinct from ADMIN_PASSWORD so rotating one does not sign out or expose the other.",
+    missing: {
+      level: "error",
+      message:
+        "Without it the session cookie is signed with ADMIN_PASSWORD, so the password doubles as a signing key and rotating it signs everyone out.",
+      levelWhenLocal: "note",
+      messageWhenLocal: "Falls back to ADMIN_PASSWORD. Fine locally; set it before deploying.",
+    },
+  },
+  {
+    name: "CRON_SECRET",
+    kind: "secret",
+    targets: PROD,
+    required: "production",
+    section: "Scheduled jobs",
+    example: "openssl rand -hex 32",
+    summary:
+      "Authorises the scheduled routes under /api/cron/. Vercel sends it as a bearer token with each cron call; anything without it is refused.",
+    validate: (v, { isProductionish } = {}) =>
+      v.length < 32
+        ? {
+            level: isProductionish ? "error" : "warning",
+            message: `Only ${v.length} characters; at least 32 are needed. Use openssl rand -hex 32.`,
+          }
+        : null,
+    missing: {
+      level: "error",
+      message:
+        "The scheduled routes cannot be told apart from anyone on the internet calling them.",
+      levelWhenLocal: "note",
+      messageWhenLocal: "Only needed to call /api/cron/ routes yourself. Set it before deploying.",
+    },
   },
 
   {
@@ -158,7 +221,10 @@ export const vars = [
     section: "Email",
     example: "someone@gmail.com",
     summary: "Where order notifications land. Without it, notifications are disabled.",
-    missing: { level: "warning", message: "Notifications disabled - orders persist but nobody is told." },
+    missing: {
+      level: "warning",
+      message: "Notifications disabled - orders persist but nobody is told.",
+    },
   },
   {
     name: "RESEND_WEBHOOK_SECRET",
@@ -178,8 +244,11 @@ export const vars = [
     required: false,
     section: "Optional",
     example: "2",
-    summary: "Pool size per process. Defaults to 2 on Vercel and 10 elsewhere; set only to override.",
-    detail: ["Each serverless instance is its own process with its own pool, so 10 becomes 10 x N."],
+    summary:
+      "Pool size per process. Defaults to 2 on Vercel and 10 elsewhere; set only to override.",
+    detail: [
+      "Each serverless instance is its own process with its own pool, so 10 becomes 10 x N.",
+    ],
     validate: (v) =>
       !Number.isFinite(Number.parseInt(v, 10)) || Number.parseInt(v, 10) < 1
         ? { level: "error", message: "Not a positive integer." }
@@ -199,9 +268,42 @@ export const vars = [
     missing: null,
   },
 
-  { name: "VERCEL_ENV", kind: "system", section: "Platform", summary: 'robots.txt allows crawling only when this is "production".' },
-  { name: "VERCEL", kind: "system", section: "Platform", summary: "Set on every Vercel runtime; selects the serverless pool default." },
-  { name: "NODE_ENV", kind: "system", section: "Platform", summary: "Last-resort robots.txt signal; also sets `secure` on the session cookie." },
+  {
+    name: "VERCEL_ENV",
+    kind: "system",
+    section: "Platform",
+    summary: 'robots.txt allows crawling only when this is "production".',
+  },
+  {
+    name: "VERCEL",
+    kind: "system",
+    section: "Platform",
+    summary: "Set on every Vercel runtime; selects the serverless pool default.",
+  },
+  {
+    name: "NODE_ENV",
+    kind: "system",
+    section: "Platform",
+    summary: "Last-resort robots.txt signal; also sets `secure` on the session cookie.",
+  },
+];
+
+/**
+ * Names that exist on the hosting platform but that no code reads. Searching the
+ * whole repository finds no reference to either, so `env:push -- --prune` calls
+ * them safe to remove instead of merely "not in the manifest". Add a name here
+ * only after that same search comes back empty; delete the entry once it has
+ * been removed from the platform.
+ */
+export const retired = [
+  {
+    name: "NEXT_PUBLIC_SITE_INDEXABLE",
+    why: "nothing reads it; robots.txt is decided by VERCEL_ENV / NEXT_PUBLIC_ENVIRONMENT",
+  },
+  {
+    name: "NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY",
+    why: "nothing reads it; no page embeds a Google map",
+  },
 ];
 
 export const crossChecks = [
@@ -216,7 +318,11 @@ export const crossChecks = [
     const verdict = isProduction ? "allows crawling" : "disallows everything";
 
     if (hostEnv)
-      return { level: "ok", title: "robots.txt", message: `VERCEL_ENV=${hostEnv}, so it ${verdict}.` };
+      return {
+        level: "ok",
+        title: "robots.txt",
+        message: `VERCEL_ENV=${hostEnv}, so it ${verdict}.`,
+      };
     if (!has("NEXT_PUBLIC_ENVIRONMENT"))
       return { level: "note", title: "robots.txt", message: `Falls back to NODE_ENV: ${verdict}.` };
     if (!isProduction)

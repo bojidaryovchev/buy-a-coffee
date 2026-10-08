@@ -7,7 +7,9 @@
  *   npm run env:push -- --apply actually write
  *   npm run env:push -- --apply --create   also create the project if absent
  *   npm run env:push -- --prune            report variables on Vercel that the
- *                                          manifest does not declare
+ *                                          manifest does not declare, and say
+ *                                          which are known-retired and safe to
+ *                                          remove
  *
  * Plan-by-default is deliberate. This writes credentials to a live third-party
  * account, and the cost of a surprise there is higher than the cost of typing a
@@ -21,25 +23,32 @@
  *                would push localhost into production canonicals.
  *   secret vars  your .env, always - the manifest may not hold one.
  *
+ * Never deploys a laptop: a DATABASE_URL, site URL or image base URL whose host is
+ * localhost, a loopback address or a bare hostname is refused before any network
+ * call, in --offline too. The message names the variable and why, never the value.
+ *
  * Requires VERCEL_TOKEN (https://vercel.com/account/tokens), and VERCEL_TEAM_ID
  * if the project sits under a team. Put them in .env.local, which is gitignored.
  */
 
-import { project, vars } from "../env.schema.mjs";
+import { project, retired, vars } from "../env.schema.mjs";
 import {
   assertManifestValid,
+  classifyExtras,
   clampComment,
   colours,
   createVercelClient,
+  describeLocalOnlyValues,
+  findLocalOnlyValues,
   isSet,
-  loadEnvFiles,
+  loadEnvFilesOrExit,
   resolve,
   VercelError,
 } from "./env-lib.mjs";
 
 const { RED, YELLOW, GREEN, CYAN, DIM, BOLD, OFF } = colours;
 
-loadEnvFiles();
+loadEnvFilesOrExit();
 
 const argv = process.argv.slice(2);
 const APPLY = argv.includes("--apply");
@@ -50,7 +59,7 @@ const OFFLINE = argv.includes("--offline");
 /* The guard that lets this manifest live in a public repository. Checked before
    anything else, and before any network call. */
 try {
-  assertManifestValid(vars);
+  assertManifestValid(vars, retired);
 } catch (error) {
   console.error(`\n${RED}${BOLD}Refusing to run.${OFF}\n${error.message}\n`);
   process.exit(1);
@@ -101,6 +110,20 @@ for (const spec of deployable) {
       comment: clampComment(spec.summary),
     },
   });
+}
+
+/* -- 1b. Refuse to deploy a development value -------------------------------- */
+
+/* Checked on the desired set, before the offline plan and before any client is
+   built, so there is no path to the network that skips it. A localhost
+   DATABASE_URL in production takes the whole site down, and the URL carries a
+   password, so what is printed is the name and the reason only. */
+const localOnly = findLocalOnlyValues(desired);
+if (localOnly.length) {
+  console.error(
+    `\n${RED}${BOLD}Refusing to send a local-only value to a deployed target.${OFF}\n  ${describeLocalOnlyValues(localOnly)}\n`,
+  );
+  process.exit(1);
 }
 
 const label = (source) => (source === "manifest" ? `${DIM}manifest${OFF}` : `${CYAN}.env${OFF}`);
@@ -212,7 +235,7 @@ async function main() {
   }
 
   const declared = new Set(deployable.map((v) => v.name));
-  const extra = existing.filter((e) => !declared.has(e.key));
+  const { retired: retiredOnVercel, unknown: extra } = classifyExtras(existing, declared, retired);
 
   /* -- 4. Report ---------------------------------------------------------- */
 
@@ -257,19 +280,36 @@ async function main() {
     console.log("");
   }
 
+  const targetsOf = (e) =>
+    (Array.isArray(e.target) ? e.target : [e.target]).filter(Boolean).join(", ");
+
+  /* Known-retired names get their own, calmer heading: nothing reads them, so
+     removing them cannot change behaviour. Still not removed by this tool. */
+  if (retiredOnVercel.length) {
+    console.log(`${BOLD}${GREEN}On Vercel, retired - safe to remove${OFF}`);
+    for (const e of retiredOnVercel) {
+      console.log(`  ${e.key} ${DIM}[${targetsOf(e)}] ${e.why}${OFF}`);
+    }
+    if (PRUNE) {
+      console.log(
+        `  ${DIM}Remove each with: vercel env rm <NAME> <environment>   (or in the dashboard).\n` +
+          `  Once removed, delete its entry from \`retired\` in env.schema.mjs.${OFF}`,
+      );
+    }
+    console.log("");
+  }
+
   if (extra.length) {
     console.log(`${BOLD}${YELLOW}On Vercel but not in the manifest${OFF}`);
     for (const e of extra) {
-      console.log(
-        `  ${e.key} ${DIM}[${(Array.isArray(e.target) ? e.target : [e.target]).filter(Boolean).join(", ")}]${OFF}`,
-      );
+      console.log(`  ${e.key} ${DIM}[${targetsOf(e)}]${OFF}`);
     }
     console.log(
       `  ${DIM}Nothing is deleted by this tool. Either add them to env.schema.mjs or remove\n` +
         `  them in the dashboard - a script that silently drops a variable someone added\n` +
         `  by hand is a script that loses production configuration.${OFF}\n`,
     );
-  } else if (PRUNE) {
+  } else if (PRUNE && !retiredOnVercel.length) {
     console.log(`${DIM}Nothing on Vercel that the manifest does not declare.${OFF}\n`);
   }
 
