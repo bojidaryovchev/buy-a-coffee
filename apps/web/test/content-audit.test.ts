@@ -201,8 +201,8 @@ describe("the content as it is", () => {
     const sources = sourceTexts(snapshot!.products, pages);
     expect(sources.some((s) => s.id.startsWith("product:"))).toBe(true);
     expect(sources.some((s) => s.id.startsWith("page:"))).toBe(true);
-    // The snapshot records no description for a category page; if a later crawl
-    // does, this fails and the audit's "NOT compared with" line must be updated.
-    expect(sources.some((s) => /^page:(category|subcategory):/.test(s.id))).toBe(false);
+    // Category pages are compared through their meta descriptions, which the
+    // crawl records; their body text is not recorded, and the audit says so.
+    expect(sources.some((s) => /^page:(category|subcategory):/.test(s.id))).toBe(true);
   });
 });

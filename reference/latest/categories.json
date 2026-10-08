@@ -2,7 +2,7 @@
   "categories": [
     {
       "name": "A Modo Mio",
-      "parentKey": "kapsuli",
+      "parentKey": "kafe-kapsuli",
       "position": 0,
       "productCount": 3,
       "rawSlug": "a-modo-mio",
@@ -12,9 +12,9 @@
     },
     {
       "name": "Caffitaly",
-      "parentKey": "kapsuli",
+      "parentKey": "kafe-kapsuli",
       "position": 1,
-      "productCount": 3,
+      "productCount": 9,
       "rawSlug": "caffitaly",
       "sourceId": "624",
       "sourceKey": "caffitaly",
@@ -22,9 +22,9 @@
     },
     {
       "name": "Dolce Gusto",
-      "parentKey": "kapsuli",
+      "parentKey": "kafe-kapsuli",
       "position": 3,
-      "productCount": 28,
+      "productCount": 33,
       "rawSlug": "dolce-gusto",
       "sourceId": "615",
       "sourceKey": "dolce-gusto",
@@ -33,38 +33,38 @@
     {
       "name": "Кафе дози",
       "parentKey": null,
-      "position": 1,
-      "productCount": 3,
+      "position": 0,
+      "productCount": 41,
       "rawSlug": "kafe-dozi",
       "sourceId": "612",
       "sourceKey": "kafe-dozi",
       "url": "https://www.kafezona.com/kafe-dozi/"
     },
     {
+      "name": "Кафе капсули",
+      "parentKey": null,
+      "position": 1,
+      "productCount": 88,
+      "rawSlug": "kafe-kapsuli",
+      "sourceId": "611",
+      "sourceKey": "kafe-kapsuli",
+      "url": "https://www.kafezona.com/kafe-kapsuli/"
+    },
+    {
       "name": "Кафе на зърна",
       "parentKey": null,
       "position": 2,
-      "productCount": 51,
+      "productCount": 58,
       "rawSlug": "kafe-na-zyrna",
       "sourceId": "608",
       "sourceKey": "kafe-na-zyrna",
       "url": "https://www.kafezona.com/kafe-na-zyrna/"
     },
     {
-      "name": "Капсули",
-      "parentKey": null,
-      "position": 0,
-      "productCount": 57,
-      "rawSlug": "kapsuli",
-      "sourceId": "611",
-      "sourceKey": "kapsuli",
-      "url": "https://www.kafezona.com/kapsuli/"
-    },
-    {
       "name": "Lavazza Blue",
-      "parentKey": "kapsuli",
+      "parentKey": "kafe-kapsuli",
       "position": 2,
-      "productCount": 1,
+      "productCount": 7,
       "rawSlug": "lavazza-blue",
       "sourceId": "618",
       "sourceKey": "lavazza-blue",
@@ -72,9 +72,9 @@
     },
     {
       "name": "Nespresso",
-      "parentKey": "kapsuli",
+      "parentKey": "kafe-kapsuli",
       "position": 4,
-      "productCount": 22,
+      "productCount": 36,
       "rawSlug": "nespresso",
       "sourceId": "614",
       "sourceKey": "nespresso",

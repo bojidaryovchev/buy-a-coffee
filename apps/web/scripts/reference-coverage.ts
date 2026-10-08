@@ -125,6 +125,54 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
     files: ["src/config/site.ts"],
     tests: ["e2e/routes.spec.ts"],
   },
+  "vending-zone": {
+    implementation:
+      "/vending: our own copy, the vending blends in the catalog, and the category once the source lists products under it",
+    routes: ["/vending"],
+    files: ["src/lib/catalog/vending.ts", "src/lib/catalog/business-sections.ts"],
+    tests: ["e2e/sections.spec.ts", "test/vending.test.ts", "test/business-section.test.ts"],
+  },
+  consumables: {
+    implementation:
+      "/consumables: what the section covers and an enquiry form; its category's products once the source lists any",
+    routes: ["/consumables"],
+    files: ["src/lib/catalog/vending.ts", "content/vending.ts"],
+    tests: ["e2e/sections.spec.ts", "test/business-section.test.ts"],
+  },
+  "product-code": {
+    implementation:
+      "Product code read by the sync's enrichment step, shown in the facts table and in the Product JSON-LD",
+    routes: ["/products/[slug]"],
+    files: ["src/components/catalog/facts-table.tsx", "src/lib/seo/json-ld.ts"],
+    tests: ["test/product-facts.test.ts", "test/product-page-parts.test.ts"],
+  },
+  "product-characteristics": {
+    implementation:
+      "Composition, origin and roast as stated facts in the product page's facts table; the full list is stored",
+    routes: ["/products/[slug]"],
+    files: ["src/components/catalog/facts-table.tsx", "src/lib/catalog/product-facts.ts"],
+    tests: ["test/product-facts.test.ts"],
+  },
+  "delivery-threshold": {
+    implementation:
+      "Announcement bar on every page, the delivery block beside the order form and /delivery, all from `siteConfig.commerce`",
+    routes: ["/delivery"],
+    files: ["src/components/commerce/announcement-bar.tsx", "src/components/commerce/terms.ts"],
+    tests: ["test/commerce.test.ts", "test/layout-frame.test.ts"],
+  },
+  "payment-methods": {
+    implementation:
+      "Payment methods in the footer, beside the order form and on /delivery, from `siteConfig.commerce`",
+    routes: ["/delivery"],
+    files: ["src/components/layout/site-footer.tsx", "src/components/commerce/terms.ts"],
+    tests: ["test/commerce.test.ts"],
+  },
+  "site-notice": {
+    implementation:
+      "Announcement bar on every page: the free-delivery threshold and one-step ordering. Not dismissible, because it carries the phone number and hours",
+    files: ["src/components/commerce/announcement-bar.tsx"],
+    tests: ["test/layout-frame.test.ts"],
+  },
 };
 
 /**
@@ -142,10 +190,7 @@ const SEARCH: Implementation = {
  * Capabilities deliberately not reproduced, each with a reason.
  * An entry here is a decision on the record, not a way to silence the check.
  */
-const OMISSIONS: Record<string, string> = {
-  "site-notice":
-    "The reference banner announces the source shop's own closure dates. It is their operational content, not a storefront capability, and reproducing it would mean publishing another business's opening hours as our own. The mechanism is trivial to add when this shop needs one.",
-};
+const OMISSIONS: Record<string, string> = {};
 
 /** A page type with no storefront equivalent, and why. */
 interface NotApplicable {

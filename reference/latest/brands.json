@@ -1,8 +1,16 @@
 {
   "brands": [
     {
-      "name": "AMANN",
+      "name": "3bourbons",
       "productCount": 2,
+      "rawSlug": "3-bourbons",
+      "sourceId": "803",
+      "sourceKey": "3-bourbons",
+      "url": "https://www.kafezona.com/3-bourbons/"
+    },
+    {
+      "name": "AMANN",
+      "productCount": 4,
       "rawSlug": "amann",
       "sourceId": "638",
       "sourceKey": "amann",
@@ -10,15 +18,15 @@
     },
     {
       "name": "BIANCAFFE",
-      "productCount": 3,
-      "rawSlug": "biancafe",
+      "productCount": 7,
+      "rawSlug": "biancaffe",
       "sourceId": "634",
-      "sourceKey": "biancafe",
-      "url": "https://www.kafezona.com/biancafe/"
+      "sourceKey": "biancaffe",
+      "url": "https://www.kafezona.com/biancaffe/"
     },
     {
       "name": "BIANCHI",
-      "productCount": 12,
+      "productCount": 18,
       "rawSlug": "bianchi",
       "sourceId": "640",
       "sourceKey": "bianchi",
@@ -34,7 +42,7 @@
     },
     {
       "name": "CAFFITALY",
-      "productCount": 3,
+      "productCount": 9,
       "rawSlug": "caffitaly",
       "sourceId": "716",
       "sourceKey": "caffitaly",
@@ -42,7 +50,7 @@
     },
     {
       "name": "ELIA",
-      "productCount": 2,
+      "productCount": 5,
       "rawSlug": "elia",
       "sourceId": "722",
       "sourceKey": "elia",
@@ -65,8 +73,16 @@
       "url": "https://www.kafezona.com/eurocaf/"
     },
     {
-      "name": "ILLY",
+      "name": "FoodNess",
       "productCount": 1,
+      "rawSlug": "foodness",
+      "sourceId": "755",
+      "sourceKey": "foodness",
+      "url": "https://www.kafezona.com/foodness/"
+    },
+    {
+      "name": "ILLY",
+      "productCount": 6,
       "rawSlug": "illy",
       "sourceId": "754",
       "sourceKey": "illy",
@@ -81,16 +97,32 @@
       "url": "https://www.kafezona.com/julius-meinl/"
     },
     {
+      "name": "KIMBO",
+      "productCount": 5,
+      "rawSlug": "kimbo",
+      "sourceId": "637",
+      "sourceKey": "kimbo",
+      "url": "https://www.kafezona.com/kimbo/"
+    },
+    {
       "name": "LAVAZZA",
-      "productCount": 15,
+      "productCount": 21,
       "rawSlug": "lavazza",
       "sourceId": "605",
       "sourceKey": "lavazza",
       "url": "https://www.kafezona.com/lavazza/"
     },
     {
+      "name": "LOLLOCAFE",
+      "productCount": 32,
+      "rawSlug": "lollocafe",
+      "sourceId": "636",
+      "sourceKey": "lollocafe",
+      "url": "https://www.kafezona.com/lollocafe/"
+    },
+    {
       "name": "MOLINI",
-      "productCount": 10,
+      "productCount": 14,
       "rawSlug": "molini",
       "sourceId": "644",
       "sourceKey": "molini",
@@ -98,7 +130,7 @@
     },
     {
       "name": "REMA CAFFE",
-      "productCount": 27,
+      "productCount": 34,
       "rawSlug": "rema-caffe",
       "sourceId": "631",
       "sourceKey": "rema-caffe",
@@ -106,22 +138,30 @@
     },
     {
       "name": "TEZZORO",
-      "productCount": 1,
+      "productCount": 3,
       "rawSlug": "tezzoro",
       "sourceId": "751",
       "sourceKey": "tezzoro",
       "url": "https://www.kafezona.com/tezzoro/"
     },
     {
+      "name": "VANDINO",
+      "productCount": 3,
+      "rawSlug": "vandino",
+      "sourceId": "782",
+      "sourceKey": "vandino",
+      "url": "https://www.kafezona.com/vandino/"
+    },
+    {
       "name": "VERGNANO",
       "productCount": 3,
-      "rawSlug": " vergnano",
+      "rawSlug": "vergnano",
       "sourceId": "642",
       "sourceKey": "vergnano",
-      "url": "https://www.kafezona.com/%20vergnano/"
+      "url": "https://www.kafezona.com/vergnano/"
     }
   ],
-  "count": 15,
+  "count": 20,
   "description": "Brands that carry products. `rawSlug` preserves the source slug verbatim, including a leading space on one real brand.",
   "schemaVersion": "1.0.0"
 }

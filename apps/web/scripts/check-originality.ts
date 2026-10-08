@@ -165,13 +165,21 @@ async function checkWrittenContent(): Promise<void> {
     `  compared with ${sources.length} source texts the snapshot holds: ` +
       `${productSources} product descriptions, ${sources.length - productSources} page meta descriptions.`,
   );
+  const pageKinds = [
+    ...new Set(
+      sources
+        .filter((source) => source.id.startsWith("page:"))
+        .map((source) => source.id.split(":")[1]),
+    ),
+  ].sort();
+  console.log(`  Page meta descriptions come from: ${pageKinds.join(", ") || "no page"}.`);
   console.log(
-    "  NOT compared with: category descriptions (the snapshot holds none), brand descriptions " +
-      "(none), blog articles (only the blog index was recorded), the source's page titles.",
+    "  NOT compared with: the body text of category, brand and blog pages (the snapshot " +
+      "records their meta descriptions only), or the source's page titles.",
   );
   console.log(
     "  A pass therefore means these share nothing with the text we have, not that they " +
-      "share nothing with the source's category or blog pages.",
+      "share nothing with the body of the source's category or blog pages.",
   );
 
   if (audit.findings.length === 0) {

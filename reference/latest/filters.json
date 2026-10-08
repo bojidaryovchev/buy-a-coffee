@@ -16,12 +16,12 @@
         "https://www.kafezona.com/a-modo-mio/",
         "https://www.kafezona.com/dolce-gusto/",
         "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-kapsuli/",
         "https://www.kafezona.com/kafe-na-zyrna/",
-        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/konsumativi/",
         "https://www.kafezona.com/lavazza-blue/",
         "https://www.kafezona.com/nespresso/",
         "https://www.kafezona.com/promo/",
-        "https://www.kafezona.com/raztvorimo%20kafe/",
         "https://www.kafezona.com/vending-zona/"
       ],
       "urlParam": "brand",
@@ -33,22 +33,22 @@
           "value": ""
         },
         {
-          "count": null,
+          "count": 2,
           "label": null,
-          "value": " vergnano"
+          "value": "3-bourbons"
         },
         {
-          "count": 2,
+          "count": 4,
           "label": null,
           "value": "amann"
         },
         {
-          "count": 3,
+          "count": 7,
           "label": null,
-          "value": "biancafe"
+          "value": "biancaffe"
         },
         {
-          "count": 12,
+          "count": 18,
           "label": null,
           "value": "bianchi"
         },
@@ -58,12 +58,12 @@
           "value": "borbone"
         },
         {
-          "count": 3,
+          "count": 9,
           "label": null,
           "value": "caffitaly"
         },
         {
-          "count": 2,
+          "count": 5,
           "label": null,
           "value": "elia"
         },
@@ -80,6 +80,11 @@
         {
           "count": 1,
           "label": null,
+          "value": "foodness"
+        },
+        {
+          "count": 6,
+          "label": null,
           "value": "illy"
         },
         {
@@ -88,24 +93,44 @@
           "value": "julius-meinl"
         },
         {
-          "count": 15,
+          "count": 5,
+          "label": null,
+          "value": "kimbo"
+        },
+        {
+          "count": 21,
           "label": null,
           "value": "lavazza"
         },
         {
-          "count": 10,
+          "count": 32,
+          "label": null,
+          "value": "lollocafe"
+        },
+        {
+          "count": 14,
           "label": null,
           "value": "molini"
         },
         {
-          "count": 27,
+          "count": 34,
           "label": null,
           "value": "rema-caffe"
         },
         {
-          "count": 1,
+          "count": 3,
           "label": null,
           "value": "tezzoro"
+        },
+        {
+          "count": 3,
+          "label": null,
+          "value": "vandino"
+        },
+        {
+          "count": 3,
+          "label": null,
+          "value": "vergnano"
         }
       ]
     },
@@ -123,12 +148,12 @@
         "https://www.kafezona.com/a-modo-mio/",
         "https://www.kafezona.com/dolce-gusto/",
         "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-kapsuli/",
         "https://www.kafezona.com/kafe-na-zyrna/",
-        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/konsumativi/",
         "https://www.kafezona.com/lavazza-blue/",
         "https://www.kafezona.com/nespresso/",
         "https://www.kafezona.com/promo/",
-        "https://www.kafezona.com/raztvorimo%20kafe/",
         "https://www.kafezona.com/vending-zona/"
       ],
       "urlParam": "strength",
@@ -165,12 +190,12 @@
         "https://www.kafezona.com/a-modo-mio/",
         "https://www.kafezona.com/dolce-gusto/",
         "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-kapsuli/",
         "https://www.kafezona.com/kafe-na-zyrna/",
-        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/konsumativi/",
         "https://www.kafezona.com/lavazza-blue/",
         "https://www.kafezona.com/nespresso/",
         "https://www.kafezona.com/promo/",
-        "https://www.kafezona.com/raztvorimo%20kafe/",
         "https://www.kafezona.com/vending-zona/"
       ],
       "urlParam": "decaf",
@@ -202,12 +227,12 @@
         "https://www.kafezona.com/a-modo-mio/",
         "https://www.kafezona.com/dolce-gusto/",
         "https://www.kafezona.com/kafe-dozi/",
+        "https://www.kafezona.com/kafe-kapsuli/",
         "https://www.kafezona.com/kafe-na-zyrna/",
-        "https://www.kafezona.com/kapsuli/",
+        "https://www.kafezona.com/konsumativi/",
         "https://www.kafezona.com/lavazza-blue/",
         "https://www.kafezona.com/nespresso/",
         "https://www.kafezona.com/promo/",
-        "https://www.kafezona.com/raztvorimo%20kafe/",
         "https://www.kafezona.com/vending-zona/"
       ],
       "urlParam": "aromas",
@@ -235,16 +260,16 @@
       "name": "Category",
       "notes": "Filter state is written to the URL, so filtered views are shareable.",
       "pageUrls": [
-        "https://www.kafezona.com/%20vergnano/",
+        "https://www.kafezona.com/3-bourbons/",
         "https://www.kafezona.com/amann/",
-        "https://www.kafezona.com/biancafe/",
+        "https://www.kafezona.com/biancaffe/",
         "https://www.kafezona.com/bianchi/",
         "https://www.kafezona.com/borbone/",
         "https://www.kafezona.com/caffitaly/",
         "https://www.kafezona.com/elia/",
         "https://www.kafezona.com/este/",
         "https://www.kafezona.com/eurocaf/",
-        "https://www.kafezona.com/illy/"
+        "https://www.kafezona.com/foodness/"
       ],
       "urlParam": "category",
       "urlStateObservable": true,
@@ -255,32 +280,32 @@
           "value": "a-modo-mio"
         },
         {
-          "count": 3,
+          "count": 9,
           "label": null,
           "value": "caffitaly"
         },
         {
-          "count": 28,
+          "count": 33,
           "label": null,
           "value": "dolce-gusto"
         },
         {
-          "count": 3,
+          "count": 41,
           "label": null,
           "value": "kafe-dozi"
         },
         {
-          "count": 51,
+          "count": 58,
           "label": null,
           "value": "kafe-na-zyrna"
         },
         {
-          "count": 1,
+          "count": 7,
           "label": null,
           "value": "lavazza-blue"
         },
         {
-          "count": 22,
+          "count": 36,
           "label": null,
           "value": "nespresso"
         }

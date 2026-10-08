@@ -362,8 +362,9 @@ function sharedWithSource(ours: string, source: string): string[] {
 }
 
 describe("generated copy against the whole reference snapshot", () => {
-  it("covers the 110 products the crawler recorded, each with source text", () => {
-    expect(snapshot.products).toHaveLength(110);
+  it("covers every product the crawler recorded, each with source text", () => {
+    // A real catalog, not a fixture: the comparison below means nothing on a handful.
+    expect(snapshot.products.length).toBeGreaterThanOrEqual(100);
     for (const product of snapshot.products) {
       expect(product.descriptionText?.trim(), product.sourceKey).toBeTruthy();
     }

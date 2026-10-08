@@ -1,89 +1,89 @@
 {
   "counts": {
-    "brands": 15,
+    "brands": 20,
     "categories": 8,
-    "crawlErrors": 0,
-    "features": 12,
+    "crawlErrors": 2,
+    "features": 19,
     "filters": 5,
     "forms": 2,
-    "internalLinks": 15901,
-    "pagesCrawled": 256,
-    "products": 110,
-    "realPages": 145,
-    "routePatterns": 121,
-    "softNotFoundPages": 111
+    "internalLinks": 27037,
+    "pagesCrawled": 228,
+    "products": 187,
+    "realPages": 228,
+    "routePatterns": 12,
+    "softNotFoundPages": 0
   },
-  "crawlRunId": "fe95f7e9-856e-4e37-a0d6-75917bef353c",
+  "crawlRunId": "9c8146d4-5f3e-4aad-ae54-ddbf4b1a598d",
   "crawlerVersion": "0.1.0",
   "files": [
     {
-      "bytes": 3137,
+      "bytes": 4127,
       "name": "brands.json",
-      "sha256": "6cd79837e246905ea05924c3de6fa4b5cf381012b685247341084ba58b51a233"
+      "sha256": "3f333a642e14b3b59bbd12d8956f9e1e0107474d53e1811759b7219da8fe3c95"
     },
     {
-      "bytes": 2223,
+      "bytes": 2273,
       "name": "categories.json",
-      "sha256": "50d9c6d9ecd525aa03bb122c671c51f3b712c8f7e6a46279f26a37c79e6868ee"
+      "sha256": "3a171fd86defdbd1277a6edb6466a429d4fc50ab3f8ca24c7e857af950e3e3e7"
     },
     {
-      "bytes": 23442,
+      "bytes": 1071,
       "name": "errors.json",
-      "sha256": "24dbf488c1f2d713a7d37e9642d6e953503ecfde40105cd50e71dc26efdf3993"
+      "sha256": "cab74282218b45ff5a1fdf010df829707182094145069eb6646f396ba8b176c3"
     },
     {
-      "bytes": 9860,
+      "bytes": 17422,
       "name": "features.json",
-      "sha256": "c6c1336cccd41351a3e1389ebdbe5eba631a96ca1d7b2860e9570793fe996235"
+      "sha256": "122da71b2a31a8b4938c93ac7396abbd4a39c847172593805093068e0820c2f2"
     },
     {
-      "bytes": 7541,
+      "bytes": 8029,
       "name": "filters.json",
-      "sha256": "0bb7121e133e82273ca3eb90efef58cc408be7e8a8e4771a6904ed6737de1a5c"
+      "sha256": "9e21cb59ce6803a4a4de3780cad6601ae73ed12b7a17af2ed69de6ad8ac43b94"
     },
     {
-      "bytes": 8179,
+      "bytes": 13373,
       "name": "forms.json",
-      "sha256": "c45dfb89d4155046e2195e8cdbfdc3cac67d1b5ace242b9598eca03c7a52c1cc"
+      "sha256": "6306664fa5f2ec16ae92fc718fe2929c07e8bf29d1c26bcb1086ad31cba473de"
     },
     {
-      "bytes": 17265,
+      "bytes": 14948,
       "name": "page-types.json",
-      "sha256": "bae59bdbf9ba909bd1c30d59300d05880424ebd7eec3a02ccc86289bea0ed965"
+      "sha256": "bd53831836bb0ad75b22e71d731f89a8f1a621cca4964c26352559de8b5290f5"
     },
     {
-      "bytes": 365696,
+      "bytes": 434403,
       "name": "pages.json",
-      "sha256": "3f8caf0abd9095a1df9a97c6c56eac97af25aadc22ec4fe686af1d03346020a2"
+      "sha256": "0572658e2866c02292c8442eeb57165ca2a664ad639c44fbfbee1458c7b93f83"
     },
     {
-      "bytes": 144820,
+      "bytes": 242544,
       "name": "products.json",
-      "sha256": "d7972fe5d27832dd9c916d00dc64696188a9d7018aa958fc3f081548ddd1edb6"
+      "sha256": "3fb6dad202d436799ce664bacc9aad88d9f236721770f1bc73c9f759a3de4bea"
     },
     {
-      "bytes": 2033,
+      "bytes": 1975,
       "name": "relationships.json",
-      "sha256": "6fa1a243a890a31bfd903607568047842e33829a81144e02cb53a80b49abfb7c"
+      "sha256": "da8e2fa221d6243c37f2a3fa7468dd6d3d42227ab7dfbd7f4e32be6eb9c3c312"
     },
     {
-      "bytes": 7865,
+      "bytes": 12117,
       "name": "report.md",
-      "sha256": "da707324994a0ec85975e16c34f96998968cfa1bfa288ef68968e850d2deafab"
+      "sha256": "d847804e47dd64219d28392448db591a54c5cc575162286eda464e92c573462f"
     },
     {
-      "bytes": 38370,
+      "bytes": 3527,
       "name": "route-patterns.json",
-      "sha256": "efaf094e55254bdcb44faf4d769a170a949c4be4ac76166319e5ce181a958362"
+      "sha256": "3b651e7bf4e3c56fdb545b56cbf025e746d02b38643040a4f38b935cd804dcec"
     },
     {
-      "bytes": 2948292,
+      "bytes": 5408902,
       "name": "site-map.json",
-      "sha256": "51889df3caf346559f5b6bc804cc9d37514497b58c6ebaf1766b256162a37f2a"
+      "sha256": "cb623dabfe230a3c1cf26fc36cd6a42f13f58dc5f885b837ba0f275cbeea6ad7"
     }
   ],
-  "generatedAt": "2026-08-21T05:32:48.586Z",
-  "gitCommit": null,
+  "generatedAt": "2026-10-08T22:35:19.206Z",
+  "gitCommit": "fba3e7fbc2f5644e277d47ae53a6eacd3161dbbd",
   "schemaVersion": "1.0.0",
   "sourceBaseUrl": "https://www.kafezona.com/",
   "sourceHost": "www.kafezona.com"

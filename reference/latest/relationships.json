@@ -1,6 +1,12 @@
 {
   "categoryTree": [
     {
+      "children": [],
+      "name": "Кафе дози",
+      "productCount": 41,
+      "sourceKey": "kafe-dozi"
+    },
+    {
       "children": [
         {
           "children": [],
@@ -11,84 +17,75 @@
         {
           "children": [],
           "name": "Caffitaly",
-          "productCount": 3,
+          "productCount": 9,
           "sourceKey": "caffitaly"
         },
         {
           "children": [],
           "name": "Lavazza Blue",
-          "productCount": 1,
+          "productCount": 7,
           "sourceKey": "lavazza-blue"
         },
         {
           "children": [],
           "name": "Dolce Gusto",
-          "productCount": 28,
+          "productCount": 33,
           "sourceKey": "dolce-gusto"
         },
         {
           "children": [],
           "name": "Nespresso",
-          "productCount": 22,
+          "productCount": 36,
           "sourceKey": "nespresso"
         }
       ],
-      "name": "Капсули",
-      "productCount": 57,
-      "sourceKey": "kapsuli"
-    },
-    {
-      "children": [],
-      "name": "Кафе дози",
-      "productCount": 3,
-      "sourceKey": "kafe-dozi"
+      "name": "Кафе капсули",
+      "productCount": 88,
+      "sourceKey": "kafe-kapsuli"
     },
     {
       "children": [],
       "name": "Кафе на зърна",
-      "productCount": 51,
+      "productCount": 58,
       "sourceKey": "kafe-na-zyrna"
     }
   ],
   "description": "Entity relationships derived from the catalog.",
   "productsOnPromotion": 0,
   "productsPerBrand": {
-    "amann": 2,
-    "biancafe": 3,
-    "bianchi": 12,
+    "3-bourbons": 2,
+    "amann": 4,
+    "biancaffe": 7,
+    "bianchi": 18,
     "borbone": 9,
-    "caffitaly": 3,
-    "elia": 2,
+    "caffitaly": 9,
+    "elia": 5,
     "este": 3,
-    "eurocaf": 3,
-    "illy": 1,
+    "eurocaf": 4,
+    "foodness": 1,
+    "illy": 6,
     "julius-meinl": 3,
-    "lavazza": 15,
-    "molini": 10,
-    "rema-caffe": 27,
-    "tezzoro": 1,
+    "kimbo": 5,
+    "lavazza": 21,
+    "lollocafe": 32,
+    "molini": 14,
+    "rema-caffe": 34,
+    "tezzoro": 3,
+    "vandino": 3,
     "vergnano": 3
   },
   "productsPerCategory": {
     "a-modo-mio": 3,
-    "caffitaly": 3,
-    "dolce-gusto": 28,
-    "kafe-dozi": 3,
-    "kafe-na-zyrna": 50,
-    "lavazza-blue": 1,
-    "nespresso": 22
+    "caffitaly": 9,
+    "dolce-gusto": 33,
+    "kafe-dozi": 41,
+    "kafe-na-zyrna": 58,
+    "lavazza-blue": 7,
+    "nespresso": 36
   },
-  "productsWithoutBrand": 13,
-  "productsWithoutPrice": 2,
-  "productsWithoutWeight": 1,
+  "productsWithoutBrand": 1,
+  "productsWithoutPrice": 0,
+  "productsWithoutWeight": 0,
   "schemaVersion": "1.0.0",
-  "urlCollisions": [
-    {
-      "path": "/borbone-crema-classica/",
-      "sourceKeys": [
-        "/borbone-crema-classica/#1000g",
-        "/borbone-crema-classica/#500g"
-      ]
-    }
-  ]
+  "urlCollisions": []
 }

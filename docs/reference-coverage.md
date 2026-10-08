@@ -9,8 +9,12 @@ Every capability observed on the reference site, and what implements it here. Th
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
 | Category browsing | /categories, /categories/[slug] | e2e/catalog.spec.ts | PASS |
+| Vending Zone page | /vending: our own copy, the vending blends in the catalog, and the category once the source lists products under it | e2e/sections.spec.ts, test/vending.test.ts, test/business-section.test.ts | PASS |
+| Consumables page | /consumables: what the section covers and an enquiry form; its category's products once the source lists any | e2e/sections.spec.ts, test/business-section.test.ts | PASS |
 | Brand browsing | /brands, /brands/[slug] | e2e/catalog.spec.ts | PASS |
 | Product detail page | /products/[slug] | e2e/product.spec.ts | PASS |
+| Product code | Product code read by the sync's enrichment step, shown in the facts table and in the Product JSON-LD | test/product-facts.test.ts, test/product-page-parts.test.ts | PASS |
+| Product characteristics list | Composition, origin and roast as stated facts in the product page's facts table; the full list is stored | test/product-facts.test.ts | PASS |
 | Catalog filtering | URL-driven filters on every listing | test/filters.test.ts, e2e/catalog.spec.ts | PASS |
 | Promotions | /promotions | e2e/catalog.spec.ts | PASS |
 | Quick order by phone | Quick-order form on every product page, stored in order_inquiries | e2e/quick-order.spec.ts, test/forms.test.ts | PASS |
@@ -19,21 +23,25 @@ Every capability observed on the reference site, and what implements it here. Th
 | Breadcrumb navigation | Breadcrumbs plus BreadcrumbList structured data | e2e/product.spec.ts | PASS |
 | Blog | /journal, and an article page at /journal/[slug] | e2e/routes.spec.ts, e2e/sections.spec.ts, test/journal-content.test.ts | PASS |
 | Legal and policy pages | /privacy, /terms, /cookies | e2e/routes.spec.ts | PASS |
+| Sitewide notice banner | Announcement bar on every page: the free-delivery threshold and one-step ordering. Not dismissible, because it carries the phone number and hours | test/layout-frame.test.ts | PASS |
+| Free-delivery threshold | Announcement bar on every page, the delivery block beside the order form and /delivery, all from `siteConfig.commerce` | test/commerce.test.ts, test/layout-frame.test.ts | PASS |
+| Listed payment methods | Payment methods in the footer, beside the order form and on /delivery, from `siteConfig.commerce` | test/commerce.test.ts | PASS |
 | Phone contact | Phone links in header, footer and /contact | e2e/routes.spec.ts | PASS |
 
 ## Page types
 
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
+| blog_article (1) | /journal/[slug] | e2e/sections.spec.ts | PASS |
 | blog_index (1) | /journal | e2e/routes.spec.ts | PASS |
-| brand (20) | /brands/[slug] | e2e/routes.spec.ts | PASS |
+| brand (23) | /brands/[slug] | e2e/routes.spec.ts | PASS |
 | brand_index (1) | /brands | e2e/routes.spec.ts | PASS |
 | category (5) | /categories/[slug], and /vending for the reference's vending category | e2e/routes.spec.ts, e2e/sections.spec.ts | PASS |
 | home (1) | / | e2e/routes.spec.ts | PASS |
 | legal (2) | /privacy, /terms, /cookies | e2e/routes.spec.ts | PASS |
-| product (109) | /products/[slug] | e2e/routes.spec.ts | PASS |
+| other (1) | n/a — unclassified | n/a | PASS |
+| product (187) | /products/[slug] | e2e/routes.spec.ts | PASS |
 | promotion (1) | /promotions | e2e/routes.spec.ts | PASS |
-| soft_404 (111) | n/a — the source's not-found shell; our 404 is a real 404 | n/a | PASS |
 | subcategory (5) | /categories/[slug] | e2e/routes.spec.ts | PASS |
 
 ## Filters
@@ -63,12 +71,6 @@ These are not reference capabilities, so they are not rows above. They are liste
 | Consumables for business buyers | /consumables | e2e/sections.spec.ts |
 | Journal articles | /journal/[slug], from `content/journal/` | e2e/sections.spec.ts |
 | Recommendation wizard and machine finder | /wizard, /wizard/result, /wizard/machines | e2e/wizard.spec.ts, test/recommend.test.ts |
-
-## Intentional omissions
-
-### `site-notice`
-
-The reference banner announces the source shop's own closure dates. It is their operational content, not a storefront capability, and reproducing it would mean publishing another business's opening hours as our own. The mechanism is trivial to add when this shop needs one.
 
 ## Deliberate differences from the reference
 
