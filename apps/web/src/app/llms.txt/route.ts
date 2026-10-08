@@ -1,6 +1,6 @@
 import { siteConfig, usingPlaceholderBrand } from "@/config/site";
 import { getCatalogSummary, getCategoryTree, listBrands } from "@/lib/catalog/queries";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";

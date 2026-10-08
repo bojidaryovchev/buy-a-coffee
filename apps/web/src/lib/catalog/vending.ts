@@ -4,6 +4,7 @@ import { categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import type { CatalogQuery } from "./filters";
 import { getProductBySlug, listProducts } from "./queries";
+import { BUSINESS_SECTIONS, type BusinessSectionId } from "./business-sections";
 import type { ProductCardView, ProductListResult } from "./types";
 
 /**
@@ -25,26 +26,11 @@ import type { ProductCardView, ProductListResult } from "./types";
  * behind it returns `null` or an empty list, and the page omits it.
  */
 
-export type BusinessSectionId = "vending" | "consumables";
-
-export interface BusinessSection {
-  readonly id: BusinessSectionId;
-  readonly path: string;
-  /**
-   * The category that backs the section, by source key.
-   *
-   * The source key is the source's own slug and survives a rename of the
-   * Bulgarian label; our storefront slug is derived from that label and would
-   * not. Both are accepted, the same way the wizard binds a brewing system to
-   * its categories, so either one changing costs us nothing.
-   */
-  readonly categoryKeys: readonly string[];
-}
-
-export const BUSINESS_SECTIONS: Readonly<Record<BusinessSectionId, BusinessSection>> = {
-  vending: { id: "vending", path: "/vending", categoryKeys: ["vending-zona"] },
-  consumables: { id: "consumables", path: "/consumables", categoryKeys: ["konsumativi"] },
-};
+export {
+  BUSINESS_SECTIONS,
+  type BusinessSection,
+  type BusinessSectionId,
+} from "./business-sections";
 
 /* --- The vending-blend rule --------------------------------------------- */
 

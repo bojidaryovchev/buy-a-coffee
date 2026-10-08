@@ -11,7 +11,7 @@ import {
 } from "@/components/commerce/terms";
 import { siteConfig, type CommerceConfig } from "@/config/site";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { JOURNAL_PATH, formatArticleDate, type ArticleSummary } from "@/lib/journal";
 import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";

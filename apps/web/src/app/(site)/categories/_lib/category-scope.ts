@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { categories } from "@catalog/db/schema";
 import { db } from "@/lib/db";
-import { BUSINESS_SECTIONS, type BusinessSection } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS, type BusinessSection } from "@/lib/catalog/business-sections";
 import { BREWING_SYSTEMS, type BrewingSystem } from "@/lib/recommend/systems";
 
 /**

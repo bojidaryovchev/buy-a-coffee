@@ -9,7 +9,7 @@ import { SHARE_CARD } from "@/lib/seo/share-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
 import { buildNavigation } from "@/components/layout/navigation";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 
 /**
  * The shop.

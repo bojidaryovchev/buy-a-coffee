@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { getCategoryTree, listAllProductSlugs, listBrands } from "@/lib/catalog/queries";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { JOURNAL_PATH, listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";

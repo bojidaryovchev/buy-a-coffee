@@ -50,7 +50,7 @@ import { buildNavigation, isCurrentSection } from "@/components/layout/navigatio
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import type { CategoryView } from "@/lib/catalog/types";
 import { listArticles } from "@/lib/journal";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
