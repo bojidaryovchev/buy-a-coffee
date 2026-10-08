@@ -3,8 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
-import { PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
+import { SystemBadge } from "@/components/catalog/system-badge";
 import type { SearchSuggestions } from "@/lib/catalog/types";
 import { useAnalytics } from "@/components/analytics-provider";
 
@@ -318,25 +319,32 @@ function SuggestionPanel({
                 onHover={onHover}
                 onSelect={onSelect}
               >
-                <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-xs bg-paper-sunken">
-                  <ProductImage
-                    src={product.image?.url ?? PLACEHOLDER_IMAGE}
-                    alt=""
-                    fill
-                    sizes="40px"
-                    className="object-contain p-0.5"
-                  />
+                <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-sm bg-well">
+                  {product.image ? (
+                    <ProductImage
+                      src={product.image.url}
+                      alt=""
+                      fill
+                      sizes="40px"
+                      className="object-contain"
+                    />
+                  ) : (
+                    <ImagePlaceholder label={false} />
+                  )}
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-ink-900">{product.name}</span>
-                  <span className="block truncate text-2xs tracking-wide text-ink-500 uppercase">
-                    {[product.brandName, product.weight].filter(Boolean).join(" · ")}
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                    <SystemBadge systemId={suggestionSystemId(product)} size="sm" />
+                    <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">
+                      {[product.brandName, product.weight].filter(Boolean).join(" · ")}
+                    </span>
                   </span>
                 </span>
 
                 {product.price && (
-                  <span className="shrink-0 text-sm font-semibold text-ink-900">
+                  <span className="shrink-0 text-sm font-semibold text-ink-900 tabular-nums">
                     {product.price.formatted}
                   </span>
                 )}
@@ -400,6 +408,20 @@ function SuggestionPanel({
       )}
     </>
   );
+}
+
+/**
+ * The brewing system of a suggested product, when the suggestion carries one.
+ *
+ * `ProductSuggestion` does not declare `systemId` yet, so today this is always
+ * undefined and no badge is drawn. Reading it this way means the badge appears
+ * the moment the suggest endpoint starts sending the field, with no change
+ * here — and never before, because a badge is a compatibility claim and is not
+ * guessed from a product's name.
+ */
+function suggestionSystemId(product: SearchSuggestions["products"][number]): string | null {
+  const systemId = (product as { readonly systemId?: unknown }).systemId;
+  return typeof systemId === "string" ? systemId : null;
 }
 
 function GroupLabel({ children }: { children: React.ReactNode }) {

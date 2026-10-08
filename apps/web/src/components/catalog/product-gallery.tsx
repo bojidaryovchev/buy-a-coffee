@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IMAGE_SIZES, PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
 import { cx } from "@/components/ui/primitives";
 import type { ProductImageView } from "@/lib/catalog/types";
@@ -17,6 +18,10 @@ import type { ProductImageView } from "@/lib/catalog/types";
  * The main image is `priority` because it is the largest-contentful-paint
  * element on the page, and every image declares an aspect ratio so nothing
  * shifts as it loads.
+ *
+ * The wells are pure white and unpadded: the photographs were taken on white
+ * and carry their own margin, so a tinted or padded well draws a rectangle
+ * around every one of them.
  */
 export function ProductGallery({
   images,
@@ -30,22 +35,15 @@ export function ProductGallery({
 
   if (images.length === 0) {
     return (
-      <div className="relative aspect-square overflow-hidden rounded-md border border-line bg-paper-sunken">
-        <ProductImage
-          src={PLACEHOLDER_IMAGE}
-          alt=""
-          fill
-          sizes={IMAGE_SIZES.detail}
-          className="object-contain p-12 opacity-40"
-        />
-        <span className="sr-only">Няма изображение за {productName}</span>
+      <div className="relative aspect-square overflow-hidden rounded-md border border-line">
+        <ImagePlaceholder />
       </div>
     );
   }
 
   return (
     <div>
-      <figure className="relative aspect-square overflow-hidden rounded-md border border-line bg-paper-sunken">
+      <figure className="relative aspect-square overflow-hidden rounded-md border border-line bg-well">
         <ProductImage
           key={active?.url}
           src={active?.url ?? PLACEHOLDER_IMAGE}
@@ -53,7 +51,7 @@ export function ProductGallery({
           fill
           sizes={IMAGE_SIZES.detail}
           priority
-          className="object-contain p-8"
+          className="object-contain"
         />
       </figure>
 
@@ -67,7 +65,7 @@ export function ProductGallery({
                 aria-label={`Покажи изображение ${index + 1} от ${images.length}`}
                 aria-current={index === activeIndex}
                 className={cx(
-                  "relative block h-20 w-20 overflow-hidden rounded-sm border bg-paper-sunken",
+                  "relative block h-20 w-20 overflow-hidden rounded-sm border bg-well",
                   index === activeIndex
                     ? "border-pine-700"
                     : "border-line hover:border-line-strong",
@@ -79,7 +77,7 @@ export function ProductGallery({
                   fill
                   sizes={IMAGE_SIZES.thumb}
                   loading="lazy"
-                  className="object-contain p-1.5"
+                  className="object-contain"
                 />
               </button>
             </li>
