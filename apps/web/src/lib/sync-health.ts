@@ -28,6 +28,18 @@ export const SYNC_CONDITIONS = [
 
 export type SyncCondition = (typeof SYNC_CONDITIONS)[number];
 
+/**
+ * `sync_runs.metadata.kind` of the run `catalog:link` writes when a person
+ * links a product to its new source URL by hand. It exists to carry an audit
+ * trail, not because the source was read, so it must never count as a sync.
+ */
+export const MANUAL_LINK_RUN_KIND = "manual_link";
+
+/** A real reading of the source, as opposed to a bookkeeping row beside it. */
+export const isManualLinkRun = (run: {
+  readonly metadata?: Readonly<Record<string, unknown>> | null;
+}): boolean => run.metadata?.kind === MANUAL_LINK_RUN_KIND;
+
 /** The columns of a `sync_runs` row this module reads. */
 export interface SyncRunSnapshot {
   readonly status: string;
@@ -39,6 +51,9 @@ export interface SyncRunSnapshot {
   /** Stored as text (`"0.700"`); a number is accepted for convenience. */
   readonly parserConfidence: string | number | null;
   readonly imagesFailed: number;
+  /** Optional so a caller that does not read the column still type-checks; a
+      run without it is taken to be a reading of the source. */
+  readonly metadata?: Readonly<Record<string, unknown>> | null;
 }
 
 export interface SyncHealthThresholds {
@@ -101,7 +116,9 @@ function confidenceOf(run: SyncRunSnapshot): number | null {
  * The conditions that hold right now, in a fixed order, each at most once.
  *
  * Dry runs are ignored throughout: they write nothing, are started by a person,
- * and a successful one must not hide that the real schedule has stopped. A run
+ * and a successful one must not hide that the real schedule has stopped. So are
+ * manual links (`isManualLinkRun`), for the same reason: a person's one-off,
+ * not the schedule. A run
  * still `running` is not a verdict either — it has no outcome to judge yet, and
  * a run that never finishes shows up as the absence of a success.
  *
@@ -113,8 +130,12 @@ export function evaluateSyncHealth(
   now: Date,
   thresholds: SyncHealthThresholds = DEFAULT_SYNC_HEALTH_THRESHOLDS,
 ): SyncHealthFinding[] {
+  /* A manual link is dropped before anything else is judged, not just from the
+     "last success" rule: it succeeds instantly by construction, and as the
+     newest row it would otherwise become the "latest run" and hide a failed
+     real sync behind a clean-looking one. */
   const real = runs
-    .filter((run) => !run.dryRun && isFinished(run))
+    .filter((run) => !run.dryRun && isFinished(run) && !isManualLinkRun(run))
     .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
 
   const findings: SyncHealthFinding[] = [];

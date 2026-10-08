@@ -1,9 +1,10 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { syncAlerts, syncRuns } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 import {
+  MANUAL_LINK_RUN_KIND,
   SYNC_CONDITION_LABEL,
   evaluateSyncHealth,
   type SyncCondition,
@@ -37,21 +38,31 @@ export interface SyncHealthReport {
 export const alertDay = (now: Date): string => now.toISOString().slice(0, 10);
 
 async function readRuns(): Promise<SyncRunSnapshot[]> {
-  return db
-    .select({
-      status: syncRuns.status,
-      dryRun: syncRuns.dryRun,
-      startedAt: syncRuns.startedAt,
-      completedAt: syncRuns.completedAt,
-      circuitBreakerTripped: syncRuns.circuitBreakerTripped,
-      catalogSource: syncRuns.catalogSource,
-      parserConfidence: syncRuns.parserConfidence,
-      imagesFailed: syncRuns.imagesFailed,
-    })
-    .from(syncRuns)
-    .where(eq(syncRuns.dryRun, false))
-    .orderBy(desc(syncRuns.startedAt))
-    .limit(RUNS_READ);
+  return (
+    db
+      .select({
+        status: syncRuns.status,
+        dryRun: syncRuns.dryRun,
+        startedAt: syncRuns.startedAt,
+        completedAt: syncRuns.completedAt,
+        circuitBreakerTripped: syncRuns.circuitBreakerTripped,
+        catalogSource: syncRuns.catalogSource,
+        parserConfidence: syncRuns.parserConfidence,
+        imagesFailed: syncRuns.imagesFailed,
+        metadata: syncRuns.metadata,
+      })
+      .from(syncRuns)
+      /* Manual links are excluded here as well as in `evaluateSyncHealth`, so a
+       burst of them cannot push the real runs out of the window read. */
+      .where(
+        and(
+          eq(syncRuns.dryRun, false),
+          sql`${syncRuns.metadata}->>'kind' is distinct from ${MANUAL_LINK_RUN_KIND}`,
+        ),
+      )
+      .orderBy(desc(syncRuns.startedAt))
+      .limit(RUNS_READ)
+  );
 }
 
 /**

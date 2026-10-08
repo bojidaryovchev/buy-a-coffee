@@ -31,11 +31,18 @@ import type { InquiryStatus } from "@/lib/inquiry-status";
  * ("Изпълнена") is a closed conversation too, since a message has no order to
  * protect: the operator marking it done is the closing.
  *
- * ⚠ The age is measured from `created_at`, because neither table records when
- * it was closed. For an enquiry that is the promise exactly. For a message it is
- * earlier than "12 months after closing", so a message may go a little before
- * its due date — inside the promise, since 12 months is the ceiling — and never
- * after it. A `closed_at` column would make it exact.
+ * The age of an enquiry is measured from `created_at`: that is the promise
+ * exactly. The age of a contact message is measured from `closed_at`, when it
+ * has one — the time its status last moved to a closed one — which is the
+ * promise exactly too ("12 months after the conversation closes"). A message
+ * closed before that column existed has none, and falls back to `created_at`:
+ * earlier than the closing, so it can only go a little before its due date,
+ * inside the promise (12 months is a ceiling) and never after it.
+ *
+ * The mailbox (`mail_threads`, the `info@` conversations) follows the rule the
+ * privacy policy now states: a thread whose status is `done` goes 12 months
+ * after its LAST message, with its messages. An `open` thread is never selected,
+ * whatever its age: it is a conversation somebody still owes an answer to.
  */
 
 export const RETENTION_MONTHS = 12;
@@ -50,6 +57,14 @@ export interface RetentionRow {
   readonly id: string;
   readonly status: string;
   readonly createdAt: Date;
+  /** Contact messages only. When the status last moved to a closed one. */
+  readonly closedAt?: Date | null;
+}
+
+export interface MailThreadRetentionRow {
+  readonly id: string;
+  readonly status: string;
+  readonly lastMessageAt: Date;
 }
 
 export interface RetentionSelection {
@@ -75,16 +90,27 @@ export function retentionCutoff(now: Date, months: number = RETENTION_MONTHS): D
   return cutoff;
 }
 
+/** The statuses of `mail_threads`. `done` is the only one that can expire. */
+export const MAIL_THREAD_DONE = "done";
+
+/**
+ * The moment a contact message's 12 months start from: when it was closed,
+ * or, for a row that predates `closed_at` (or was never closed), when it came
+ * in.
+ */
+export function contactAgeBasis(row: Pick<RetentionRow, "createdAt" | "closedAt">): Date {
+  return row.closedAt ?? row.createdAt;
+}
+
 export function selectExpired(input: {
   readonly now: Date;
   readonly orders: readonly RetentionRow[];
   readonly contacts: readonly RetentionRow[];
 }): RetentionSelection {
   const cutoff = retentionCutoff(input.now).getTime();
-  const old = (row: RetentionRow) => row.createdAt.getTime() < cutoff;
 
-  const oldOrders = input.orders.filter(old);
-  const oldContacts = input.contacts.filter(old);
+  const oldOrders = input.orders.filter((row) => row.createdAt.getTime() < cutoff);
+  const oldContacts = input.contacts.filter((row) => contactAgeBasis(row).getTime() < cutoff);
 
   const isNotAnOrder = (r: RetentionRow) => NOT_AN_ORDER.includes(r.status as InquiryStatus);
   const isClosed = (r: RetentionRow) => CONVERSATION_CLOSED.includes(r.status as InquiryStatus);
@@ -100,4 +126,23 @@ export function selectExpired(input: {
       contacts: oldContacts.filter((r) => !isClosed(r)).length,
     },
   };
+}
+
+/**
+ * Which mailbox threads are past retention: `done`, and the last message — not
+ * the first — more than 12 months ago. An `open` thread is never returned, at
+ * any age, and a status this code does not know is treated like `open`: kept.
+ *
+ * Separate from `selectExpired` because the mailbox is a different subject from
+ * the two form tables (a conversation, not a submission) and is deleted by a
+ * different procedure (messages first, in one transaction).
+ */
+export function selectExpiredThreads(input: {
+  readonly now: Date;
+  readonly threads: readonly MailThreadRetentionRow[];
+}): string[] {
+  const cutoff = retentionCutoff(input.now).getTime();
+  return input.threads
+    .filter((t) => t.status === MAIL_THREAD_DONE && t.lastMessageAt.getTime() < cutoff)
+    .map((t) => t.id);
 }

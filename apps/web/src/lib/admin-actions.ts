@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { contactMessages, newsletterSubscribers, orderInquiries } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import {
@@ -17,6 +17,9 @@ import { networkFingerprint, sharedStore } from "@/lib/rate-limit";
 import { attemptSignIn, createSignInGuard } from "@/lib/sign-in-guard";
 import { MAIL_THREAD_STATUSES, setThreadStatus, type MailThreadStatus } from "@/lib/mail/store";
 import { INQUIRY_STATUSES, type InquiryStatus } from "@/lib/inquiry-status";
+import { isOperatorConsentBasis } from "@/lib/forms/consent";
+import { operatorSubscribe } from "@/lib/forms/subscribe";
+import { CONVERSATION_CLOSED } from "@/lib/retention";
 import {
   REPLY_ATTACHMENT_LIMIT,
   sendRecordReply,
@@ -111,9 +114,17 @@ export async function updateContactStatus(formData: FormData): Promise<void> {
   const status = String(formData.get("status") ?? "");
   if (!id || !INQUIRY_STATUSES.includes(status as InquiryStatus)) return;
 
+  /* `closed_at` is what retention counts its 12 months from. Set the first
+     time the message reaches a closed status (moving from one closed status to
+     another keeps the earlier time: the conversation closed then), cleared
+     when it is reopened. */
+  const closing = CONVERSATION_CLOSED.includes(status as InquiryStatus);
   await db
     .update(contactMessages)
-    .set({ status: status as InquiryStatus })
+    .set({
+      status: status as InquiryStatus,
+      closedAt: closing ? sql`coalesce(${contactMessages.closedAt}, now())` : null,
+    })
     .where(eq(contactMessages.id, id));
 
   revalidatePath("/admin/sabshteniya");
@@ -141,6 +152,86 @@ export async function unsubscribeSubscriber(formData: FormData): Promise<void> {
     .where(eq(newsletterSubscribers.id, id));
 
   revalidatePath("/admin/byuletin");
+}
+
+export type NewsletterMarkState = {
+  error?: string;
+  /** What was recorded, for the confirmation line. */
+  done?: "subscribed" | "already_subscribed";
+};
+
+/**
+ * Put the sender of an enquiry or a message on the newsletter list.
+ *
+ * An enquiry is not consent to marketing: somebody asking about a coffee has
+ * not agreed to be mailed about others. So this does not exist as a plain
+ * button. The operator has to say HOW the person agreed (one of a fixed few),
+ * that answer is stored as the consent source with the time, and a missing or
+ * unknown answer is refused — there is no path through here that subscribes
+ * anyone without a recorded basis.
+ *
+ * The address is read off the stored row, not off the form, for the same reason
+ * `replyToRecord` does it: nothing typed on this screen decides whose address
+ * is signed up. An address that has unsubscribed is not put back: that is their
+ * decision, and only they can reverse it, through the form.
+ */
+export async function addToNewsletter(
+  _prev: NewsletterMarkState,
+  formData: FormData,
+): Promise<NewsletterMarkState> {
+  if (!(await requireAdmin())) {
+    return { error: "Сесията е изтекла. Влезте отново и опитайте пак." };
+  }
+
+  const id = String(formData.get("recordId") ?? "");
+  const kind = String(formData.get("kind") ?? "");
+  const basis = formData.get("basis");
+
+  if (kind !== "order" && kind !== "contact") return { error: "Непознат вид запис." };
+  if (!id) return { error: "Липсва запис." };
+  if (!isOperatorConsentBasis(basis)) {
+    return { error: "Изберете как е дадено съгласието. Без това не записваме абонамент." };
+  }
+
+  const [record] =
+    kind === "order"
+      ? await db
+          .select({ email: orderInquiries.email })
+          .from(orderInquiries)
+          .where(eq(orderInquiries.id, id))
+          .limit(1)
+      : await db
+          .select({ email: contactMessages.email })
+          .from(contactMessages)
+          .where(eq(contactMessages.id, id))
+          .limit(1);
+
+  if (!record) return { error: "Записът не е намерен." };
+  const email = record.email?.trim().toLowerCase();
+  if (!email) return { error: "Този запис няма имейл адрес." };
+
+  const outcome = await operatorSubscribe({
+    email,
+    basis,
+    // Which record the operator was looking at, so "how" can be traced back.
+    metadata: {
+      via: "admin",
+      recordKind: kind,
+      recordId: id,
+      recordedAt: new Date().toISOString(),
+    },
+  });
+
+  if (outcome === "was_unsubscribed") {
+    return {
+      error:
+        "Този адрес се е отписал от бюлетина. Не го връщаме от панела — човекът може да се запише отново сам, от формата на сайта.",
+    };
+  }
+
+  revalidatePath("/admin/byuletin");
+  revalidatePath(kind === "order" ? `/admin/zayavki/${id}` : `/admin/sabshteniya/${id}`);
+  return { done: outcome };
 }
 
 /* -- mail ------------------------------------------------------------------ */

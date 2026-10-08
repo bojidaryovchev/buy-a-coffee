@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getOrder } from "@/lib/admin-queries";
+import { getOrder, getSubscriberByEmail } from "@/lib/admin-queries";
 import { updateOrderStatus } from "@/lib/admin-actions";
 import type { InquiryStatus } from "@/lib/inquiry-status";
 import { MAIL_ADDRESS } from "@/lib/mail/identity";
 import { recordReference } from "@/lib/mail/reply";
 import { StatusPicker } from "@/components/admin/status-picker";
 import { RecordReplyForm } from "@/components/admin/record-reply-form";
+import { NewsletterMarkForm } from "@/components/admin/newsletter-mark-form";
 
 export const metadata: Metadata = { title: "Заявка" };
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
+  const subscriber = order.email ? await getSubscriberByEmail(order.email) : null;
 
   return (
     <>
@@ -106,6 +108,15 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           />
         </div>
       </div>
+
+      {order.email && (
+        <NewsletterMarkForm
+          recordId={order.id}
+          kind="order"
+          email={order.email}
+          current={subscriber}
+        />
+      )}
 
       {order.email ? (
         <RecordReplyForm

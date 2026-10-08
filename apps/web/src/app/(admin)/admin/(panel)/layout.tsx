@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { isAdminConfigured, isSignedIn } from "@/lib/auth";
+import { AdminDisabled } from "@/components/admin/admin-disabled";
+import { adminGate, isAdminConfigured, isSignedIn } from "@/lib/auth";
 import { signOut } from "@/lib/admin-actions";
 import { countAwaitingReply } from "@/lib/mail/store";
 import { siteConfig } from "@/config/site";
@@ -20,18 +21,8 @@ import { siteConfig } from "@/config/site";
  */
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
   if (!isAdminConfigured()) {
-    return (
-      <div className="shell max-w-2xl py-20">
-        <h1 className="font-display text-3xl font-semibold text-ink-900">
-          Администрацията е изключена
-        </h1>
-        <p className="mt-4 leading-relaxed text-ink-500">
-          Не е зададена променлива <code className="font-mono text-sm">ADMIN_PASSWORD</code>.
-          Панелът е недостъпен, докато не бъде конфигурирана. Това е нарочно: парола по подразбиране
-          е по-лоша от липсващ панел.
-        </p>
-      </div>
-    );
+    const gate = adminGate();
+    return <AdminDisabled reason={gate.enabled ? "no_password" : gate.reason} />;
   }
 
   if (!(await isSignedIn())) redirect("/admin/vhod");

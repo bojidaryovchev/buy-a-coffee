@@ -6,6 +6,14 @@ import { submitOrderInquiry } from "@/lib/forms/actions";
 import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
 import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
+import { ConsentCheckbox } from "@/components/forms/consent-checkbox";
+import {
+  ERROR_CLASS,
+  INPUT_CLASS,
+  INPUT_COMPACT_CLASS,
+  LABEL_CLASS,
+  TEXTAREA_CLASS,
+} from "@/components/forms/field-styles";
 import { useAnalytics } from "@/components/analytics-provider";
 
 /**
@@ -20,11 +28,22 @@ import { useAnalytics } from "@/components/analytics-provider";
  *   - the result message is a live region, so it is announced
  *   - the submit button reports its pending state rather than silently doing
  *     nothing on a slow connection
+ *
+ * Safe to render more than once on a page, and inside a `<dialog>`: every id
+ * comes from `useId`, nothing looks the form up by a fixed id or name, and it
+ * owns its own state. The props are the contract other components rely on —
+ * add to them, do not change them.
  */
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" disabled={pending || disabled} className="w-full sm:w-auto sm:min-w-40">
+    <Button
+      type="submit"
+      size="lg"
+      disabled={pending || disabled}
+      aria-busy={pending || undefined}
+      className="w-full sm:w-auto sm:min-w-40"
+    >
       {pending ? "Изпраща се…" : "Поискай обаждане"}
     </Button>
   );
@@ -40,7 +59,9 @@ export function QuickOrderForm({
   const [state, formAction] = useActionState(submitOrderInquiry, IDLE_FORM_STATE);
   const phoneId = useId();
   const nameId = useId();
+  const emailId = useId();
   const quantityId = useId();
+  const notesId = useId();
   const statusId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const analytics = useAnalytics();
@@ -55,16 +76,18 @@ export function QuickOrderForm({
   }, [state, analytics, productSlug]);
 
   const phoneError = state.status === "error" ? state.fieldErrors?.phone : undefined;
+  const emailError = state.status === "error" ? state.fieldErrors?.email : undefined;
+  const quantityError = state.status === "error" ? state.fieldErrors?.quantity : undefined;
+  const notesError = state.status === "error" ? state.fieldErrors?.notes : undefined;
+  // A rejected email or note lives inside the closed disclosure; opening it is
+  // the only way the person can see what to fix.
+  const detailsOpen = Boolean(emailError || quantityError || notesError);
 
   if (state.status === "success") {
     return (
-      <div
-        id={statusId}
-        role="status"
-        className="rounded-md border border-pine-500/40 bg-pine-100 p-5"
-      >
+      <div role="status" className="rounded-md border border-pine-500/40 bg-pine-100 p-5">
         <p className="font-display text-lg font-semibold text-pine-900">Заявката е получена</p>
-        <p className="mt-1 text-sm text-pine-900/80">{state.message}</p>
+        <p className="mt-1 text-sm text-ink-700">{state.message}</p>
       </div>
     );
   }
@@ -73,7 +96,7 @@ export function QuickOrderForm({
     <form
       ref={formRef}
       action={formAction}
-      className="rounded-md border border-line bg-paper-raised p-5"
+      className="relative rounded-md border border-line bg-paper-raised p-5"
       onFocus={() => analytics.track({ name: "quick_order_started", productSlug })}
     >
       <input type="hidden" name="productSlug" value={productSlug} />
@@ -81,13 +104,17 @@ export function QuickOrderForm({
 
       <p className="font-display text-base font-semibold text-ink-900">Поръчка на една стъпка</p>
       <p className="mt-1 text-sm text-ink-500">
-        Оставете номер и ще ви се обадим, за да потвърдим поръчката и да уговорим доставката. Без регистрация.
+        Оставете номер и ще ви се обадим, за да потвърдим поръчката и да уговорим доставката. Без
+        регистрация.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
         <div>
-          <label htmlFor={phoneId} className="mb-1 block text-sm font-medium">
-            Телефонен номер <span className="text-critical">*</span>
+          <label htmlFor={phoneId} className={LABEL_CLASS}>
+            Телефонен номер{" "}
+            <span aria-hidden="true" className="text-critical">
+              *
+            </span>
           </label>
           <input
             id={phoneId}
@@ -99,10 +126,10 @@ export function QuickOrderForm({
             placeholder="0888 123 456"
             aria-invalid={phoneError ? true : undefined}
             aria-describedby={phoneError ? `${phoneId}-error` : undefined}
-            className="h-12 w-full rounded-sm border border-line-strong bg-paper px-3 text-base outline-none focus:border-pine-700 aria-[invalid]:border-critical"
+            className={INPUT_CLASS}
           />
           {phoneError && (
-            <p id={`${phoneId}-error`} className="mt-1 text-xs text-critical">
+            <p id={`${phoneId}-error`} className={ERROR_CLASS}>
               {phoneError}
             </p>
           )}
@@ -113,13 +140,13 @@ export function QuickOrderForm({
         </div>
       </div>
 
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm text-pine-700 underline-offset-4 hover:underline">
-          Добавете име или бележка (по избор)
+      <details className="mt-3" open={detailsOpen || undefined}>
+        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-pine-700 underline-offset-4 hover:underline">
+          Добавете име, имейл или бележка (по избор)
         </summary>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-1 grid gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor={nameId} className="mb-1 block text-sm font-medium">
+            <label htmlFor={nameId} className={LABEL_CLASS}>
               Вашето име
             </label>
             <input
@@ -128,11 +155,11 @@ export function QuickOrderForm({
               type="text"
               autoComplete="name"
               maxLength={120}
-              className="h-11 w-full rounded-sm border border-line-strong bg-paper px-3 text-base outline-none focus:border-pine-700"
+              className={INPUT_COMPACT_CLASS}
             />
           </div>
           <div>
-            <label htmlFor={quantityId} className="mb-1 block text-sm font-medium">
+            <label htmlFor={quantityId} className={LABEL_CLASS}>
               Количество
             </label>
             <input
@@ -143,25 +170,63 @@ export function QuickOrderForm({
               max={99}
               defaultValue={1}
               inputMode="numeric"
-              className="h-11 w-full rounded-sm border border-line-strong bg-paper px-3 text-base outline-none focus:border-pine-700"
+              aria-invalid={quantityError ? true : undefined}
+              aria-describedby={quantityError ? `${quantityId}-error` : undefined}
+              className={INPUT_COMPACT_CLASS}
             />
+            {quantityError && (
+              <p id={`${quantityId}-error`} className={ERROR_CLASS}>
+                {quantityError}
+              </p>
+            )}
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor={`${nameId}-notes`} className="mb-1 block text-sm font-medium">
+            <label htmlFor={emailId} className={LABEL_CLASS}>
+              Имейл
+            </label>
+            <input
+              id={emailId}
+              name="email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              maxLength={254}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? `${emailId}-error` : undefined}
+              className={INPUT_COMPACT_CLASS}
+            />
+            {emailError && (
+              <p id={`${emailId}-error`} className={ERROR_CLASS}>
+                {emailError}
+              </p>
+            )}
+          </div>
+          <div className="sm:col-span-2">
+            <ConsentCheckbox affects="поръчката" needsEmail />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor={notesId} className={LABEL_CLASS}>
               Бележка
             </label>
             <textarea
-              id={`${nameId}-notes`}
+              id={notesId}
               name="notes"
               rows={3}
               maxLength={1000}
-              className="w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base outline-none focus:border-pine-700"
+              aria-invalid={notesError ? true : undefined}
+              aria-describedby={notesError ? `${notesId}-error` : undefined}
+              className={TEXTAREA_CLASS}
             />
+            {notesError && (
+              <p id={`${notesId}-error`} className={ERROR_CLASS}>
+                {notesError}
+              </p>
+            )}
           </div>
         </div>
       </details>
 
-      <p aria-live="polite" id={statusId} className="mt-3 min-h-5 text-sm">
+      <p aria-live="polite" id={statusId} className="mt-3 min-h-6 text-sm">
         {state.status === "error" && <span className="text-critical">{state.message}</span>}
       </p>
 

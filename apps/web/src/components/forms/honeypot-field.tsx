@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 /**
  * Spam honeypot.
  *
@@ -9,12 +11,22 @@
  * some bots deliberately skip display-none fields. `aria-hidden`, `tabIndex`
  * and `autoComplete="off"` together keep it out of the tab order, out of the
  * accessibility tree and out of autofill, so it costs real users nothing.
+ *
+ * The id is generated, not fixed: a form can be on a page more than once (a
+ * product card opens the quick order in a dialog beside the one on the page),
+ * and two elements with one id break the label association for both. The
+ * field NAME stays `website`, which is what the server reads.
  */
 export function HoneypotField() {
+  const id = useId();
   return (
-    <div aria-hidden="true" className="absolute h-px w-px overflow-hidden" style={{ left: "-9999px" }}>
-      <label htmlFor="website-hp">Оставете това поле празно</label>
-      <input id="website-hp" type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+    <div
+      aria-hidden="true"
+      className="absolute h-px w-px overflow-hidden"
+      style={{ left: "-9999px" }}
+    >
+      <label htmlFor={id}>Оставете това поле празно</label>
+      <input id={id} type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
     </div>
   );
 }

@@ -8,11 +8,14 @@ import {
   productsWithoutOwnCopy,
 } from "@/lib/admin-queries";
 import {
+  CHANGE_TYPE_HINT,
   changeTypeLabel,
   formatAgo,
   formatDuration,
   formatStamp,
+  isManualLink,
   optionalCount,
+  presentRunCounts,
   runStatusLabel,
 } from "@/lib/sync-display";
 import {
@@ -77,7 +80,10 @@ export default async function AdminSyncPage({
     DEFAULT_SYNC_HEALTH_THRESHOLDS.syncIntervalMs * DEFAULT_SYNC_HEALTH_THRESHOLDS.missedIntervals +
     DEFAULT_SYNC_HEALTH_THRESHOLDS.slackMs;
   const stale = !lastGood || now.getTime() - lastGood.at.getTime() > maxAgeMs;
-  const showMoved = runs.some((r) => optionalCount(r, "movedCount") !== null);
+  const extraCounts = presentRunCounts(runs);
+  const hintedTypes = [...new Set((changes?.rows ?? []).map((c) => c.changeType))].filter(
+    (type) => type in CHANGE_TYPE_HINT,
+  );
 
   return (
     <>
@@ -149,7 +155,7 @@ export default async function AdminSyncPage({
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto rounded-md border border-line bg-paper-raised">
-            <table className="w-full min-w-[56rem] text-left text-sm">
+            <table className="w-full min-w-[60rem] text-left text-sm">
               <caption className="sr-only">
                 Последните изпълнения на синхронизацията, най-новите първи
               </caption>
@@ -170,11 +176,11 @@ export default async function AdminSyncPage({
                   <th scope="col" className="px-3 py-2 text-right font-medium">
                     Обновени
                   </th>
-                  {showMoved && (
-                    <th scope="col" className="px-3 py-2 text-right font-medium">
-                      Преместени
+                  {extraCounts.map((column) => (
+                    <th key={column.key} scope="col" className="px-3 py-2 text-right font-medium">
+                      {column.label}
                     </th>
-                  )}
+                  ))}
                   <th scope="col" className="px-3 py-2 text-right font-medium">
                     Липсващи
                   </th>
@@ -209,17 +215,20 @@ export default async function AdminSyncPage({
                         {runStatusLabel(r.status)}
                       </span>
                       {r.dryRun && <span className="ml-2 text-xs text-ink-500">проба</span>}
+                      {isManualLink(r) && (
+                        <span className="ml-2 text-xs text-ink-500">ръчно свързване</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap tabular-nums">
                       {formatDuration(r.durationMs)}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{r.createdCount}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{r.updatedCount}</td>
-                    {showMoved && (
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {optionalCount(r, "movedCount") ?? "—"}
+                    {extraCounts.map((column) => (
+                      <td key={column.key} className="px-3 py-2 text-right tabular-nums">
+                        {optionalCount(r, column.key) ?? "—"}
                       </td>
-                    )}
+                    ))}
                     <td className="px-3 py-2 text-right tabular-nums">{r.missingCount}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{r.removedCount}</td>
                     <td className="px-3 py-2 text-ink-700">
@@ -326,6 +335,16 @@ export default async function AdminSyncPage({
                   </tbody>
                 </table>
               </div>
+              {hintedTypes.length > 0 && (
+                <ul className="mt-2 space-y-1 text-sm text-ink-500">
+                  {hintedTypes.map((type) => (
+                    <li key={type}>
+                      <span className="font-medium text-ink-700">{changeTypeLabel(type)}</span> —{" "}
+                      {CHANGE_TYPE_HINT[type]}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {changes.total > changes.rows.length && (
                 <p className="mt-2 text-sm text-ink-500">
                   Показани са {changes.rows.length} от {changes.total} промени.

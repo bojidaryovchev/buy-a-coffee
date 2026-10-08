@@ -2,7 +2,8 @@
 
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
-import { contactMessages, newsletterSubscribers, orderInquiries, products } from "@catalog/db/schema";
+import { contactMessages, orderInquiries, products } from "@catalog/db/schema";
+import { siteConfig } from "@/config/site";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 import {
@@ -12,6 +13,9 @@ import {
   inquiryLimiter,
   newsletterLimiter,
 } from "@/lib/rate-limit";
+import { callbackSentence } from "./callback-window";
+import { FORM_CONSENT_SOURCES } from "./consent";
+import { recordConsent } from "./subscribe";
 import {
   type FormState,
   contactSchema,
@@ -40,8 +44,57 @@ import {
 const GENERIC_ERROR = "Нещо се обърка. Моля, опитайте отново или ни се обадете.";
 const RATE_LIMITED = "Твърде много опити. Моля, изчакайте малко и опитайте отново.";
 
+/**
+ * What the customer is told after an order, with what happens next and when.
+ *
+ * Built from the clock at the moment of submission, on the server, so the text
+ * is the same with JavaScript off and a customer ordering on a Saturday is told
+ * to expect the call on Monday. The honeypot branch uses it too: a bot must see
+ * exactly what a person sees.
+ */
+function orderSuccessMessage(lead: string, now: Date = new Date()): string {
+  return `${lead} ${callbackSentence(now, siteConfig.commerce.openingHours)}`;
+}
+
+/**
+ * Subscribe somebody who ticked the box on another form.
+ *
+ * Runs after the record it belongs to is saved, and swallows its own failure:
+ * an order or a message must never be lost, or reported as failed, because a
+ * newsletter row could not be written. No notification — this is a customer's
+ * tick on a form, not a signup the shop needs to hear about.
+ */
+async function subscribeFromForm(input: {
+  ticked: boolean;
+  email: string | undefined;
+  source: "quick_order_form" | "contact_form";
+  fingerprint: string;
+  metadata: Record<string, unknown>;
+}): Promise<void> {
+  if (!input.ticked || !input.email) return;
+  try {
+    await recordConsent({
+      email: input.email,
+      source: input.source,
+      metadata: { ...input.metadata, fingerprint: input.fingerprint },
+    });
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "newsletter.consent_failed",
+        source: input.source,
+        error: String(error),
+      }),
+    );
+  }
+}
+
 /** Request context that is safe to store: no raw IP, no user agent string. */
-async function requestContext(): Promise<{ fingerprint: string; metadata: Record<string, unknown> }> {
+async function requestContext(): Promise<{
+  fingerprint: string;
+  metadata: Record<string, unknown>;
+}> {
   const headerList = await headers();
   return {
     fingerprint: clientFingerprint(headerList),
@@ -69,6 +122,7 @@ export async function submitOrderInquiry(
     email: formData.get("email") ?? "",
     quantity: formData.get("quantity") ?? 1,
     notes: formData.get("notes") ?? "",
+    newsletterConsent: formData.get("newsletterConsent"),
     website: formData.get("website") ?? "",
   });
 
@@ -77,7 +131,7 @@ export async function submitOrderInquiry(
     // A honeypot hit is spam. Report success so a bot learns nothing, and
     // store nothing.
     if (fieldErrors.website) {
-      return { status: "success", message: "Благодарим ви. Ще ви се обадим скоро." };
+      return { status: "success", message: orderSuccessMessage("Благодарим ви.") };
     }
     return { status: "error", message: "Моля, проверете отбелязаните полета.", fieldErrors };
   }
@@ -92,12 +146,16 @@ export async function submitOrderInquiry(
       .limit(1);
 
     if (!product) {
-      return { status: "error", message: "Не намерихме този продукт. Моля, презаредете страницата и опитайте отново." };
+      return {
+        status: "error",
+        message: "Не намерихме този продукт. Моля, презаредете страницата и опитайте отново.",
+      };
     }
     if (product.status !== "active") {
       return {
         status: "error",
-        message: "Този продукт вече не се предлага. Моля, обадете ни се и ще ви предложим алтернатива.",
+        message:
+          "Този продукт вече не се предлага. Моля, обадете ни се и ще ви предложим алтернатива.",
       };
     }
 
@@ -122,10 +180,19 @@ export async function submitOrderInquiry(
       .onConflictDoNothing({ target: orderInquiries.idempotencyKey })
       .returning({ id: orderInquiries.id });
 
+    // Their tick counts whether this is the first press or a repeated one.
+    await subscribeFromForm({
+      ticked: input.newsletterConsent,
+      email: input.email || undefined,
+      source: "quick_order_form",
+      fingerprint,
+      metadata,
+    });
+
     if (!row) {
       // The conflict means an identical enquiry already exists, which from the
       // customer's point of view is a success.
-      return { status: "success", message: "Вече получихме заявката ви. Ще ви се обадим скоро." };
+      return { status: "success", message: orderSuccessMessage("Вече получихме заявката ви.") };
     }
 
     await notify({
@@ -135,7 +202,7 @@ export async function submitOrderInquiry(
       recordId: row.id,
     });
 
-    return { status: "success", message: "Благодарим ви. Ще ви се обадим скоро, за да потвърдим." };
+    return { status: "success", message: orderSuccessMessage("Благодарим ви.") };
   } catch (error) {
     console.error(JSON.stringify({ level: "error", msg: "inquiry.failed", error: String(error) }));
     return { status: "error", message: GENERIC_ERROR };
@@ -164,21 +231,19 @@ export async function subscribeToNewsletter(
   }
 
   try {
-    const [row] = await db
-      .insert(newsletterSubscribers)
-      .values({
-        email: parsed.data.email,
-        consentSource: parsed.data.source || "unknown",
-        requestMetadata: { ...metadata, fingerprint },
-      })
-      // Re-subscribing refreshes consent rather than erroring.
-      .onConflictDoUpdate({
-        target: newsletterSubscribers.email,
-        set: { unsubscribedAt: null, consentSource: parsed.data.source || "unknown" },
-      })
-      .returning({ id: newsletterSubscribers.id });
+    // The source is a hidden field, so it is whatever a client sends: only a
+    // code this site knows is kept as the record of "how".
+    const source =
+      parsed.data.source && Object.hasOwn(FORM_CONSENT_SOURCES, parsed.data.source)
+        ? parsed.data.source
+        : "unknown";
+    const row = await recordConsent({
+      email: parsed.data.email,
+      source,
+      metadata: { ...metadata, fingerprint },
+    });
 
-    if (row) {
+    if (row.created) {
       await notify({
         kind: "newsletter_signup",
         subject: "Нов абонат за бюлетина",
@@ -188,7 +253,9 @@ export async function subscribeToNewsletter(
     }
     return { status: "success", message: "Благодарим ви. Вече сте в списъка." };
   } catch (error) {
-    console.error(JSON.stringify({ level: "error", msg: "newsletter.failed", error: String(error) }));
+    console.error(
+      JSON.stringify({ level: "error", msg: "newsletter.failed", error: String(error) }),
+    );
     return { status: "error", message: GENERIC_ERROR };
   }
 }
@@ -208,12 +275,14 @@ export async function submitContactMessage(
     phone: formData.get("phone") ?? "",
     subject: formData.get("subject") ?? "",
     message: formData.get("message"),
+    newsletterConsent: formData.get("newsletterConsent"),
     website: formData.get("website") ?? "",
   });
 
   if (!parsed.success) {
     const fieldErrors = toFieldErrors(parsed.error);
-    if (fieldErrors.website) return { status: "success", message: "Благодарим ви. Ще се свържем с вас." };
+    if (fieldErrors.website)
+      return { status: "success", message: "Благодарим ви. Ще се свържем с вас." };
     return { status: "error", message: "Моля, проверете отбелязаните полета.", fieldErrors };
   }
 
@@ -235,6 +304,14 @@ export async function submitContactMessage(
       })
       .onConflictDoNothing({ target: contactMessages.idempotencyKey })
       .returning({ id: contactMessages.id });
+
+    await subscribeFromForm({
+      ticked: input.newsletterConsent,
+      email: input.email,
+      source: "contact_form",
+      fingerprint,
+      metadata,
+    });
 
     if (row) {
       await notify({
