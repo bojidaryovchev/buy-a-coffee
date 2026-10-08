@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs, EmptyState, SectionHeading } from "@/components/ui/primitives";
 import { getCategoryTree } from "@/lib/catalog/queries";
 import { siteConfig } from "@/config/site";
+import { listBusinessSectionCategorySlugs } from "./_lib/category-scope";
 
 export const revalidate = 300;
 
@@ -13,7 +14,21 @@ export const metadata: Metadata = {
 };
 
 export default async function CategoriesPage() {
-  const categories = await getCategoryTree();
+  const [tree, sectionSlugs] = await Promise.all([
+    getCategoryTree(),
+    listBusinessSectionCategorySlugs(),
+  ]);
+  /*
+   * A category that backs a business section (`/vending`, `/consumables`) is
+   * reached through that page, and `/categories/<slug>` redirects there. A
+   * link to it here would be a link to a redirect, under a second name.
+   */
+  const categories = tree
+    .filter((category) => !sectionSlugs.has(category.slug))
+    .map((category) => ({
+      ...category,
+      children: category.children.filter((child) => !sectionSlugs.has(child.slug)),
+    }));
 
   return (
     <div className="shell pb-16">
@@ -30,10 +45,7 @@ export default async function CategoriesPage() {
       />
 
       {categories.length === 0 ? (
-        <EmptyState
-          title="Асортиментът се обновява"
-          description="Моля, проверете отново скоро."
-        />
+        <EmptyState title="Асортиментът се обновява" description="Моля, проверете отново скоро." />
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (

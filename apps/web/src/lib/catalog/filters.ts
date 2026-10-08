@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
+import { STRENGTH_ORDER } from "./attributes";
 
 /**
  * Listing query parameters.
@@ -11,18 +13,21 @@ import { z } from "zod";
  * The parameter names (`brand`, `strength`, `decaf`, `aromas`) and their
  * multi-value semantics are taken from the reference contract recorded in
  * `reference/latest/filters.json`, so links remain conceptually compatible.
+ * `system` is ours: the reference has no notion of a brewing system.
  *
  * Every input is validated. A malformed parameter degrades to its default
  * rather than producing an error page: a bad link should still show products.
  */
 
+/** In the order the sort control lists them. */
 export const SORT_OPTIONS = [
   { value: "relevance", label: "Най-подходящи" },
-  { value: "name-asc", label: "Име А–Я" },
-  { value: "name-desc", label: "Име Я–А" },
+  { value: "price-per-cup", label: "Цена на чаша: ниска към висока" },
   { value: "price-asc", label: "Цена: ниска към висока" },
   { value: "price-desc", label: "Цена: висока към ниска" },
   { value: "newest", label: "Първо най-новите" },
+  { value: "name-asc", label: "Име А–Я" },
+  { value: "name-desc", label: "Име Я–А" },
 ] as const;
 
 export type SortOption = (typeof SORT_OPTIONS)[number]["value"];
@@ -50,6 +55,25 @@ const multiValue = z
       .slice(0, MAX_MULTI_VALUES),
   );
 
+/**
+ * Brewing systems, by the ids in `BREWING_SYSTEMS`. Anything else is dropped
+ * here, so an unknown id never reaches the query or a chip.
+ */
+const SYSTEM_IDS: ReadonlySet<string> = new Set(BREWING_SYSTEMS.map((system) => system.id));
+const systemValues = multiValue.transform((values) =>
+  values.filter((value): value is BrewingSystemId => SYSTEM_IDS.has(value)),
+);
+
+/**
+ * The intensity band: weak, medium or strong. The raw intensity numeral is
+ * deliberately not a parameter — the source declares it on five different
+ * scales, so "8" filters nothing meaningful.
+ */
+const STRENGTH_VALUES: ReadonlySet<string> = new Set(STRENGTH_ORDER);
+const strengthValues = multiValue.transform((values) =>
+  values.filter((value) => STRENGTH_VALUES.has(value)),
+);
+
 const yesNo = z
   .string()
   .optional()
@@ -66,8 +90,9 @@ export const catalogQuerySchema = z.object({
       const trimmed = (value ?? "").trim().replace(/\s+/g, " ");
       return trimmed.slice(0, MAX_QUERY_LENGTH);
     }),
+  system: systemValues,
   brand: multiValue,
-  strength: multiValue,
+  strength: strengthValues,
   decaf: yesNo,
   aromas: yesNo,
   category: multiValue,
@@ -107,6 +132,7 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 export function parseCatalogQuery(params: RawSearchParams): CatalogQuery {
   const result = catalogQuerySchema.safeParse({
     q: firstValue(params.q),
+    system: firstValue(params.system),
     brand: firstValue(params.brand),
     strength: firstValue(params.strength),
     decaf: firstValue(params.decaf),
@@ -126,6 +152,7 @@ export function parseCatalogQuery(params: RawSearchParams): CatalogQuery {
 /** True when the visitor has narrowed the listing in any way. */
 export function hasActiveFilters(query: CatalogQuery): boolean {
   return (
+    query.system.length > 0 ||
     query.brand.length > 0 ||
     query.strength.length > 0 ||
     query.category.length > 0 ||
@@ -137,6 +164,7 @@ export function hasActiveFilters(query: CatalogQuery): boolean {
 
 export function countActiveFilters(query: CatalogQuery): number {
   return (
+    query.system.length +
     query.brand.length +
     query.strength.length +
     query.category.length +
@@ -160,6 +188,7 @@ export function buildSearchParams(
   const params = new URLSearchParams();
 
   if (merged.q) params.set("q", merged.q);
+  if (merged.system?.length) params.set("system", [...merged.system].sort().join(","));
   if (merged.brand?.length) params.set("brand", [...merged.brand].sort().join(","));
   if (merged.strength?.length) params.set("strength", [...merged.strength].sort().join(","));
   if (merged.category?.length) params.set("category", [...merged.category].sort().join(","));
@@ -175,10 +204,13 @@ export function buildSearchParams(
   return serialised ? `?${serialised}` : "";
 }
 
+export type MultiFilterKey = "system" | "brand" | "strength" | "category";
+export type SingleFilterKey = "decaf" | "aromas";
+
 /** Toggle one value of a multi-value filter, resetting to page 1. */
 export function toggleFilterValue(
   query: CatalogQuery,
-  key: "brand" | "strength" | "category",
+  key: MultiFilterKey,
   value: string,
 ): CatalogQuery {
   const current = new Set(query[key]);
@@ -189,14 +221,62 @@ export function toggleFilterValue(
 
 export function setSingleFilter(
   query: CatalogQuery,
-  key: "decaf" | "aromas",
+  key: SingleFilterKey,
   value: "yes" | "no" | null,
 ): CatalogQuery {
   return { ...query, [key]: query[key] === value ? null : value, page: 1 };
 }
 
 export function clearFilters(query: CatalogQuery): CatalogQuery {
-  return { ...query, brand: [], strength: [], category: [], decaf: null, aromas: null, page: 1 };
+  return {
+    ...query,
+    system: [],
+    brand: [],
+    strength: [],
+    category: [],
+    decaf: null,
+    aromas: null,
+    page: 1,
+  };
+}
+
+export interface ActiveFilter {
+  readonly key: MultiFilterKey | SingleFilterKey;
+  readonly value: string;
+  /**
+   * The search string of the same listing without this one filter — every
+   * other filter, the search term and the sort order kept, back on page 1.
+   */
+  readonly removeSearch: string;
+}
+
+/**
+ * The active filters, one entry per removable value, in the order the filter
+ * groups appear in the panel. The search term is not one of them: it is
+ * changed in the search field, not removed with a chip.
+ */
+export function listActiveFilters(query: CatalogQuery): readonly ActiveFilter[] {
+  const multi = (key: MultiFilterKey): ActiveFilter[] =>
+    query[key].map((value) => ({
+      key,
+      value,
+      removeSearch: buildSearchParams(toggleFilterValue(query, key, value)),
+    }));
+  const single = (key: SingleFilterKey): ActiveFilter[] => {
+    const value = query[key];
+    return value
+      ? [{ key, value, removeSearch: buildSearchParams(setSingleFilter(query, key, null)) }]
+      : [];
+  };
+
+  return [
+    ...multi("system"),
+    ...multi("category"),
+    ...multi("brand"),
+    ...multi("strength"),
+    ...single("decaf"),
+    ...single("aromas"),
+  ];
 }
 
 /**

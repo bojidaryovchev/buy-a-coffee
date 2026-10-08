@@ -16,7 +16,6 @@ import {
   brandNameMatch,
   categoryNameMatch,
   searchMatch,
-  searchMatchProductsOnly,
   searchRank,
   suggestionRank,
 } from "./search";
@@ -258,10 +257,46 @@ async function loadPrimaryImages(productIds: readonly string[]) {
   return map;
 }
 
+/**
+ * Price per cup, for ordering: the displayed retail price over the cups the
+ * sync stored for the pack. Both are `numeric`, so the division is exact
+ * decimal arithmetic and never a float. Null — and so sorted last — when
+ * either side is missing; a pack of zero cups has no per-cup price either.
+ */
+const retailPricePerCup = sql<
+  string | null
+>`case when ${products.servings} > 0 then ${retailPrice} / ${products.servings} end`;
+
+/**
+ * Products in any of the given brewing systems.
+ *
+ * `BREWING_SYSTEMS` is the only place that knows which categories make up a
+ * system, and it binds them by slug *or* source key (see "Recommendation
+ * wizard" below for why). Several systems are a union, like every other
+ * multi-value filter.
+ */
+function brewingSystemsCondition(systemIds: readonly string[]): SQL {
+  const selected = BREWING_SYSTEMS.filter((system) => systemIds.includes(system.id));
+  const slugs = selected.flatMap((system) => [...system.categorySlugs]);
+  const sourceKeys = selected.flatMap((system) => [...system.categorySourceKeys]);
+  return sql`exists (
+    select 1 from ${productCategories} pc
+    join ${categories} c on c.id = pc.category_id
+    where pc.product_id = ${products.id}
+      and (
+        c.slug = any(${sql.param(slugs)}::text[])
+        or c.source_key = any(${sql.param(sourceKeys)}::text[])
+      )
+  )`;
+}
+
 /** Conditions shared by every listing query. */
 function buildFilterConditions(query: CatalogQuery, extra: SQL[] = []): SQL[] {
   const conditions: SQL[] = [isVisible, ...extra];
 
+  if (query.system.length > 0) {
+    conditions.push(brewingSystemsCondition(query.system));
+  }
   if (query.brand.length > 0) {
     conditions.push(inArray(brands.slug, [...query.brand]));
   }
@@ -292,25 +327,35 @@ function buildFilterConditions(query: CatalogQuery, extra: SQL[] = []): SQL[] {
 }
 
 function buildOrderBy(query: CatalogQuery): SQL[] {
+  /*
+   * Every order ends on the primary key. Two products can share a price, a
+   * per-cup price and even a name, and without a total order PostgreSQL may
+   * return such a pair in either order on each request — so one of them could
+   * appear on two pages and the other on none.
+   */
+  const tieBreak = [asc(products.name), asc(products.id)];
   switch (query.sort) {
     case "name-asc":
-      return [asc(products.name)];
+      return tieBreak;
     case "name-desc":
-      return [desc(products.name)];
+      return [desc(products.name), asc(products.id)];
+    case "price-per-cup":
+      // No price or no known pack size: no per-cup figure, so last.
+      return [sql`${retailPricePerCup} asc nulls last`, ...tieBreak];
     case "price-asc":
       // Products without a price sort last rather than first.
-      return [sql`${retailPrice} asc nulls last`, asc(products.name)];
+      return [sql`${retailPrice} asc nulls last`, ...tieBreak];
     case "price-desc":
-      return [sql`${retailPrice} desc nulls last`, asc(products.name)];
+      return [sql`${retailPrice} desc nulls last`, ...tieBreak];
     case "newest":
-      return [desc(products.firstSeenAt), asc(products.name)];
+      return [desc(products.firstSeenAt), ...tieBreak];
     case "relevance":
     default:
       if (query.q) {
-        return [...searchRank(query.q), asc(products.name)];
+        return [...searchRank(query.q), ...tieBreak];
       }
       // With no query there is no relevance signal; in-stock first, then name.
-      return [sql`(${products.availability} = 'in_stock') desc`, asc(products.name)];
+      return [sql`(${products.availability} = 'in_stock') desc`, ...tieBreak];
   }
 }
 
@@ -384,7 +429,7 @@ export async function listProducts(options: ListProductsOptions): Promise<Produc
 }
 
 function emptyFacets(): CatalogFacets {
-  return { brands: [], strengths: [], decaf: [], aromas: [], categories: [] };
+  return { systems: [], brands: [], strengths: [], decaf: [], aromas: [], categories: [] };
 }
 
 /**
@@ -397,13 +442,31 @@ function emptyFacets(): CatalogFacets {
 async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFacets> {
   const scope = and(isVisible, ...extra);
   /*
-   * The brand clause is left out here: the attribute and category facet
-   * queries do not join `brands`, and a facet count must be counted over the
-   * same rows for every facet or the numbers disagree with each other.
+   * The same predicate the results use, brand-name match included — every
+   * facet query below joins `brands`, which it needs. With the product-only
+   * predicate a search for a brand whose products do not repeat its name
+   * returned results beside counts of zero, and so beside no filters at all.
    */
-  const scopeWithSearch = query.q ? and(scope, searchMatchProductsOnly(query.q)) : scope;
+  const scopeWithSearch = query.q ? and(scope, searchMatch(query.q)) : scope;
 
-  const [brandRows, attributeRows, categoryRows] = await Promise.all([
+  /*
+   * One aggregate per system over the same rows, each filtered by the very
+   * predicate the `system` filter applies — so a count here is, by
+   * construction, the number of results that filter returns.
+   */
+  const systemColumns = Object.fromEntries(
+    BREWING_SYSTEMS.map((system) => [
+      system.id,
+      sql<number>`count(*) filter (where ${brewingSystemsCondition([system.id])})::int`,
+    ]),
+  );
+
+  const [systemRows, brandRows, attributeRows, categoryRows] = await Promise.all([
+    db
+      .select(systemColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(scopeWithSearch),
     db
       .select({
         value: brands.slug,
@@ -463,6 +526,12 @@ async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFac
   const orderedStrengths = STRENGTH_ORDER.filter((value) => strengthCounts.has(value));
 
   return {
+    // In the order `BREWING_SYSTEMS` lists them, which is the shop's own.
+    systems: BREWING_SYSTEMS.map((system) => ({
+      value: system.id,
+      label: system.name,
+      count: Number(systemRows[0]?.[system.id] ?? 0),
+    })).filter((facet) => facet.count > 0),
     brands: brandRows.map((row) => ({
       value: row.value,
       label: brandDisplayName({ name: row.label, sourceKey: row.sourceKey }),
