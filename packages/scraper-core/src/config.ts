@@ -18,6 +18,9 @@ const intFromEnv = (min: number, max: number, fallback: number) =>
 const floatFromEnv = (min: number, max: number, fallback: number) =>
   z.coerce.number().min(min).max(max).default(fallback);
 
+export const DEFAULT_USER_AGENT =
+  "KafeZonaCatalogSync/0.1 (+catalog synchronisation for an authorised reseller; contact: ops@example.com)";
+
 export const configSchema = z.object({
   /** Identity of the reference site. */
   sourceKey: z.string().min(1).default("kafezona"),
@@ -27,8 +30,25 @@ export const configSchema = z.object({
   hostAliases: z.array(z.string()).default(["kafezona.com"]),
 
   /**
-   * Politeness. Defaults are deliberately gentle: the catalog is ~110 products
+   * Politeness. Defaults are deliberately gentle: the catalog is ~190 products
    * on a small storefront, so there is nothing to gain from being aggressive.
+   *
+   * Request budget per sync (pages, not images), so a change to these numbers
+   * can be judged against what a run actually asks of the source:
+   *
+   *  - steady state: robots.txt, the not-found probe and the /search/ catalog
+   *    blob, i.e. 3 requests, plus one product page for each product the diff
+   *    reports as created, moved or changed (B5). A quiet day is therefore
+   *    about 3 requests; a day with a dozen price changes about 15.
+   *  - backfill (the one-off pass that reads every product page once): the
+   *    same 3 plus one request per active product, about 190 in all.
+   *  - ceiling: `maxPages` below bounds a discovery crawl. A sync does not
+   *    crawl, so it is never the limit that applies to it.
+   *
+   * Spacing: `minDelayMs` is enforced across all workers together, so
+   * `concurrency` shortens latency without raising the request rate; with the
+   * defaults a backfill takes at least 190 x 100 ms, about 20 seconds. Image
+   * mirroring has its own, separate spacing (`imageMinDelayMs`).
    */
   concurrency: intFromEnv(1, 16, 4),
   timeoutMs: intFromEnv(1_000, 120_000, 15_000),
@@ -38,12 +58,12 @@ export const configSchema = z.object({
   retryMaxDelayMs: intFromEnv(100, 120_000, 10_000),
   maxRedirects: intFromEnv(0, 20, 5),
   maxBodyBytes: intFromEnv(1_024, 50 * 1024 * 1024, 5 * 1024 * 1024),
-  userAgent: z
-    .string()
-    .min(1)
-    .default(
-      "KafeZonaCatalogSync/0.1 (+catalog synchronisation for an authorised reseller; contact: ops@example.com)",
-    ),
+  /**
+   * Sent with every request. It must name a contact the source can reach: the
+   * default carries a placeholder so that a fresh checkout works for dry runs
+   * and tests, and `assertCrawlerIdentity` refuses it for any run that writes.
+   */
+  userAgent: z.string().min(1).default(DEFAULT_USER_AGENT),
 
   /** Crawl bounds. */
   maxPages: intFromEnv(1, 100_000, 2_000),
@@ -137,6 +157,61 @@ export class ConfigError extends Error {
   }
 }
 
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*/gi;
+const URL_PATTERN = /https?:\/\/[^\s)]+/gi;
+/** Hosts reserved for documentation and testing (RFC 2606 / 6761), plus loopback. */
+const RESERVED_HOST =
+  /(?:^|\.)example(?:\.(?:com|net|org))?$|(?:^|\.)(?:test|invalid|localhost)$|^127\.|^0\.0\.0\.0$/i;
+/** Words people leave behind in a template they have not filled in. */
+const TEMPLATE_MARKER =
+  /changeme|change-me|replace-?me|your[-_. ]?(?:email|e-mail|address|contact|domain|name)|placeholder|\btodo\b|<[^>\s][^>]*>/i;
+
+function hostOf(contact: string): string {
+  if (contact.includes("@") && !contact.includes("://")) return contact.split("@").pop() ?? "";
+  try {
+    return new URL(contact).hostname;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * What is wrong with the contact in a user agent, or null when it is usable.
+ * A usable contact is an e-mail address or URL on a real host, and the string
+ * carries no leftover template wording.
+ */
+export function crawlerContactProblem(userAgent: string): string | null {
+  const contacts = [...(userAgent.match(EMAIL_PATTERN) ?? []), ...(userAgent.match(URL_PATTERN) ?? [])];
+  if (contacts.length === 0) return "it names no e-mail address or URL to contact";
+  const placeholder = contacts.find((contact) => RESERVED_HOST.test(hostOf(contact)));
+  if (placeholder) return `its contact (${placeholder}) is a placeholder on a reserved domain`;
+  if (TEMPLATE_MARKER.test(userAgent)) return "it still contains template wording";
+  return null;
+}
+
+/**
+ * Refuse to start a run that writes while the crawler's identity is a
+ * placeholder. Dry runs and tests do not call this, so a fresh checkout still
+ * works; a scheduled run, which writes, cannot be misconfigured into
+ * hammering someone's site under a contact nobody reads.
+ */
+export function assertCrawlerIdentity(
+  config: Pick<ScraperConfig, "userAgent">,
+  options: { readonly writes: boolean },
+): void {
+  if (!options.writes) return;
+  const problem = crawlerContactProblem(config.userAgent);
+  if (!problem) return;
+  throw new ConfigError(
+    [
+      `CRAWL_USER_AGENT is not acceptable for a run that writes: ${problem}.`,
+      "Set CRAWL_USER_AGENT to a user agent that names a mailbox or page the source can reach, for example:",
+      '  CRAWL_USER_AGENT="KafeZonaCatalogSync/0.1 (+catalog synchronisation for an authorised reseller; contact: you@your-company.example)"',
+      "(use your own real address). For a local rehearsal that writes nothing, run with --dry-run instead.",
+    ].join("\n"),
+  );
+}
+
 /**
  * Build config from the environment plus optional CLI overrides.
  * Throws with a readable message rather than failing deep inside a crawl.
@@ -144,6 +219,7 @@ export class ConfigError extends Error {
 export function loadConfig(
   overrides: Partial<Record<keyof ScraperConfig, unknown>> = {},
   env: NodeJS.ProcessEnv = process.env,
+  options: { readonly writes?: boolean } = {},
 ): ScraperConfig {
   const raw: Record<string, unknown> = {};
   for (const [key, envName] of Object.entries(ENV_MAP)) {
@@ -187,5 +263,8 @@ export function loadConfig(
       "CRAWL_RETRY_MAX_DELAY_MS must be greater than or equal to CRAWL_RETRY_BASE_DELAY_MS.",
     );
   }
+  // Callers that know they will write pass `writes: true`; the default keeps
+  // tests and dry runs working on a fresh checkout.
+  assertCrawlerIdentity(config, { writes: options.writes === true });
   return config;
 }

@@ -92,11 +92,18 @@ export class Fetcher {
 
   /**
    * The normalised hash of the site's shell page. Any non-root URL whose body
-   * hashes to this value is a soft 404 — this site answers unknown routes with
-   * HTTP 200 and the homepage.
+   * hashes to this value is a soft 404 — this site used to answer unknown
+   * routes with HTTP 200 and the homepage. Stays null while it answers with a
+   * real 404, which is how it behaves now.
    */
   private shellHash: string | null = null;
   private shellTitle: string | null = null;
+  /**
+   * Set once the probe has been answered with a definitive HTTP error status
+   * (404 today): the site has a real not-found response, there is no shell to
+   * learn, and asking again would only cost the source another request.
+   */
+  private probeAnsweredWithError = false;
 
   /** Serialises the minimum-delay gate so concurrent workers stay polite. */
   private nextSlotAt = 0;
@@ -164,17 +171,27 @@ export class Fetcher {
   /**
    * Establish what the site's "page not found" body looks like.
    *
-   * Without this the crawler would treat 111 stale sitemap URLs as real
-   * products, because every one of them returns HTTP 200.
+   * The source has behaved both ways. It used to answer every unknown route
+   * with HTTP 200 and its home page, and without this the crawler would have
+   * treated 111 stale sitemap URLs as real products. It now answers with a
+   * real HTTP 404. A probe that comes back as a page is learned as the shell;
+   * a probe that comes back as an error means there is no soft 404 to guard
+   * against ("not applicable"), and status codes can be trusted. Both stay
+   * supported, because the source may change again.
    */
   async calibrateSoft404(): Promise<{ shellHash: string | null; shellTitle: string | null }> {
     if (this.shellHash) return { shellHash: this.shellHash, shellTitle: this.shellTitle };
+    if (this.probeAnsweredWithError) return { shellHash: null, shellTitle: null };
 
     // A path that cannot plausibly exist. If it returns a body, that body is
     // the site's not-found representation.
     const probePath = `/__catalog-sync-probe-${sha256Hex(this.config.baseUrl).slice(0, 12)}/`;
     const probeUrl = new URL(probePath, this.config.baseUrl).toString();
-    const probe = await this.request(probeUrl, { skipRobots: true, skipSoft404: true });
+    const probe = await this.request(probeUrl, {
+      skipRobots: true,
+      skipSoft404: true,
+      expectNotFound: true,
+    });
 
     if (probe.outcome === "ok" && probe.body) {
       this.shellHash = probe.contentHash;
@@ -185,7 +202,14 @@ export class Fetcher {
         statusCode: probe.statusCode,
       });
     } else {
-      this.logger.info("soft404.not_applicable", { outcome: probe.outcome });
+      this.logger.info("soft404.not_applicable", {
+        outcome: probe.outcome,
+        statusCode: probe.statusCode,
+      });
+      // Only a definitive answer is remembered; a timeout or a 5xx says
+      // nothing about how the site treats unknown routes, so it is retried.
+      this.probeAnsweredWithError =
+        probe.outcome === "http_error" && probe.statusCode !== null && probe.statusCode < 500;
     }
     return { shellHash: this.shellHash, shellTitle: this.shellTitle };
   }
@@ -208,7 +232,13 @@ export class Fetcher {
 
   private async request(
     url: string,
-    options: { skipRobots?: boolean; skipSoft404?: boolean; expectHtml?: boolean },
+    options: {
+      skipRobots?: boolean;
+      skipSoft404?: boolean;
+      expectHtml?: boolean;
+      /** A 404 is the expected answer (the calibration probe): not worth a warning. */
+      expectNotFound?: boolean;
+    },
   ): Promise<FetchResult> {
     const startedAt = this.now();
 
@@ -266,7 +296,14 @@ export class Fetcher {
             ? "too_large"
             : "network_error";
       const statusCode = error instanceof HttpStatusError ? error.status : null;
-      this.logger.warn("fetch.failed", { url, outcome, statusCode, attempts, error });
+      const expected = options.expectNotFound === true && statusCode === 404;
+      this.logger[expected ? "debug" : "warn"]("fetch.failed", {
+        url,
+        outcome,
+        statusCode,
+        attempts,
+        error,
+      });
       return {
         ...this.emptyResult(url, outcome, startedAt, attempts),
         statusCode,
