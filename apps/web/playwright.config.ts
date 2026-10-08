@@ -20,7 +20,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  /*
+   * Every worker drives the same single `next start` process. Playwright's
+   * local default (half the cores) only queues requests behind each other, and
+   * on a busy machine that turned client-side navigations into ten-second
+   * timeouts that had nothing to do with the code under test.
+   */
+  workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   timeout: 30_000,
   expect: { timeout: 10_000 },

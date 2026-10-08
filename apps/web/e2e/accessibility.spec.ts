@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { waitForHydration } from "./support/hydration";
+import { expectControlsLabelled } from "./support/structure";
 
 /**
  * Accessibility and responsive behaviour.
@@ -53,16 +55,7 @@ test("the skip link is the first focusable element", async ({ page }) => {
 
 test("form controls have accessible names", async ({ page }) => {
   await page.goto("/contact");
-  const unlabelled = await page.locator("input:not([type=hidden]), textarea, select").evaluateAll((nodes) =>
-    nodes.filter((node) => {
-      const element = node as HTMLInputElement;
-      if (element.closest("[aria-hidden='true']")) return false; // honeypot
-      const id = element.getAttribute("id");
-      const hasLabel = id ? document.querySelector(`label[for="${id}"]`) !== null : false;
-      return !hasLabel && !element.getAttribute("aria-label") && !element.getAttribute("aria-labelledby");
-    }).length,
-  );
-  expect(unlabelled).toBe(0);
+  await expectControlsLabelled(page);
 });
 
 test("the honeypot field is hidden from assistive technology", async ({ page }) => {
@@ -85,34 +78,146 @@ test("the honeypot field is hidden from assistive technology", async ({ page }) 
 test.describe("mobile", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
+  /** The drawer trigger, once hydration has made it a button. */
+  const menuButton = (page: Page) => page.getByRole("button", { name: "Меню", exact: true });
+  const drawer = (page: Page) => page.getByRole("dialog", { name: "Меню на сайта" });
+
   test("mobile navigation opens, traps focus and closes on Escape", async ({ page }) => {
     await page.goto("/");
+    await waitForHydration(page);
 
-    const trigger = page.getByRole("button", { name: /отвори менюто/i });
+    const trigger = menuButton(page);
     await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await trigger.click();
 
-    const dialog = page.getByRole("dialog", { name: /меню на сайта/i });
+    const dialog = drawer(page);
     await expect(dialog).toBeVisible();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(trigger).toHaveAttribute("aria-controls", /.+/);
+
+    // Focus goes to the close button, and Tab cannot leave the panel.
+    await expect(dialog.getByRole("button", { name: "Затвори менюто" })).toBeFocused();
+    const links = await dialog.locator("a[href], button").count();
+    for (let step = 0; step <= links; step += 1) {
+      await page.keyboard.press("Tab");
+      expect(
+        await dialog.evaluate((node) => node.contains(document.activeElement)),
+        `focus after ${step + 1} Tab presses`,
+      ).toBe(true);
+    }
+    await page.keyboard.press("Shift+Tab");
+    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
 
     await page.keyboard.press("Escape");
-    await expect(dialog).not.toBeVisible();
+    await expect(dialog).toBeHidden();
+    // And back to the control that opened it.
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("mobile navigation reaches a category", async ({ page }) => {
+  test("the drawer closes from its close button and from the scrim", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /отвори менюто/i }).click();
-    await page.getByRole("dialog").locator('a[href^="/categories/"]').first().click();
+    await waitForHydration(page);
+
+    await menuButton(page).click();
+    await drawer(page).getByRole("button", { name: "Затвори менюто" }).click();
+    await expect(drawer(page)).toBeHidden();
+    await expect(menuButton(page)).toBeFocused();
+
+    await menuButton(page).click();
+    await expect(drawer(page)).toBeVisible();
+    // The scrim is the strip to the right of the panel, which is 86% wide.
+    const viewport = page.viewportSize()!;
+    await page.mouse.click(viewport.width - 10, viewport.height / 2);
+    await expect(drawer(page)).toBeHidden();
+  });
+
+  test("the drawer locks the page behind it while open", async ({ page }) => {
+    await page.goto("/");
+    await waitForHydration(page);
+    await menuButton(page).click();
+    await expect(drawer(page)).toBeVisible();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+
+    await page.keyboard.press("Escape");
+    await expect(drawer(page)).toBeHidden();
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+  });
+
+  test("mobile navigation reaches a category, and closes on the way", async ({ page }) => {
+    await page.goto("/");
+    await waitForHydration(page);
+    await menuButton(page).click();
+    await drawer(page).locator('a[href^="/categories/"]').first().click();
     await expect(page).toHaveURL(/\/categories\//);
+    await expect(drawer(page)).toBeHidden();
+  });
+
+  test("without JavaScript the menu is a link to the categories page", async ({ browser }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+
+    // No drawer can open without a script, so the control must not claim to be a button.
+    const link = page.getByRole("link", { name: "Меню", exact: true });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "/categories");
+    await expect(page.getByRole("button", { name: "Меню", exact: true })).toHaveCount(0);
+
+    await link.click();
+    await expect(page).toHaveURL(/\/categories$/);
+    await expect(page.locator('main a[href^="/categories/"]').first()).toBeVisible();
+    await context.close();
   });
 
   test("the filter sheet opens on small screens", async ({ page }) => {
     await page.goto("/categories/kapsuli");
+    await waitForHydration(page);
     const trigger = page.getByRole("button", { name: /^филтри/i });
     await expect(trigger).toBeVisible();
     await trigger.click();
-    await expect(page.getByRole("dialog", { name: /филтри/i })).toBeVisible();
+    const sheet = page.getByRole("dialog", { name: /филтри/i });
+    await expect(sheet).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test("the filter trigger says how many filters are active", async ({ page }) => {
+    await page.goto("/categories/kapsuli?brand=lavazza&strength=strong");
+    await waitForHydration(page);
+    await expect(page.getByRole("button", { name: /^филтри\s*активни: 2$/i })).toBeVisible();
+  });
+
+  test("without JavaScript the filters open as a disclosure", async ({ browser }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    await page.goto("/categories/kapsuli");
+
+    // The toolbar's disclosure, not the rail's filter groups (also `<details>`,
+    // and hidden at this width).
+    const disclosure = page
+      .locator("main details")
+      .filter({ has: page.locator("> summary", { hasText: /^филтри/i }) });
+    const summary = disclosure.locator("> summary");
+    await expect(summary).toBeVisible();
+    const brandLink = disclosure.locator('a[href*="brand="]').first();
+    await expect(brandLink).toBeHidden();
+
+    await summary.click();
+    await expect(brandLink).toBeVisible();
+    // Each filter is a plain link, so it works from here too.
+    await brandLink.click();
+    await expect(page).toHaveURL(/brand=/);
+    await context.close();
   });
 
   test("the layout does not scroll horizontally", async ({ page }) => {

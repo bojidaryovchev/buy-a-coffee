@@ -13,7 +13,10 @@ test("home page loads and shows catalog-driven sections", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   // The hero states the real catalog size, which proves the page is data-driven.
   await expect(page.getByText(/\d+ марки · \d+ продукта/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /разгледайте асортимента/i })).toBeVisible();
+  // The hero's first call to action starts from the visitor's machine.
+  const start = page.getByRole("link", { name: "Намерете кафе за вашата машина" });
+  await expect(start).toBeVisible();
+  await expect(start).toHaveAttribute("href", "/wizard");
 });
 
 test("category navigation reaches a listing with products", async ({ page }) => {
@@ -74,14 +77,20 @@ test("clearing filters returns to the unfiltered listing", async ({ page }) => {
 });
 
 test("pagination links work and are crawlable", async ({ page }) => {
+  // The capsule category holds more than one page of products in the
+  // reference catalog, so the control must be there.
   await page.goto("/categories/kapsuli");
-  const next = page.getByRole("link", { name: "Напред" });
+  const pages = page.getByRole("navigation", { name: "Страниране" });
+  const next = pages.getByRole("link", { name: "Напред" });
+  await expect(next).toHaveAttribute("rel", "next");
 
-  if (await next.count()) {
-    await next.click();
-    await expect(page).toHaveURL(/page=2/);
-    await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
-  }
+  await next.click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.locator('main a[href^="/products/"]').first()).toBeVisible();
+  await expect(pages.getByRole("link", { name: "2", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 test("sorting by price changes the order", async ({ page }) => {
@@ -96,8 +105,13 @@ test("sorting by price changes the order", async ({ page }) => {
 
 test("an impossible filter combination shows a helpful empty state", async ({ page }) => {
   await page.goto("/categories/kapsuli?brand=does-not-exist");
-  await expect(page.getByText(/няма продукти по тези филтри/i)).toBeVisible();
-  await expect(page.getByRole("link", { name: /изчисти филтрите/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Няма продукти с тези филтри" })).toBeVisible();
+  const clear = page.getByRole("link", { name: /изчисти филтрите/i });
+  await expect(clear).toBeVisible();
+  // The way out really is out: it drops the filter and finds products again.
+  await clear.click();
+  await expect(page).not.toHaveURL(/brand=/);
+  await expect(page.locator('main a[href^="/products/"]').first()).toBeVisible();
 });
 
 test("brand index and brand pages work", async ({ page }) => {
