@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import type { AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
 import type { Database } from "@catalog/db";
 import {
@@ -93,6 +93,8 @@ export async function loadExistingProducts(
     semanticHash: row.semanticHash,
     status: row.status,
     consecutiveMissingCount: row.consecutiveMissingCount,
+    // Enrichment's column. Beside the snapshot, not in it: see `ExistingProduct`.
+    sku: row.sku,
     // The stored snapshot is rebuilt from the columns so a diff can describe
     // exactly which business field changed.
     snapshot: {
@@ -104,7 +106,6 @@ export async function loadExistingProducts(
       brandKey: (row.sourceData as Record<string, unknown>)?.brandKey ?? null,
       categoryKeys: ((row.sourceData as Record<string, unknown>)?.categoryKeys as string[]) ?? [],
       weight: (row.sourceData as Record<string, unknown>)?.weightCanonical ?? null,
-      sku: row.sku,
       gtin: row.gtin,
       attributes: row.attributes,
       imageUrls: ((row.sourceData as Record<string, unknown>)?.imageUrls as string[]) ?? [],
@@ -494,9 +495,35 @@ export async function insertSyncChange(
   await db.insert(syncChanges).values(input);
 }
 
-/** What a move may write besides the key itself. Never the slug, never the copy. */
+/**
+ * The columns the enrichment step owns: everything read from the source's
+ * product page rather than from its catalog listing.
+ *
+ * The listing has none of this, so a listing-driven write that included any of
+ * these columns would overwrite what enrichment stored with nothing, on every
+ * run. They are therefore excluded from `ProductMoveColumns` below — the type
+ * the sync's own column list must satisfy — which turns "the upsert wrote
+ * `sku: null`" from a bug someone has to notice into one that does not compile.
+ */
+export const ENRICHMENT_COLUMNS = [
+  "sku",
+  "arabicaPercent",
+  "origin",
+  "roast",
+  "characteristics",
+  "enrichedAt",
+  "enrichAttemptedAt",
+] as const satisfies ReadonlyArray<keyof typeof products.$inferSelect>;
+
+export type EnrichmentColumn = (typeof ENRICHMENT_COLUMNS)[number];
+
+/**
+ * What a move may write besides the key itself. Never the slug, never the
+ * copy, never what enrichment stored.
+ */
 export type ProductMoveColumns = Omit<
   PgUpdateSetSource<typeof products>,
+  | EnrichmentColumn
   | "id"
   | "sourceSiteId"
   | "slug"
@@ -597,6 +624,186 @@ export async function applyProductMove(
 
     return { previousSourceKey: current.sourceKey, slug: current.slug };
   });
+}
+
+// --- Enrichment ---------------------------------------------------------------
+
+/** One product whose page is to be read. */
+export interface EnrichmentTarget {
+  readonly productId: string;
+  readonly sourceKey: string;
+  readonly sourceUrl: string;
+  /** Another product shares this URL, so the page's code names neither. */
+  readonly hasUrlCollision: boolean;
+  /** The code already stored, to notice when the page now states another. */
+  readonly sku: string | null;
+}
+
+const enrichmentTargetColumns = {
+  productId: products.id,
+  sourceKey: products.sourceKey,
+  sourceUrl: products.sourceUrl,
+  hasUrlCollision: products.hasUrlCollision,
+  sku: products.sku,
+};
+
+export async function loadEnrichmentTargets(
+  db: Database,
+  productIds: readonly string[],
+): Promise<Map<string, EnrichmentTarget>> {
+  if (productIds.length === 0) return new Map();
+  const rows = await db
+    .select(enrichmentTargetColumns)
+    .from(products)
+    .where(inArray(products.id, [...productIds]));
+  return new Map(rows.map((row) => [row.productId, row]));
+}
+
+/**
+ * Active products whose page has never been read successfully, oldest attempt
+ * first. A page that failed is not offered again until `retryAfterHours` have
+ * passed, so one dead URL costs the source one request a day, not one a run,
+ * and cannot crowd the products behind it out of a small per-run budget.
+ */
+export async function loadEnrichmentBacklog(
+  db: Database,
+  sourceSiteId: string,
+  options: { limit: number; excludeIds?: readonly string[]; retryAfterHours: number },
+): Promise<EnrichmentTarget[]> {
+  if (options.limit <= 0) return [];
+  const exclude = options.excludeIds ?? [];
+  return db
+    .select(enrichmentTargetColumns)
+    .from(products)
+    .where(
+      and(
+        eq(products.sourceSiteId, sourceSiteId),
+        eq(products.status, "active"),
+        isNull(products.enrichedAt),
+        sql`(${products.enrichAttemptedAt} is null or ${products.enrichAttemptedAt} < now() - make_interval(hours => ${options.retryAfterHours}))`,
+        ...(exclude.length > 0 ? [notInArray(products.id, [...exclude])] : []),
+      ),
+    )
+    .orderBy(
+      sql`${products.enrichAttemptedAt} asc nulls first`,
+      asc(products.firstSeenAt),
+      asc(products.id),
+    )
+    .limit(options.limit);
+}
+
+/** Active products with no product code: what `catalog:enrich` reads. */
+export async function loadProductsWithoutCode(
+  db: Database,
+  sourceSiteId: string,
+  limit?: number,
+): Promise<Array<EnrichmentTarget & { slug: string; name: string }>> {
+  const query = db
+    .select({ ...enrichmentTargetColumns, slug: products.slug, name: products.name })
+    .from(products)
+    .where(
+      and(
+        eq(products.sourceSiteId, sourceSiteId),
+        eq(products.status, "active"),
+        isNull(products.sku),
+      ),
+    )
+    .orderBy(asc(products.firstSeenAt), asc(products.id));
+  return limit !== undefined ? query.limit(limit) : query;
+}
+
+export async function countProductCodes(
+  db: Database,
+  sourceSiteId: string,
+): Promise<{ active: number; withCode: number; withoutCode: number }> {
+  const [row] = await db
+    .select({
+      active: sql<number>`count(*)::int`,
+      withCode: sql<number>`count(${products.sku})::int`,
+    })
+    .from(products)
+    .where(and(eq(products.sourceSiteId, sourceSiteId), eq(products.status, "active")));
+  const active = row?.active ?? 0;
+  const withCode = row?.withCode ?? 0;
+  return { active, withCode, withoutCode: active - withCode };
+}
+
+/** Codes held by more than one active product. Expected to be empty. */
+export async function loadSharedProductCodes(
+  db: Database,
+  sourceSiteId: string,
+): Promise<Array<{ sku: string; slugs: string[] }>> {
+  const rows = await db
+    .select({
+      sku: products.sku,
+      slugs: sql<string[]>`array_agg(${products.slug} order by ${products.slug})`,
+    })
+    .from(products)
+    .where(
+      and(
+        eq(products.sourceSiteId, sourceSiteId),
+        eq(products.status, "active"),
+        sql`${products.sku} is not null`,
+      ),
+    )
+    .groupBy(products.sku)
+    .having(sql`count(*) > 1`)
+    .orderBy(products.sku);
+  return rows.map((row) => ({ sku: row.sku as string, slugs: row.slugs }));
+}
+
+/** What one successful read of a product page stores. */
+export interface EnrichmentValues {
+  /** Null leaves the stored code alone: a page that stops printing it proves nothing. */
+  readonly sku: string | null;
+  readonly arabicaPercent: number | null;
+  readonly origin: string | null;
+  readonly roast: string | null;
+  readonly characteristics: ReadonlyArray<{ label: string; value: string }>;
+}
+
+/**
+ * The one statement that writes enrichment's columns — and writes nothing
+ * else: not `semantic_hash`, not `last_changed_at`, not `status`. That is what
+ * keeps a sync after an enrichment a no-op.
+ */
+export async function storeEnrichment(
+  db: Database,
+  productId: string,
+  values: EnrichmentValues,
+): Promise<void> {
+  await db
+    .update(products)
+    .set({
+      ...(values.sku !== null ? { sku: values.sku } : {}),
+      arabicaPercent: values.arabicaPercent,
+      origin: values.origin,
+      roast: values.roast,
+      characteristics: [...values.characteristics],
+      enrichedAt: sql`now()`,
+      enrichAttemptedAt: sql`now()`,
+    })
+    .where(eq(products.id, productId));
+}
+
+/** A failed read: what was stored stays, and the page is due again later. */
+export async function markEnrichmentFailed(db: Database, productId: string): Promise<void> {
+  await db
+    .update(products)
+    .set({ enrichedAt: null, enrichAttemptedAt: sql`now()` })
+    .where(eq(products.id, productId));
+}
+
+/** Put products at the front of the backlog without touching what they hold. */
+export async function markEnrichmentDue(
+  db: Database,
+  productIds: readonly string[],
+): Promise<void> {
+  if (productIds.length === 0) return;
+  await db
+    .update(products)
+    .set({ enrichedAt: null, enrichAttemptedAt: null })
+    .where(inArray(products.id, [...productIds]));
 }
 
 export { brands, categories, productCategories, productImages, products, syncRuns };

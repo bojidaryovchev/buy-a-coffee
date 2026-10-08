@@ -42,6 +42,8 @@ function stored(p: NormalizedProduct, overrides: Partial<ExistingProduct> = {}):
     semanticHash: p.semanticHash,
     status: "active",
     consecutiveMissingCount: 0,
+    // As if an earlier read of the product page had stored it.
+    sku: p.sku,
     snapshot: productSnapshot(p),
     ...overrides,
   };

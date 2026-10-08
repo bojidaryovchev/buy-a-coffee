@@ -73,6 +73,34 @@ function bool(flags: ParsedArgs["flags"], key: string): boolean {
   return flags[key] === true || flags[key] === "true";
 }
 
+/**
+ * Whether an invocation can write.
+ *
+ * A run that writes must identify itself to the source with a real contact,
+ * so this decides whether `createRuntime` enforces the crawler-identity rule.
+ * Dry runs, plans and read-only commands answer false and work on a fresh
+ * checkout. The answer is derived from the same flags the commands read, so
+ * the two cannot disagree about what "dry" means.
+ */
+export function commandWrites(argv: readonly string[]): boolean {
+  const { command, flags } = parseArgs(argv);
+  // The catalog commands read their flags as bare words; see commands-catalog.ts.
+  const applies = argv.slice(1).includes("--apply");
+  switch (command) {
+    case "sync":
+    case "discovery":
+      return !bool(flags, "dry-run");
+    // A reference export is a discovery crawl that always records what it saw.
+    case "reference":
+      return true;
+    case "catalog:enrich":
+    case "catalog:link":
+      return applies;
+    default:
+      return false;
+  }
+}
+
 const HELP = `
 catalog-sync — reference crawler and catalog synchronisation
 
@@ -84,6 +112,8 @@ Commands:
   sync               Synchronise the catalog into PostgreSQL
   reference          Re-export the reference artifacts
   images:gc          Report (and optionally delete) unreferenced mirrored images
+  images:push        Copy every referenced image from one store to another
+  images:verify      Check that every referenced image is in the configured store
   status             Print catalog counts
   help               Show this message
 
@@ -106,6 +136,20 @@ sync options:
 
 images:gc options:
   --apply                  Actually delete orphaned objects (default: report only)
+
+images:push options:
+  --from <driver>          Store to copy from: local, s3 or vercel-blob
+  --to <driver>            Store to copy to
+  --from-dir <dir>         Directory of the source store, when --from is local
+  --to-dir <dir>           Directory of the destination store, when --to is local
+  --apply                  Actually copy (default: report what would be copied)
+
+images:verify options:
+  --http                   Also fetch each image's public URL
+
+A run that writes (sync, discovery or reference without --dry-run; catalog:enrich
+and catalog:link with --apply) refuses to start until CRAWL_USER_AGENT names a
+real contact.
 
 Exit codes:
   0 success   1 usage/config   2 completed but untrusted   3 failure
@@ -137,7 +181,11 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   let runtime;
   try {
-    runtime = await createRuntime({ overrides, context: { command } });
+    runtime = await createRuntime({
+      overrides,
+      context: { command },
+      writes: commandWrites(argv),
+    });
   } catch (error) {
     if (error instanceof ConfigError) {
       process.stderr.write(`${error.message}\n`);
@@ -206,6 +254,9 @@ export async function main(argv: readonly string[]): Promise<number> {
           unresolvedMoves: result.diff.unresolvedMoves,
           taxonomy: result.taxonomy,
           images: result.images,
+          enrichedCount: result.enrichment.enriched,
+          enrichFailedCount: result.enrichment.failed,
+          enrichment: result.enrichment,
           circuitBreaker: {
             tripped: result.breaker.tripped,
             reasons: result.breaker.reasons,

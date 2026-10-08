@@ -36,19 +36,35 @@ export const configSchema = z.object({
    * Request budget per sync (pages, not images), so a change to these numbers
    * can be judged against what a run actually asks of the source:
    *
-   *  - steady state: robots.txt, the not-found probe and the /search/ catalog
-   *    blob, i.e. 3 requests, plus one product page for each product the diff
-   *    reports as created, moved or changed (B5). A quiet day is therefore
-   *    about 3 requests; a day with a dozen price changes about 15.
-   *  - backfill (the one-off pass that reads every product page once): the
-   *    same 3 plus one request per active product, about 190 in all.
+   *  - every sync: robots.txt, the not-found probe and the /search/ catalog
+   *    blob. 3 requests.
+   *  - product pages (B5): one for each product the diff reports as created,
+   *    moved, changed or restored, then one for each active product whose page
+   *    has never been read, until `enrichMaxPerRun` (below, default 20) page
+   *    reads have been made. The pre-diff product-code lookup draws on the same
+   *    budget and its pages are reused, never requested twice. So:
+   *      - steady state, nothing changed, backlog drained: 3 + 0 = 3;
+   *      - a day with 5 new products: 3 + 5 = 8;
+   *      - the hard ceiling of any one sync: 3 + `enrichMaxPerRun` = 23.
+   *    A product page that failed is offered again after 24 hours, not on the
+   *    next run, so a dead URL costs one request a day.
+   *  - backfill (`catalog:enrich --apply`, run once): robots.txt, the probe
+   *    and one page per active product without a code, 2 + 187 = 189. It does
+   *    not read /search/. `--limit` bounds it.
    *  - ceiling: `maxPages` below bounds a discovery crawl. A sync does not
    *    crawl, so it is never the limit that applies to it.
    *
+   * These count page reads. A request that fails with a 5xx, 408, 429 or a
+   * timeout is retried up to `maxRetries` times with backoff, on top; a 404 is
+   * not retried. Five product pages failing in a row end product-page reads
+   * for that run.
+   *
    * Spacing: `minDelayMs` is enforced across all workers together, so
-   * `concurrency` shortens latency without raising the request rate; with the
-   * defaults a backfill takes at least 190 x 100 ms, about 20 seconds. Image
-   * mirroring has its own, separate spacing (`imageMinDelayMs`).
+   * `concurrency` shortens latency without raising the request rate. Product
+   * pages are read one at a time, so the backfill takes at least
+   * 189 x 100 ms, about 19 seconds, and in practice 187 x the source's
+   * response time. Image mirroring has its own, separate spacing
+   * (`imageMinDelayMs`).
    */
   concurrency: intFromEnv(1, 16, 4),
   timeoutMs: intFromEnv(1_000, 120_000, 15_000),
@@ -72,6 +88,18 @@ export const configSchema = z.object({
 
   /** Reconciliation. */
   missingThreshold: intFromEnv(1, 20, 3),
+
+  /**
+   * Product-page enrichment (see the request budget above).
+   *
+   * `enrichMaxPerRun` is the hard cap on product pages one sync may read;
+   * 0 switches enrichment and the lookup off. `enrichLookupMax` is how many
+   * unmatched products a sync will look up before the diff to pair a rename
+   * by product code; with more than that, it looks up none and leaves the
+   * pairing to the name-based passes.
+   */
+  enrichMaxPerRun: intFromEnv(0, 2_000, 20),
+  enrichLookupMax: intFromEnv(0, 200, 10),
 
   /**
    * Circuit breaker. `maxDisappearedRatio` is the fraction of previously
@@ -129,6 +157,8 @@ const ENV_MAP: Readonly<Record<keyof ScraperConfig, string>> = {
   maxDepth: "CRAWL_MAX_DEPTH",
   respectRobotsTxt: "CRAWL_RESPECT_ROBOTS",
   missingThreshold: "SYNC_MISSING_THRESHOLD",
+  enrichMaxPerRun: "SYNC_ENRICH_MAX_PER_RUN",
+  enrichLookupMax: "SYNC_ENRICH_LOOKUP_MAX",
   breakerMaxDisappearedRatio: "SYNC_BREAKER_MAX_DISAPPEARED_RATIO",
   breakerMinDiscoveredRatio: "SYNC_BREAKER_MIN_DISCOVERED_RATIO",
   breakerMinAbsoluteProducts: "SYNC_BREAKER_MIN_ABSOLUTE_PRODUCTS",

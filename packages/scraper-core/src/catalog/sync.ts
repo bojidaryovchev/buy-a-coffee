@@ -13,19 +13,33 @@ import {
 } from "./circuitBreaker.ts";
 import { type DiffResult, diffCatalog } from "./diff.ts";
 import { type CatalogDiscoveryResult, discoverCatalog } from "./discover.ts";
+import {
+  ENRICH_RETRY_AFTER_HOURS,
+  type EnrichmentSummary,
+  ProductPageReader,
+  type SkuLookupResult,
+  enrichProducts,
+  lookupDiscoveredSkus,
+  recordReadFailures,
+} from "./enrich.ts";
 import { assignUniqueSlug } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 import type { TaxonomyChanges } from "./taxonomy.ts";
 import {
+  type EnrichmentTarget,
+  type ProductMoveColumns,
   applyProductMove,
   countActiveProducts,
   countAllProducts,
   ensureSourceSite,
   insertSyncChange,
+  loadEnrichmentBacklog,
+  loadEnrichmentTargets,
   loadExistingProducts,
   loadLatestBaseline,
   loadProductImages,
   loadTakenProductSlugs,
+  markEnrichmentDue,
   recordBaseline,
   recordScrapeError,
   replaceProductCategories,
@@ -45,8 +59,16 @@ import {
  *   2. diff      — compute intent, still touching nothing
  *   3. judge     — let the circuit breaker veto destructive intent
  *   4. apply     — write, with removals already stripped if vetoed
+ *   5. enrich    — read a few product pages and store what only they state
  *
  * Nothing destructive can happen before step 3 has run.
+ *
+ * Step 5 is deliberately last and deliberately weak. It runs after the run's
+ * outcome is settled, it cannot alter that outcome, and a product page that
+ * will not load is counted and recorded, never raised. Two writers touch a
+ * product row — the listing-driven upsert of step 4 and the enrichment of step
+ * 5 — and they own disjoint columns (`productColumns` below; `ENRICHMENT_COLUMNS`
+ * in `repository.ts`), so neither can undo the other.
  */
 
 export interface SyncOptions {
@@ -75,8 +97,31 @@ export interface SyncResult {
   readonly productsBefore: number;
   readonly productsAfter: number;
   readonly images: { mirrored: number; skipped: number; failed: number };
+  readonly enrichment: SyncEnrichment;
   readonly durationMs: number;
 }
+
+/** What the run did with product pages. None of it affects `status`. */
+export interface SyncEnrichment {
+  /** Requests for product pages, lookup and enrichment together. */
+  readonly requests: number;
+  /** The most this run was allowed to make. */
+  readonly budget: number;
+  /** Products whose page was read and stored. */
+  readonly enriched: number;
+  /** Product pages that could not be read. */
+  readonly failed: number;
+  /** Products left for a later run because the budget was spent. */
+  readonly deferred: number;
+  /** The pre-diff product-code lookup that feeds move detection. */
+  readonly lookup: Omit<SkuLookupResult, "skus">;
+  readonly skuChanges: EnrichmentSummary["skuChanges"];
+  /** True when the run stopped asking after repeated failures. */
+  readonly halted: boolean;
+}
+
+/** Changes after which a product's page is read again. */
+const ENRICH_AFTER: ReadonlySet<string> = new Set(["created", "moved", "updated", "restored"]);
 
 export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> {
   const { config, db, fetcher, storage } = options;
@@ -143,8 +188,43 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
     const productsBefore = await countAllProducts(db, site.id);
     const activeBefore = await countActiveProducts(db, site.id);
 
+    /*
+     * The listing carries no product code, so a product that matches no stored
+     * key cannot be recognised as a renamed one whose name also changed. The
+     * code for those few is read from their pages here, before the diff, and
+     * handed to it as data; the diff itself stays pure. A dry run does this
+     * too — it reads, it does not write — so that it reports the diff the real
+     * run would apply.
+     */
+    const reader = new ProductPageReader({
+      fetcher,
+      config,
+      logger: runLogger,
+      budget: config.enrichMaxPerRun,
+    });
+    let lookup: SkuLookupResult = {
+      skus: new Map(),
+      candidateCount: 0,
+      looked: 0,
+      found: 0,
+      skipped: "disabled",
+    };
+    try {
+      lookup = await lookupDiscoveredSkus({
+        discovered: discovery.products,
+        existing,
+        reader,
+        maxCandidates: config.enrichLookupMax,
+        logger: runLogger,
+      });
+    } catch (error) {
+      // Without the lookup the diff is what it always was. Never worth a run.
+      runLogger.warn("enrich.lookup_failed", { error });
+    }
+
     const diff = diffCatalog(discovery.products, existing, {
       missingThreshold: config.missingThreshold,
+      discoveredSkus: lookup.skus,
     });
 
     if (diff.unresolvedMoves.length > 0) {
@@ -190,6 +270,13 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
 
     // 4. Apply --------------------------------------------------------------
     let images = { mirrored: 0, skipped: 0, failed: 0 };
+    let enrichmentSummary: EnrichmentSummary = {
+      enriched: 0,
+      failed: 0,
+      deferred: 0,
+      skuChanges: [],
+    };
+    let enrichmentError: string | null = null;
 
     /*
      * A brand or category missing from the listing is hidden, with the same
@@ -355,7 +442,80 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
           brandCount: discovery.brands.length,
         });
       }
+
+      // 5. Enrich -----------------------------------------------------------
+      try {
+        const changed = appliedDiff.changes
+          .filter((change) => ENRICH_AFTER.has(change.changeType))
+          .map((change) => productIdByKey.get(change.sourceKey))
+          .filter((id): id is string => typeof id === "string");
+
+        if (breaker.tripped) {
+          // Not on a run the breaker refused: something is structurally wrong
+          // with what the source served, and that is no time to ask it for
+          // more. What changed is remembered as due, for a run that is trusted.
+          await markEnrichmentDue(db, changed);
+          enrichmentSummary = { ...enrichmentSummary, deferred: changed.length };
+        } else {
+          const changedTargets = await loadEnrichmentTargets(db, changed);
+          const first = changed
+            .map((id) => changedTargets.get(id))
+            .filter((target): target is EnrichmentTarget => target !== undefined);
+          // Then the backlog, with whatever the changed products leave over,
+          // so a catalog that was never enriched drains over a few runs.
+          const backlog = await loadEnrichmentBacklog(db, site.id, {
+            limit: Math.max(
+              0,
+              reader.remaining - first.filter((t) => !reader.hasRead(t.sourceUrl)).length,
+            ),
+            excludeIds: changed,
+            retryAfterHours: ENRICH_RETRY_AFTER_HOURS,
+          });
+          enrichmentSummary = await enrichProducts({
+            db,
+            reader,
+            targets: [...first, ...backlog],
+            logger: runLogger,
+          });
+        }
+      } catch (error) {
+        // The catalog is already applied and correct. Whatever went wrong
+        // here costs some characteristics until the next run, not this run.
+        enrichmentError = error instanceof Error ? error.message : String(error);
+        runLogger.error("enrich.failed", { error });
+      }
     }
+
+    const readFailures = reader.failures;
+    try {
+      await recordReadFailures(db, readFailures, {
+        sourceSiteId: site.id,
+        syncRunId,
+        kind: "sync_enrichment",
+      });
+      if (enrichmentError !== null) {
+        await recordScrapeError(db, {
+          sourceSiteId: site.id,
+          syncRunId,
+          stage: "enrich",
+          errorClass: "EnrichmentError",
+          errorMessage: enrichmentError,
+        });
+      }
+    } catch (error) {
+      runLogger.error("enrich.record_failed", { error });
+    }
+    const { skus: _skus, ...lookupSummary } = lookup;
+    const enrichment: SyncEnrichment = {
+      requests: reader.requests,
+      budget: config.enrichMaxPerRun,
+      enriched: enrichmentSummary.enriched,
+      failed: readFailures.length,
+      deferred: enrichmentSummary.deferred,
+      lookup: lookupSummary,
+      skuChanges: enrichmentSummary.skuChanges,
+      halted: reader.halted,
+    };
 
     const productsAfter = dryRun ? productsBefore : await countAllProducts(db, site.id);
     const durationMs = Date.now() - startedAt;
@@ -386,12 +546,14 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         imagesMirrored: images.mirrored,
         imagesSkipped: images.skipped,
         imagesFailed: images.failed,
+        enrichedCount: enrichment.enriched,
+        enrichFailedCount: enrichment.failed,
         circuitBreakerTripped: breaker.tripped,
         circuitBreakerReason: breaker.tripped ? breaker.summary : null,
         circuitBreakerDetail: breaker.detail,
         catalogSource: discovery.source,
         parserConfidence: discovery.confidence.toFixed(3),
-        metadata: sql`${syncRuns.metadata} || ${JSON.stringify({ unresolvedMoves: diff.unresolvedMoves, taxonomy })}::jsonb`,
+        metadata: sql`${syncRuns.metadata} || ${JSON.stringify({ unresolvedMoves: diff.unresolvedMoves, taxonomy, enrichment })}::jsonb`,
       })
       .where(eq(syncRuns.id, syncRunId));
 
@@ -403,6 +565,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       unresolvedMoves: diff.unresolvedMoves.length,
       taxonomy,
       images,
+      enrichment,
       circuitBreakerTripped: breaker.tripped,
       catalogSource: discovery.source,
       parserConfidence: discovery.confidence,
@@ -420,6 +583,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       productsBefore,
       productsAfter,
       images,
+      enrichment,
       durationMs,
     };
   } catch (error) {
@@ -490,10 +654,18 @@ async function upsertProduct(
 }
 
 /**
- * The columns the sync owns, apart from identity and slug.
+ * The columns the listing-driven sync owns, apart from identity and slug.
  *
  * Shared by the upsert and by a move, so a product that is renamed and edited
  * in the same run is refreshed exactly as an ordinary update would refresh it.
+ *
+ * These are written on every run, for unchanged products too — so nothing the
+ * listing does not carry may appear here. The product code and the facts from
+ * the product page belong to enrichment (`ENRICHMENT_COLUMNS`), and the type
+ * this object must satisfy excludes them: adding `sku` here is a compile error, because
+ * with the listing's empty value it would erase the stored code on the next
+ * run, and on every run after. `semanticHash` is likewise the listing's hash
+ * and nothing else, which is why enriching a product never makes it "changed".
  */
 function productColumns(input: {
   product: NormalizedProduct;
@@ -518,7 +690,6 @@ function productColumns(input: {
     weightUnit: product.weight?.unit ?? null,
     servings: servings?.exact ?? null,
     servingsEstimated: servings?.estimated ?? null,
-    sku: product.sku,
     gtin: product.gtin,
     attributes: product.attributes,
     sourceData: {
@@ -533,7 +704,7 @@ function productColumns(input: {
     status: "active" as const,
     consecutiveMissingCount: 0,
     latestSyncRunId: input.syncRunId,
-  };
+  } satisfies ProductMoveColumns;
 }
 
 async function mirrorProductImages(input: {

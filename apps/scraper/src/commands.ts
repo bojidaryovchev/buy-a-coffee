@@ -19,6 +19,7 @@ import {
   discoverCatalog,
   ensureSourceSite,
   exportReferenceArtifacts,
+  loadTakenProductSlugs,
   recordScrapeError,
   runCatalogSync,
   runDiscoveryCrawl,
@@ -141,6 +142,9 @@ export async function commandDiscovery(
         catalog,
         outputDir,
         crawlRunId,
+        // Without these every product is exported with `slug: null`, and the
+        // storefront's originality check can no longer tell whose copy is whose.
+        productSlugs: await loadTakenProductSlugs(db, site.id),
         logger: runLogger,
       });
       artifactDir = exported.outputDir;

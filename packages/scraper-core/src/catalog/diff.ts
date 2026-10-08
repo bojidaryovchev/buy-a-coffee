@@ -24,6 +24,13 @@ export interface ExistingProduct {
   readonly semanticHash: string;
   readonly status: ProductStatus;
   readonly consecutiveMissingCount: number;
+  /**
+   * The product code read from the source's product page, if it has been
+   * read. Evidence for move detection only: it is not in `snapshot`, because
+   * the listing being diffed does not carry it and its absence there is not a
+   * change.
+   */
+  readonly sku?: string | null;
   /** Current values, used to describe what changed. */
   readonly snapshot: Record<string, unknown>;
 }
@@ -69,6 +76,12 @@ export interface DiffResult {
 export interface DiffOptions {
   /** Successful absences needed before a product is marked removed. */
   readonly missingThreshold: number;
+  /**
+   * Product codes for discovered products that match no stored key, by source
+   * key. Looked up by the caller before diffing (see `enrich.ts`) and handed
+   * in as data, so this module stays free of I/O.
+   */
+  readonly discoveredSkus?: ReadonlyMap<string, string>;
 }
 
 /**
@@ -117,7 +130,8 @@ export function productSnapshot(product: NormalizedProduct): Record<string, unkn
     brandKey: product.brandKey,
     categoryKeys: [...product.categoryKeys].sort(),
     weight: product.weight?.canonical ?? null,
-    sku: product.sku,
+    // No `sku`: the product code is written by enrichment, not by the listing,
+    // so comparing it here would report it as removed on every content change.
     gtin: product.gtin,
     attributes: product.attributes,
     imageUrls: [...product.sourceImageUrls].sort(),
@@ -152,6 +166,7 @@ export function diffCatalog(
   const pairing = pairMoves(
     existing.filter((product) => !seenKeys.has(product.sourceKey)),
     discovered.filter((product) => !existingByKey.has(product.sourceKey)),
+    options.discoveredSkus ? { discoveredSkus: options.discoveredSkus } : {},
   );
   const moveByNewKey = new Map(pairing.pairs.map((pair) => [pair.product.sourceKey, pair]));
   const movedIds = new Set(pairing.pairs.map((pair) => pair.existing.id));

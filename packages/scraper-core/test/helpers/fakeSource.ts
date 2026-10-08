@@ -9,7 +9,23 @@
  * The fake reproduces the source's two defining quirks:
  *   - unknown routes answer HTTP 200 with the home-page shell (soft 404),
  *   - the catalog is published as a `window.FILTER_INIT` blob on `/search/`.
+ *
+ * Product pages are served only when a test asks for them (`productPages`).
+ * Without that, a product URL is an unknown route like any other and answers
+ * with the shell — which is what a sync sees when every product page fails.
  */
+
+/** What one fake product page prints. */
+export interface FakeProductPage {
+  /** The product code. `null` prints no "Код" row at all. */
+  readonly code?: string | null;
+  /** Rows of the "Характеристики" list. */
+  readonly characteristics?: ReadonlyArray<readonly [label: string, value: string]>;
+  /** Answer with this HTTP status instead of a page. */
+  readonly status?: number;
+  /** Serve this HTML verbatim, e.g. a real fixture. */
+  readonly html?: string;
+}
 
 export interface FakeProduct {
   readonly h1: string;
@@ -31,13 +47,25 @@ export interface FakeProduct {
 export interface FakeSiteOptions {
   readonly products: readonly FakeProduct[];
   readonly brands?: ReadonlyArray<{ id: string; h1: string; slug: string; count: number }>;
-  readonly categories?: ReadonlyArray<{ id: string; h1: string; slug: string; count: number; children?: unknown[] }>;
+  readonly categories?: ReadonlyArray<{
+    id: string;
+    h1: string;
+    slug: string;
+    count: number;
+    children?: unknown[];
+  }>;
   /** Force `/search/` to fail, so the HTML fallback path is exercised. */
   readonly searchStatus?: number;
   /** Serve a listing page with cards for the HTML fallback. */
   readonly listingProducts?: readonly FakeProduct[];
   /** Fail every request to these paths. */
   readonly failingPaths?: readonly string[];
+  /**
+   * Product pages by path. A function is asked for every product in the
+   * catalog and may return `null` to leave that one unserved.
+   */
+  readonly productPages?:
+    Readonly<Record<string, FakeProductPage>> | ((product: FakeProduct) => FakeProductPage | null);
 }
 
 const SHELL = `<!doctype html><html lang="bg"><head><title>Fake Shop — home</title></head><body><header>chrome</header><p>home shell</p></body></html>`;
@@ -77,12 +105,18 @@ function hashOf(value: string): number {
 }
 
 function buildSearchPage(options: FakeSiteOptions): string {
-  const brands =
-    options.brands ??
-    [{ id: "1", h1: "Test Brand", slug: "testbrand", count: options.products.length }];
-  const categories =
-    options.categories ??
-    [{ id: "10", h1: "Test Category", slug: "testcategory", count: options.products.length, children: [] }];
+  const brands = options.brands ?? [
+    { id: "1", h1: "Test Brand", slug: "testbrand", count: options.products.length },
+  ];
+  const categories = options.categories ?? [
+    {
+      id: "10",
+      h1: "Test Category",
+      slug: "testcategory",
+      count: options.products.length,
+      children: [],
+    },
+  ];
 
   return `<!doctype html><html><head><title>Search</title></head><body>
 <script>
@@ -126,6 +160,47 @@ function pushFiltersToURL() {
 </body></html>`;
 }
 
+/**
+ * A product page in the source's current shape: three sections in `<main>` —
+ * detail, description with characteristics, related products.
+ */
+export function buildProductPage(raw: FakeProduct, page: FakeProductPage = {}): string {
+  const p = completeProduct(raw);
+  const code = page.code === undefined ? "00001" : page.code;
+  const characteristics = (page.characteristics ?? [])
+    .map(([label, value]) => `<li><strong>${label}:</strong> ${value}</li>`)
+    .join("\n");
+
+  return `<!doctype html><html lang="bg"><head><title>${p.h1}</title></head><body>
+<main>
+  <div><a href="/">Начало</a><a href="/${p.categorySlug}/">Category</a><span>${p.h1}</span></div>
+  <section>
+    <h1>${p.h1}</h1>
+    <img id="main-product-img" src="${p.imageUrl}" alt="${p.h1}">
+    <ul>
+      <li>Наличност: В наличност</li>
+      ${code === null ? "" : `<li>Код: ${code}</li>`}
+      <li>Интензивност: ${p.intensity}</li>
+      <li>Тегло: ${p.weight}</li>
+    </ul>
+    <p>${p.description} Enough words to read as a description.</p>
+    <span>${p.price}</span>
+    <input type="tel" id="phone-input">
+  </section>
+  <section>
+    <div class="kz-md">
+      <p>A longer write-up of the product, in the shop's own words.</p>
+      ${characteristics ? `<h3>Характеристики</h3>\n<ul>\n${characteristics}\n</ul>` : ""}
+    </div>
+  </section>
+  <section>
+    <h2>СВЪРЗАНИ ПРОДУКТИ</h2>
+    <a href="/somewhere-else/"><img src="/img/other.jpg" alt="Another product"><p>€99.00</p></a>
+  </section>
+</main>
+</body></html>`;
+}
+
 /** Build a `fetch` implementation that serves the fake site. */
 export function createFakeFetch(options: FakeSiteOptions): {
   fetchImpl: typeof fetch;
@@ -133,6 +208,19 @@ export function createFakeFetch(options: FakeSiteOptions): {
 } {
   const requests: string[] = [];
   const failing = new Set(options.failingPaths ?? []);
+
+  const productByPath = new Map(options.products.map((product) => [product.url, product]));
+  const productPageFor = (
+    pathname: string,
+  ): { product: FakeProduct; page: FakeProductPage } | null => {
+    const product = productByPath.get(pathname);
+    if (!product || !options.productPages) return null;
+    const page =
+      typeof options.productPages === "function"
+        ? options.productPages(product)
+        : (options.productPages[pathname] ?? null);
+    return page ? { product, page } : null;
+  };
 
   const fetchImpl = (async (input: string | URL | Request): Promise<Response> => {
     const url = new URL(String(typeof input === "object" && "url" in input ? input.url : input));
@@ -169,6 +257,18 @@ export function createFakeFetch(options: FakeSiteOptions): {
 
     if (options.listingProducts && LISTING_PATHS.has(pathname)) {
       return new Response(buildListingPage(options.listingProducts), {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+
+    const productPage = productPageFor(pathname);
+    if (productPage) {
+      const { product, page } = productPage;
+      if (page.status !== undefined && page.status !== 200) {
+        return new Response("not found", { status: page.status });
+      }
+      return new Response(page.html ?? buildProductPage(product, page), {
         status: 200,
         headers: { "content-type": "text/html; charset=utf-8" },
       });
