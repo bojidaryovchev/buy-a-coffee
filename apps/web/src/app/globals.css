@@ -3,44 +3,108 @@
 /**
  * Design tokens.
  *
+ * The written standard for everything in this file is `DESIGN.md` at the
+ * repository root: each token's role, the pairings it is allowed in, and the
+ * measured contrast ratio of every pairing. A value changed here without the
+ * table there being re-measured is a defect.
+ *
  * This is an original identity, deliberately unrelated to the reference site.
  * The reference uses a tan/brown palette (#c08a5a on #ede4d8), Roboto for
  * everything, fully-rounded pill controls and a 1440px centred shell. This
- * design instead uses a pine-green and clay palette, a serif display face
- * paired with a sans body face, squared geometry with small radii, and a
- * narrower editorial measure.
+ * design instead anchors on pine green over cream paper, takes its single
+ * accent from the gold of the shop's own mark, pairs a serif display face with
+ * a sans body face, and uses squared geometry with small radii.
  *
  * Both display and body faces carry Cyrillic, which is a hard requirement:
  * the catalog is in Bulgarian.
  *
+ * Token names are an interface. Components across the storefront and the admin
+ * panel are written against them, so a name is never renamed or removed; only
+ * values change, and new names are added.
+ *
  * Rebranding means editing this block and `src/config/site.ts`. Nothing else.
  */
-@theme {
+@theme static {
   /* --- Colour ---------------------------------------------------------- */
-  --color-ink-900: oklch(0.19 0.02 160);
-  --color-ink-700: oklch(0.34 0.02 160);
-  --color-ink-500: oklch(0.52 0.015 160);
-  --color-ink-300: oklch(0.72 0.012 160);
 
-  --color-paper: oklch(0.985 0.006 95);
+  /*
+   * Ink. Warm brown-black, on the hue of the wordmark's lettering (#291500),
+   * so text and logo read as one material. The ratios are WCAG 2.x contrast on
+   * paper / paper-raised / paper-sunken. Every step is legible as body text:
+   * de-emphasis is a design decision, illegibility is a defect.
+   */
+  --color-ink-900: oklch(0.22 0.025 60); /* 16.11 / 17.36 / 14.77 */
+  --color-ink-700: oklch(0.36 0.022 60); /* 10.08 / 10.86 / 9.24 */
+  --color-ink-500: oklch(0.455 0.02 60); /* 6.81 / 7.34 / 6.24 */
+  /* The floor. It measured 2.3:1 while carrying counts and old prices. */
+  --color-ink-300: oklch(0.525 0.018 60); /* 5.04 / 5.43 / 4.62 */
+
+  /*
+   * Paper. Cream rather than grey-white. `paper-raised` and `well` stay pure
+   * white for one reason: the packshots are photographed on white, and a
+   * tinted ground draws a visible rectangle around every one of them.
+   */
+  --color-paper: oklch(0.975 0.012 85);
   --color-paper-raised: oklch(1 0 0);
-  --color-paper-sunken: oklch(0.96 0.008 95);
+  --color-paper-sunken: oklch(0.945 0.016 85);
+  --color-well: oklch(1 0 0);
 
+  /* Pine. The anchor: structure, primary actions, links, focus. */
   --color-pine-900: oklch(0.26 0.055 165);
-  --color-pine-700: oklch(0.38 0.075 165);
-  --color-pine-500: oklch(0.52 0.09 165);
-  --color-pine-100: oklch(0.93 0.03 165);
+  --color-pine-700: oklch(0.38 0.075 165); /* link text: 8.89 on paper */
+  --color-pine-500: oklch(0.5 0.09 165);
+  --color-pine-200: oklch(0.86 0.045 165); /* secondary text on pine-900: 10.15 */
+  --color-pine-100: oklch(0.935 0.03 165);
 
-  --color-clay-600: oklch(0.58 0.13 45);
-  --color-clay-500: oklch(0.66 0.14 45);
-  --color-clay-100: oklch(0.94 0.035 45);
+  /*
+   * Gold. The one accent, sampled from the mark (`public/logo*.png`, modal
+   * pixel #bb8936). A fill under ink-900, never text on paper: gold-500 on
+   * paper measures 2.85:1.
+   */
+  --color-gold-600: oklch(0.62 0.115 78); /* ink-900 on it: 4.68 */
+  --color-gold-500: oklch(0.667 0.117 77.5); /* ink-900 on it: 5.64 */
+  --color-gold-300: oklch(0.8 0.105 82); /* as text on pine-900: 8.09 */
+  --color-gold-100: oklch(0.945 0.04 85);
 
-  --color-line: oklch(0.88 0.008 160);
-  --color-line-strong: oklch(0.78 0.012 160);
+  /*
+   * Clay. Price reductions and nothing else. clay-600 carries the text and
+   * the badge fill; clay-500 is a rule or border on paper only.
+   */
+  --color-clay-600: oklch(0.47 0.135 40); /* 6.73 on paper; white on it: 7.26 */
+  --color-clay-500: oklch(0.655 0.14 42);
+  --color-clay-100: oklch(0.94 0.03 45);
 
-  --color-positive: oklch(0.55 0.12 155);
-  --color-caution: oklch(0.62 0.13 75);
-  --color-critical: oklch(0.55 0.19 25);
+  --color-line: oklch(0.885 0.014 80);
+  /* Bounds a control, so it must reach 3:1 itself: 3.38 / 3.64 / 3.09. */
+  --color-line-strong: oklch(0.62 0.02 75);
+
+  /* Status. Each is text on paper or on its own wash, never a large fill. */
+  --color-positive: oklch(0.45 0.1 155); /* 6.57 on paper */
+  --color-caution: oklch(0.46 0.095 70); /* 6.76 on paper; 6.24 on caution-100 */
+  --color-caution-100: oklch(0.945 0.05 92);
+  --color-critical: oklch(0.5 0.19 27); /* 6.14 on paper; paper on it: 6.14 */
+  --color-critical-100: oklch(0.945 0.025 25);
+
+  /*
+   * Brewing systems. One hue per system, keyed by `BrewingSystemId`. The solid
+   * is text on its wash, text on any paper, or a fill under white text; all of
+   * those measure 6.39:1 or better. A system colour never appears without the
+   * system's name beside it.
+   */
+  --color-sys-nespresso-original: oklch(0.42 0.12 350);
+  --color-sys-nespresso-original-100: oklch(0.94 0.03 350);
+  --color-sys-dolce-gusto: oklch(0.43 0.07 210);
+  --color-sys-dolce-gusto-100: oklch(0.94 0.03 210);
+  --color-sys-a-modo-mio: oklch(0.42 0.13 295);
+  --color-sys-a-modo-mio-100: oklch(0.94 0.03 295);
+  --color-sys-caffitaly: oklch(0.44 0.09 125);
+  --color-sys-caffitaly-100: oklch(0.94 0.045 125);
+  --color-sys-lavazza-blue: oklch(0.42 0.12 255);
+  --color-sys-lavazza-blue-100: oklch(0.94 0.027 255);
+  --color-sys-ese-pod: oklch(0.42 0.025 255);
+  --color-sys-ese-pod-100: oklch(0.93 0.012 255);
+  --color-sys-beans: oklch(0.38 0.065 55);
+  --color-sys-beans-100: oklch(0.93 0.03 65);
 
   /* --- Type ------------------------------------------------------------ */
   --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
@@ -66,6 +130,9 @@
   --text-4xl--line-height: 2.75rem;
   --text-5xl: 3.25rem;
   --text-5xl--line-height: 3.4rem;
+  /* Form fields only. Below 16px, iOS Safari zooms the page on focus. */
+  --text-input: 1rem;
+  --text-input--line-height: 1.5rem;
 
   /* --- Geometry -------------------------------------------------------- */
   /* Small radii on purpose: squared, editorial, not pill-shaped. */
@@ -74,8 +141,8 @@
   --radius-md: 6px;
   --radius-lg: 10px;
 
-  --shadow-raise: 0 1px 2px oklch(0.2 0.02 160 / 0.06);
-  --shadow-float: 0 8px 28px -12px oklch(0.2 0.02 160 / 0.22);
+  --shadow-raise: 0 1px 2px oklch(0.22 0.025 60 / 0.07);
+  --shadow-float: 0 8px 28px -12px oklch(0.22 0.025 60 / 0.24);
 
   --container-measure: 68ch;
   --container-shell: 1180px;
@@ -139,6 +206,11 @@
     border-radius: var(--radius-xs);
   }
 
+  /* The pine ring vanishes on a pine band; gold-300 measures 8.09:1 there. */
+  .on-pine :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: var(--color-gold-300);
+  }
+
   ::selection {
     background-color: var(--color-pine-100);
     color: var(--color-pine-900);
@@ -191,6 +263,65 @@
   .rich-text strong {
     color: var(--color-ink-900);
     font-weight: 600;
+  }
+
+  /*
+   * Brewing-system colour, resolved from data rather than from a class name.
+   *
+   * A system id arrives at runtime, and Tailwind cannot see a class assembled
+   * from one: `bg-sys-${id}` is never generated. An element carrying
+   * `data-system="<BrewingSystemId>"` instead exposes `--system` and
+   * `--system-wash` to itself and its children, used as `text-(--system)` and
+   * `bg-(--system-wash)`. An unknown id falls back to neutral ink, so a system
+   * added to the catalog before it is given a colour still renders legibly.
+   */
+  [data-system] {
+    --system: var(--color-ink-700);
+    --system-wash: var(--color-paper-sunken);
+  }
+  [data-system="nespresso-original"] {
+    --system: var(--color-sys-nespresso-original);
+    --system-wash: var(--color-sys-nespresso-original-100);
+  }
+  [data-system="dolce-gusto"] {
+    --system: var(--color-sys-dolce-gusto);
+    --system-wash: var(--color-sys-dolce-gusto-100);
+  }
+  [data-system="a-modo-mio"] {
+    --system: var(--color-sys-a-modo-mio);
+    --system-wash: var(--color-sys-a-modo-mio-100);
+  }
+  [data-system="caffitaly"] {
+    --system: var(--color-sys-caffitaly);
+    --system-wash: var(--color-sys-caffitaly-100);
+  }
+  [data-system="lavazza-blue"] {
+    --system: var(--color-sys-lavazza-blue);
+    --system-wash: var(--color-sys-lavazza-blue-100);
+  }
+  [data-system="ese-pod"] {
+    --system: var(--color-sys-ese-pod);
+    --system-wash: var(--color-sys-ese-pod-100);
+  }
+  [data-system="beans"] {
+    --system: var(--color-sys-beans);
+    --system-wash: var(--color-sys-beans-100);
+  }
+
+  /*
+   * Loading placeholder: a flat sunken block that breathes. The reduced-motion
+   * rule in the base layer stops the animation for anyone who asked.
+   */
+  .skeleton {
+    background-color: var(--color-paper-sunken);
+    border-radius: var(--radius-sm);
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
   }
 }
 
