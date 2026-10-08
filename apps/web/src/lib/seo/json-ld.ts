@@ -6,6 +6,7 @@ import {
   returnWindowDays,
 } from "@/components/commerce/terms";
 import { availabilitySchemaUrl } from "@/lib/catalog/format";
+import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { ProductDetailView } from "@/lib/catalog/types";
 
 /**
@@ -206,21 +207,38 @@ function offerPolicies(
   };
 }
 
+/**
+ * The product's real photographs, as absolute URLs.
+ *
+ * An image whose stored URL is not ours resolves to the placeholder drawing
+ * (`resolveImageUrl`). That is the right thing to paint in the gallery and the
+ * wrong thing to publish: `image` tells a search engine "this is a picture of
+ * the product", and a grey outline of a coffee pack is not one. So placeholders
+ * are dropped, and a product left with nothing has no `image` at all.
+ */
+export function productImageUrls(product: Pick<ProductDetailView, "images">): readonly string[] {
+  return product.images
+    .filter((image) => !isPlaceholderImage(image.url))
+    .map((image) => absoluteUrl(image.url));
+}
+
 export function productJsonLd(
   product: ProductDetailView,
   commerce: CommerceConfig = siteConfig.commerce,
 ): Record<string, unknown> {
+  const images = productImageUrls(product);
+  // The product code, when the record holds one. Blank is not a code.
+  const sku = product.sku?.trim();
+
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     url: absoluteUrl(`/products/${product.slug}`),
     ...(product.descriptionText ? { description: product.descriptionText } : {}),
-    ...(product.images.length > 0
-      ? { image: product.images.map((image) => absoluteUrl(image.url)) }
-      : {}),
+    ...(images.length > 0 ? { image: images } : {}),
     ...(product.brand ? { brand: { "@type": "Brand", name: product.brand.name } } : {}),
-    ...(product.sku ? { sku: product.sku } : {}),
+    ...(sku ? { sku } : {}),
     ...(product.gtin ? { gtin: product.gtin } : {}),
     ...(product.weight ? { weight: product.weight } : {}),
   };

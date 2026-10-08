@@ -88,10 +88,26 @@ export interface ProductDetailView extends ProductCardView {
   readonly descriptionText: string | null;
   readonly sku: string | null;
   readonly gtin: string | null;
+  /**
+   * The normalised pack size — grams, millilitres or pieces — or null when
+   * none is recorded. The facts table prints it; `weight` is the raw text.
+   */
+  readonly pack: { readonly value: string; readonly unit: string } | null;
+  /**
+   * Facts the product's own page states about the coffee. Each is null until
+   * the sync has read it, and stays null when the page does not say it in one
+   * unambiguous way. `arabicaPercent` is the arabica share only: it says
+   * nothing about what the rest of the blend is.
+   */
+  readonly arabicaPercent: number | null;
+  readonly origin: string | null;
+  readonly roast: string | null;
   readonly attributes: Readonly<Record<string, string>>;
   readonly images: readonly ProductImageView[];
   readonly categories: ReadonlyArray<{
     readonly slug: string;
+    /** Stable across an upstream rename; a brewing system is bound to either. */
+    readonly sourceKey: string | null;
     readonly name: string;
     readonly isPrimary: boolean;
     readonly parentSlug: string | null;
