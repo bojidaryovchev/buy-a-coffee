@@ -171,8 +171,8 @@ const render = (data: HomeData): string => renderToStaticMarkup(createElement(Ho
 const text = (markup: string): string =>
   markup
     .replace(/<[^>]+>/g, " ")
-    // `s` also matches the no-break space a price carries before its currency sign.
-    .replace(/s+/g, " ")
+    // `\s` also matches the no-break space a price carries before its currency sign.
+    .replace(/\s+/g, " ")
     .trim();
 
 function headings(markup: string): Array<{ level: number; text: string }> {
