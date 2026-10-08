@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { normalizeProduct } from "../src/catalog/normalize.ts";
+import type { DiscoveredBrand, DiscoveredCategory } from "../src/catalog/discover.ts";
 import {
+  BRANDS_ARTIFACT_DESCRIPTION,
+  CATEGORIES_ARTIFACT_DESCRIPTION,
   PRODUCTS_ARTIFACT_DESCRIPTION,
   exportedSlug,
+  exportedTaxonomySlug,
+  referenceBrandRecord,
+  referenceCategoryRecord,
   referenceProductRecord,
   serialise,
   stableSort,
@@ -91,5 +97,93 @@ describe("referenceProductRecord", () => {
 
   it("documents the field in the artifact's own description", () => {
     expect(PRODUCTS_ARTIFACT_DESCRIPTION).toContain("`slug`");
+  });
+});
+
+/* The source renamed its capsule category; the storefront kept its slug. */
+const capsules: DiscoveredCategory = {
+  sourceKey: "kafe-kapsuli",
+  rawSlug: "kafe-kapsuli",
+  sourceId: "613",
+  name: "Кафе капсули",
+  url: "https://www.kafezona.com/kafe-kapsuli/",
+  parentKey: null,
+  position: 1,
+  productCount: 80,
+};
+
+const vergnano: DiscoveredBrand = {
+  sourceKey: "vergnano",
+  rawSlug: " vergnano",
+  sourceId: "12",
+  name: "VERGNANO",
+  url: "https://www.kafezona.com/vergnano/",
+  productCount: 4,
+};
+
+describe("exportedTaxonomySlug", () => {
+  it("takes the stored slug, which need not resemble the source key", () => {
+    expect(exportedTaxonomySlug("kafe-kapsuli", new Map([["kafe-kapsuli", "kapsuli"]]))).toBe(
+      "kapsuli",
+    );
+  });
+
+  it("is null when the database has no row for the key, and never derived from it", () => {
+    expect(exportedTaxonomySlug("kafe-kapsuli", new Map([["kapsuli", "kapsuli"]]))).toBeNull();
+    expect(exportedTaxonomySlug("kafe-kapsuli", new Map())).toBeNull();
+    expect(exportedTaxonomySlug("kafe-kapsuli", undefined)).toBeNull();
+  });
+});
+
+describe("referenceCategoryRecord and referenceBrandRecord", () => {
+  it("export our slug beside the source's key and raw slug", () => {
+    expect(referenceCategoryRecord(capsules, "kapsuli")).toMatchObject({
+      sourceKey: "kafe-kapsuli",
+      rawSlug: "kafe-kapsuli",
+      slug: "kapsuli",
+    });
+    expect(referenceBrandRecord(vergnano, "vergnano")).toMatchObject({
+      rawSlug: " vergnano",
+      slug: "vergnano",
+    });
+  });
+
+  it("write null, not nothing, for one that has no slug yet", () => {
+    expect(JSON.parse(serialise(referenceCategoryRecord(capsules, null)))).toHaveProperty(
+      "slug",
+      null,
+    );
+    expect(JSON.parse(serialise(referenceBrandRecord(vergnano, null)))).toHaveProperty(
+      "slug",
+      null,
+    );
+  });
+
+  it("keep every field the snapshot already carried, and add only the slug", () => {
+    expect(Object.keys(referenceCategoryRecord(capsules, "x")).sort()).toEqual([
+      "name",
+      "parentKey",
+      "position",
+      "productCount",
+      "rawSlug",
+      "slug",
+      "sourceId",
+      "sourceKey",
+      "url",
+    ]);
+    expect(Object.keys(referenceBrandRecord(vergnano, "x")).sort()).toEqual([
+      "name",
+      "productCount",
+      "rawSlug",
+      "slug",
+      "sourceId",
+      "sourceKey",
+      "url",
+    ]);
+  });
+
+  it("document the field in each artifact's own description", () => {
+    expect(CATEGORIES_ARTIFACT_DESCRIPTION).toContain("`slug`");
+    expect(BRANDS_ARTIFACT_DESCRIPTION).toContain("`slug`");
   });
 });

@@ -5,6 +5,7 @@ import {
   PLACEHOLDER_PNG_SIZE,
   assertLocalTarget,
   brandSlug,
+  categorySlug,
   deterministicId,
   imageKeyFor,
   placeholderPng,
@@ -71,6 +72,17 @@ describe("deterministicId", () => {
 });
 
 describe("brandSlug", () => {
+  it("takes the slug the snapshot carries, which a derivation would not reach", () => {
+    expect(brandSlug({ rawSlug: "3-bourbons", name: "3bourbons", slug: "3bourbons" })).toBe(
+      "3bourbons",
+    );
+  });
+
+  it("derives one only for an older snapshot that carries none", () => {
+    expect(brandSlug({ rawSlug: "3-bourbons", name: "3bourbons" })).toBe("3-bourbons");
+    expect(brandSlug({ rawSlug: "3-bourbons", name: "3bourbons", slug: null })).toBe("3-bourbons");
+  });
+
   it("cleans the stray space the source leaves in one brand's key", () => {
     expect(brandSlug({ rawSlug: " vergnano", name: "VERGNANO" })).toBe("vergnano");
   });
@@ -81,6 +93,17 @@ describe("brandSlug", () => {
 
   it("falls back to the name when the slug has no usable characters", () => {
     expect(brandSlug({ rawSlug: "  ", name: "Illy" })).toBe("illy");
+  });
+});
+
+describe("categorySlug", () => {
+  it("keeps our slug across a rename at the source", () => {
+    expect(categorySlug({ rawSlug: "kafe-kapsuli", slug: "kapsuli" })).toBe("kapsuli");
+  });
+
+  it("falls back to the source's raw slug only when the snapshot has none", () => {
+    expect(categorySlug({ rawSlug: "nespresso" })).toBe("nespresso");
+    expect(categorySlug({ rawSlug: "nespresso", slug: null })).toBe("nespresso");
   });
 });
 

@@ -9,9 +9,12 @@
  * a `kapsuli` category, a `lavazza` brand, product photographs, brewing
  * systems with products in them — and CI can neither crawl the source nor
  * reach the real database. `reference/latest/` is the one offline copy of that
- * catalog (110 products, 15 brands, 8 categories), already committed. This
- * loads it through the real schema, so the storefront sees what it would see
- * after a sync.
+ * catalog (the October crawl: 187 products, 20 brands, 8 categories), already
+ * committed. This loads it through the real schema, so the storefront sees
+ * what it would see after a sync — including our own slugs, which the
+ * snapshot carries for products, categories and brands alike. They are not
+ * the source's keys: the source renamed its capsule category to
+ * `kafe-kapsuli`, and the storefront still calls it `/categories/kapsuli`.
  *
  * What it must never do is damage a real catalog, and it makes that impossible
  * in two independent ways:
@@ -60,6 +63,8 @@ const MIRRORED_AT = new Date("2026-01-01T00:00:00.000Z");
 
 export interface SnapshotBrand {
   readonly sourceKey: string;
+  /** Our storefront slug; absent from snapshots exported before it was carried. */
+  readonly slug?: string | null;
   readonly sourceId?: string | null;
   readonly rawSlug: string;
   readonly name: string;
@@ -68,6 +73,8 @@ export interface SnapshotBrand {
 
 export interface SnapshotCategory {
   readonly sourceKey: string;
+  /** Our storefront slug; absent from snapshots exported before it was carried. */
+  readonly slug?: string | null;
   readonly sourceId?: string | null;
   readonly rawSlug: string;
   readonly name: string;
@@ -216,14 +223,30 @@ export function deterministicId(...parts: readonly string[]): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(18, 20)}-${hex.slice(20, 32)}`;
 }
 
-/** The storefront slug of a brand: lower case, hyphenated, no stray spaces. */
-export function brandSlug(brand: Pick<SnapshotBrand, "rawSlug" | "name">): string {
+/**
+ * The storefront slug of a brand: the one the snapshot carries, which is the
+ * one the sync allocated. Only an older snapshot without it falls back to a
+ * derivation — lower case, hyphenated, no stray spaces — which matches the
+ * sync for most brands but not all (`3-bourbons` is `3bourbons` in ours).
+ */
+export function brandSlug(brand: Pick<SnapshotBrand, "rawSlug" | "name" | "slug">): string {
+  if (brand.slug) return brand.slug;
   const slug = brand.rawSlug
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return slug || brand.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+/**
+ * The storefront slug of a category: the snapshot's, falling back to the
+ * source's raw slug for an older snapshot. The fallback is exactly what a
+ * rename breaks — the source's `kafe-kapsuli` is our `kapsuli` — which is why
+ * the snapshot now carries the slug.
+ */
+export function categorySlug(category: Pick<SnapshotCategory, "rawSlug" | "slug">): string {
+  return category.slug || category.rawSlug;
 }
 
 /* --- Images -------------------------------------------------------------- */
@@ -378,7 +401,7 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
         id,
         sourceSiteId: siteId,
         sourceKey: category.sourceKey,
-        slug: category.rawSlug,
+        slug: categorySlug(category),
         ...values,
       })
       .onConflictDoUpdate({ target: [categories.sourceSiteId, categories.sourceKey], set: values });

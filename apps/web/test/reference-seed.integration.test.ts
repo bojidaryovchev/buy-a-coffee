@@ -41,6 +41,14 @@ if (!available) {
   console.warn("\n[integration] PostgreSQL is not reachable; skipping the reference seed test.\n");
 }
 
+/**
+ * The committed snapshot is the October crawl: 187 products from 20 brands in
+ * 8 categories, one photograph each. Stated here so that a re-exported
+ * snapshot that changes the catalog's size fails loudly instead of quietly
+ * re-baselining every count below.
+ */
+const SNAPSHOT = { products: 187, brands: 20, categories: 8, imagesPerProduct: 1 } as const;
+
 /** The source's names, joined for a SQL regular expression. */
 const sourcePattern = SOURCE_PATTERNS.map((pattern) => pattern.source).join("|");
 
@@ -93,20 +101,32 @@ describeIntegration("seed:reference (integration)", () => {
   it("loads the whole snapshot through the real schema", async () => {
     const summary = await seedReference(db, { snapshot, copy: productCopy, storageDir: storage });
 
-    expect(summary).toMatchObject({ created: true, products: 110, brands: 15, categories: 8 });
+    expect(snapshot.products).toHaveLength(SNAPSHOT.products);
+    expect(summary).toMatchObject({
+      created: true,
+      products: SNAPSHOT.products,
+      brands: SNAPSHOT.brands,
+      categories: SNAPSHOT.categories,
+    });
     expect(await counts()).toEqual({
-      products: 110,
-      brands: 15,
-      categories: 8,
-      images: 110,
+      products: SNAPSHOT.products,
+      brands: SNAPSHOT.brands,
+      categories: SNAPSHOT.categories,
+      images: SNAPSHOT.products * SNAPSHOT.imagesPerProduct,
       links: snapshot.products.reduce((sum, product) => sum + product.categoryKeys.length, 0),
       sites: 1,
     });
   });
 
   it("gives the storefront what the end-to-end specs look for", async () => {
+    // The source renamed this category (`kapsuli` → `kafe-kapsuli`, "Капсули" →
+    // "Кафе капсули"). The storefront keeps the slug it allocated and shows
+    // the current name, and so must the seed.
     const [capsules] = await db.select().from(categories).where(eq(categories.slug, "kapsuli"));
-    expect(capsules?.name).toBe("Капсули");
+    expect(capsules).toMatchObject({ sourceKey: "kafe-kapsuli", name: "Кафе капсули" });
+    expect(await db.select().from(categories).where(eq(categories.slug, "kafe-kapsuli"))).toEqual(
+      [],
+    );
 
     const children = await db
       .select()
@@ -121,6 +141,19 @@ describeIntegration("seed:reference (integration)", () => {
     // The source's own address for this brand has a stray leading space; ours must not.
     const [vergnano] = await db.select().from(brands).where(eq(brands.slug, "vergnano"));
     expect(vergnano?.sourceUrl).toBe("https://reference.invalid/vergnano/");
+  });
+
+  it("uses the snapshot's slugs, not ones derived from the source's keys", async () => {
+    const categorySlugs = Object.fromEntries(
+      (await db.select().from(categories)).map((row) => [row.sourceKey, row.slug]),
+    );
+    expect(categorySlugs).toEqual(
+      Object.fromEntries(snapshot.categories.map((row) => [row.sourceKey, row.slug])),
+    );
+    // Two that a derivation gets wrong.
+    expect(categorySlugs["kafe-na-zyrna"]).toBe("kafe-na-zarna");
+    const [bourbons] = await db.select().from(brands).where(eq(brands.sourceKey, "3-bourbons"));
+    expect(bourbons?.slug).toBe("3bourbons");
   });
 
   it("stores the fields the storefront reads, as the sync would", async () => {
@@ -165,7 +198,7 @@ describeIntegration("seed:reference (integration)", () => {
 
   it("writes one real image file per product, and points each image row at it", async () => {
     const written = await files();
-    expect(written).toHaveLength(110);
+    expect(written).toHaveLength(SNAPSHOT.products * SNAPSHOT.imagesPerProduct);
 
     const rows = await db.select().from(productImages);
     for (const row of rows) {
@@ -174,7 +207,7 @@ describeIntegration("seed:reference (integration)", () => {
       expect(bytes.subarray(1, 4).toString("ascii")).toBe("PNG");
       expect(bytes.length).toBe(row.byteSize);
     }
-    expect(rows.filter((row) => row.isPrimary)).toHaveLength(110);
+    expect(rows.filter((row) => row.isPrimary)).toHaveLength(SNAPSHOT.products);
   });
 
   it("stores nothing that points at the source site", async () => {
@@ -201,7 +234,8 @@ describeIntegration("seed:reference (integration)", () => {
     expect(summary).toMatchObject({
       created: false,
       imageFilesWritten: 0,
-      copy: { matched: 110, written: 0 },
+      // Every product with hand-written copy; the rest use the generated sentence.
+      copy: { matched: Object.keys(productCopy).length, written: 0 },
     });
     expect(await counts()).toEqual(before.counts);
     expect(
@@ -223,7 +257,7 @@ describeIntegration("seed:reference (integration)", () => {
       .from(products)
       .where(eq(products.slug, "kafe-na-zarna-amann-la-cascada-0-500kg"));
     expect(row?.currentPrice).toBe("16.00");
-    expect((await counts()).products).toBe(110);
+    expect((await counts()).products).toBe(SNAPSHOT.products);
   });
 
   it("refuses a database that already holds another catalog, and leaves it untouched", async () => {
