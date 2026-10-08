@@ -1,5 +1,4 @@
 import { siteConfig, type CommerceConfig } from "@/config/site";
-import { Dismissible } from "@/components/commerce/dismissible";
 import { freeDeliveryPromise, freeDeliveryThreshold } from "@/components/commerce/terms";
 
 /**
@@ -36,27 +35,24 @@ export function AnnouncementBar({
   const after = at < 0 ? "" : promise.slice(at + figure.length);
 
   return (
-    <Dismissible
-      label="Доставка и поръчка"
-      closeLabel="Скрий съобщението"
-      className="on-pine bg-pine-900 text-paper"
-      innerClassName="shell flex min-h-9 items-center justify-center gap-x-6 py-1.5 text-xs md:justify-between"
-    >
-      <p className="font-medium">
-        {before}
-        {at >= 0 && <strong className="font-semibold text-gold-300">{figure}</strong>}
-        {after}
-      </p>
-      <p className="hidden items-center gap-x-5 md:ml-auto md:flex">
-        {contact.hours && <span className="text-pine-200">{contact.hours}</span>}
-        <a
-          href={`tel:${contact.phoneHref}`}
-          className="font-medium underline-offset-4 hover:underline"
-        >
-          {contact.phone}
-        </a>
-      </p>
-    </Dismissible>
+    <aside aria-label="Доставка и поръчка" className="on-pine bg-pine-900 text-paper">
+      <div className="shell flex min-h-9 items-center justify-center gap-x-6 py-1.5 text-xs md:justify-between">
+        <p className="font-medium">
+          {before}
+          {at >= 0 && <strong className="font-semibold text-gold-300">{figure}</strong>}
+          {after}
+        </p>
+        <p className="hidden items-center gap-x-5 md:ml-auto md:flex">
+          {contact.hours && <span className="text-pine-200">{contact.hours}</span>}
+          <a
+            href={`tel:${contact.phoneHref}`}
+            className="font-medium underline-offset-4 hover:underline"
+          >
+            {contact.phone}
+          </a>
+        </p>
+      </div>
+    </aside>
   );
 }
 

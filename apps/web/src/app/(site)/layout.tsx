@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { siteConfig, absoluteUrl } from "@/config/site";
-import { getCategoryTree } from "@/lib/catalog/queries";
+import { countPromotions, getCategoryTree } from "@/lib/catalog/queries";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -69,10 +69,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
    * already in the tree, so the header, the drawer and the footer are all
    * drawn from this one call.
    */
-  const categories = await getCategoryTree();
+  const [categories, promotionCount] = await Promise.all([getCategoryTree(), countPromotions()]);
   const navigation = buildNavigation(categories, {
     sections: BUSINESS_SECTIONS,
     hasJournal: siteConfig.features.blog,
+    // A link to a page that has only ever been empty is worse than no link.
+    hasPromotions: promotionCount > 0,
   });
 
   return (
