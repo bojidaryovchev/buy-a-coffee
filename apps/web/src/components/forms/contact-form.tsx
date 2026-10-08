@@ -44,7 +44,16 @@ function Field({
   );
 }
 
-export function ContactForm() {
+export function ContactForm({
+  defaultSubject,
+}: {
+  /**
+   * Prefills the subject, so a message sent from a page with a purpose of its
+   * own (the business sections) arrives already labelled. It stays an ordinary
+   * visible field: the visitor can see what will be sent, and change it.
+   */
+  defaultSubject?: string;
+} = {}) {
   const [state, formAction] = useActionState(submitContactMessage, IDLE_FORM_STATE);
   const nameId = useId();
   const emailId = useId();
@@ -114,7 +123,14 @@ export function ContactForm() {
         </Field>
 
         <Field id={subjectId} label="Тема (по избор)">
-          <input id={subjectId} name="subject" type="text" maxLength={160} className={inputClass} />
+          <input
+            id={subjectId}
+            name="subject"
+            type="text"
+            maxLength={160}
+            defaultValue={defaultSubject}
+            className={inputClass}
+          />
         </Field>
       </div>
 
