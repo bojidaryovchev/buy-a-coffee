@@ -120,7 +120,12 @@ export default async function WizardResultPage({ searchParams }: PageProps) {
           <ol aria-label="Препоръки" className="space-y-4">
             {result.picks.map((entry, index) => (
               <li key={entry.product.id}>
-                <RecommendationCard entry={entry} rank={index + 1} emphasis={index === 0} />
+                <RecommendationCard
+                  entry={entry}
+                  rank={index + 1}
+                  emphasis={index === 0}
+                  headingLevel="h2"
+                />
               </li>
             ))}
           </ol>

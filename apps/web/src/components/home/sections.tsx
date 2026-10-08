@@ -15,7 +15,6 @@ import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
 import { JOURNAL_PATH, formatArticleDate, type ArticleSummary } from "@/lib/journal";
 import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
-import { SECONDARY_ON_PINE } from "./hero";
 import { countPhrase } from "./plural";
 
 /**
@@ -453,9 +452,14 @@ export function VendingBand() {
             което е за такава работа.
           </p>
         </div>
-        <Link href={BUSINESS_SECTIONS.vending.path} className={`${SECONDARY_ON_PINE} shrink-0`}>
+        <ButtonLink
+          href={BUSINESS_SECTIONS.vending.path}
+          variant="on-pine"
+          size="lg"
+          className="w-full shrink-0 md:w-auto"
+        >
           Към Вендинг зоната
-        </Link>
+        </ButtonLink>
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProductImage } from "@/components/catalog/product-image";
+import { ButtonLink, buttonClasses } from "@/components/ui/primitives";
 import { siteConfig } from "@/config/site";
 import type { HeroShelfItem } from "@/lib/catalog/home-shelf";
 import { countPhrase } from "./plural";
@@ -17,19 +18,6 @@ export const HERO_SHELF_SIZES = "(min-width: 1180px) 180px, (min-width: 768px) 1
 
 /** Wells shown on a phone: one row. The rest are hidden and stay unloaded. */
 const PHONE_WELLS = 3;
-
-/*
- * The accent button, written out. The `accent` variant of `ButtonLink` is
- * specified in DESIGN.md ("Buttons") but is not in `primitives.tsx` yet; when
- * it is, this becomes `<ButtonLink variant="accent" size="lg">`. On pine its
- * hover is `gold-300`.
- */
-const ACCENT_ON_PINE =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-gold-500 px-6 py-3 text-base font-semibold text-ink-900 transition-colors hover:bg-gold-300 md:w-auto";
-
-/** The secondary action on a pine band (DESIGN.md, "Buttons"). */
-export const SECONDARY_ON_PINE =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm border border-pine-200 px-6 py-3 text-base font-medium text-paper transition-colors hover:bg-pine-700 md:w-auto";
 
 export function HomeHero({
   brandCount,
@@ -66,11 +54,18 @@ export function HomeHero({
           <p className="mt-4 max-w-[48ch] text-lg text-pine-200">{siteConfig.description}</p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/wizard" className={ACCENT_ON_PINE}>
+            <ButtonLink href="/wizard" variant="accent" size="lg" className="w-full md:w-auto">
               Намерете кафе за вашата машина
-            </Link>
+            </ButtonLink>
             {systemsHref && (
-              <a href={systemsHref} className={SECONDARY_ON_PINE}>
+              <a
+                href={systemsHref}
+                className={buttonClasses({
+                  variant: "on-pine",
+                  size: "lg",
+                  className: "w-full md:w-auto",
+                })}
+              >
                 Разгледайте по система
               </a>
             )}
