@@ -73,6 +73,9 @@ export default async function AdminPanelLayout({ children }: { children: React.R
             <Link href="/admin/byuletin" className="text-ink-500 hover:text-ink-900">
               Бюлетин
             </Link>
+            <Link href="/admin/sinhron" className="text-ink-500 hover:text-ink-900">
+              Синхронизация
+            </Link>
           </nav>
 
           {/* Out to the shop. Same tab, no target="_blank": this is navigation

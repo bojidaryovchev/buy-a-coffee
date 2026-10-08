@@ -19,10 +19,12 @@ import "server-only";
  */
 
 export interface Notification {
-  readonly kind: "order_inquiry" | "contact_message" | "newsletter_signup";
+  readonly kind: "order_inquiry" | "contact_message" | "newsletter_signup" | "sync_alert";
   readonly subject: string;
   readonly summary: string;
-  /** Reference to the stored row, so the shop can look up the details. */
+  /** Reference to the stored row, so the shop can look up the details. A
+   *  `sync_alert` has no row of its own: it is the condition and the day
+   *  (`breaker_open:2026-10-10`), which is also what it is deduplicated on. */
   readonly recordId: string;
 }
 

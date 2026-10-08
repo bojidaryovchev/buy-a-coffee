@@ -30,12 +30,14 @@ const DESTINATION: Record<Notification["kind"], (id: string) => string> = {
   order_inquiry: (id) => `/admin/zayavki/${id}`,
   contact_message: (id) => `/admin/sabshteniya/${id}`,
   newsletter_signup: () => `/admin/byuletin`,
+  sync_alert: () => `/admin/sinhron`,
 };
 
 const LABEL: Record<Notification["kind"], string> = {
   order_inquiry: "заявка за поръчка",
   contact_message: "съобщение от формата за контакт",
   newsletter_signup: "нов абонат за бюлетина",
+  sync_alert: "проблем със синхронизацията на каталога",
 };
 
 /**
@@ -62,7 +64,11 @@ export const resendSink: NotificationSink = {
       "",
       "--",
       `Автоматично известие за ${LABEL[notification.kind]}.`,
-      "Данните за контакт са в записа, не в това писмо.",
+      /* An operational alert holds no customer, so the reassurance would be a
+         non-sequitur in it. */
+      ...(notification.kind === "sync_alert"
+        ? []
+        : ["Данните за контакт са в записа, не в това писмо."]),
     ].join("\n");
 
     const { Resend } = await import("resend");
