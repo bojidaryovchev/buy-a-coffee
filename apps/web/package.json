@@ -19,11 +19,14 @@
     "seed:dev": "tsx scripts/seed-dev.ts",
     "reference:coverage": "tsx scripts/reference-coverage.ts",
     "check:originality": "tsx scripts/check-originality.ts",
-    "copy:apply": "tsx scripts/apply-product-copy.ts"
+    "copy:apply": "tsx scripts/apply-product-copy.ts",
+    "mail:prune-foreign": "tsx scripts/mail-prune-foreign.ts"
   },
   "dependencies": {
     "@catalog/db": "workspace:*",
     "@catalog/shared": "workspace:*",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "drizzle-orm": "^0.44.6",
     "next": "^16.3.1",
     "react": "^19.2.8",

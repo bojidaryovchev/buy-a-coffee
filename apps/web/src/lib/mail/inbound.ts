@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { siteConfig } from "@/config/site";
 import { MAIL_ADDRESS, MAIL_DOMAIN, NOTIFY_TO } from "./identity";
+import { hasAddresses, isAddressedToDomain, isSentFromDomain } from "./recipients";
 import {
   addMessage,
   createThread,
@@ -133,13 +134,34 @@ export async function handleInboundEmail(
 
   /* The sender is on our own domain: our own acknowledgement bouncing, or a
      copy of something we sent. Forwarding it starts a ping-pong. */
-  if (event.data.from.toLowerCase().includes(`@${MAIL_DOMAIN}`)) {
+  if (isSentFromDomain(event.data.from, MAIL_DOMAIN)) {
     return { status: "ignored", reason: `подател от @${MAIL_DOMAIN}` };
+  }
+
+  /* The provider account holds several domains and fires this webhook for mail
+     to any of them. Only mail addressed to OUR domain belongs in this mailbox;
+     the rest is somebody else's correspondence and is neither stored nor
+     forwarded. Decided before `record()`, and answered 200 (a retry would reach
+     the same verdict). The event carries to/cc/bcc/received_for, so this costs
+     no API call. */
+  const eventRecipients = [event.data.to, event.data.cc, event.data.bcc, event.data.received_for];
+  const eventNamesRecipients = hasAddresses(eventRecipients);
+  if (eventNamesRecipients && !isAddressedToDomain(eventRecipients, MAIL_DOMAIN)) {
+    return { status: "ignored", reason: `няма получател @${MAIL_DOMAIN}` };
   }
 
   const { data: email, error } = await resend.emails.receiving.get(emailId);
   if (error || !email) {
     return { status: "failed", error: error?.message ?? "празен отговор" };
+  }
+
+  /* An event with no recipient fields at all is decided on the fetched message
+     instead; if that names none of ours either, it is not ours. */
+  if (!eventNamesRecipients) {
+    const fetchedRecipients = [email.to, email.cc, email.bcc, email.received_for];
+    if (!isAddressedToDomain(fetchedRecipients, MAIL_DOMAIN)) {
+      return { status: "ignored", reason: `няма получател @${MAIL_DOMAIN}` };
+    }
   }
 
   const { data: list } = await resend.emails.receiving.attachments.list({ emailId });

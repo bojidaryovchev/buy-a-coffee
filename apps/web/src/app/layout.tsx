@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Literata } from "next/font/google";
+import { Measurement } from "@/components/measurement";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
 
@@ -13,7 +14,8 @@ import "./globals.css";
  * provider has nothing to learn from one person reading his own mail.
  *
  * What is left is what genuinely is shared — `<html>`, `<body>`, the two faces,
- * and the stylesheet. `next/font` must be called at module scope, so this is
+ * the stylesheet, and the measurement scripts (which skip `/admin`; see
+ * `components/measurement.tsx`). `next/font` must be called at module scope, so this is
  * also the only place the fonts can be defined once for both trees.
  *
  * The route groups below it do not appear in any URL:
@@ -67,7 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang={siteConfig.locale.split("-")[0] ?? "bg"}
       className={`${inter.variable} ${literata.variable}`}
     >
-      <body className="flex min-h-dvh flex-col bg-paper text-ink-900 antialiased">{children}</body>
+      <body className="flex min-h-dvh flex-col bg-paper text-ink-900 antialiased">
+        {children}
+        <Measurement />
+      </body>
     </html>
   );
 }
