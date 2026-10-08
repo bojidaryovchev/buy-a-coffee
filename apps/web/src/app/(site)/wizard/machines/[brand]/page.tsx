@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Breadcrumbs, ButtonLink, SectionHeading } from "@/components/ui/primitives";
 import { WizardNotice } from "@/components/wizard/wizard-ui";
+import { CapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { MACHINE_BRANDS, getMachineBrand, type MachineModel } from "@/content/machines";
@@ -97,7 +98,17 @@ export default async function MachineBrandPage({ params }: PageProps) {
                     : "в момента нямаме наличност"}
                 </span>
               </div>
-              <p className="mb-4 max-w-prose text-sm text-ink-500">{system.recognise}</p>
+              {/*
+               * The drawing sits with the sentence it illustrates. Brands that
+               * make machines for several systems are exactly where a visitor
+               * has to tell two capsules apart, so every group gets its own.
+               */}
+              <div className="mb-4 flex flex-col gap-x-8 gap-y-3 sm:flex-row sm:items-center">
+                <p className="max-w-prose text-sm text-ink-500 sm:flex-1">{system.recognise}</p>
+                <div className="sm:w-80 sm:shrink-0">
+                  <CapsuleDiagram system={system} />
+                </div>
+              </div>
 
               <ul className="mb-4 flex flex-wrap gap-2">
                 {models.map((model) => (

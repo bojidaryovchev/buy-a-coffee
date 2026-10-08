@@ -74,6 +74,11 @@ export interface WizardOption {
   /** Small right-aligned note, such as a product count. */
   readonly meta?: string;
   readonly selected?: boolean;
+  /**
+   * A small picture shown before the label. It sits inside the link, so it
+   * must be decorative: the label is already the link's name.
+   */
+  readonly figure?: React.ReactNode;
 }
 
 /**
@@ -98,21 +103,34 @@ export function OptionList({
             href={option.href}
             className={cx(
               "flex h-full items-baseline justify-between gap-4 rounded-md border bg-paper-raised px-4 py-4 transition-colors",
+              /*
+               * A figure takes room the label needs on a phone, so there the
+               * note drops onto its own line instead of squeezing the text.
+               */
+              option.figure != null && "flex-wrap gap-y-1 sm:flex-nowrap",
               option.selected
                 ? "border-pine-500 bg-pine-100"
                 : "border-line hover:border-pine-500 hover:bg-paper-sunken",
             )}
           >
-            <span className="min-w-0">
-              <span className="block font-display text-lg font-semibold text-ink-900">
-                {option.label}
+            <span className={cx("min-w-0", option.figure != null && "flex items-center gap-4")}>
+              {option.figure}
+              <span className="block min-w-0">
+                <span className="block font-display text-lg font-semibold text-ink-900">
+                  {option.label}
+                </span>
+                {option.detail && (
+                  <span className="mt-1 block text-sm text-ink-500">{option.detail}</span>
+                )}
               </span>
-              {option.detail && (
-                <span className="mt-1 block text-sm text-ink-500">{option.detail}</span>
-              )}
             </span>
             {option.meta && (
-              <span className="shrink-0 text-2xs tracking-wide text-ink-300 uppercase">
+              <span
+                className={cx(
+                  "shrink-0 text-2xs tracking-wide text-ink-300 uppercase",
+                  option.figure != null && "w-full text-right sm:w-auto",
+                )}
+              >
                 {option.meta}
               </span>
             )}
