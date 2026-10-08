@@ -60,6 +60,11 @@ function candidate(overrides: {
     pricePerServing: overrides.pricePerServing ?? "0.2000",
     servings: overrides.servings ?? 100,
     servingsEstimated: false,
+    // Unset, as for every product until the sync fills them: the expectations
+    // below are the ones that must hold when no fact is known.
+    arabicaPercent: null,
+    origin: null,
+    roast: null,
   };
 }
 

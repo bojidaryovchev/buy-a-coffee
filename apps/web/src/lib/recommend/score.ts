@@ -1,6 +1,7 @@
 import { parseIntensity } from "@/lib/catalog/attributes";
 import type { ProductCardView } from "@/lib/catalog/types";
 import { BUDGET_OPTIONS, TASTE_OPTIONS, VOLUME_OPTIONS, type WizardAnswers } from "./answers";
+import { compositionEvidence, roastEvidence, type FactCriterion } from "./facts";
 
 /**
  * Recommendation scoring.
@@ -35,6 +36,15 @@ export interface RecommendationCandidate extends ProductCardView {
   readonly servings: number | null;
   /** True when `servings` was derived from weight rather than a piece count. */
   readonly servingsEstimated: boolean;
+  /**
+   * Facts the source states about the coffee, each null when it does not. They
+   * are evidence for the taste answer only where `facts.ts` says they bear on
+   * it; `origin` bears on no answer the wizard asks, so it is carried but never
+   * scored.
+   */
+  readonly arabicaPercent: number | null;
+  readonly origin: string | null;
+  readonly roast: string | null;
 }
 
 export interface ScoredRecommendation {
@@ -60,6 +70,11 @@ export interface RecommendationResult {
   readonly relaxed: readonly RelaxedConstraint[];
   /** Candidates that survived the hard rules. */
   readonly eligibleCount: number;
+  /**
+   * The stated-fact criteria that moved the score of at least one pick, for
+   * analytics. Empty when the facts are unset or no answer leans on them.
+   */
+  readonly factsUsed: readonly FactCriterion[];
 }
 
 export interface RelaxedConstraint {
@@ -103,6 +118,7 @@ export function scoreRecommendations(
     alternative: pickAlternative(scored, picks),
     relaxed,
     eligibleCount: eligible.length,
+    factsUsed: factsUsedBy(answers, picks),
   };
 }
 
@@ -222,6 +238,20 @@ function scoreOne(
         reasons.push(`интензивност ${intensity.value} от ${intensity.max}`);
       }
     }
+
+    /*
+     * Stated facts, as evidence for the taste answer only. Each is zero when
+     * the product does not state it, so a product the source left undescribed
+     * ranks exactly as it did before these criteria existed. See facts.ts for
+     * which options each fact speaks for, and why.
+     */
+    for (const evidence of [
+      compositionEvidence(taste.value, product.arabicaPercent),
+      roastEvidence(taste.value, product.roast),
+    ]) {
+      score += evidence.contribution;
+      if (evidence.reason) reasons.push(evidence.reason);
+    }
   }
 
   const volume = VOLUME_OPTIONS.find((option) => option.value === answers.volume) ?? null;
@@ -283,6 +313,22 @@ function scoreOne(
     reasons,
     caveat: caveatFor(answers, product),
   };
+}
+
+/** Which stated-fact criteria actually moved a pick, in a fixed order. */
+function factsUsedBy(
+  answers: WizardAnswers,
+  picks: readonly ScoredRecommendation[],
+): readonly FactCriterion[] {
+  if (!answers.taste) return [];
+  const used = new Set<FactCriterion>();
+  for (const { product } of picks) {
+    if (compositionEvidence(answers.taste, product.arabicaPercent).contribution !== 0) {
+      used.add("composition");
+    }
+    if (roastEvidence(answers.taste, product.roast).contribution !== 0) used.add("roast");
+  }
+  return (["composition", "roast"] as const).filter((criterion) => used.has(criterion));
 }
 
 /**
