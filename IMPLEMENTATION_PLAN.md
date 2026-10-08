@@ -12,6 +12,7 @@ public pages. They drift — re-measure before relying on one.
 - [How to read this](#how-to-read-this)
 - [Definition of done](#definition-of-done)
 - [Ground rules](#ground-rules)
+- [Progress](#progress)
 - [Where it stands](#where-it-stands)
 - [Decisions](#decisions)
 - [Phase A — Groundwork](#phase-a--groundwork)
@@ -90,6 +91,30 @@ Tags:
 8. **Fix the parser, not the test.** Fixtures are rebuilt from the live source.
 9. **Ordering stays a phone number and a callback.** See [Not doing](#not-doing).
 
+## Progress
+
+**9 October 2026.** A first wave of seventeen branches is merged into
+`completion` (nothing is on `main`, nothing is pushed). Ticked tasks below are
+merged and verified there: `typecheck` and `lint` clean, 605 sync-side and 852
+storefront tests passing.
+
+The catch-up sync was rehearsed against a local copy of the production catalog
+and the live source: **110 → 187 products, 86 followed to their new URL, 2
+linked by hand, 77 created, none duplicated, none lost**; every existing product
+kept its slug, its copy and its photo; a second sync was a no-op.
+
+Tasks that are built but not ticked, and why:
+
+- **D3** — the code is done; `pnpm check:launch` fails by design until the
+  business answers the open questions it lists.
+- **E1, E7** — the pages and articles exist; they are not yet linked from the
+  navigation, the sitemap or the home page.
+- **B5, B6, B16** — the parser and the rule exist; wiring them into the sync is
+  in progress.
+
+Things the first wave found that this plan did not anticipate are marked
+**Found** where they apply.
+
 ## Where it stands
 
 | Area              | State on 8 October 2026                                                                                                                                                                                        |
@@ -135,7 +160,7 @@ None of these blocks code. Each has a default the plan assumes.
 
 ## Phase A — Groundwork
 
-- [ ] **A1 · Branch and local data · S**
+- [x] **A1 · Branch and local data · S**
   - Create `completion`. `docker compose up -d`, `pnpm db:migrate`.
   - Load a **read-only copy of production's catalog tables** into the local
     database: `source_sites`, `brands`, `categories`, `products`,
@@ -148,7 +173,7 @@ None of these blocks code. Each has a default the plan assumes.
   - _Why_ the identity migration in B3 has to be rehearsed against the real
     rows, not against a fresh sync that would never have the problem.
 
-- [ ] **A2 · Continuous integration · M**
+- [x] **A2 · Continuous integration · M**
   - `.github/workflows/ci.yml` on pull requests and `completion`: install,
     `typecheck`, `lint`, `format:check`, `test`, `test:integration` against a
     Postgres service container, `check:originality`, `reference:coverage`,
@@ -156,8 +181,13 @@ None of these blocks code. Each has a default the plan assumes.
   - A second job runs `test:e2e` on desktop and mobile against a database
     filled by `pnpm --filter @catalog/web seed:dev`.
   - _Done when_ a pull request cannot merge red.
+  - **Found.** Three checks were already broken on `main`: `format:check`
+    fails on 93 files that were never formatted; `test:integration` filters
+    for a project no config defines; `reference:coverage` points at page files
+    that moved into a route group. And only 112 of 190 end-to-end tests can run
+    without the real catalog. All four are being fixed in the second wave.
 
-- [ ] **A3 · Environment tooling that cannot deploy a laptop · S · `early`**
+- [x] **A3 · Environment tooling that cannot deploy a laptop · S · `early`**
   - `apps/web/scripts/env-lib.mjs`: fail when a key appears twice in one file.
   - `apps/web/scripts/env-push.mjs`: refuse to send a `DATABASE_URL` or site URL
     whose host is `localhost` or `127.0.0.1` to any deployed target.
@@ -178,7 +208,7 @@ None of these blocks code. Each has a default the plan assumes.
 
 This is the phase the project exists for. B1–B3 are the critical path.
 
-- [ ] **B1 · Re-learn the source · M**
+- [x] **B1 · Re-learn the source · M**
   - `node scripts/build-fixtures.mjs`, then run the parser tests. The failures
     name what changed.
   - Add fixtures for the cases that are new: a product at a renamed URL, a real
@@ -189,7 +219,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - Update [docs/source-recon.md](docs/source-recon.md).
   - _Done when_ parser and fetcher tests pass on fresh fixtures.
 
-- [ ] **B2 · Move detection in the diff · L**
+- [x] **B2 · Move detection in the diff · L**
   - _Problem._ Identity is source path + pack size
     ([identity.ts](packages/scraper-core/src/catalog/identity.ts)). When the
     source renames a URL the product looks deleted and a twin looks new. The
@@ -213,8 +243,18 @@ This is the phase the project exists for. B1–B3 are the critical path.
     the fresh fixture.
   - _Done when_ that regression test reports about 87 moved, about 80 created,
     2 missing and **0 duplicates**, and the diff engine is still pure.
+  - **Found.** Measured: 22 key matches, **86 moved, 79 created, 2 missing, 0
+    duplicates**. Brand + name + pack size alone pairs only 71, because the
+    source also filled in a missing brand on 12 products and respelled one
+    brand key; a third pass pairs on name + pack size when the path stem
+    corroborates it. A tie that no signal breaks is reported, never guessed.
+  - **Found.** Brands and categories had the same problem: the capsule parent
+    category and one brand were renamed at the source. Both carry a stable
+    numeric id there, so they now match on that id first, keep their row and
+    their slug, and record the previous key. A brand or category absent from a
+    trusted run is hidden (`missing`), never removed.
 
-- [ ] **B3 · Rehearse the catch-up locally · S**
+- [x] **B3 · Rehearse the catch-up locally · S**
   - `pnpm sync:catalog -- --dry-run` against the A1 copy; compare with B2's
     expected numbers. Then run it for real.
   - New command `pnpm catalog:verify` asserting the invariants: no two active
@@ -224,12 +264,14 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ the local storefront shows about 187 products, no duplicates,
     and `catalog:verify` passes. The same command is reused in H6.
 
-- [ ] **B4 · A manual pairing escape hatch · S**
+- [x] **B4 · A manual pairing escape hatch · S**
   - `pnpm catalog:link <our-slug> <new-source-key>` for the rename that also
     changed the product's name, which no fingerprint can pair. Two such
     products exist today. It writes the same `moved` change the sync would.
   - _Done when_ a product can be re-linked before its missing counter reaches
     the removal threshold.
+  - **Found.** The two products are a pod pack that gained a pack size in its
+    name and a bean blend whose name was respelled. Their commands are in H6.
 
 - [ ] **B5 · Product code as a second identity · M**
   - The source's product pages now print a product code. Fetch the product page
@@ -254,7 +296,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ the columns are populated wherever the source states the fact,
     with a fixture test per pattern. Consumed by G2, E10 and F5.
 
-- [ ] **B7 · Never publish the source's prose · M**
+- [x] **B7 · Never publish the source's prose · M**
   - _Problem._ [queries.ts](apps/web/src/lib/catalog/queries.ts) reads
     `coalesce(description_text_override, description_text)`. A product synced
     tonight has no override, so the source's paragraph appears on our page, in
@@ -268,8 +310,14 @@ This is the phase the project exists for. B1–B3 are the critical path.
     growing catalog cannot turn CI red by itself. `pnpm copy:todo` lists them.
   - _Done when_ a product without an override renders no sentence that appears
     in the source's text, asserted by a test over the whole reference snapshot.
+  - **Found.** The generated sentence leaves out the product name, so siblings
+    with the same brand, size and intensity share one: 110 products yield 91
+    distinct sentences. B9 is therefore not optional.
+  - **Found.** `copy:apply` skipped a product whose summary was unchanged, so
+    body-only edits never reached the database: 31 products are stale. Fixed;
+    the next apply (H6) brings production current.
 
-- [ ] **B8 · Copy keyed by something we own · M**
+- [x] **B8 · Copy keyed by something we own · M**
   - [product-copy.ts](apps/web/content/product-copy.ts) is keyed by
     `sourceKey`, which B2 has just shown is not stable. Re-key it by storefront
     slug, which is allocated once and frozen.
@@ -285,7 +333,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - In batches by brand, each batch passing `check:originality`.
   - _Done when_ `pnpm copy:todo` is empty.
 
-- [ ] **B10 · Brands and taxonomy · S**
+- [x] **B10 · Brands and taxonomy · S**
   - The source's brand names carry stray whitespace and inconsistent case. Add
     a display-name map, `content/brand-names.ts`, with a fallback to the
     synced name, so a new brand is never blocked on it.
@@ -295,7 +343,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ all 20 brands list correctly and the wizard offers every system
     that has products.
 
-- [ ] **B11 · Image mirror corrections · S**
+- [x] **B11 · Image mirror corrections · S**
   - A skipped image currently overwrites `mime_type` and `byte_size` with null
     in `mirrorProductImages`. Keep the stored values on a skip.
   - Test that an object missing from the configured store is mirrored again —
@@ -311,7 +359,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ `pnpm reference:coverage` fails **only** on capabilities Phase E
     is about to add. That failing list is Phase E's checklist.
 
-- [ ] **B13 · Schedule it · M**
+- [x] **B13 · Schedule it · M**
   - `.github/workflows/sync.yml`: every six hours (the interval the Terraform
     already chose), plus manual dispatch with a `dry_run` input. One run at a
     time. Exit code 2 — completed but untrusted — fails the job distinctly from
@@ -324,7 +372,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ a manual dry run on the branch completes against a throwaway
     database.
 
-- [ ] **B14 · The alarm lives outside the thing it watches · M**
+- [x] **B14 · The alarm lives outside the thing it watches · M**
   - A cron route in the storefront, `/api/cron/sync-health`, guarded by
     `CRON_SECRET`. It reads the latest `sync_runs` rows and sends one email
     through the existing `notify()` when: two sync intervals have passed with
@@ -335,7 +383,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ each condition, simulated in an integration test, produces
     exactly one notification.
 
-- [ ] **B15 · Sync page in the admin panel · M**
+- [x] **B15 · Sync page in the admin panel · M**
   - Read-only `/admin/sinhron`: recent runs with status, counts and breaker
     reason; what each run created, moved and removed; products without their
     own copy; the "what to do when" notes now in `docs/launch.md`.
@@ -351,7 +399,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
 
 ## Phase C — Images
 
-- [ ] **C1 · Never show a broken image · S · `early`**
+- [x] **C1 · Never show a broken image · S · `early`**
   - [images.ts](apps/web/src/lib/catalog/images.ts): on a deployed host with no
     image base URL, resolve to the placeholder instead of `/media/…`, which
     cannot exist there.
@@ -360,8 +408,11 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - Replace the placeholder artwork with something that looks intended.
   - _Done when_ no page can render the browser's broken-image icon. Merged to
     `main` early, this makes production look deliberate until H2.
+  - **Found.** Images now resolve from the object key against whichever host is
+    configured, not from a stored absolute URL, so a later change of image
+    store cannot strand a row.
 
-- [ ] **C2 · A storage driver for the chosen host · M**
+- [x] **C2 · A storage driver for the chosen host · M**
   - Add a third implementation of `StorageDriver` in
     [driver.ts](packages/scraper-core/src/storage/driver.ts) for Q1's choice,
     with deterministic object names so content-addressed keys stay stable.
@@ -371,13 +422,13 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ the contract suite passes locally and the driver is selectable
     by configuration alone.
 
-- [ ] **C3 · Move and verify images between stores · S**
+- [x] **C3 · Move and verify images between stores · S**
   - `pnpm images:push --from local --to <driver>` copies every referenced
     object. `pnpm images:verify` checks that each active `product_images` row
     is present in the store and answers 200 at the public base URL.
   - _Done when_ both run against two local directories in a test.
 
-- [ ] **C4 · Storefront configuration · S**
+- [x] **C4 · Storefront configuration · S**
   - `NEXT_PUBLIC_IMAGE_BASE_URL` becomes required for production in
     `env.schema.mjs`. `next.config.ts` already derives `remotePatterns` from
     it. `/media` stays development-only.
@@ -386,7 +437,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
 
 ## Phase D — Trust and operations
 
-- [ ] **D1 · Commercial terms as configuration · M · `owner`**
+- [x] **D1 · Commercial terms as configuration · M · `owner`**
   - `siteConfig.commerce`: delivery fee, free-delivery threshold, delivery
     time, payment methods, return window, who pays return shipping. Same
     pattern as `siteConfig.legal`: an unset value is **omitted** from the page,
@@ -394,7 +445,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ changing the threshold is a one-line commit and every surface
     in D2 and D3 follows.
 
-- [ ] **D2 · Say it where people decide · M**
+- [x] **D2 · Say it where people decide · M**
   - An announcement bar; a delivery-and-payment block beside the order form; a
     "Доставка и плащане" page; payment methods in the footer.
   - `shippingDetails` and `hasMerchantReturnPolicy` on the Product JSON-LD once
@@ -410,7 +461,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
     `ЗА ПРЕГЛЕД` marker remains.
   - _Done when_ `check:launch` passes. The lawyer's read is H1.
 
-- [ ] **D4 · Scope the mailbox to this shop · S · `early`**
+- [x] **D4 · Scope the mailbox to this shop · S · `early`**
   - In [inbound.ts](apps/web/src/lib/mail/inbound.ts), ignore an event with no
     recipient at `MAIL_DOMAIN` — before `record()`, so it is neither stored nor
     forwarded. Cover it in `test/mail.test.ts`.
@@ -418,21 +469,26 @@ This is the phase the project exists for. B1–B3 are the critical path.
     stored. Run in H8.
   - _Done when_ a webhook for another domain returns "ignored".
 
-- [ ] **D5 · Rate limiting that survives serverless · M**
+- [x] **D5 · Rate limiting that survives serverless · M**
   - `createRateLimiter` already takes its storage as a parameter. Add a
     Postgres-backed store and use it for the public forms and the suggest
     endpoint. The in-memory store stays for development and tests.
   - _Done when_ the limit holds across two processes in an integration test.
 
-- [ ] **D6 · Admin sign-in hardening · M**
+- [x] **D6 · Admin sign-in hardening · M**
   - Attempt limiting on `signIn` through D5's store, per client and global,
     with backoff. Failed attempts are logged without the attempted value.
   - Production refuses to enable the panel with a short password or without a
     separate session secret (A3 makes the tooling say so first).
   - _Done when_ repeated wrong passwords lock out and a correct one afterwards
     still waits out the backoff.
+  - **Found — this changes the launch order.** On a deployment the panel now
+    stays disabled unless the password is at least 12 characters and a
+    separate session secret is set, and sign-in is refused until the rate-limit
+    table exists. So the password is rotated and the migration applied
+    **before** the code ships (H3, H4), not after.
 
-- [ ] **D7 · Measurement · S**
+- [x] **D7 · Measurement · S**
   - Install cookieless page analytics and performance measurement, and wire
     `setAnalyticsSink` so the events `lib/analytics.ts` already defines are
     actually sent. The no-personal-data rule in that file stands.
@@ -441,16 +497,19 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ a quick order and a completed wizard appear as events on a
     preview, and the site still sets no cookie for a visitor.
 
-- [ ] **D8 · Run next to the database · S · `early`**
+- [x] **D8 · Run next to the database · S · `early`**
   - Pin the storefront's functions to Frankfurt.
   - _Done when_ response headers show the function region as `fra1`.
 
-- [ ] **D9 · Keep the privacy policy's promises · M**
+- [x] **D9 · Keep the privacy policy's promises · M**
   - The policy states that unconverted enquiries and closed contact messages
     are kept for 12 months. Nothing deletes them. Add a daily cron route that
     removes or anonymises rows past retention, and decide and state the same
     for the mailbox.
   - _Done when_ a row dated 13 months ago is gone after one run, in a test.
+  - **Found.** Only enquiries marked cancelled or spam are deleted; `new` and
+    `contacted` are never touched and are reported as awaiting a decision. The
+    policy's promise therefore depends on enquiries being closed in the panel.
 
 - [ ] **D10 · Newsletter consent, and marking from the panel · M**
   - An unticked consent checkbox on the quick-order and contact forms, writing
@@ -469,7 +528,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ a customer ordering on a Saturday is told to expect the call on
     Monday.
 
-- [ ] **D12 · Content-Security-Policy · S**
+- [x] **D12 · Content-Security-Policy · S**
   - Add a CSP in `next.config.ts`, report-only first, alongside the headers
     already set.
   - _Done when_ the storefront and the admin panel run clean under it.
@@ -505,13 +564,13 @@ contain.
     page links "Става за…" to the matching machine pages.
   - _Done when_ a customer can tell from a listing whether a product fits.
 
-- [ ] **E5 · Brand pages · M · `content`**
+- [x] **E5 · Brand pages · M · `content`**
   - Display names from B10, a short original introduction per brand, an
     optional logo slot (Q8), and a brand row on the home page.
   - _Done when_ all 20 brand pages have an introduction that passes the
     originality check.
 
-- [ ] **E6 · Category introductions · S · `content`**
+- [x] **E6 · Category introductions · S · `content`**
   - Original text per category and subcategory in `content/category-copy.ts`,
     rendered below the listing so products stay first, and covered by
     `check:originality`.
@@ -555,13 +614,13 @@ Three layers that have to agree:
   loud, so the interface stays quiet and lets them carry the colour.
 - **Voice: a plain-spoken advisor.** The wizard already sounds like this.
 
-- [ ] **F1 · Write it down first · M**
+- [x] **F1 · Write it down first · M**
   - `PRODUCT.md` (who buys, what they are trying to do, positioning, scope,
     what may never be claimed) and `DESIGN.md` (colour, type, layout, shape,
     components, do and don't), as the company's other storefronts have.
   - _Done when_ F2–F8 can be reviewed against a written standard.
 
-- [ ] **F2 · Tokens · S**
+- [x] **F2 · Tokens · S**
   - Warmer neutrals. One accent taken from the logo's gold, used as a fill
     under dark text. Pine remains the anchor. Clay is reserved for reductions.
   - A colour per brewing system, always paired with its name — never colour
@@ -602,7 +661,7 @@ Three layers that have to agree:
 
 ## Phase G — Search, wizard and SEO
 
-- [ ] **G1 · Phonetic synonyms · S**
+- [x] **G1 · Phonetic synonyms · S**
   - The documented gap: „Лаваца" folds to `lavatsa` and misses "Lavazza". Add a
     small synonym table for brand and system names as Bulgarians spell them,
     applied to the query before folding, in
@@ -617,10 +676,15 @@ Three layers that have to agree:
     the existing rule that a card may only claim what the ranking used.
   - _Done when_ `test/recommend.test.ts` covers each new criterion.
 
-- [ ] **G3 · Recognise your capsule · M**
+- [x] **G3 · Recognise your capsule · M**
   - Our own diagrams of the five capsule shapes and the ESE pod on
     `/wizard/machines` — drawn, not manufacturer photography.
   - _Done when_ each system's "how to recognise it" text has a picture.
+  - **Found.** Nespresso, Dolce Gusto and the ESE pod are drawn with
+    confidence. A Modo Mio, Caffitaly and Lavazza Blue were drawn without a
+    reference and must be held against real capsules before launch (H1). The
+    recognition text claimed a machine-read barcode on Dolce Gusto capsules;
+    nothing supports that, and it is removed.
 
 - [ ] **G4 · Structured data, sitemap, llms.txt · S**
   - Article markup for E7; product code and shipping from E10 and D2; new
@@ -638,27 +702,44 @@ In order. Each step is reversible until the next begins.
 **Before starting:** CI green on `completion`; B3 rehearsal passed; `check:launch`
 passes.
 
-- [ ] **H1 · From the business** — answers to Q3–Q6 and Q8; social links; the
-      lawyer's read of Terms and Privacy; written permission from the source's
-      owner for the catalog use, and the contact address for the crawler's
-      user agent.
+- [ ] **H1 · From the business** — the answers `pnpm check:launch` lists
+      (delivery fee below the threshold; whether exactly €49.00 is free; days to
+      dispatch and days in transit; payment methods; return window; who pays
+      return shipping; opening hours), then set `commerce.confirmedByOwner`.
+      From a lawyer: the Article 57 exclusions, the standard withdrawal form,
+      and a read of Terms and Privacy. Social links. Written permission from
+      the source's owner for the catalog use, and the contact address for the
+      crawler's user agent. Someone holding real A Modo Mio, Caffitaly and
+      Lavazza Blue capsules compares them with the drawings on
+      `/wizard/machines`.
 - [ ] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.
 - [ ] **H3 · Databases** — create a database branch for previews and point the
       Preview `DATABASE_URL` at it; take a restore point of production;
       `pnpm db:migrate` on production (additive, so the running site is
-      unaffected).
-- [ ] **H4 · Deployment environment** — `pnpm env:push` (read the plan, then
-      `--apply`): image base URL, `RATE_LIMIT_SALT`, `CRON_SECRET`, a separate
-      session secret, a long admin passphrase, corrected targets. Remove the
-      two variables nothing reads.
+      unaffected). **This must precede H5:** until the rate-limit table exists,
+      the new code refuses admin sign-in.
+- [ ] **H4 · Deployment environment** — first make each local `.env` file
+      declare `DATABASE_URL` once; the tooling now refuses a repeated key. Then
+      `pnpm env:push` (read the plan, then `--apply`): image base URL,
+      `RATE_LIMIT_SALT`, `CRON_SECRET`, a separate session secret, an admin
+      passphrase of at least 12 characters, corrected targets. Remove the two
+      variables nothing reads. **This must precede H5:** with a short password
+      or no separate session secret, the deployed panel disables itself.
 - [ ] **H5 · Ship the code** — merge `completion` into `main`. Check the built
       HTML rather than a warm cache: photos load, no draft marker, function
       region is Frankfurt.
-- [ ] **H6 · Catch the catalog up** — `pnpm sync:catalog -- --dry-run` against
-      production; the numbers must match the rehearsal. Then the real run,
-      `pnpm catalog:verify`, `pnpm copy:apply`, and a hand comparison of ten
-      products against the source.
+- [ ] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
+      production; the numbers must match the rehearsal (86 moved, 79 created, 2
+      missing, 0 unresolved; 5 brands created, 1 brand and 1 category renamed).
+      Link the two renamed-and-retitled products with
+      `pnpm catalog:link <slug> <new-key> --apply` (the dry run names both; in
+      Git Bash prefix the command with `MSYS_NO_PATHCONV=1`, or the leading `/`
+      of the key is rewritten). Then the real run — expect 187 products, 77
+      created, 0 missing — followed by `pnpm catalog:verify`,
+      `pnpm catalog:enrich --apply`, `pnpm copy:apply` (it also writes the 31
+      stale bodies), a second sync that must change nothing, and a hand
+      comparison of ten products against the source.
 - [ ] **H7 · Turn on the schedule** — add the workflow's secrets, run it once
       by hand, enable the schedule, and prove the alarm by letting a preview go
       stale.
@@ -771,6 +852,8 @@ Observed 8 October 2026, compared with the crawl of 21 August in
 - **Brands:** 15 → 20. The largest addition is a single brand with 32 products.
 - **Categories:** the same 8 in the catalog blob. "Кафе дози" grew from 3
   products to 41.
+  The capsule parent category was renamed (key and name), and one brand's key
+  was respelled; both kept their numeric id.
 - **New pages:** Vending Zone and Consumables (text only, no products yet), one
   blog article, a promotions page with nothing on it.
 - **New site-wide statements:** free delivery above €49; cash on delivery, bank
