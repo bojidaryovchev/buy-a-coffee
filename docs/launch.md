@@ -1,70 +1,91 @@
 # Launch
 
-What stands between this repository and a shop that can take a real order. The
-software is complete and verified; everything below is configuration, a business
-answer, or a legal one.
+The runbook is **Phase H of
+[IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md#phase-h--hook-up-and-launch)**:
+the business's answers, the image store, the databases, the deployment
+environment, shipping the code, catching the catalog up, turning on the
+schedule, mail, search engines and a production smoke test, in that order, with
+a rollback. This page does not repeat it. It keeps the traps in that order that
+are easy to get wrong, and what to watch for afterwards.
+
+`pnpm check:launch` lists what the business still has to decide: open
+questions in the legal text, commercial terms that are unset, and
+`commerce.confirmedByOwner`. It fails until all of them are answered.
 
 ---
 
-## Blocking
+## Launch-order traps
 
-| | Item | Owner |
-| --- | --- | --- |
-| ⛔ | **The brand.** Name, wordmark and legal identity are placeholders by design — `src/config/site.ts` (plain constants, not environment variables), the token block at the top of `globals.css`, and `components/layout/wordmark.tsx`. Until the legal constants are filled in the footer says plainly that company details are not configured, and the structured data omits them rather than publishing invented identifiers. | business |
-| ⛔ | **Legal review.** `src/content/legal.ts` is written for this business rather than copied, and sections marked `REVIEW REQUIRED` render as visible callouts until they are completed. A lawyer has not seen them. | business + lawyer |
-| ⛔ | **The commercial relationship with the source.** The brief states there is one. Nothing in this repository records what it is, and `robots.txt` permission is not permission under a site's terms of service. This is the one risk the code cannot mitigate — the originality checks answer *copyright*, not *authorisation*. | business |
-| ⛔ | **Production environment.** `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_IMAGE_BASE_URL` and `RATE_LIMIT_SALT` — the whole list is `apps/web/.env.example`, and nothing else belongs in the dashboard. Run `pnpm env:check` against the production values; it is stricter than this row and explains each verdict. Two traps it exists to catch: `NEXT_PUBLIC_IMAGE_BASE_URL` is optional locally and **required on Vercel**, where the `/media` fallback reads a disk that is not there and every product image 404s; and on any host that is not Vercel `NEXT_PUBLIC_ENVIRONMENT` must be exactly `production`, because **any other value makes `robots.txt` disallow everything**. On Vercel leave it unset — `VERCEL_ENV` takes precedence and blocks previews automatically. | us |
-| ⛔ | **A notification provider.** Orders persist without one and are never lost, but nobody is told they arrived. Implement `NotificationSink` and call `setNotificationSink` once at start-up. | us |
+Both of these fail closed, so getting them wrong locks the operator out rather
+than exposing anything — but the shop then has no panel on launch day.
 
-## Infrastructure, once
+- **The admin password and the session secret before the code.** On a
+  deployment the new code disables the panel unless `ADMIN_PASSWORD` has at
+  least 12 characters and `ADMIN_SESSION_SECRET` is set and different from it.
+  Set both in the deployment environment (`pnpm env:push`, read the plan, then
+  `--apply`) before the code that enforces it is deployed. The disabled screen
+  names which condition failed.
+- **The migrations before the code.** Admin sign-in is attempt-limited through
+  the `rate_limit_buckets` table and refuses whenever it cannot count, so until
+  `pnpm db:migrate` has run against production, nobody can sign in. The
+  migrations are additive, so applying them under the running site is safe.
 
-```bash
-pnpm --filter @catalog/scraper build:lambda
-cd infra/terraform && cp terraform.tfvars.example terraform.tfvars
-terraform init && terraform validate && terraform plan && terraform apply
-```
+Two more that cost a day rather than the panel:
 
-Then the checklist Terraform prints as `post_apply_checklist`: put the real
-connection string into the Secrets Manager secret, run `db:migrate` from
-somewhere that can reach the database, and trigger one dry run —
-
-```bash
-aws lambda invoke --function-name "$(terraform output -raw lambda_function_name)" \
-  --payload '{"job":"sync","dryRun":true}' --cli-binary-format raw-in-base64-out \
-  out.json && cat out.json
-```
-
-Set `alarm_email` and confirm the SNS subscription, or the seven alarms fire
-into nothing.
+- **`NEXT_PUBLIC_IMAGE_BASE_URL` before the build that needs it**, equal to the
+  sync's `STORAGE_PUBLIC_BASE_URL`, and the images pushed and verified first
+  (`pnpm images:push`, `pnpm images:verify --http`). It is read at build time;
+  without it a deployed storefront shows the placeholder for every product.
+- **The catch-up sync as a dry run first.** Read its unresolved moves, and link
+  what it could not pair with `pnpm catalog:link` before the real run, or each
+  one becomes a duplicate. Then `catalog:verify`, `catalog:enrich --apply`,
+  `copy:apply`, and a second sync that must change nothing.
 
 ## Watch for, in the first weeks
 
+The admin page **Синхронизация** (`/admin/sinhron`) shows the recent runs and
+whether anything is wrong; the daily sync-health alarm emails the same
+conditions to `MAIL_TO`, once per condition per day. Start there.
+
+- **No recent successful sync.** The workflow did not run or did not succeed. A
+  scheduled workflow is disabled by GitHub after 60 days without repository
+  activity, and it cannot say so itself: re-enable it under the repository's
+  Actions tab.
 - **The circuit breaker opening.** It means the catalog was preserved and
-  nothing was removed. Read `circuit_breaker_reason` on the `sync_runs` row
-  before doing anything: if the source genuinely shrank, raise
-  `SYNC_BREAKER_MAX_DISAPPEARED_RATIO` for one run or let the missing counters
-  climb naturally.
+  nothing was removed. Read the reasons on the run before doing anything: if the
+  source genuinely shrank, raise `SYNC_BREAKER_MAX_DISAPPEARED_RATIO` for one run
+  or let the missing counters climb naturally. If the source renamed URLs again,
+  look for unresolved moves.
 - **`catalog_source` switching from `filter_init` to `listing_html`.** The
   source's structured blob has disappeared and the fallback parser is carrying
   the sync. Rebuild the fixtures, run the parser tests to see exactly what
   changed, and fix the parser rather than the test.
 - **Parser confidence dropping.** Same signal, earlier.
+- **Unresolved moves in a run.** Counted in the workflow's job summary, logged
+  as `sync.moves_unresolved`, and stored in the run's `metadata.unresolvedMoves`.
+  Each one is a product the source renamed that the sync would not guess at. Pair it with `catalog:link`, then
+  `catalog:verify`.
+- **Products accumulating without copy.** They publish the generated sentence,
+  which is correct but thin. `pnpm copy:todo` lists them; write entries, then
+  `pnpm copy:apply`.
+- **Enrichment failures.** Counted on each run and recorded in `scrape_errors`;
+  they retry after a day and never fail a sync, but a steady count means product
+  pages changed shape.
 
 ## Known gaps, deliberate
 
-- **The blog has no content architecture beyond the route.** The source's blog
-  is empty too, so there was nothing to mirror and nothing to design against.
-- **The site-notice banner is not implemented.** The source's announces its own
-  closure dates — their operational content, not a storefront capability, and
-  reproducing it would mean publishing another business's opening hours as our
-  own. The mechanism is trivial to add when this shop needs one.
-- **Promotions render an empty state.** Every observed product has an empty
-  `old_price`, so no promotion is currently active. The capability exists and is
-  tested.
+- **The newsletter collects consent and does not send.** A sender needs
+  unsubscribe handling in every message, bounces, suppression and a reputation
+  to protect, and a bad one would put the order replies behind the same
+  domain reputation.
+- **The CSP reports and does not enforce.** Watch its reports on production
+  before switching it to enforcing.
+- **`infra/terraform` is kept but not applied.** It is the alternative to the
+  scheduled workflow, to be deleted once the workflow has run for 30 days.
 
 ## After a brand change
 
 Brand values in `src/config/site.ts` are compiled into the bundle and the
-prerender cache can serve a stale page: a rename once updated `/brands` while `/` kept the old name.
-**Delete `.next` and rebuild**, then check the built HTML rather than trusting a
-running server.
+prerender cache can serve a stale page: a rename once updated `/brands` while
+`/` kept the old name. **Delete `.next` and rebuild**, then check the built HTML
+rather than trusting a running server.

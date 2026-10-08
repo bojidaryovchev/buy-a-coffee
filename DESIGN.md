@@ -689,7 +689,7 @@ must never do. "Phone" means below `md` (768 px).
 
 ### Buttons
 
-`Button` and `ButtonLink` in `primitives.tsx`. One shape, five variants.
+`Button` and `ButtonLink` in `primitives.tsx`. One shape, six variants.
 
 **Shape.** `inline-flex items-center justify-center gap-2 rounded-sm font-medium
 transition-colors`. Icon, when present, is 16 px and precedes the label.
@@ -707,17 +707,20 @@ transition-colors`. Icon, when present, is 16 px and precedes the label.
 | `secondary` | `border border-line-strong bg-paper-raised text-ink-900` | `bg-paper-sunken`                    | Alternative actions; the card's quick-order control.         |
 | `ghost`     | `text-ink-700`                                           | `bg-paper-sunken text-ink-900`       | Tertiary actions, icon buttons.                              |
 | `danger`    | `bg-critical text-paper`                                 | `bg-critical` at 90% opacity         | Destructive admin actions only.                              |
+| `on-pine`   | `border border-pine-200 text-paper`                      | `bg-pine-700`                        | The secondary action on a `pine-900` band.                   |
 
-On `pine-900` (inside `.on-pine`): the secondary action is
-`border border-pine-200 text-paper`, hover `bg-pine-700`.
+`on-pine` is the secondary action on `pine-900`, as a named variant rather than
+something `secondary` turns into inside `.on-pine`: a white card can sit on a
+pine band, and its secondary button must stay dark on white.
 
 **States.**
 
 - _Focus:_ the global ring — 2 px `pine-700`, 2 px offset. Inside `.on-pine` it
   is `gold-300`. Never removed.
 - _Active:_ same as hover. No scale.
-- _Disabled:_ `bg-paper-sunken text-ink-500 border border-line
-cursor-not-allowed` (6.24:1). Not opacity. Prefer not rendering a control that
+- _Disabled:_ `bg-paper-sunken text-ink-500 cursor-not-allowed` (6.24:1), with
+  its edge an inset ring in `line` rather than a border, so a button that goes
+  disabled while its form submits keeps its exact width. Not opacity. Prefer not rendering a control that
   can never be used.
 - _Pending:_ the label changes to "Изпраща се…", `aria-busy="true"`, the button
   is disabled and keeps its width (`min-w-40` on the order button).
@@ -1033,20 +1036,23 @@ which reads as a photograph that failed to load.
 One sentence about delivery or ordering, above the header on every storefront
 page. It replaces the header's utility strip.
 
-**Anatomy.** `<div class="on-pine bg-pine-900 text-paper">` containing a shell
+**Anatomy.** `<aside aria-label="Доставка и поръчка" class="on-pine bg-pine-900
+text-paper">` (`components/commerce/announcement-bar.tsx`) containing a shell
 row: `flex min-h-9 items-center justify-center gap-x-6 py-1.5 text-xs`,
 `md:justify-between`.
 
-- _Message_ (always): `<p class="font-medium">`. The figure in it is wrapped in
-  `<strong class="font-semibold text-gold-300">`. Example, when the threshold is
-  configured: "Безплатна доставка за поръчки над **49 €**". When it is not:
-  "Поръчка по телефона — оставяте номер, ние звъним."
+- _Message_: `<p class="font-medium">`, the free-delivery sentence the product
+  page also prints. The figure in it is wrapped in
+  `<strong class="font-semibold text-gold-300">`: "Безплатна доставка за поръчки
+  над **49 €**".
 - _Contact_ (`md` and up): opening hours in `text-pine-200`, then the phone
   number as `<a href="tel:…" class="font-medium underline-offset-4
 hover:underline">`.
 
 **Content** comes from `siteConfig.commerce` and `siteConfig.contact`. One
-message. If a value is unset, the sentence that needs it is not shown.
+message. **With no free-delivery threshold configured the bar is not rendered
+at all** — absent, not empty, because the bar exists to carry that promise — and
+the masthead then shows the phone number on every width instead.
 
 **States.** Static. Not dismissible, not sticky (it scrolls away; the masthead
 stays). Links show the `gold-300` focus ring.
@@ -1064,8 +1070,11 @@ hold.
 `components/layout/site-header.tsx`. Sticky (`sticky top-0 z-40`), `bg-paper`
 at 95% with backdrop blur, `border-b border-line`. Two rows inside the shell.
 
-**Row 1 — masthead.** `flex flex-wrap items-center gap-x-4 gap-y-3 py-3
-md:py-4`.
+**Row 1 — masthead.** `flex flex-wrap items-center gap-x-4 gap-y-2 py-2
+md:gap-y-3 md:py-4`. The phone's spacing is tighter than the desktop's because
+of the 116 px ceiling below: two 44 px rows with 8 px above, between and below
+them, plus the border, come to 113 px. (`gap-y-3 py-3` on every width, as this
+section first said, comes to 125 px on a phone and could not meet it.)
 
 - Menu button (phone only), wordmark (links home, `aria-label="{name} —
 начало"`), then the search field taking the remaining width on `md` and up
@@ -1702,31 +1711,36 @@ What the specification already does to meet them:
 
 ## Migration
 
-What exists in the repository and does not yet meet this document. Until each
-is changed, the token values keep it legible.
+What existed in the repository and did not meet this document. Until each is
+changed, the token values keep it legible. Entries marked **Done** were checked
+against the code on 9 October 2026.
 
-- **Clay used for cautions.** `Badge` tone `caution`, `WizardNotice` tone
-  `caution`, the recommendation caveat, the removed-product panel, brand
-  taglines, the footer and legal-document notices, and the admin "new" markers
-  use `clay-100` / `clay-600`. They move to `caution-100` / `caution` (taglines
-  to `ink-500`). All still pass AA as they are (6.03:1).
-- **`Badge` tone `accent`** is `bg-clay-500 text-paper`, 3.10:1. It failed
-  before the palette changed and still fails. It becomes `bg-clay-600
-text-paper-raised` (7.26:1).
-- **The home hero** uses clay as an accent (`bg-clay-500 text-ink-900`,
-  5.18:1; `text-clay-500` on pine, 4.54:1). Both pass. They become gold when
-  the hero is rebuilt.
-- **Opacity for text** (`text-paper/80`, `text-paper/60`, `text-pine-900/80`)
-  passes today (9.49, 5.91, 7.21) and becomes `pine-200` or an ink step.
-- **Packshot wells** are `bg-paper-sunken` with padding. On the warmer paper
-  the photographs' white grounds now show as rectangles. They become `bg-well`,
-  unpadded.
-- **Fields** use `outline-none` with a border-colour change as the only focus
-  indicator, and `text-base` (15 px). They take the global ring and
-  `text-input`.
-- **Controls** use fixed heights (`h-9`, `h-11`, `h-12`). They become
-  `min-h-*` with padding.
-- **Hex copies of `paper`** outside CSS — `app/manifest.ts`
-  (`background_color`), `app/opengraph-image.tsx` (`PAPER`) and the mail
-  templates — still hold the old `#fbfaf6`. The new value is `#faf6ee`.
-  `pine-900` is unchanged (`#002c1d`).
+- **Clay used for cautions.** _Partly done._ `Badge` tone `caution`,
+  `WizardNotice` tone `caution`, the recommendation caveat, the removed-product
+  panel, the footer and the legal-document notices now use `caution-100` /
+  `caution`. Still on clay: the brand taglines (`app/(site)/brands/page.tsx`,
+  `app/(site)/brands/[slug]/page.tsx`, `text-clay-600`, to become `ink-500`) and
+  the admin "new" and status markers (`(panel)/layout.tsx`, `poshta`,
+  `sabshteniya`, `zayavki`, `sinhron`, `clay-100` / `clay-600`, to become
+  `caution-100` / `caution`), and the journal's caution callout
+  (`components/journal/article-body.tsx`, `border-clay-500/40 bg-clay-100`, which
+  is not in the list above and arrived after it). All still pass AA as they are
+  (6.03:1).
+- **Done. `Badge` tone `accent`** was `bg-clay-500 text-paper`, 3.10:1. It is
+  now `bg-clay-600 text-paper-raised` (7.26:1), the same as tone `reduction`.
+- **Done. The home hero** used clay as an accent. It no longer does.
+- **Done. Opacity for text** (`text-paper/80`, `text-paper/60`,
+  `text-pine-900/80`) no longer appears.
+- **Done. Packshot wells** are `bg-well` on the card, the gallery, the hero, the
+  search suggestions and the recommendation card.
+- **Fields.** _Partly done._ The storefront forms take the global ring and
+  `text-input` from `components/forms/field-styles.ts`. Still on `outline-none`
+  with a border change and `text-base`: the search field
+  (`components/catalog/search-field.tsx` and its fallback) and the admin
+  sign-in and reply forms.
+- **Controls with fixed heights.** _Partly done._ Buttons are `min-h-*` with
+  padding. Still fixed: the search field's `h-11` and the admin sign-in's
+  `h-12` field and button.
+- **Done. Hex copies of `paper`** — `app/manifest.ts` (`background_color`) and
+  `app/opengraph-image.tsx` (`PAPER`) — hold the new `#faf6ee`; the mail
+  templates hold no copy of it. `pine-900` is unchanged (`#002c1d`).

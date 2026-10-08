@@ -17,7 +17,7 @@ the browser level.
 
 **This is functional equivalence, not a pixel clone.** Original visual identity,
 original layout, original copy, original legal documents. No source logo, CSS,
-JavaScript or markup is reproduced. What is reproduced is *capability*, and the
+JavaScript or markup is reproduced. What is reproduced is _capability_, and the
 coverage matrix is generated rather than claimed —
 [reference-coverage.md](reference-coverage.md) fails CI when the crawler
 observes something the storefront does not implement and nobody has written down
@@ -35,19 +35,21 @@ copy loses.
 
 So product copy now lives in [`apps/web/content/product-copy.ts`](../apps/web/content/product-copy.ts)
 and is published into two override columns, `description_text_override` and
-`description_html_override`. The shape is deliberately the same as the
-retail-price layer: the source value stays where the sync put it, ours sits
-beside it, and the storefront reads `coalesce(override, source)`. Writing the
-rewrite *into* the source columns was the obvious alternative and it does not
-survive — `upsertProduct` overwrites them on every `pnpm sync:catalog`, so the
-copy would quietly revert on the next run.
+`description_html_override`. The source value stays where the sync put it and
+ours sits beside it. Writing the rewrite _into_ the source columns was the
+obvious alternative and it does not survive — `upsertProduct` overwrites them on
+every `pnpm sync:catalog`, so the copy would quietly revert on the next run.
+
+This was first built the same way as the retail-price layer, with the storefront
+reading `coalesce(override, source)`. That was wrong, and it is no longer what
+the code does: see "Override or generated" under [Product copy](#product-copy).
 
 Keeping both values also makes the check possible rather than merely claimed.
 `pnpm check:originality` compares what we publish against what the crawler
-observed and fails when too much of the source's phrasing survives, when a
-product has no copy of its own, or when two of our own products share one
-summary — the same duplication pointed inward. It reads the reference
-artifacts, not the database, so it runs in CI where there is no catalog.
+observed and fails when too much of the source's phrasing survives or when two
+of our own products share one summary — the same duplication pointed inward. It
+reads the reference artifacts, not the database, so it runs in CI where there is
+no catalog.
 
 **Scope stops at the observed behaviour.** There is no cart, no checkout and no
 payment, because the source storefront has none: ordering there is a phone
@@ -56,16 +58,20 @@ reference artifacts do not support.
 
 ## Crawling
 
-**Soft-404 detection is mandatory, not defensive.** The source answers unknown
-routes with **HTTP 200 and the home-page shell**, and its own `sitemap.xml`
-still lists 111 `/products/<slug>/` URLs that no longer exist. A crawler that
-trusted status codes would ingest 111 phantom products. At startup we fetch a
-deliberately impossible path, hash the response, and treat any non-root page
-carrying that hash as not-found.
+**Not-found detection is mandatory, and it works both ways.** Until October
+2026 the source answered unknown routes with **HTTP 200 and the home-page
+shell**, and its `sitemap.xml` listed 111 `/products/<slug>/` URLs that no longer
+existed; a crawler that trusted status codes would have ingested 111 phantom
+products. It now answers with a real 404. Both behaviours stay supported,
+because the source has shown both: at startup the fetcher probes one impossible
+path, and a probe that comes back as a page is hashed and every later non-root
+page carrying that hash is treated as not-found, while a probe that comes back
+as an error means status codes are trusted for the rest of the run.
 
 **The sitemap is a hint, never truth.** Every candidate URL is verified. Real
 product pages live at the root — `/<slug>/` — not under the `/products/` prefix
-the sitemap still advertises.
+the sitemap advertised until October 2026, and the sitemap still lists one dead
+URL (`/marki/`).
 
 **Page type cannot be derived from the URL.** The URL space is flat: products,
 categories and brands all live at `/<slug>/`. Classification uses DOM and
@@ -89,8 +95,9 @@ limits and response-size caps.
 €10.70 and 1 kg at €20.50 — and keying on URL would silently drop one on every
 sync. Pack size is normalised (`1 кг.` and `1000 г` both become `1000g`) so a
 notation change cannot fork one product into two. The same rule correctly
-collapses an accidental duplicate in the source CMS, taking 111 raw records to
-110 products.
+collapsed an accidental duplicate in the August catalog, taking 111 raw records
+to 110 products. (Since the October rename no URL serves two products, and the
+rule is unchanged: it costs nothing and the source has done it before.)
 
 `imageUrl` is unique across all 111 records and was **rejected** as identity:
 re-uploading an image would silently recreate the product.
@@ -108,7 +115,7 @@ forever and a repeat sync performs no writes.
 
 **Price extraction is strict.** On a product page the price sits beside the pack
 size: `<span>1 кг.</span><span>€30.00</span>`. A "contains a currency symbol"
-test matches the *parent*, yielding `"1 кг. €30.00"`, which a money parser reads
+test matches the _parent_, yielding `"1 кг. €30.00"`, which a money parser reads
 as **€1.00**. Only elements whose entire text is a price qualify.
 
 **Money never touches floating point.** Prices are parsed into exact decimals
@@ -124,18 +131,21 @@ nullable and "Price on request" is a real render path, never `0.00`.
 ## Safety
 
 **A product is never removed because of one bad request.** Absence increments a
-counter; only three consecutive *successful* syncs with the product absent
+counter; only three consecutive _successful_ syncs with the product absent
 promote it to `removed`, and reappearing resets the counter immediately.
 
 **The circuit breaker judges before anything destructive is applied.** The run
-order is: discover → diff → judge → apply. It refuses the destructive half of a
+order is: discover → diff → judge → apply → enrich, and the last step cannot
+change the outcome of the others. It refuses the destructive half of a
 diff when more than 20% of active products would disappear at once, when
 discovery returned less than 75% of the baseline, when a catalog entry page
 failed, when parser confidence collapsed, or when discovery returned nothing.
 
-When it opens, **creations and updates still apply** — those are additive and
-safe — but nothing is marked missing or removed, the run is recorded as
-`partial` with its reason, and an alarm fires.
+When it opens, **creations, moves and updates still apply** — those are
+additive and safe — but nothing is marked missing or removed, no brand or
+category is hidden, no product page is read, the run is recorded as `partial`
+with its reasons, and the CLI exits 2, which the scheduled workflow and the
+storefront's sync-health alarm both report.
 
 **Baselines are only recorded from trusted runs**, so a string of bad runs
 cannot slowly ratchet the bar down until mass removal starts to look normal.
@@ -230,8 +240,9 @@ match, never a dead end.
 **Nothing is relaxed in silence.** When a constraint cannot be met the page says
 so in plain words and the card carries the specific warning — "съдържа кофеин"
 on a caffeinated coffee shown to someone who asked for decaf, and equally "без
-кофеин" the other way round. One system in this catalog holds a single product
-and it happens to be decaffeinated, so this is not hypothetical.
+кофеин" the other way round. When this was built (the August catalog), one
+system held a single product and it happened to be decaffeinated, so this is not
+hypothetical.
 
 **Three suggestions, each with its reasons.** One answer reads as a guess and
 gives the visitor nothing to judge. The reason phrases are generated from the
@@ -244,8 +255,8 @@ means high caffeine to one person and bitter to another. Each taste option is
 described by a situation instead, which is what makes answers comparable
 between visitors.
 
-**Below five compatible products the questions are skipped.** Three of the
-systems here hold three products each. Asking four questions to narrow three
+**Below five compatible products the questions are skipped.** When this was built, three of
+the systems held three products each; A Modo Mio still holds three. Asking four questions to narrow three
 items wastes the visitor's time and reads as a form for its own sake.
 
 **Price is scored relative to the compatible pool, and there is no "premium"
@@ -255,14 +266,16 @@ nothing. And with no ratings and no cupping scores there is no basis for
 claiming a dearer coffee is a better one; the honest third choice is "price is
 not the point".
 
-**Price per cup is computed, shown, and derived from one constant.** Pack price
+**Price per cup is computed, shown, and derived from one function.** Pack price
 reverses the true ordering — 100 capsules at EUR 33.25 undercuts 16 at EUR 5.60
 per cup. Servings come from the piece count where there is one and from weight
 at `GRAMS_PER_SERVING` otherwise; anything derived from weight is marked
 estimated and displayed as an approximation, because how much coffee a shot uses
-is a property of the machine, not the bag. The constant lives in
-`@catalog/shared` so the wizard cannot rank by a number the product page
-contradicts.
+is a property of the machine, not the bag. The constant and
+`packServings()` live in `@catalog/shared`, and the sync stores that function's
+answer in `products.servings`, so a listing sorted by price per cup in SQL, the
+wizard's ranking and the figure on the product page cannot contradict each
+other.
 
 **Answers live in the URL and the step is derived from them.** Same reasoning as
 the catalog filters: shareable, bookmarkable, back-button-safe, and working with
@@ -274,7 +287,7 @@ reasoning as the diff engine and the circuit breaker: the logic that decides
 something consequential is the logic that must be exhaustively testable, and
 "why did it suggest that?" has to be answerable.
 
-**A system binds to its categories by slug *and* source key.** The slug is
+**A system binds to its categories by slug _and_ source key.** The slug is
 derived from the category's Bulgarian name and would change if the source
 renamed it; the source key would not. A system that resolves to nothing is not
 offered at all, so an upstream rename degrades to one fewer option rather than
@@ -286,6 +299,10 @@ stable data. Every answered permutation of the wizard is the same page with
 different state, which is the filtered-listing problem again.
 
 ## Infrastructure
+
+The sync now runs as a scheduled GitHub Actions workflow (see [The scheduled
+sync](#the-scheduled-sync) below). The decisions in this section are those of
+`infra/terraform`, the documented alternative, and still hold for it.
 
 **One Lambda, no fan-out.** A full sync of the ~110-product catalog takes about
 **7 seconds** including image mirroring, and about **1 second** when nothing has
@@ -316,6 +333,192 @@ concurrency, verify the type **by magic bytes rather than `content-type`**,
 enforce a size cap, hash, deduplicate, store under a deterministic key. Old
 objects are not deleted inline; `pnpm images:gc` is a separate, deliberate
 command.
+
+## Following the source through renames
+
+**Identity stays path + pack size, even now that a product code exists.** In
+October 2026 the source began printing a code on every product page
+(`Код: 00072`). It is not unique: two pairs of different products share one
+today (two Rema Dolce Gusto capsules, and two different Lollo bean blends),
+so keying on it would merge each pair into one row. And every row already had a
+path-shaped key; switching to `sku:<code>` as each page happened to be read
+would re-key the catalog a second time, piecemeal. So the code is stored on the
+row and used as evidence, never as identity — `resolveProductIdentity` does not
+accept one (`sku?: never`), so passing it is a compile error.
+
+**A rename is a move, detected rather than guessed.** The same month the source
+renamed almost every product URL, typically by adding a pack-size suffix. Only
+21 of 110 rows still matched on identity, so the next sync would have created
+about 166 products, left the old ones to go missing, and lost their slugs, copy,
+price overrides and photographs with them. Move detection (`catalog/moves.ts`)
+pairs a vanished product with a new one in passes: equal product code; then
+brand + name + pack size; then name + pack size with the brand differing,
+accepted only when the path stem agrees. Two different codes veto a pairing.
+
+The rules lean one way because the two errors are not equal. A missed pair is a
+duplicate a person can see and repair with `catalog:link`. A wrong pair silently
+attaches one product's copy, slug and order history to another, and nobody is
+told. So a pair is made only when it is the single reading the evidence allows:
+a tie-breaking signal counts only when each side is the other's single best, two
+signals that disagree pair nobody, and nothing is paired by elimination. The
+rest is reported as unresolved and left alone. Rehearsed on a copy of the
+production catalog, the real rename paired 86, created 79 and left 2 — products
+whose name changed as well — for `catalog:link`; none was duplicated and none
+lost, and a second sync changed nothing.
+
+**The breaker counts disappearances after pairing.** Before pairing, a mass
+rename is indistinguishable from a mass removal. Counted afterwards, a renamed
+product is a move, and the breaker judges only what really vanished.
+
+**Brands and categories match by the source's numeric id.** The source renames
+their slugs too (`kapsuli` became `kafe-kapsuli`, `biancafe` became
+`biancaffe`), and matched on slug each rename would insert a second row and
+abandon the first with its indexed storefront slug. Unlike products, they carry
+a stable id in the catalog blob, so the match is id first, slug second, with no
+fingerprinting. One absent from a trusted run is hidden as `missing` and never
+`removed`: hiding is the whole effect, the row and its slug are kept, and the
+next listing that includes it brings it back.
+
+**The two writers of a product row own disjoint columns.** The listing upsert
+owns what the listing says; enrichment owns what only the product page says —
+`sku`, `arabica_percent`, `origin`, `roast`, `characteristics` and the two
+enrichment timestamps. Neither can undo the other, and a sync after enrichment
+is a no-op. `characteristics` is a column of its own rather than more keys in
+`attributes` because `attributes` is rewritten from the listing on every run and
+feeds the semantic hash: facts stored there would be erased each run, or would
+make every product look changed.
+
+**Stated facts are stored only when stated unambiguously.** An arabica share is
+kept when the page gives one clear figure; a hedged figure, a range or two
+contradicting statements are null, and "100% робуста" is null rather than 0.
+Robusta is never derived by subtraction. A null means "not stated", and the
+wizard treats it as neutral.
+
+**Enrichment is budgeted and cannot fail a sync.** Product pages are one request
+each, so they are read sparingly: what this run changed, then what was never
+read, up to 20 a run, through the same polite fetcher. A failure is recorded,
+counted and retried after a day; five in a row stop reads for the run. It runs
+after the outcome is settled and never on a run the breaker refused, because a
+source serving something structurally wrong is not one to ask for more.
+
+## Product copy
+
+**Copy is keyed by our slug, not the source's key.** `copy:apply` used to match
+entries on `source_key`. The rename changed every key, which would have orphaned
+every entry at once. The slug is ours, allocated once and frozen, and a move
+keeps it.
+
+**Override or generated, never the source.** The storefront first read
+`coalesce(override, source)`, the shape of the price layer. A price may fall
+back to the source's price, because a price is a fact; a description must not
+fall back to the source's description, because that is the source's prose — and
+every product the sync created shipped it until somebody wrote an entry. Now a
+product without our copy shows one factual sentence composed from its own data
+(`lib/catalog/fallback-copy.ts`) and no long description. The source's text is
+still indexed for search, which decides what matches and renders nothing.
+
+**Missing copy is a count, not a failure.** The sync adds products on the
+source's schedule, not ours. If `check:originality` failed on a product without
+copy, every new product would break the build until someone wrote for it, and
+the pressure would be to write quickly rather than well. The generated sentence
+is ours and is held to the same standard by its own test
+(`test/fallback-copy.test.ts`), so a missing entry is unfinished, not wrong: the
+check reports the count and `copy:todo` lists the products.
+
+## Design
+
+The standard is [DESIGN.md](../DESIGN.md); these are the decisions in it that
+are easiest to undo by accident.
+
+**Gold, from the shop's own mark, is the single accent.** One gold control per
+viewport, for the most important action, and never gold text on paper, where it
+measures 2.85:1. An accent used twice is no longer an accent.
+
+**Clay means a price went down, and nothing else.** Not a caution, not a brand
+flourish, not a hover. A colour that means "reduced" only works if it never
+means anything else; cautions have their own amber `caution` token.
+
+**Each brewing system has a colour, and it never appears without the system's
+name.** Customers shop by machine, so the system is the first thing a card says,
+and colour makes it quick to scan. But colour alone excludes anyone who cannot
+tell the hues apart, so a swatch, border or legend alone is never enough. The
+colour is applied with `data-system`, because a class assembled from a runtime
+id is a class Tailwind never generates.
+
+**Intensity is shown on its own scale.** The source states it out of 5, 9, 10,
+12 or 13 depending on the brand. Rescaling to one range would claim a precision
+nobody has; showing the bare numeral would let a customer read "8" on two cards
+as equally strong. So it is always "8 от 12", with the scale drawn.
+
+**Packshots sit on pure white.** The photographs have white grounds; any tinted
+well draws a rectangle around each one.
+
+**`@theme static`.** Tailwind normally emits only the theme variables some
+utility uses. The system colours are reached only through `var()` from the
+`[data-system]` rules, so without `static` they would not exist at runtime. The
+token names are an interface: values change, names do not, and
+`test/contrast.test.ts` measures the `DESIGN.md` contrast table against the
+values.
+
+**The announcement bar cannot be dismissed.** It carries the phone number and
+the hours of a shop that takes orders by phone, a close button would move the
+page under the reader, and remembering the choice needs state. It is absent
+rather than empty when no free-delivery threshold is configured.
+
+## Operations
+
+<a id="the-scheduled-sync"></a>
+
+**The scheduled sync is a GitHub Actions workflow, and its alarm lives in the
+storefront.** The workflow needs no cloud account beyond the ones the project
+already has, and its runs, logs and failures sit beside the code. Its weakness
+is that GitHub disables a scheduled workflow after 60 days without repository
+activity, silently, and a workflow cannot report its own absence; the production
+catalog once went two months without a sync because the only thing watching it
+was the thing that had stopped. So the watcher is the storefront's daily
+`/api/cron/sync-health`, which compares the last successful sync with the clock
+and keeps working when the workflow does not. `infra/terraform` stays as the
+documented alternative until the workflow has run for 30 days, then goes.
+
+**Images live in Vercel Blob.** Same platform as the storefront, one token, and
+no second cloud account to provision and pay for. Object names equal the
+content-addressed keys the sync already used, so a re-push is safe and a key
+resolves the same on any store. The S3 driver and its Terraform remain.
+
+**The rate limiter fails open for the public, closed for the panel.** Counters
+live in PostgreSQL because on serverless an in-memory counter is one counter per
+warm instance; a database was chosen over a Redis because it is already there.
+When that table cannot be reached, a quick order, a contact message, a
+subscription or a suggestion still goes through, on a per-process fallback:
+losing a customer's order to the limiter's own outage would do more damage than
+the abuse it exists to stop. Admin sign-in refuses instead, because there the
+limiter is the security control — if it cannot count, it cannot bound guessing.
+The global sign-in ceiling has an accepted cost: someone hammering the form from
+many addresses keeps the operator out for as long as they keep it up.
+
+**The CSP is static, and reports before it enforces.** A nonce-based policy
+would make every page dynamically rendered, and this storefront's pages are
+prerendered and revalidated on a timer; trading that for a stricter
+`script-src` would make every product view a function invocation and a query.
+The static policy allows inline scripts, for the framework's streamed payload,
+and pins every source. It ships as `Content-Security-Policy-Report-Only` until
+it has been watched on production.
+
+**Retention reads the privacy policy as a ceiling.** The policy promises a
+maximum, so the code deletes only what is certainly in scope and counts the
+rest for a person to decide. Deleting an order's record cannot be undone;
+keeping an unresolved enquiry a few weeks longer while someone is asked to
+resolve it can be. So a fulfilled enquiry is never selected, an undecided one is
+only counted, an open mail thread is never touched, and a contact message closed
+before its closing date was recorded is measured from its creation — earlier
+than its closing, so it can only go a little before its due date, never after.
+
+**The deployed admin panel refuses a weak configuration rather than accepting
+it.** On a deployment the panel is disabled unless the password has at least 12
+characters and a separate session secret is set. A cookie signed with the
+password itself is an offline oracle for guessing it, and the password could not
+be rotated without signing everybody out. A panel that silently accepted that
+would be the default nobody revisits.
 
 ## Legal and operational boundaries
 
