@@ -6,6 +6,8 @@ import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { JsonLd } from "@/components/seo/json-ld";
 import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
 import { getCategoryBySlug, getCategoryTree, listProducts } from "@/lib/catalog/queries";
+import { getCategorySourceKey } from "@/lib/catalog/taxonomy";
+import { categoryCopyFor } from "../../../../../content/category-copy";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import { siteConfig } from "@/config/site";
 
@@ -43,7 +45,16 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (!category) notFound();
 
   const query = parseCatalogQuery(rawParams);
-  const result = await listProducts({ query, categorySlug: category.slug });
+  const [result, sourceKey] = await Promise.all([
+    listProducts({ query, categorySlug: category.slug }),
+    getCategorySourceKey(category.slug),
+  ]);
+  /*
+   * Only on the first page. Page two of a listing is the same category, and
+   * repeating the same three paragraphs under every page of it adds nothing
+   * for the visitor who has already scrolled past them once.
+   */
+  const intro = query.page === 1 ? categoryCopyFor({ slug: category.slug, sourceKey }) : null;
 
   const parent = category.parentSlug
     ? (await getCategoryTree()).find((entry) => entry.slug === category.parentSlug)
@@ -107,6 +118,49 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         emptyTitle={`В момента няма нищо в ${category.name}`}
         emptyDescription="В момента тази категория е празна. Опитайте друга част от асортимента или ни се обадете."
       />
+
+      {/*
+       * Below the listing on purpose: products stay first. Rendered here, as a
+       * sibling of the listing, rather than through a slot inside it — the
+       * text reads better at the full width of the page than squeezed beside
+       * the filter column.
+       */}
+      {intro && (
+        <section
+          aria-labelledby="category-intro-heading"
+          className="mt-14 border-t border-line pt-10"
+        >
+          <h2
+            id="category-intro-heading"
+            className="font-display text-2xl font-semibold text-ink-900"
+          >
+            {intro.heading}
+          </h2>
+          <div className="mt-4 max-w-prose space-y-3 text-base text-ink-500">
+            {intro.paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
+            <li>
+              <Link
+                href="/wizard"
+                className="text-pine-700 underline underline-offset-2 hover:text-pine-900"
+              >
+                Помощник за избор на кафе
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/wizard/machines"
+                className="text-pine-700 underline underline-offset-2 hover:text-pine-900"
+              >
+                Списък с машини по марка и модел
+              </Link>
+            </li>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { brands, categories, productCategories, productImages, products } from "
 import { packServings, pricePerServing } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
+import { brandDisplayName } from "./brand-display";
 import { discountPercent, toPriceView, unitPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
 import { BREWING_SYSTEMS, type BrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
@@ -87,6 +88,7 @@ const productColumns = {
   descriptionText: publishedDescriptionText,
   brandSlug: brands.slug,
   brandName: brands.name,
+  brandSourceKey: brands.sourceKey,
   lastChangedAt: products.lastChangedAt,
 } as const;
 
@@ -103,6 +105,7 @@ type ProductRow = {
   descriptionText: string | null;
   brandSlug: string | null;
   brandName: string | null;
+  brandSourceKey: string | null;
   lastChangedAt: Date | null;
 };
 
@@ -131,7 +134,13 @@ function toCard(
     availability: row.availability as ProductCardView["availability"],
     weight: row.weight,
     intensity: row.attributes?.intensity ?? null,
-    brand: row.brandSlug && row.brandName ? { slug: row.brandSlug, name: row.brandName } : null,
+    brand:
+      row.brandSlug && row.brandName
+        ? {
+            slug: row.brandSlug,
+            name: brandDisplayName({ name: row.brandName, sourceKey: row.brandSourceKey }),
+          }
+        : null,
     image: image
       ? {
           url: options.resolveUrl === false ? image.url : resolveImageUrl(image.url),
@@ -335,12 +344,13 @@ async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFac
       .select({
         value: brands.slug,
         label: brands.name,
+        sourceKey: brands.sourceKey,
         count: sql<number>`count(*)::int`,
       })
       .from(products)
       .innerJoin(brands, eq(products.brandId, brands.id))
       .where(scopeWithSearch)
-      .groupBy(brands.slug, brands.name)
+      .groupBy(brands.slug, brands.name, brands.sourceKey)
       .orderBy(desc(sql`count(*)`), asc(brands.name)),
     db
       .select({
@@ -389,7 +399,11 @@ async function loadFacets(extra: SQL[], query: CatalogQuery): Promise<CatalogFac
   const orderedStrengths = STRENGTH_ORDER.filter((value) => strengthCounts.has(value));
 
   return {
-    brands: brandRows.map((row) => ({ value: row.value, label: row.label, count: row.count })),
+    brands: brandRows.map((row) => ({
+      value: row.value,
+      label: brandDisplayName({ name: row.label, sourceKey: row.sourceKey }),
+      count: row.count,
+    })),
     strengths: orderedStrengths.map((value) => ({
       value,
       label: STRENGTH_LABELS[value] ?? value,
@@ -480,12 +494,13 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
       .select({
         slug: brands.slug,
         name: brands.name,
+        sourceKey: brands.sourceKey,
         productCount: sql<number>`count(${products.id})::int`,
       })
       .from(brands)
       .innerJoin(products, and(eq(products.brandId, brands.id), isVisible))
       .where(and(eq(brands.status, "active"), brandNameMatch(trimmed)))
-      .groupBy(brands.slug, brands.name)
+      .groupBy(brands.slug, brands.name, brands.sourceKey)
       .orderBy(desc(sql`count(${products.id})`), asc(brands.name))
       .limit(SUGGESTION_LINK_LIMIT),
     db
@@ -518,7 +533,11 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
         image: card.image,
       };
     }),
-    brands: brandRows,
+    brands: brandRows.map((row) => ({
+      slug: row.slug,
+      name: brandDisplayName(row),
+      productCount: row.productCount,
+    })),
     categories: categoryRows.filter((row) => row.productCount > 0).slice(0, SUGGESTION_LINK_LIMIT),
     total: totalResult[0]?.count ?? 0,
   };
@@ -800,6 +819,7 @@ export async function listBrands(
         id: brands.id,
         slug: brands.slug,
         name: brands.name,
+        sourceKey: brands.sourceKey,
         tagline: brands.tagline,
         description: brands.description,
       })
@@ -818,7 +838,8 @@ export async function listBrands(
   const mapped = rows.map((row) => ({
     id: row.id,
     slug: row.slug,
-    name: row.name,
+    // Ordered by the stored name above; only what is shown changes here.
+    name: brandDisplayName(row),
     tagline: row.tagline,
     description: row.description,
     productCount: countByBrand.get(row.id) ?? 0,
