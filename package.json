@@ -28,6 +28,7 @@
     "test:e2e": "pnpm --filter @catalog/web test:e2e",
     "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
     "check:originality": "pnpm --filter @catalog/web check:originality",
+    "check:launch": "pnpm --filter @catalog/web check:launch",
     "copy:apply": "pnpm --filter @catalog/web copy:apply",
     "build": "pnpm --filter @catalog/web build",
     "dev": "pnpm --filter @catalog/web dev",

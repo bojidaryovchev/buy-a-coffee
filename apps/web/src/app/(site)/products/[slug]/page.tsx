@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/primitives";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { QuickOrderForm } from "@/components/forms/quick-order-form";
+import { DeliveryPaymentBlock } from "@/components/commerce/delivery-payment-block";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGallery } from "@/components/catalog/product-gallery";
 import { getProductBySlug, getRelatedProducts } from "@/lib/catalog/queries";
@@ -186,10 +187,18 @@ export default async function ProductPage({ params }: PageProps) {
                 </div>
               </div>
             ) : (
-              <QuickOrderForm
-                productSlug={product.slug}
-                disabled={product.availability === "out_of_stock"}
-              />
+              <>
+                {/*
+                  Above the form, not beside or below it: on a phone this is the
+                  last thing read before the number is typed, and what delivery
+                  costs is part of deciding to type it.
+                */}
+                <DeliveryPaymentBlock price={product.price} />
+                <QuickOrderForm
+                  productSlug={product.slug}
+                  disabled={product.availability === "out_of_stock"}
+                />
+              </>
             )}
           </div>
 
