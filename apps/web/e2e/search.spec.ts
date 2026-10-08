@@ -69,7 +69,10 @@ test("a Latin query finds Cyrillic product names", async ({ page }) => {
 test("both scripts return the same result count", async ({ page }) => {
   const countFor = async (query: string): Promise<number> => {
     await page.goto("/search?q=" + encodeURIComponent(query));
-    const heading = await page.getByText(/резултата? за/i).first().textContent();
+    const heading = await page
+      .getByText(/резултата? за/i)
+      .first()
+      .textContent();
     return Number(heading?.match(/\d+/)?.[0] ?? -1);
   };
 
@@ -83,6 +86,51 @@ test("a misspelled query still finds the product", async ({ page }) => {
   await page.goto("/search?q=lavaza");
   await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
+});
+
+/*
+ * Phonetic spellings.
+ *
+ * Folding handles transliteration, not how Bulgarians write Italian: „Лаваца"
+ * folds to `lavatsa`, not `lavazza`. A hand-kept synonym list closes that gap,
+ * and it has to do so identically on the results page and in the dropdown.
+ */
+test("a phonetic Cyrillic brand spelling finds the brand's products", async ({ page }) => {
+  await page.goto("/search?q=" + encodeURIComponent("лаваца"));
+
+  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
+});
+
+test("a phonetic spelling returns the same count as the Latin one", async ({ page }) => {
+  const countFor = async (query: string): Promise<number> => {
+    await page.goto("/search?q=" + encodeURIComponent(query));
+    const heading = await page
+      .getByText(/резултата? за/i)
+      .first()
+      .textContent();
+    return Number(heading?.match(/\d+/)?.[0] ?? -1);
+  };
+
+  const latin = await countFor("lavazza");
+  expect(latin).toBeGreaterThan(0);
+  expect(await countFor("лаваца")).toBe(latin);
+  expect(await countFor("неспресо")).toBe(await countFor("nespresso"));
+});
+
+test("a synonym inside a longer query still works", async ({ page }) => {
+  await page.goto("/search?q=" + encodeURIComponent("капсули лаваца"));
+
+  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
+});
+
+test("a phonetic spelling of a brewing system finds its capsules", async ({ page }) => {
+  // Dolce Gusto capsules are named "DG" in the catalog; the spelled-out
+  // Cyrillic name has to reach them.
+  await page.goto("/search?q=" + encodeURIComponent("долче густо"));
+  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/DG/);
 });
 
 test("a nonsense query shows a helpful no-results state", async ({ page }) => {
@@ -137,6 +185,28 @@ test.describe("typeahead", () => {
     const listbox = page.getByRole("listbox", { name: /предложения/i });
     await expect(listbox).toBeVisible();
     await expect(listbox.getByRole("option").first()).toContainText(/crema/i);
+  });
+
+  test("suggests for a phonetic spelling, like the results page", async ({ page }) => {
+    await page.goto("/");
+    await searchInput(page).fill("лаваца");
+
+    const listbox = page.getByRole("listbox", { name: /предложения/i });
+    await expect(listbox).toBeVisible();
+    await expect(listbox.getByRole("option").first()).toContainText(/lavazza/i);
+  });
+
+  test("suggestions and results agree for a phonetic spelling", async ({ page, request }) => {
+    const query = encodeURIComponent("лаваца");
+    const suggested = await (await request.get("/api/search/suggest?q=" + query)).json();
+    expect(suggested.total).toBeGreaterThan(0);
+
+    await page.goto("/search?q=" + query);
+    const heading = await page
+      .getByText(/резултата? за/i)
+      .first()
+      .textContent();
+    expect(Number(heading?.match(/\d+/)?.[0])).toBe(suggested.total);
   });
 
   test("the keyboard alone can reach a product", async ({ page }) => {
@@ -194,7 +264,10 @@ test.describe("typeahead", () => {
     expect(suggested.total).toBeGreaterThan(0);
 
     await page.goto("/search?q=rema");
-    const heading = await page.getByText(/резултата? за/i).first().textContent();
+    const heading = await page
+      .getByText(/резултата? за/i)
+      .first()
+      .textContent();
     expect(Number(heading?.match(/\d+/)?.[0])).toBe(suggested.total);
   });
 });
