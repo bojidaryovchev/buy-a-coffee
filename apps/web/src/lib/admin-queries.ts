@@ -177,3 +177,102 @@ export async function panelCounts(): Promise<{
     subscribers: subscribers[0]?.n ?? 0,
   };
 }
+
+/* ── Sync page (/admin/sinhron) ─────────────────────────────────────────────
+   Appended as one block. Its imports sit here, not in the header, so that the
+   block can be added or removed without touching what the other screens use. */
+
+import { and } from "drizzle-orm";
+import { products, syncChanges, syncRuns } from "@catalog/db/schema";
+
+export type SyncRunRow = typeof syncRuns.$inferSelect;
+
+/**
+ * The most recent run that finished cleanly and was real.
+ *
+ * "Last synchronised" means the catalog was actually brought up to date, so a
+ * dry run (writes nothing), a partial run (the breaker may have held the diff
+ * back) and a failed one do not count. Same definition as the health check's.
+ */
+export async function lastSuccessfulSync(): Promise<{ at: Date; runId: string } | null> {
+  const [row] = await db
+    .select({ id: syncRuns.id, startedAt: syncRuns.startedAt, completedAt: syncRuns.completedAt })
+    .from(syncRuns)
+    .where(
+      and(
+        eq(syncRuns.status, "succeeded"),
+        eq(syncRuns.dryRun, false),
+        eq(syncRuns.circuitBreakerTripped, false),
+      ),
+    )
+    .orderBy(desc(syncRuns.startedAt))
+    .limit(1);
+  return row ? { at: row.completedAt ?? row.startedAt, runId: row.id } : null;
+}
+
+/** Whole rows, so a column the sync gains later (a `moved_count`) reaches the
+    page without a change here. */
+export async function listSyncRuns(limit = 20): Promise<SyncRunRow[]> {
+  return db.select().from(syncRuns).orderBy(desc(syncRuns.startedAt)).limit(limit);
+}
+
+export async function getSyncRun(id: string): Promise<SyncRunRow | null> {
+  const [row] = await db.select().from(syncRuns).where(eq(syncRuns.id, id)).limit(1);
+  return row ?? null;
+}
+
+export interface SyncChangeRow {
+  id: string;
+  /** A string, not the enum: a type added later must render, not crash. */
+  changeType: string;
+  sourceKey: string;
+  changedFields: string[];
+  productName: string | null;
+  productSlug: string | null;
+}
+
+const CHANGES_SHOWN = 300;
+
+export async function listSyncChanges(
+  runId: string,
+): Promise<{ rows: SyncChangeRow[]; total: number }> {
+  const [rows, [totals]] = await Promise.all([
+    db
+      .select({
+        id: syncChanges.id,
+        changeType: syncChanges.changeType,
+        sourceKey: syncChanges.sourceKey,
+        changedFields: syncChanges.changedFields,
+        productName: products.name,
+        productSlug: products.slug,
+      })
+      .from(syncChanges)
+      .leftJoin(products, eq(products.id, syncChanges.productId))
+      .where(eq(syncChanges.syncRunId, runId))
+      .orderBy(syncChanges.changeType, products.name)
+      .limit(CHANGES_SHOWN),
+    db.select({ n: count() }).from(syncChanges).where(eq(syncChanges.syncRunId, runId)),
+  ]);
+  return { rows, total: totals?.n ?? 0 };
+}
+
+export interface WithoutCopy {
+  total: number;
+  sample: Array<{ id: string; name: string; slug: string }>;
+}
+
+/** Active products still showing the source's text because nobody has written
+    their own (`description_text_override is null`). */
+export async function productsWithoutOwnCopy(sampleSize = 30): Promise<WithoutCopy> {
+  const unwritten = and(eq(products.status, "active"), isNull(products.descriptionTextOverride));
+  const [[totals], sample] = await Promise.all([
+    db.select({ n: count() }).from(products).where(unwritten),
+    db
+      .select({ id: products.id, name: products.name, slug: products.slug })
+      .from(products)
+      .where(unwritten)
+      .orderBy(products.name)
+      .limit(sampleSize),
+  ]);
+  return { total: totals?.n ?? 0, sample };
+}
