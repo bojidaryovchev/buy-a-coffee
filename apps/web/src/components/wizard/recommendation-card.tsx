@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Badge, ButtonLink, cx } from "@/components/ui/primitives";
-import { IMAGE_SIZES, PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
+import { ButtonLink, ReasonBadge, cx } from "@/components/ui/primitives";
+import { IMAGE_SIZES } from "@/lib/catalog/images";
+import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
+import { SystemBadge } from "@/components/catalog/system-badge";
 import { toPerServingView } from "@/lib/catalog/format";
 import type { ScoredRecommendation } from "@/lib/recommend/score";
 
@@ -18,16 +20,22 @@ import type { ScoredRecommendation } from "@/lib/recommend/score";
  * comparison the visitor came to make and the one the pack price actively
  * obscures — in this catalog a 100-capsule box at EUR 33.25 undercuts a
  * 16-capsule box at EUR 5.60 per cup.
+ *
+ * It is the product card's content laid out as a row (DESIGN.md, "Wizard"):
+ * the same white, unpadded well, the same system badge, the same sans name.
  */
 export function RecommendationCard({
   entry,
   rank,
   emphasis = false,
+  headingLevel: Heading = "h3",
 }: {
   entry: ScoredRecommendation;
   /** 1-based position, shown so the ordering is legible rather than implied. */
   rank?: number;
   emphasis?: boolean;
+  /** `h3` under a section's `h2`; `h2` where the list sits directly under the `h1`. */
+  headingLevel?: "h2" | "h3";
 }) {
   const product = entry.product;
   const perServing = toPerServingView(product.pricePerServing, product.price?.currency, {
@@ -41,53 +49,79 @@ export function RecommendationCard({
         emphasis ? "border-pine-500" : "border-line",
       )}
     >
-      <div className="relative aspect-4/5 w-24 shrink-0 overflow-hidden rounded-sm border border-line bg-paper-sunken sm:w-32">
-        <ProductImage
-          src={product.image?.url ?? PLACEHOLDER_IMAGE}
-          alt={product.image?.alt ?? product.name}
-          fill
-          sizes={IMAGE_SIZES.card}
-          className="object-contain p-2"
-        />
+      <div className="relative aspect-square w-24 shrink-0 self-start overflow-hidden rounded-md border border-line bg-well sm:w-32">
+        {product.image ? (
+          <ProductImage
+            src={product.image.url}
+            alt={product.image.alt || product.name}
+            fill
+            sizes={IMAGE_SIZES.thumb}
+            className="object-contain"
+          />
+        ) : (
+          /* At 96 px the words do not fit; they return with the wider well. */
+          <ImagePlaceholder label="from-sm" />
+        )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-2xs tracking-wide text-ink-500 uppercase">
-          {rank !== undefined && <span className="text-pine-700">№{rank}</span>}
-          {product.brand && <span className="truncate">{product.brand.name}</span>}
-          {product.weight && <span className="normal-case">· {product.weight}</span>}
-        </p>
+        {(rank !== undefined || product.systemId) && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {rank !== undefined && (
+              <span className="text-2xs font-semibold tracking-[0.06em] text-pine-700 tabular-nums">
+                №{rank}
+              </span>
+            )}
+            <SystemBadge systemId={product.systemId} size="sm" />
+          </p>
+        )}
 
-        <h3 className="mt-1 font-display text-lg leading-snug font-semibold text-ink-900">
-          <Link href={`/products/${product.slug}`} className="hover:underline">
+        {(product.brand || product.weight) && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
+            {product.brand && <span className="truncate">{product.brand.name}</span>}
+            {product.brand && product.weight && <span aria-hidden>·</span>}
+            {product.weight && (
+              <span className="shrink-0 font-normal tracking-normal normal-case tabular-nums">
+                {product.weight}
+              </span>
+            )}
+          </p>
+        )}
+
+        <Heading className="mt-1.5 font-sans text-base font-medium tracking-normal text-wrap text-ink-900">
+          <Link href={`/products/${product.slug}`} className="underline-offset-2 hover:underline">
             {product.name}
           </Link>
-        </h3>
+        </Heading>
 
         {entry.reasons.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {entry.reasons.map((reason) => (
-              <li key={reason}>
-                <Badge tone="positive">{reason}</Badge>
+              <li key={reason} className="flex">
+                <ReasonBadge>{reason}</ReasonBadge>
               </li>
             ))}
           </ul>
         )}
 
         {entry.caveat && (
-          <p className="mt-2 text-sm text-clay-600">
-            <span className="font-medium">Внимание:</span> {entry.caveat}
+          <p className="mt-2 text-sm text-caution">
+            <span className="font-semibold">Внимание:</span> {entry.caveat}
           </p>
         )}
 
         <div className="mt-auto flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-3">
           {product.price ? (
-            <span className="text-lg font-semibold text-ink-900">{product.price.formatted}</span>
+            <span className="text-lg font-semibold text-ink-900 tabular-nums">
+              {product.price.formatted}
+            </span>
           ) : (
             <span className="text-sm text-ink-500">Цена при запитване</span>
           )}
           {perServing && (
-            <span className="text-sm font-medium text-pine-700">{perServing.formatted}</span>
+            <span className="text-sm font-medium text-pine-700 tabular-nums">
+              {perServing.formatted}
+            </span>
           )}
         </div>
 

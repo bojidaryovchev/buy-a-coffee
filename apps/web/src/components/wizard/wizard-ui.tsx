@@ -178,7 +178,12 @@ export function AnswerSummary({
   );
 }
 
-/** A plain, non-alarming notice. Used to tell the truth about a gap. */
+/**
+ * A plain, non-alarming notice. Used to tell the truth about a gap.
+ *
+ * The caution tone is amber, not clay: clay means a price went down, and
+ * nothing else on the site.
+ */
 export function WizardNotice({
   tone = "neutral",
   title,
@@ -193,11 +198,15 @@ export function WizardNotice({
       className={cx(
         "rounded-md border px-4 py-3 text-sm",
         tone === "caution"
-          ? "border-clay-500/40 bg-clay-100 text-clay-600"
+          ? "border-caution bg-caution-100 text-ink-900"
           : "border-line bg-paper-sunken text-ink-700",
       )}
     >
-      {title && <p className="font-semibold text-ink-900">{title}</p>}
+      {title && (
+        <p className={cx("font-semibold", tone === "caution" ? "text-caution" : "text-ink-900")}>
+          {title}
+        </p>
+      )}
       <div className={cx(title && "mt-1")}>{children}</div>
     </div>
   );
