@@ -3,9 +3,13 @@ import { siteConfig, usingPlaceholderBrand } from "@/config/site";
 import type { CategoryView } from "@/lib/catalog/types";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
 import { Wordmark } from "@/components/layout/wordmark";
+import { paymentMethods } from "@/components/commerce/terms";
 
 export function SiteFooter({ categories }: { categories: readonly CategoryView[] }) {
   const year = new Date().getFullYear();
+  // Empty until the business has said how an order is paid for; the row below
+  // is then left out rather than filled with a guess.
+  const payment = paymentMethods();
 
   return (
     <footer className="mt-20 border-t border-line bg-paper-sunken">
@@ -34,6 +38,12 @@ export function SiteFooter({ categories }: { categories: readonly CategoryView[]
               <dt className="text-ink-500">Работно време</dt>
               <dd className="text-ink-700">{siteConfig.contact.hours}</dd>
             </div>
+            {payment.length > 0 && (
+              <div className="flex gap-2">
+                <dt className="text-ink-500">Плащане</dt>
+                <dd className="text-ink-700">{payment.map((method) => method.label).join(", ")}</dd>
+              </div>
+            )}
           </dl>
         </div>
 
@@ -63,6 +73,11 @@ export function SiteFooter({ categories }: { categories: readonly CategoryView[]
         <nav aria-label="Информация" className="md:col-span-2">
           <h2 className="font-display text-sm font-semibold tracking-wide uppercase text-ink-900">Информация</h2>
           <ul className="mt-3 space-y-2 text-sm">
+            <li>
+              <Link href="/delivery" className="text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline">
+                Доставка и плащане
+              </Link>
+            </li>
             <li>
               <Link href="/contact" className="text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline">
                 Контакти

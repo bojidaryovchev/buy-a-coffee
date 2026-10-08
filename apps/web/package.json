@@ -19,6 +19,7 @@
     "seed:dev": "tsx scripts/seed-dev.ts",
     "reference:coverage": "tsx scripts/reference-coverage.ts",
     "check:originality": "tsx scripts/check-originality.ts",
+    "check:launch": "tsx scripts/check-launch.ts",
     "copy:apply": "tsx scripts/apply-product-copy.ts"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ import { getCategoryTree } from "@/lib/catalog/queries";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
 import { JsonLd } from "@/components/seo/json-ld";
+import { AnnouncementBar } from "@/components/commerce/announcement-bar";
 
 /**
  * The shop.
@@ -71,6 +72,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </a>
 
       <AnalyticsProvider>
+        {/* Above the sticky header, so it scrolls away and the header takes
+            the top of the screen as before. */}
+        <AnnouncementBar />
         <SiteHeader categories={categories} />
         <main id="main" className="flex-1">
           {children}
