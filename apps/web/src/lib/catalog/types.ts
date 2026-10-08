@@ -141,6 +141,13 @@ export interface FacetValue {
 }
 
 export interface CatalogFacets {
+  /**
+   * Brewing systems with products in scope; `value` is a `BrewingSystemId`.
+   * A listing that is already one system has one entry, which narrows nothing.
+   * Optional only so a facet set written before the field existed still
+   * type-checks; `listProducts` always fills it.
+   */
+  readonly systems?: readonly FacetValue[];
   readonly brands: readonly FacetValue[];
   readonly strengths: readonly FacetValue[];
   readonly decaf: readonly FacetValue[];

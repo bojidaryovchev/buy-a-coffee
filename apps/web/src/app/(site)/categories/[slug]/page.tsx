@@ -1,15 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
+import { SystemBadge } from "@/components/catalog/system-badge";
 import { JsonLd } from "@/components/seo/json-ld";
-import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
+import {
+  buildSearchParams,
+  parseCatalogQuery,
+  shouldIndexListing,
+  type RawSearchParams,
+} from "@/lib/catalog/filters";
 import { getCategoryBySlug, getCategoryTree, listProducts } from "@/lib/catalog/queries";
 import { getCategorySourceKey } from "@/lib/catalog/taxonomy";
 import { categoryCopyFor } from "../../../../../content/category-copy";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import { siteConfig } from "@/config/site";
+import { BREWING_SYSTEMS, type BrewingSystem } from "@/lib/recommend/systems";
+import {
+  brewingSystemForCategory,
+  businessSectionForCategory,
+  listCategoryKeys,
+} from "../_lib/category-scope";
 
 export const revalidate = 300;
 
@@ -45,9 +57,20 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (!category) notFound();
 
   const query = parseCatalogQuery(rawParams);
-  const [result, sourceKey] = await Promise.all([
+  const sourceKey = await getCategorySourceKey(category.slug);
+
+  /*
+   * A category that backs a business section has one address, and it is the
+   * section's. Decided before anything is rendered, so the answer is a 308
+   * and not a page that then navigates away. Filters travel with it: the
+   * section page lists the same products through the same listing.
+   */
+  const section = businessSectionForCategory({ slug: category.slug, sourceKey });
+  if (section) permanentRedirect(`${section.path}${buildSearchParams(query)}`);
+
+  const [result, childKeys] = await Promise.all([
     listProducts({ query, categorySlug: category.slug }),
-    getCategorySourceKey(category.slug),
+    listCategoryKeys(category.children.map((child) => child.slug)),
   ]);
   /*
    * Only on the first page. Page two of a listing is the same category, and
@@ -55,6 +78,29 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
    * for the visitor who has already scrolled past them once.
    */
   const intro = query.page === 1 ? categoryCopyFor({ slug: category.slug, sourceKey }) : null;
+
+  /** Set when everything listed here goes in one kind of machine. */
+  const system = brewingSystemForCategory({ slug: category.slug, sourceKey });
+
+  /*
+   * Subcategories with something in them, each with the system it holds. On
+   * „Капсули“ these are the five capsule systems, which is the choice a
+   * visitor has to make before any other — so they come in the order the
+   * shop lists its systems everywhere else, ahead of anything that is not one.
+   */
+  const systemOrder = (system: BrewingSystem | null) =>
+    system ? BREWING_SYSTEMS.indexOf(system) : BREWING_SYSTEMS.length;
+  const children = category.children
+    .filter((child) => child.productCount > 0)
+    .map((child) => ({
+      ...child,
+      system: brewingSystemForCategory({
+        slug: child.slug,
+        sourceKey: childKeys.get(child.slug)?.sourceKey ?? null,
+      }),
+    }))
+    // Stable, so subcategories that are not systems keep the catalog's order.
+    .sort((a, b) => systemOrder(a.system) - systemOrder(b.system));
 
   const parent = category.parentSlug
     ? (await getCategoryTree()).find((entry) => entry.slug === category.parentSlug)
@@ -84,24 +130,61 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       <Breadcrumbs items={breadcrumbs} />
 
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">
+        {system && (
+          <p className="mb-2">
+            <SystemBadge systemId={system.id} size="md" />
+          </p>
+        )}
+        <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">
           {category.name}
         </h1>
         {category.description && (
-          <p className="mt-2 max-w-prose text-base text-ink-500">{category.description}</p>
+          <p className="mt-3 max-w-measure text-base text-ink-700">{category.description}</p>
         )}
 
-        {category.children.length > 0 && (
+        {system && (
+          <p className="mt-3 max-w-measure text-base text-ink-700">
+            {/*
+             * Only a capsule system names a family of machines. For beans and
+             * pods the system's name is a kind of coffee, so its own summary
+             * says what it goes in.
+             */}
+            {system.method === "capsule" ? `Става за машини ${system.name}.` : system.summary}{" "}
+            <Link
+              href="/wizard/machines"
+              className="font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900"
+            >
+              Проверете вашата машина
+            </Link>
+          </p>
+        )}
+
+        {children.length > 0 && (
           <nav aria-label={`Подкатегории на ${category.name}`} className="mt-5">
-            <ul className="flex flex-wrap gap-2">
-              {category.children.map((child) => (
-                <li key={child.slug}>
+            {/*
+             * One scrolling row on a phone, where five chips would otherwise
+             * take three lines above the products; wrapped from `md`.
+             * `relative` makes the row the containing block of the chips'
+             * screen-reader text, which is absolutely positioned and would
+             * otherwise escape the scroll container and widen the page.
+             */}
+            <ul className="relative -mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+              {children.map((child) => (
+                <li key={child.slug} className="shrink-0 snap-start">
                   <Link
                     href={`/categories/${child.slug}`}
-                    className="inline-flex items-baseline gap-1.5 rounded-sm border border-line bg-paper-raised px-3 py-1.5 text-sm hover:border-pine-500"
+                    {...(child.system ? { "data-system": child.system.id } : {})}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
                   >
-                    {child.name}
-                    <span className="text-2xs text-ink-300">{child.productCount}</span>
+                    {child.system && (
+                      <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                    )}
+                    {/* The system's own name: a coloured square never stands alone. */}
+                    {child.system?.name ?? child.name}
+                    <span className="text-2xs text-ink-300 tabular-nums">
+                      {child.productCount}
+                      <span className="sr-only"> продукта</span>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -110,14 +193,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         )}
       </header>
 
-      <CatalogListing
-        basePath={`/categories/${category.slug}`}
-        query={query}
-        result={result}
-        hideCategories={category.children.length === 0}
-        emptyTitle={`В момента няма нищо в ${category.name}`}
-        emptyDescription="В момента тази категория е празна. Опитайте друга част от асортимента или ни се обадете."
-      />
+      <CatalogListing basePath={`/categories/${category.slug}`} query={query} result={result} />
 
       {/*
        * Below the listing on purpose: products stay first. Rendered here, as a

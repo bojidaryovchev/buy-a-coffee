@@ -4,7 +4,7 @@ import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { Suspense } from "react";
 import { SearchField } from "@/components/catalog/search-field";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
-import { parseCatalogQuery, type RawSearchParams } from "@/lib/catalog/filters";
+import { countActiveFilters, parseCatalogQuery, type RawSearchParams } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { siteConfig } from "@/config/site";
 
@@ -54,11 +54,11 @@ export default async function SearchPage({
       />
 
       <header className="mb-8 max-w-xl">
-        <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">
+        <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">
           {hasQuery ? "Резултати от търсенето" : "Търсене"}
         </h1>
         {hasQuery && (
-          <p className="mt-2 text-base text-ink-500">
+          <p className="mt-3 text-lg text-ink-700">
             {result?.total ?? 0} {result?.total === 1 ? "резултат" : "резултата"} за{" "}
             <span className="font-medium text-ink-900">„{query.q}“</span>
           </p>
@@ -80,15 +80,18 @@ export default async function SearchPage({
             </ButtonLink>
           }
         />
-      ) : result && result.total === 0 ? (
+      ) : result && result.total === 0 && countActiveFilters(query) === 0 ? (
+        /*
+         * Nothing matches the term itself. When the term does match and the
+         * filters on top of it leave nothing, that is the listing's own
+         * "no products with these filters" state, with its chips to remove —
+         * telling that visitor their word was not found would be wrong.
+         * The search field is directly above, in the page head.
+         */
         <EmptyState
-          title={`Няма съвпадения за „${query.q}“`}
-          description="Опитайте с по-кратка или различно изписана дума, или разгледайте асортимента по категории."
-          action={
-            <ButtonLink href="/categories" variant="secondary">
-              Разгледай категориите
-            </ButtonLink>
-          }
+          title={`Не намерихме „${query.q}“`}
+          description="Проверете изписването или опитайте с марка или система."
+          action={<ButtonLink href="/wizard/machines">Намери по машина</ButtonLink>}
         />
       ) : (
         result && <CatalogListing basePath="/search" query={query} result={result} />
