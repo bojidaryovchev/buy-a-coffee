@@ -31,9 +31,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProductBySlug(slug);
   if (!product) return { title: "Продуктът не е намерен", robots: { index: false, follow: true } };
 
+  /*
+   * `descriptionText` is our own summary or, until one is written, a sentence
+   * generated from the product's attributes — the same string the lead
+   * paragraph and the JSON-LD use, never the source's text (see the copy layer
+   * in `lib/catalog/queries.ts`).
+   *
+   * `||` rather than `??`: `htmlToPlainText` answers a missing body with an
+   * empty string, which `??` let through as an empty meta description. The
+   * last arm is for a product we hold no describable fact about at all.
+   */
   const description =
-    product.descriptionText ??
-    htmlToPlainText(product.descriptionHtml, 160) ??
+    product.descriptionText ||
+    htmlToPlainText(product.descriptionHtml, 160) ||
     `${product.name} — предлага се от ${siteConfig.name}.`;
 
   return {
@@ -242,8 +252,13 @@ export default async function ProductPage({ params }: PageProps) {
       </div>
 
       {/*
-        Scraped description HTML is sanitised before rendering. It is untrusted
-        third-party input and this is the only place it reaches the DOM.
+        The long description is our own body copy or nothing: with no entry in
+        `content/product-copy.ts` this is null and the whole section, heading
+        included, is left out. The source's description is never a fallback.
+
+        It is still sanitised before rendering. The override column is plain
+        text wrapped in paragraphs by `copy:apply`, but this is the only place
+        stored HTML reaches the DOM and it stays the one place that checks.
       */}
       {descriptionHtml && (
         <section className="mt-14 max-w-(--container-measure)">

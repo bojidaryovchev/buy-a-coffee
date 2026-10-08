@@ -30,6 +30,7 @@
     "check:originality": "pnpm --filter @catalog/web check:originality",
     "check:launch": "pnpm --filter @catalog/web check:launch",
     "copy:apply": "pnpm --filter @catalog/web copy:apply",
+    "copy:todo": "pnpm --filter @catalog/web copy:todo",
     "build": "pnpm --filter @catalog/web build",
     "dev": "pnpm --filter @catalog/web dev",
     "env:check": "pnpm --filter @catalog/web env:check",

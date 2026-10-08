@@ -9,11 +9,18 @@
  *      site's name, domain or credentials, or would load images from the
  *      source domain at runtime.
  *
- *   2. Copy. Fails if a product would ship the source's own description text.
- *      This is the quieter failure: nothing looks wrong on the page, the
- *      branding scan passes, and the damage is that two domains publish the
- *      same paragraphs and a search engine picks one. Since both sites sell
- *      the same catalogue, that is a live risk on every sync, not a one-off.
+ *   2. Copy. Fails if the copy we wrote for a product tracks the source's own
+ *      description, or repeats across two of our own products. This is the
+ *      quieter failure: nothing looks wrong on the page, the branding scan
+ *      passes, and the damage is that two domains publish the same paragraphs
+ *      and a search engine picks one.
+ *
+ *      A product with no copy of its own is *not* a failure. It publishes a
+ *      sentence generated from its attributes (`lib/catalog/fallback-copy.ts`)
+ *      and never the source's text, and the sync adds such products on its own
+ *      schedule — so they are counted here and listed by `pnpm copy:todo`.
+ *      `test/fallback-copy.test.ts` is what holds the generated sentence to
+ *      the same standard, over every product in the snapshot.
  *
  * The crawler is *supposed* to know about the source, so the branding scan is
  * scoped to the storefront and to a small, explicit allowlist of files whose
@@ -24,9 +31,9 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { productCopy } from "../content/product-copy.ts";
+import { auditProductCopy, loadReferenceSnapshot } from "./copy-audit.ts";
 
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REFERENCE_PRODUCTS = path.resolve(WEB_ROOT, "../../reference/latest/products.json");
 
 /** Case-insensitive patterns that must not appear in customer-facing code. */
 const FORBIDDEN: ReadonlyArray<{ pattern: RegExp; label: string }> = [
@@ -92,140 +99,20 @@ interface Finding {
 }
 
 /**
- * How much verbatim phrasing a rewrite may share with the source it replaces.
- *
- * Measured as the share of the source's five-word sequences that also appear
- * in ours. Some overlap is unavoidable and correct: "бленд от около 70 %
- * арабика и 30 % робуста" is a fact about the coffee, and there is no honest
- * way to state it that avoids the words. Sustained overlap is not — it means
- * sentences were re-ordered rather than rewritten.
- *
- * 35 % sits above the highest legitimate value in the current catalogue (27 %,
- * a product whose description is almost entirely a blend spec) and well below
- * what a light paraphrase scores.
- */
-const MAX_SOURCE_OVERLAP = 0.35;
-
-/** Five-word window. Long enough that shared phrasing is deliberate. */
-const SHINGLE_SIZE = 5;
-
-interface ReferenceProduct {
-  readonly sourceKey: string;
-  readonly name: string;
-  readonly descriptionText: string | null;
-}
-
-interface CopyFinding {
-  readonly sourceKey: string;
-  readonly name: string;
-  readonly detail: string;
-}
-
-/** Fold to comparable words: case, punctuation and spacing carry no meaning here. */
-function normalizeForComparison(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function shingles(text: string): Set<string> {
-  const words = normalizeForComparison(text).split(" ").filter(Boolean);
-  const result = new Set<string>();
-  for (let i = 0; i + SHINGLE_SIZE <= words.length; i += 1) {
-    result.add(words.slice(i, i + SHINGLE_SIZE).join(" "));
-  }
-  return result;
-}
-
-/** Share of `source`'s phrasing that reappears in `ours`. */
-function overlapRatio(source: string, ours: string): number {
-  const from = shingles(source);
-  if (from.size === 0) return 0;
-  const to = shingles(ours);
-  let shared = 0;
-  for (const shingle of from) if (to.has(shingle)) shared += 1;
-  return shared / from.size;
-}
-
-/**
  * Check our copy against the source descriptions the crawler recorded.
  *
  * Deliberately reads the reference artifacts rather than the database: this
  * runs in CI, where there is no catalog to connect to, and the artifacts are
- * the same text the sync would write.
+ * the same text the sync would write. The join between the two is the
+ * storefront slug, which the artifacts carry for exactly this purpose.
  */
-async function checkProductCopy(): Promise<{ findings: CopyFinding[]; checked: number }> {
-  let raw: string;
-  try {
-    raw = await readFile(REFERENCE_PRODUCTS, "utf8");
-  } catch {
-    console.log("Product copy — skipped: no reference artifacts. Run `pnpm reference:export`.\n");
-    return { findings: [], checked: 0 };
+async function checkProductCopy() {
+  const snapshot = await loadReferenceSnapshot();
+  if (!snapshot) {
+    console.log("\nProduct copy — skipped: no reference artifacts. Run `pnpm reference:export`.");
+    return null;
   }
-
-  const parsed = JSON.parse(raw) as { products?: ReferenceProduct[] };
-  const sourceProducts = parsed.products ?? [];
-  const findings: CopyFinding[] = [];
-
-  for (const product of sourceProducts) {
-    const ours = productCopy[product.sourceKey];
-
-    if (!ours) {
-      findings.push({
-        sourceKey: product.sourceKey,
-        name: product.name,
-        detail: "no entry in content/product-copy.ts — this product ships the source description",
-      });
-      continue;
-    }
-
-    const sourceText = product.descriptionText?.trim();
-    if (!sourceText) continue;
-
-    const ourText = `${ours.summary} ${ours.body.join(" ")}`;
-    const ratio = overlapRatio(sourceText, ourText);
-    if (ratio > MAX_SOURCE_OVERLAP) {
-      findings.push({
-        sourceKey: product.sourceKey,
-        name: product.name,
-        detail: `${Math.round(ratio * 100)}% of the source's phrasing survives (limit ${Math.round(
-          MAX_SOURCE_OVERLAP * 100,
-        )}%) — rewrite, do not re-order`,
-      });
-    }
-
-    if (normalizeForComparison(ours.summary) === normalizeForComparison(sourceText)) {
-      findings.push({
-        sourceKey: product.sourceKey,
-        name: product.name,
-        detail: "summary is the source description verbatim",
-      });
-    }
-  }
-
-  /*
-   * Our own copy repeated across two of our own products is the same problem
-   * pointed inward — two URLs on this domain competing with identical text.
-   * It happens naturally: the source gives one description to a coffee sold in
-   * two pack sizes, and the obvious move is to paste the rewrite into both.
-   */
-  const summaries = new Map<string, string[]>();
-  for (const [sourceKey, copy] of Object.entries(productCopy)) {
-    const key = normalizeForComparison(copy.summary);
-    summaries.set(key, [...(summaries.get(key) ?? []), sourceKey]);
-  }
-  for (const [, keys] of summaries) {
-    if (keys.length < 2) continue;
-    findings.push({
-      sourceKey: keys.join(", "),
-      name: "(internal duplicate)",
-      detail: `${keys.length} products share one summary — give each its own`,
-    });
-  }
-
-  return { findings, checked: sourceProducts.length };
+  return auditProductCopy(snapshot.products, productCopy);
 }
 
 async function* walk(directory: string): AsyncGenerator<string> {
@@ -294,14 +181,16 @@ async function main(): Promise<void> {
   }
 
   const copy = await checkProductCopy();
-  if (copy.checked > 0) {
+  if (copy && copy.checked > 0) {
     console.log(`\nProduct copy — ${copy.checked} products in the reference artifacts`);
+    console.log(`  ${copy.compared} have copy of their own, compared against the source's text.`);
+
     if (copy.findings.length === 0) {
-      console.log("  PASS: every product ships our own text, none of it tracking the source.");
+      console.log("  PASS: none of our copy tracks the source, and no summary is used twice.");
     } else {
-      console.error(`  FAIL: ${copy.findings.length} product(s) would ship duplicate copy.\n`);
+      console.error(`  FAIL: ${copy.findings.length} problem(s) with the copy we publish.\n`);
       for (const finding of copy.findings) {
-        console.error(`    ${finding.sourceKey}  — ${finding.name}`);
+        console.error(`    ${finding.key}  — ${finding.name}`);
         console.error(`      ${finding.detail}`);
       }
       console.error(
@@ -310,6 +199,29 @@ async function main(): Promise<void> {
           "`pnpm --filter @catalog/web copy:apply`.",
       );
       process.exitCode = 1;
+    }
+
+    /*
+     * Reported, never failed on. These products publish the generated
+     * sentence, so nothing of the source's is on their pages; what they lack
+     * is copy worth reading, and that is a to-do list rather than a defect.
+     */
+    if (copy.withoutCopy.length > 0) {
+      console.log(
+        `\n  ${copy.withoutCopy.length} product(s) have no copy of their own yet and publish ` +
+          "the generated sentence.",
+      );
+      console.log("  Not a failure. `pnpm copy:todo` lists them.");
+    }
+
+    if (copy.unverifiedEntries.length > 0) {
+      console.log(
+        `\n  ${copy.unverifiedEntries.length} entr${
+          copy.unverifiedEntries.length === 1 ? "y" : "ies"
+        } in content/product-copy.ts could not be compared: no product in the snapshot has that slug.`,
+      );
+      console.log("  Either the slug is mistyped or the snapshot predates the product:");
+      for (const slug of copy.unverifiedEntries) console.log(`    ${slug}`);
     }
   }
 }

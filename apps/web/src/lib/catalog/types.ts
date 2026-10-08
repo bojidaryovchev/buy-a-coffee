@@ -49,6 +49,11 @@ export interface ProductCardView {
   readonly intensity: string | null;
   readonly brand: { readonly slug: string; readonly name: string } | null;
   readonly image: ProductImageView | null;
+  /**
+   * One sentence: our written summary, or a sentence generated from the
+   * product's attributes until one is written (`fallback-copy.ts`). Never the
+   * source's description. Null only when we hold nothing describable at all.
+   */
   readonly shortDescription: string | null;
 }
 
@@ -56,7 +61,16 @@ export interface ProductDetailView extends ProductCardView {
   readonly status: ProductStatus;
   /** Null for packs sold by the piece, and for any pack with no recorded size. */
   readonly unitPrice: UnitPriceView | null;
+  /**
+   * Our own long description, or null. There is no generated long form: a
+   * product without written copy has no "За това кафе" section.
+   */
   readonly descriptionHtml: string | null;
+  /**
+   * The same override-or-generated sentence as `shortDescription`. The lead
+   * paragraph, the meta description and the JSON-LD all read this one field,
+   * which is what keeps them identical.
+   */
   readonly descriptionText: string | null;
   readonly sku: string | null;
   readonly gtin: string | null;

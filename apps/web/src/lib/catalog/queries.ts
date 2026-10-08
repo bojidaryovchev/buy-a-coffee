@@ -11,6 +11,7 @@ import type { CatalogQuery } from "./filters";
 import { BREWING_SYSTEMS, type BrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
 import type { RecommendationCandidate } from "@/lib/recommend/score";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./attributes";
+import { publishedSummary } from "./fallback-copy";
 import {
   brandNameMatch,
   categoryNameMatch,
@@ -54,20 +55,54 @@ const retailOldPrice = sql<
 >`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
 
 /*
- * The copy the customer sees.
+ * The copy the customer sees: ours, or a sentence generated from our own data.
  *
- * Same shape as the price layer above, and for the same reason: the sync owns
- * the source columns and rewrites them on every run, so our own copy lives
- * beside them rather than in them. Reading it through these two expressions is
- * what keeps that a single decision — the description reaches the page, the
- * meta description, the JSON-LD and the search vector by this route only.
+ * This is where the copy layer stops looking like the price layer above. A
+ * price falls back to the source's price, because a price is a fact. A
+ * description must not fall back to the source's description, because that is
+ * the source's prose: the same paragraph on two domains, in the visible copy,
+ * the meta description and the Product JSON-LD at once. It used to — this was
+ * `coalesce(override, source)` — and every product the sync created shipped
+ * the source's text until someone wrote an entry for it.
+ *
+ * So `products.description_text` and `products.description_html` are not
+ * selected anywhere in this file, and must not be. The override is read as it
+ * is; when it is null, `publishedSummary` composes one factual sentence from
+ * the columns in `fallbackCopyColumns`, and there is no long description at
+ * all. Every reader of a description — product page, metadata, JSON-LD, cards,
+ * the wizard's candidates — gets it through `toCard` / `getProductBySlug`, so
+ * this stays a single decision.
+ *
+ * The one place the source's text is still read is the generated
+ * `search_vector` column (`0005_description_overrides.sql`), which indexes
+ * `coalesce(override, source)`. That is deliberate and it is not publishing:
+ * the vector decides which products *match* a query, and nothing from it is
+ * ever rendered. A new product stays findable by the words that describe it
+ * while its page shows only what we wrote or generated.
  */
-const publishedDescriptionText = sql<
-  string | null
->`coalesce(${products.descriptionTextOverride}, ${products.descriptionText})`;
-const publishedDescriptionHtml = sql<
-  string | null
->`coalesce(${products.descriptionHtmlOverride}, ${products.descriptionHtml})`;
+const ownDescriptionText = products.descriptionTextOverride;
+const ownDescriptionHtml = products.descriptionHtmlOverride;
+
+/**
+ * The held facts the generated sentence is built from, beyond what
+ * `productColumns` already carries (brand and attributes).
+ *
+ * `categoryKeys` holds each category's slug *and* source key: a brewing
+ * system is bound to either, for the reason given in `lib/recommend/systems.ts`.
+ * A correlated subquery rather than a join, so a product in two categories is
+ * still one row.
+ */
+const fallbackCopyColumns = {
+  weightValue: products.weightValue,
+  weightUnit: products.weightUnit,
+  categoryKeys: sql<string[]>`array(
+    select distinct category_key
+    from ${productCategories} pc
+    join ${categories} c on c.id = pc.category_id
+    cross join lateral unnest(array[c.slug, c.source_key]) as category_key
+    where pc.product_id = ${products.id} and category_key is not null
+  )`,
+} as const;
 
 /** Self-join alias for resolving a category's parent. */
 const parentCategories = alias(categories, "parent_categories");
@@ -85,7 +120,8 @@ const productColumns = {
   availability: products.availability,
   weight: products.weight,
   attributes: products.attributes,
-  descriptionText: publishedDescriptionText,
+  descriptionText: ownDescriptionText,
+  ...fallbackCopyColumns,
   brandSlug: brands.slug,
   brandName: brands.name,
   brandSourceKey: brands.sourceKey,
@@ -102,7 +138,11 @@ type ProductRow = {
   availability: string;
   weight: string | null;
   attributes: Record<string, string>;
+  /** Our override only — never the source's text. Null until copy is written. */
   descriptionText: string | null;
+  weightValue: string | null;
+  weightUnit: string | null;
+  categoryKeys: string[] | null;
   brandSlug: string | null;
   brandName: string | null;
   brandSourceKey: string | null;
@@ -123,7 +163,7 @@ function toCard(
    * lexicographically, which would advertise a fake saving.
    */
   const discount = discountPercent(row.price, row.oldPrice);
-  return {
+  const card = {
     id: row.id,
     slug: row.slug,
     name: row.name,
@@ -149,7 +189,23 @@ function toCard(
           height: image.height,
         }
       : null,
-    shortDescription: row.descriptionText,
+    shortDescription: null,
+  } satisfies ProductCardView;
+
+  return {
+    ...card,
+    /*
+     * Override-or-generated, and nothing else. Composed from the card rather
+     * than the row so the sentence names the brand exactly as the page around
+     * it does.
+     */
+    shortDescription: publishedSummary(row.descriptionText, {
+      brandName: card.brand?.name ?? null,
+      categoryKeys: row.categoryKeys,
+      packValue: row.weightValue,
+      packUnit: row.weightUnit,
+      attributes: row.attributes,
+    }),
   };
 }
 
@@ -556,14 +612,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     .select({
       ...productColumns,
       status: products.status,
-      descriptionHtml: publishedDescriptionHtml,
+      descriptionHtml: ownDescriptionHtml,
       sku: products.sku,
       gtin: products.gtin,
-      /* The normalised pack size, for the unit price below. `productColumns`
-         carries only `weight`, which is the source's free text ("0.250кг.")
-         and cannot be divided into. */
-      weightValue: products.weightValue,
-      weightUnit: products.weightUnit,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -576,8 +627,6 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     descriptionHtml: string | null;
     sku: string | null;
     gtin: string | null;
-    weightValue: string | null;
-    weightUnit: string | null;
   };
 
   const [imageRows, categoryRows] = await Promise.all([
@@ -638,8 +687,12 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     /* Null for capsules and anything with no recorded pack size — see
        `pricePerUnitMeasure`. The page renders nothing rather than a guess. */
     unitPrice: unitPriceView(typed.price, typed.weightValue, typed.weightUnit, typed.currency),
+    /* Ours or absent: with no override there is no long description, and the
+       page omits the section rather than fill it with anything. */
     descriptionHtml: typed.descriptionHtml,
-    descriptionText: typed.descriptionText,
+    /* The same override-or-generated sentence the card carries, so the lead
+       paragraph, the meta description and the JSON-LD cannot disagree. */
+    descriptionText: card.shortDescription,
     sku: typed.sku,
     gtin: typed.gtin,
     attributes: typed.attributes ?? {},
@@ -985,20 +1038,14 @@ export async function listRecommendationCandidates(
   system: BrewingSystem,
 ): Promise<readonly RecommendationCandidate[]> {
   const rows = await db
-    .select({
-      ...productColumns,
-      weightValue: products.weightValue,
-      weightUnit: products.weightUnit,
-    })
+    .select(productColumns)
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .where(and(isVisible, systemCategoryCondition(system)))
     .orderBy(asc(products.name))
     .limit(MAX_RECOMMENDATION_CANDIDATES);
 
-  const typed = rows as unknown as Array<
-    ProductRow & { weightValue: string | null; weightUnit: string | null }
-  >;
+  const typed = rows as unknown as ProductRow[];
   const images = await loadPrimaryImages(typed.map((row) => row.id));
 
   return typed.map((row) => {
