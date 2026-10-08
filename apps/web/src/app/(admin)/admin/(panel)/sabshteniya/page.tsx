@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  */
 
 const STATUS_TONE: Record<InquiryStatus, string> = {
-  new: "bg-clay-100 text-clay-600",
+  new: "bg-caution-100 text-caution",
   contacted: "bg-pine-100 text-pine-700",
   converted: "bg-pine-100 text-pine-700",
   cancelled: "bg-paper-sunken text-ink-500",

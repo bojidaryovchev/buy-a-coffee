@@ -167,10 +167,14 @@ export const products = pgTable(
     /**
      * Original-copy layer.
      *
-     * The storefront shows `descriptionTextOverride ?? descriptionText` and
-     * `descriptionHtmlOverride ?? descriptionHtml`. Leaving an override null
-     * means "publish the source copy", which is the state every product starts
-     * in.
+     * The storefront never publishes the source's text. It shows
+     * `descriptionTextOverride` when one is written, and otherwise a sentence
+     * generated from the product's recorded facts (`publishedSummary` in
+     * `apps/web/src/lib/catalog/fallback-copy.ts`); `descriptionHtmlOverride`
+     * is the only long description, and a product without one has none.
+     * Leaving an override null — the state every product starts in — means
+     * "use the generated sentence", not "publish the source copy". The source
+     * columns are still read for the search index, which is never rendered.
      *
      * This exists for the same reason the retail-price layer does: the sync
      * owns the source columns and rewrites them on every run, so copy written

@@ -5,6 +5,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
+import {
+  SEARCH_BOX_CLASS,
+  SEARCH_INPUT_CLASS,
+  SEARCH_PLACEHOLDER,
+  SearchSubmit,
+} from "@/components/catalog/search-field-fallback";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import type { SearchSuggestions } from "@/lib/catalog/types";
 import { useAnalytics } from "@/components/analytics-provider";
@@ -202,12 +208,14 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
         <label htmlFor={inputId} className="sr-only">
           Търсене на продукти
         </label>
-        <div className="flex h-11 items-stretch overflow-hidden rounded-sm border border-line-strong bg-paper-raised focus-within:border-pine-700">
+        <div className={SEARCH_BOX_CLASS}>
           <input
             ref={inputRef}
             id={inputId}
             name="q"
             type="search"
+            inputMode="search"
+            enterKeyHint="search"
             role="combobox"
             aria-expanded={isExpanded}
             aria-controls={listboxId}
@@ -222,27 +230,11 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Търсете кафе, марки, капсули…"
-            className="min-w-0 flex-1 bg-transparent px-3.5 text-base outline-none placeholder:text-ink-300"
+            placeholder={SEARCH_PLACEHOLDER}
+            className={SEARCH_INPUT_CLASS}
             autoComplete="off"
           />
-          <button
-            type="submit"
-            className="flex shrink-0 items-center gap-1.5 bg-pine-900 px-4 text-sm font-medium text-paper hover:bg-pine-700"
-          >
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="M16.5 16.5L21 21" strokeLinecap="round" />
-            </svg>
-            <span className="sr-only sm:not-sr-only">Търси</span>
-          </button>
+          <SearchSubmit />
         </div>
       </form>
 
@@ -326,6 +318,7 @@ function SuggestionPanel({
                       alt=""
                       fill
                       sizes="40px"
+                      placeholderLabel={false}
                       className="object-contain"
                     />
                   ) : (

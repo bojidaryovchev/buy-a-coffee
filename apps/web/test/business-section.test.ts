@@ -61,7 +61,7 @@ function listing(items: readonly ProductCardView[]): SectionListing {
     page: 1,
     pageSize: 24,
     pageCount: 1,
-    facets: { brands: [], strengths: [], decaf: [], aromas: [], categories: [] },
+    facets: { systems: [], brands: [], strengths: [], decaf: [], aromas: [], categories: [] },
   };
   return {
     category: { slug: "seeded", name: "Seeded", productCount: items.length },

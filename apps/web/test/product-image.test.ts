@@ -2,6 +2,7 @@
 import { createElement } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
 import { PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
 
@@ -28,14 +29,51 @@ describe("ProductImage", () => {
     expect(img.className).toBe("object-contain p-4");
   });
 
-  it("swaps to the placeholder when loading fails", () => {
+  /*
+   * A photograph that fails to load looks exactly like a product that has no
+   * photograph: the same drawing on the sunken tone, the same words, and no
+   * broken image left behind. DESIGN.md, "Image placeholder".
+   */
+  it("swaps to the image placeholder when loading fails", () => {
     const onError = vi.fn();
-    render(createElement(ProductImage, { ...base, src: "/media/a.jpg", onError }));
+    const { container } = render(
+      createElement(ProductImage, { ...base, src: "/media/a.jpg", onError }),
+    );
     fireEvent.error(screen.getByAltText("Кафе"));
-    const img = screen.getByAltText("Кафе");
-    expect(img.getAttribute("src")).toBe(PLACEHOLDER_IMAGE);
-    expect(img.className).toBe("object-contain p-4");
+    expect(container.querySelector("img")).toBeNull();
+    const failed = container.innerHTML;
+
+    const { container: missing } = render(createElement(ImagePlaceholder));
+    expect(failed).toBe(missing.innerHTML);
+    expect(failed).toContain("bg-paper-sunken");
+    expect(screen.getAllByText("Няма снимка")).toHaveLength(2);
     expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("drops the words where the well is too small for them", () => {
+    const { container } = render(
+      createElement(ProductImage, { ...base, src: "/media/a.jpg", placeholderLabel: false }),
+    );
+    fireEvent.error(screen.getByAltText("Кафе"));
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.textContent).toBe("");
+  });
+
+  it("draws the placeholder, not the old file, for a source that is not ours", () => {
+    const { container } = render(createElement(ProductImage, { ...base, src: PLACEHOLDER_IMAGE }));
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toBe("Няма снимка");
+  });
+
+  it("gives an image with explicit dimensions a placeholder box of the same size", () => {
+    const { container } = render(
+      createElement(ProductImage, { alt: "Кафе", src: "/media/a.jpg", width: 40, height: 40 }),
+    );
+    fireEvent.error(screen.getByAltText("Кафе"));
+    const box = container.firstElementChild as HTMLElement;
+    expect(box.style.width).toBe("40px");
+    expect(box.style.height).toBe("40px");
+    expect(box.className).toContain("relative");
   });
 
   it("tries a new source after the previous one failed", () => {

@@ -56,7 +56,7 @@ export default async function AdminPanelLayout({ children }: { children: React.R
             <Link href="/admin/poshta" className="text-ink-500 hover:text-ink-900">
               Поща
               {waiting > 0 && (
-                <span className="ml-1.5 rounded-sm bg-clay-100 px-1.5 py-0.5 text-xs font-semibold text-clay-600 tabular-nums">
+                <span className="ml-1.5 rounded-sm bg-caution-100 px-1.5 py-0.5 text-xs font-semibold text-caution tabular-nums">
                   {waiting}
                 </span>
               )}

@@ -12,8 +12,9 @@ import { useAnalytics } from "@/components/analytics-provider";
  * both things only this event can tell us, and the second one is a stocking
  * decision waiting to be made.
  *
- * Nothing here identifies anybody: the answers are five enumerated values, and
- * no part of the payload is derived from the visitor.
+ * Nothing here identifies anybody: the answers are five enumerated values, the
+ * facts used are names of criteria, and no part of the payload is derived from
+ * the visitor.
  */
 export function WizardAnalytics({
   system,
@@ -23,6 +24,7 @@ export function WizardAnalytics({
   requirements,
   resultCount,
   relaxed,
+  factsUsed,
 }: {
   system: string;
   taste: string | null;
@@ -31,6 +33,8 @@ export function WizardAnalytics({
   requirements: readonly string[];
   resultCount: number;
   relaxed: readonly string[];
+  /** `result.factsUsed` from the scorer. */
+  factsUsed: readonly string[];
 }) {
   const analytics = useAnalytics();
   const reported = useRef(false);
@@ -49,8 +53,9 @@ export function WizardAnalytics({
       requirements: [...requirements].sort().join(","),
       resultCount,
       relaxed: [...relaxed].sort().join(","),
+      factsUsed: factsUsed.join(","),
     });
-  }, [analytics, system, taste, volume, budget, requirements, resultCount, relaxed]);
+  }, [analytics, system, taste, volume, budget, requirements, resultCount, relaxed, factsUsed]);
 
   return null;
 }

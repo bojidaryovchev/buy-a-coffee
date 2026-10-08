@@ -41,8 +41,18 @@ export function HomeHero({
 
   return (
     <section className="on-pine bg-pine-900 text-paper">
-      <div className="shell grid gap-8 py-10 md:grid-cols-12 md:items-center md:py-16">
-        <div className={hasShelf ? "md:col-span-6" : "md:col-span-12"}>
+      {/*
+        Below `md` the gap is the column rhythm's 24 px rather than 32: on a
+        phone it is what stands between the text and the packshots, and every
+        pixel of it pushes the wells further below the fold.
+
+        From `xl` the text takes seven columns of twelve. At six, the two
+        actions need about 549 px and the column holds 542, so they wrapped;
+        seven leaves them a line of their own and the six wells still read at
+        about 140 px.
+      */}
+      <div className="shell grid gap-6 py-10 md:grid-cols-12 md:items-center md:gap-8 md:py-16">
+        <div className={hasShelf ? "md:col-span-6 xl:col-span-7" : "md:col-span-12"}>
           {counts.length > 0 && (
             <p className="text-2xs font-semibold tracking-[0.06em] text-gold-300 uppercase tabular-nums">
               {counts.join(" · ")}
@@ -51,10 +61,24 @@ export function HomeHero({
           <h1 className="mt-3 font-display text-3xl leading-[1.1] font-semibold md:text-5xl">
             {siteConfig.tagline}
           </h1>
-          <p className="mt-4 max-w-[48ch] text-lg text-pine-200">{siteConfig.description}</p>
+          {/*
+            The lead steps down to `text-base` on a phone only: at 17 px it
+            runs to four lines in a 358 px column and, with the stacked
+            actions under it, pushes the packshots to the bottom edge of the
+            first screen. At 15 px it takes three.
+          */}
+          <p className="mt-4 max-w-[48ch] text-base text-pine-200 md:text-lg">
+            {siteConfig.description}
+          </p>
 
+          {/*
+            Each action grows to fill its line. Side by side they share the
+            row; once the column is too narrow for both (a phone, a tablet, a
+            small laptop) each takes a full line, so the stacked pair is two
+            buttons of one width rather than a long one over a short one.
+          */}
           <div className="mt-6 flex flex-wrap gap-3">
-            <ButtonLink href="/wizard" variant="accent" size="lg" className="w-full md:w-auto">
+            <ButtonLink href="/wizard" variant="accent" size="lg" className="grow">
               Намерете кафе за вашата машина
             </ButtonLink>
             {systemsHref && (
@@ -63,7 +87,7 @@ export function HomeHero({
                 className={buttonClasses({
                   variant: "on-pine",
                   size: "lg",
-                  className: "w-full md:w-auto",
+                  className: "grow",
                 })}
               >
                 Разгледайте по система
@@ -83,7 +107,7 @@ export function HomeHero({
         </div>
 
         {hasShelf && (
-          <ul className="grid grid-cols-3 gap-3 md:col-span-6">
+          <ul className="grid grid-cols-3 gap-3 md:col-span-6 xl:col-span-5">
             {shelf.map((item, index) => (
               <li key={item.id} className={index >= PHONE_WELLS ? "hidden md:block" : undefined}>
                 <Link

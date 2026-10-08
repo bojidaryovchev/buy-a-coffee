@@ -83,6 +83,7 @@ const EVENTS: AnalyticsEvent[] = [
     requirements: "r",
     resultCount: 3,
     relaxed: "x",
+    factsUsed: "composition,roast",
   },
 ];
 

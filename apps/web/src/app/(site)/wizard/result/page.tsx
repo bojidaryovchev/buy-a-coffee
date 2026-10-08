@@ -77,6 +77,7 @@ export default async function WizardResultPage({ searchParams }: PageProps) {
         requirements={answers.requirements}
         resultCount={result.picks.length}
         relaxed={result.relaxed.map((constraint) => constraint.key)}
+        factsUsed={result.factsUsed}
       />
 
       <div className="mx-auto max-w-3xl">

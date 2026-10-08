@@ -46,9 +46,9 @@ export const dynamic = "force-dynamic";
 const STATUS_TONE: Record<string, string> = {
   succeeded: "bg-pine-100 text-pine-700",
   running: "bg-paper-sunken text-ink-500",
-  partial: "bg-clay-100 text-clay-600",
-  failed: "bg-clay-100 text-clay-600",
-  aborted: "bg-clay-100 text-clay-600",
+  partial: "bg-caution-100 text-caution",
+  failed: "bg-caution-100 text-caution",
+  aborted: "bg-caution-100 text-caution",
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -98,7 +98,7 @@ export default async function AdminSyncPage({
       <section
         aria-labelledby="sync-now"
         className={`mt-8 rounded-md border bg-paper-raised p-5 ${
-          stale || problems.length > 0 ? "border-clay-500" : "border-line"
+          stale || problems.length > 0 ? "border-caution" : "border-line"
         }`}
       >
         <h2 id="sync-now" className="text-sm font-semibold text-ink-900">

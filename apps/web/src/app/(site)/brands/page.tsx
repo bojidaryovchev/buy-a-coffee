@@ -50,7 +50,7 @@ export default async function BrandsPage() {
               >
                 <h2 className="font-display text-lg font-semibold text-ink-900">{brand.name}</h2>
                 {brand.tagline && (
-                  <p className="mt-1 text-sm text-clay-600 italic">{brand.tagline}</p>
+                  <p className="mt-1 text-sm text-ink-500 italic">{brand.tagline}</p>
                 )}
                 {brand.description && (
                   <p className="mt-2 line-clamp-3 text-sm text-ink-500">{brand.description}</p>

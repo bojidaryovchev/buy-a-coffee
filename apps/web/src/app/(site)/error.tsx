@@ -38,7 +38,8 @@ export default function ErrorBoundary({
         Не е от вас. Опитайте пак след малко или ни се обадете.
       </p>
 
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
+      {/* On a phone the two actions stack at full width, the main one first. */}
+      <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:justify-center">
         <Button type="button" onClick={reset}>
           Опитайте отново
         </Button>

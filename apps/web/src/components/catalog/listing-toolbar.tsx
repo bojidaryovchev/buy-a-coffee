@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog/filters";
 import type { CatalogFacets } from "@/lib/catalog/types";
 import { FilterPanel } from "@/components/catalog/filter-panel";
+import { buttonClasses } from "@/components/ui/primitives";
 
 /**
  * Listing toolbar: result count, the phone's way into the filters, and the
@@ -283,7 +284,7 @@ export function ListingToolbar({
               <button
                 type="button"
                 onClick={() => setSheetOpen(false)}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-sm bg-pine-900 px-6 text-base font-medium text-paper transition-colors hover:bg-pine-700"
+                className={buttonClasses({ size: "lg", className: "w-full" })}
               >
                 Покажи {total} {productsLabel(total)}
               </button>

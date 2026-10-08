@@ -39,6 +39,12 @@ export type AnalyticsEvent =
       requirements: string;
       resultCount: number;
       relaxed: string;
+      /**
+       * The recorded facts (composition, roast) the ranking actually used,
+       * comma-joined; empty when the answers left none to weigh. Tells how
+       * often the enrichment data changes a recommendation at all.
+       */
+      factsUsed: string;
     };
 
 export interface AnalyticsSink {
@@ -78,7 +84,7 @@ export function sanitizeSearchQuery(query: string): string | null {
  * What the platform accepts for a custom event: flat properties whose values
  * are strings, numbers, booleans or null — nested values are dropped in
  * production and throw in development. Strings are capped at 255 characters and
- * an event carries at most 8 properties; `wizard_completed`, the largest, has 7.
+ * an event carries at most 8 properties; `wizard_completed`, the largest, has 8.
  */
 export type CustomEventProperties = Record<string, string | number | boolean | null>;
 
