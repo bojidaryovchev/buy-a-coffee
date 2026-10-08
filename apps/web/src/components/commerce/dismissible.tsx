@@ -19,6 +19,12 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
  *     component lives in the site layout, which survives client-side
  *     navigation, so the bar stays closed while the visitor moves around and
  *     returns on the next full page load.
+ *
+ * The children are the bar's own row and are laid out by `innerClassName`; the
+ * slot is the last thing in that row. On a phone, where the row is one centred
+ * sentence, an empty slot of the same width goes in front of it so the
+ * sentence stays in the middle of the screen. Both slots reach a little into
+ * the row's padding, which keeps the sentence on one line at 390 px.
  */
 
 const subscribe = (): (() => void) => () => {};
@@ -47,22 +53,21 @@ export function Dismissible({
   const [dismissed, setDismissed] = useState(false);
 
   // The landmark itself goes, not just its contents: an empty `aside` would
-  // leave its border behind and an empty landmark for a screen reader to find.
+  // leave its band behind and an empty landmark for a screen reader to find.
   if (dismissed) return null;
 
   return (
     <aside aria-label={label} className={className}>
       <div className={innerClassName}>
-        {/* Balances the close slot so the text stays optically centred. */}
-        <span aria-hidden className="hidden h-8 w-8 shrink-0 sm:block" />
-        <div className="min-w-0 flex-1">{children}</div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+        <span aria-hidden className="-mr-4 -ml-2 h-6 w-6 shrink-0 md:hidden" />
+        {children}
+        <span className="-mr-2 -ml-4 flex h-6 w-6 shrink-0 items-center justify-center md:-mr-1.5 md:-ml-3">
           {hydrated && (
             <button
               type="button"
               onClick={() => setDismissed(true)}
               aria-label={closeLabel}
-              className="flex h-8 w-8 items-center justify-center rounded-sm hover:bg-pine-900/10"
+              className="flex h-6 w-6 items-center justify-center rounded-sm text-pine-200 transition-colors hover:bg-pine-700 hover:text-paper"
             >
               <svg
                 aria-hidden

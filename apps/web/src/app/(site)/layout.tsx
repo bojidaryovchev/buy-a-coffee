@@ -7,7 +7,9 @@ import { getCategoryTree } from "@/lib/catalog/queries";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
 import { JsonLd } from "@/components/seo/json-ld";
-import { AnnouncementBar } from "@/components/commerce/announcement-bar";
+import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
+import { buildNavigation } from "@/components/layout/navigation";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
 
 /**
  * The shop.
@@ -58,9 +60,20 @@ export const metadata: Metadata = {
 };
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  // The navigation is catalog-driven, so an added category appears in the menu
-  // without a code change.
+  /*
+   * The navigation is catalog-driven, so a system that sells out leaves the
+   * menu and a category the sync adds joins it, without a code change.
+   *
+   * This is still the only read the frame makes. The rail is organised by
+   * brewing system now, but which systems have products — and how many — is
+   * already in the tree, so the header, the drawer and the footer are all
+   * drawn from this one call.
+   */
   const categories = await getCategoryTree();
+  const navigation = buildNavigation(categories, {
+    sections: BUSINESS_SECTIONS,
+    hasJournal: siteConfig.features.blog,
+  });
 
   return (
     <>
@@ -73,13 +86,14 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
       <AnalyticsProvider>
         {/* Above the sticky header, so it scrolls away and the header takes
-            the top of the screen as before. */}
+            the top of the screen. It carries the hours and the phone number
+            on a wide screen; when there is no bar, the header does. */}
         <AnnouncementBar />
-        <SiteHeader categories={categories} />
+        <SiteHeader navigation={navigation} showPhone={!hasAnnouncement()} />
         <main id="main" className="flex-1">
           {children}
         </main>
-        <SiteFooter categories={categories} />
+        <SiteFooter navigation={navigation} />
       </AnalyticsProvider>
     </>
   );

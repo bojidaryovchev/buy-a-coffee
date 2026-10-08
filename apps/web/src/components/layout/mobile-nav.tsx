@@ -1,30 +1,70 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { CategoryView } from "@/lib/catalog/types";
 import { siteConfig } from "@/config/site";
+import { CloseIcon, MachineIcon, MenuIcon, WizardIcon } from "@/components/layout/icons";
+import {
+  ALL_CATEGORIES,
+  BRANDS,
+  CONTACT,
+  DELIVERY,
+  FIND_BY_MACHINE,
+  JOURNAL,
+  PROMOTIONS,
+  WIZARD,
+  type SiteNavigation,
+} from "@/components/layout/navigation";
+import { Wordmark } from "@/components/layout/wordmark";
 
 /**
  * Mobile navigation drawer.
  *
+ * The rail's structure, in the rail's order, with nothing left out and nothing
+ * behind a second tap: the two ways in for someone who knows only their
+ * machine, then the capsule systems, then pods and beans, then the rest.
+ *
  * Built as a real dialog rather than a shrunken desktop menu:
- *   - focus moves into the panel on open and returns to the trigger on close,
- *   - Escape closes it,
+ *   - focus moves to the close button on open and returns to the trigger on
+ *     close,
+ *   - Escape, the scrim and any navigation close it,
  *   - focus is trapped while it is open,
  *   - background scrolling is locked,
  *   - the trigger carries `aria-expanded` and `aria-controls`.
  *
  * These are the details that decide whether the menu is usable with a keyboard
  * or a screen reader at all.
+ *
+ * The trigger is a link to `/categories`. Without JavaScript nothing can open
+ * a drawer, and a menu button that does nothing is the worst control on a
+ * phone; a link to the page that lists the same shelves always works. Once the
+ * page has hydrated the same element is announced as a button, because from
+ * then on that is what it does.
  */
-export function MobileNav({ categories }: { categories: readonly CategoryView[] }) {
+
+const subscribe = (): (() => void) => () => {};
+
+const ROW =
+  "flex min-h-12 items-center gap-2.5 rounded-sm px-3 text-base text-ink-900 hover:bg-paper-sunken";
+const ROW_CURRENT =
+  "flex min-h-12 items-center gap-2.5 rounded-sm bg-pine-100 px-3 text-base font-medium text-pine-900";
+const GROUP_LABEL =
+  "px-3 pt-4 pb-1 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
+
+export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLAnchorElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
 
   // Any navigation closes the drawer.
   useEffect(() => {
@@ -34,11 +74,11 @@ export function MobileNav({ categories }: { categories: readonly CategoryView[] 
   useEffect(() => {
     if (!open) return;
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const trigger = triggerRef.current;
     const { overflow } = document.body.style;
     document.body.style.overflow = "hidden";
 
-    panelRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    closeRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -51,12 +91,14 @@ export function MobileNav({ categories }: { categories: readonly CategoryView[] 
       const focusable = panelRef.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
       );
-      if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;
 
-      if (event.shiftKey && document.activeElement === first) {
+      if (!panelRef.current.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -69,119 +111,241 @@ export function MobileNav({ categories }: { categories: readonly CategoryView[] 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflow;
-      previouslyFocused?.focus?.();
+      trigger?.focus();
     };
   }, [open]);
 
+  const { capsules, pods, beans } = navigation;
+
+  const row = (href: string, children: ReactNode, className = "") => {
+    const current = pathname === href;
+    return (
+      <Link
+        href={href}
+        aria-current={current ? "page" : undefined}
+        className={`${current ? ROW_CURRENT : ROW} ${className}`}
+      >
+        {children}
+      </Link>
+    );
+  };
+
+  const count = (value: number) => (
+    <span className="text-2xs text-ink-300 tabular-nums">
+      {value}
+      <span className="sr-only"> продукта</span>
+    </span>
+  );
+
+  const entry = (href: string, icon: ReactNode, label: string, hint: string) => {
+    const current = pathname === href;
+    return (
+      <Link
+        href={href}
+        aria-current={current ? "page" : undefined}
+        className={`flex min-h-14 items-center gap-3 rounded-sm border px-3 py-2 ${
+          current
+            ? "border-pine-500 bg-pine-100 text-pine-900"
+            : "border-line-strong bg-paper-raised text-ink-900 hover:bg-paper-sunken"
+        }`}
+      >
+        {icon}
+        <span className="min-w-0">
+          <span className="block text-base font-medium">{label}</span>
+          <span className="block text-xs text-ink-500">{hint}</span>
+        </span>
+      </Link>
+    );
+  };
+
   return (
     <>
-      <button
+      <a
         ref={triggerRef}
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-expanded={open}
-        aria-controls={panelId}
-        aria-label="Отвори менюто"
-        className="-ml-2 inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-700 hover:bg-paper-sunken md:hidden"
+        href={ALL_CATEGORIES.href}
+        role={hydrated ? "button" : undefined}
+        aria-label="Меню"
+        aria-expanded={hydrated ? open : undefined}
+        aria-controls={hydrated && open ? panelId : undefined}
+        onClick={(event) => {
+          // A modified click is someone opening the categories page in a new
+          // tab, which is what the link says it does.
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          setOpen(true);
+        }}
+        onKeyDown={(event) => {
+          // A link answers Enter by itself; a button also answers Space.
+          if (event.key === " ") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+        className="-ml-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-sm text-ink-700 transition-colors hover:bg-paper-sunken hover:text-ink-900 md:hidden"
       >
-        <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-        </svg>
-      </button>
+        <MenuIcon />
+      </a>
 
-      {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-ink-900/40" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div
-            ref={panelRef}
-            id={panelId}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Меню на сайта"
-            className="absolute inset-y-0 left-0 flex w-[86%] max-w-sm flex-col overflow-y-auto bg-paper shadow-float"
-          >
-            <div className="flex items-center justify-between border-b border-line px-4 py-4">
-              <span className="font-display text-lg font-semibold">Меню</span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Затвори менюто"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-700 hover:bg-paper-sunken"
-              >
-                <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
+      {/*
+        Drawn at the end of `body`, not here. The header blurs what is behind
+        it, and an element with a backdrop filter becomes the box its fixed
+        descendants are positioned in: left inside the header, the drawer
+        would be a hundred pixels tall.
+      */}
+      {open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div
+              className="absolute inset-0 bg-ink-900/40 transition-opacity duration-200 ease-out starting:opacity-0"
+              onClick={() => setOpen(false)}
+              aria-hidden="true"
+            />
+            <div
+              ref={panelRef}
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Меню на сайта"
+              // A link to the page already open changes no path, so the effect
+              // above would never hear of it.
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("a[href]")) setOpen(false);
+              }}
+              className="absolute inset-y-0 left-0 flex w-[86%] max-w-sm flex-col overflow-y-auto overscroll-contain bg-paper shadow-float transition-[translate,opacity] duration-200 ease-out starting:-translate-x-full starting:opacity-0"
+            >
+              <div className="flex items-center justify-between border-b border-line py-2 pr-2 pl-4">
+                <Wordmark />
+                <button
+                  ref={closeRef}
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Затвори менюто"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-ink-700 transition-colors hover:bg-paper-sunken hover:text-ink-900"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
 
-            <nav aria-label="Сайт" className="flex-1 px-2 py-3">
-              <ul className="space-y-0.5">
-                {categories.map((category) => (
-                  <li key={category.slug}>
-                    <Link
-                      href={`/categories/${category.slug}`}
-                      className="flex items-center justify-between rounded-sm px-3 py-3 text-base font-medium text-ink-900 hover:bg-paper-sunken"
-                    >
-                      {category.name}
-                      <span className="text-xs text-ink-300">{category.productCount}</span>
-                    </Link>
-                    {category.children.length > 0 && (
-                      <ul className="mb-1 ml-3 border-l border-line pl-3">
-                        {category.children.map((child) => (
-                          <li key={child.slug}>
-                            <Link
-                              href={`/categories/${child.slug}`}
-                              className="flex items-center justify-between rounded-sm px-3 py-2.5 text-sm text-ink-700 hover:bg-paper-sunken"
-                            >
-                              {child.name}
-                              <span className="text-2xs text-ink-300">{child.productCount}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
+              <nav aria-label="Основна навигация" className="flex-1 px-2 py-3">
+                <ul className="space-y-2 px-1">
+                  <li>
+                    {entry(
+                      FIND_BY_MACHINE.href,
+                      <MachineIcon className="h-5 w-5 text-pine-700" />,
+                      FIND_BY_MACHINE.label,
+                      "По марка и модел",
                     )}
                   </li>
-                ))}
-              </ul>
+                  <li>
+                    {entry(
+                      WIZARD.href,
+                      <WizardIcon className="h-5 w-5 text-pine-700" />,
+                      WIZARD.label,
+                      "Няколко въпроса, три предложения",
+                    )}
+                  </li>
+                </ul>
 
-              <hr className="my-3 border-line" />
+                {capsules && (
+                  <>
+                    <p className={GROUP_LABEL}>Капсули по система</p>
+                    <ul>
+                      {capsules.systems.map((system) => (
+                        <li key={system.id} data-system={system.id}>
+                          {row(
+                            system.href,
+                            <>
+                              <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                              <span className="min-w-0 flex-1">{system.name}</span>
+                              {count(system.count)}
+                            </>,
+                          )}
+                        </li>
+                      ))}
+                      <li>
+                        {row(
+                          capsules.href,
+                          "Всички капсули",
+                          pathname === capsules.href ? "" : "font-medium !text-pine-700",
+                        )}
+                      </li>
+                    </ul>
+                    <hr className="my-2 border-line" />
+                  </>
+                )}
 
-              <ul className="space-y-0.5">
-                <li>
-                  <Link href="/wizard" className="block rounded-sm px-3 py-3 text-base font-medium hover:bg-paper-sunken">
-                    Кое кафе е за вас
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/brands" className="block rounded-sm px-3 py-3 text-base font-medium hover:bg-paper-sunken">
-                    Марки
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/promotions"
-                    className="block rounded-sm px-3 py-3 text-base font-medium text-clay-600 hover:bg-paper-sunken"
-                  >
-                    Промоции
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="block rounded-sm px-3 py-3 text-base font-medium hover:bg-paper-sunken">
-                    Контакти
-                  </Link>
-                </li>
-              </ul>
-            </nav>
+                <ul className={capsules ? undefined : "mt-3"}>
+                  {pods && (
+                    <li>
+                      {row(
+                        pods.href,
+                        <>
+                          <span className="min-w-0 flex-1">{pods.name}</span>
+                          {count(pods.count)}
+                        </>,
+                      )}
+                    </li>
+                  )}
+                  {beans && (
+                    <li>
+                      {row(
+                        beans.href,
+                        <>
+                          <span className="min-w-0 flex-1">{beans.name}</span>
+                          {count(beans.count)}
+                        </>,
+                      )}
+                    </li>
+                  )}
+                  {navigation.otherCategories.map((category) => (
+                    <li key={category.href}>
+                      {row(
+                        category.href,
+                        <>
+                          <span className="min-w-0 flex-1">{category.label}</span>
+                          {count(category.count)}
+                        </>,
+                      )}
+                    </li>
+                  ))}
+                  <li>{row(navigation.vending.href, navigation.vending.label)}</li>
+                  <li>{row(navigation.consumables.href, navigation.consumables.label)}</li>
+                </ul>
 
-            <div className="border-t border-line px-5 py-4">
-              <a href={`tel:${siteConfig.contact.phoneHref}`} className="text-base font-medium text-pine-700">
-                {siteConfig.contact.phone}
-              </a>
-              <p className="mt-0.5 text-xs text-ink-500">{siteConfig.contact.hours}</p>
+                <hr className="my-2 border-line" />
+
+                <ul>
+                  <li>{row(BRANDS.href, BRANDS.label)}</li>
+                  {navigation.hasPromotions && (
+                    <li>
+                      {row(
+                        PROMOTIONS.href,
+                        PROMOTIONS.label,
+                        pathname === PROMOTIONS.href ? "" : "!text-clay-600",
+                      )}
+                    </li>
+                  )}
+                  {navigation.hasJournal && <li>{row(JOURNAL.href, JOURNAL.label)}</li>}
+                  <li>{row(DELIVERY.href, DELIVERY.label)}</li>
+                  <li>{row(CONTACT.href, CONTACT.label)}</li>
+                </ul>
+              </nav>
+
+              <div className="border-t border-line bg-paper-sunken p-4">
+                <a
+                  href={`tel:${siteConfig.contact.phoneHref}`}
+                  className="inline-flex min-h-11 items-center text-base font-medium text-pine-700 tabular-nums underline-offset-4 hover:underline"
+                >
+                  {siteConfig.contact.phone}
+                </a>
+                {siteConfig.contact.hours && (
+                  <p className="text-sm text-ink-500">{siteConfig.contact.hours}</p>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

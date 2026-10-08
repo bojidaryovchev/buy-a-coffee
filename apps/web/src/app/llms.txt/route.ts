@@ -1,6 +1,11 @@
-import { siteConfig, absoluteUrl, usingPlaceholderBrand } from "@/config/site";
+import { siteConfig, usingPlaceholderBrand } from "@/config/site";
 import { getCatalogSummary, getCategoryTree, listBrands } from "@/lib/catalog/queries";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/vending";
+import { listArticles } from "@/lib/journal";
+import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";
+import { consumablesCopy, vendingCopy } from "../../../content/vending";
+import { llmsText } from "./body";
 
 /**
  * `/llms.txt` — a plain-language map of the shop for AI search.
@@ -22,6 +27,10 @@ import { MACHINE_BRANDS } from "@/content/machines";
  * confirmed is the same mistake as an indexed catalogue, in the one format
  * designed to be quoted verbatim.
  *
+ * The delivery and payment terms are the sentences `components/commerce/terms.ts`
+ * builds for the site's own pages, and only for the terms that are set — see
+ * `body.ts`, which holds the wording so that a test can read it.
+ *
  * The company's legal identity is deliberately absent while
  * `usingPlaceholderBrand()` is true. `organizationJsonLd` guards it the same
  * way, for the same reason: a fabricated company number must not reach a format
@@ -35,8 +44,7 @@ const isProduction = (): boolean => {
   if (hostEnvironment) return hostEnvironment === "production";
   return (
     process.env.NEXT_PUBLIC_ENVIRONMENT === "production" ||
-    (process.env.NODE_ENV === "production" &&
-      process.env.NEXT_PUBLIC_ENVIRONMENT === undefined)
+    (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_ENVIRONMENT === undefined)
   );
 };
 
@@ -54,79 +62,31 @@ export async function GET() {
     listBrands({ withProductsOnly: true }),
   ]);
 
-  /* Top-level categories only. The tree runs three deep in places, and a flat
-     list of every leaf would be a sitemap in prose rather than a map. */
-  const categories = tree
-    .map((c) => `- [${c.name}](${absoluteUrl(`/categories/${c.slug}`)})`)
-    .join("\n");
-
-  const brandList = brands
-    .map((b) => `- [${b.name}](${absoluteUrl(`/brands/${b.slug}`)})`)
-    .join("\n");
-
-  const key = (
-    [
-      ["/wizard", "Кое кафе е за мен — препоръка по система, вкус и бюджет"],
-      ["/wizard/machines", "Коя капсула става за моята машина — по марка и модел"],
-      ["/categories", "Всички категории"],
-      ["/brands", "Всички марки"],
-      ["/promotions", "Промоции"],
-      ["/contact", "Контакти"],
-    ] as const
-  )
-    .map(([path, label]) => `- [${label}](${absoluteUrl(path)})`)
-    .join("\n");
-
-  const body = `# ${siteConfig.name}
-
-> ${siteConfig.description}
-
-Онлайн магазин за кафе в България: ${summary.products} продукта от
-${summary.brands} марки в ${summary.categories} категории. Поръчката е на една
-стъпка — оставяте телефон и ние се обаждаме за потвърждение.
-
-Ключови факти:
-
-- Обхват: само България. Всички цени са в ${siteConfig.currency}.
-- Продават се кафе на зърна, капсули и дози (доза-в-опаковка), както и
-  консумативи.
-- Поръчката не изисква регистрация и не се плаща онлайн — потвърждава се по
-  телефон.
-- Работно време за запитвания: ${siteConfig.contact.hours}
-- Телефон: ${siteConfig.contact.phone}
-- Имейл: ${siteConfig.contact.email}
-
-## Категории
-
-${categories}
-
-## Марки
-
-${brandList}
-
-## Основни страници
-
-${key}
-
-## Съвместимост с машини
-
-Сайтът публикува страница за всяка от ${MACHINE_BRANDS.length} марки машини,
-която казва коя капсулна система използва тя и кои капсули от каталога стават за
-нея.
-
-## Бележки
-
-- Цените и наличностите на сайта се обновяват редовно. Окончателната цена и
-  наличност се потвърждават по телефона при поръчката.
-- Страницата на продукт, който вече не се предлага, остава достъпна и показва,
-  че продуктът не се предлага.
-- Сайтът не публикува ревюта и рейтинги.
-${
-  usingPlaceholderBrand()
-    ? "- Фирмените регистрационни данни предстои да бъдат публикувани."
-    : `- Фирма: ${siteConfig.legal.companyName}, ЕИК ${siteConfig.legal.companyId}.`
-}
-`;
+  const body = llmsText({
+    summary,
+    /* Top-level categories only. The tree runs three deep in places, and a flat
+       list of every leaf would be a sitemap in prose rather than a map. The
+       category behind a business section is named by that section's page. */
+    categories: tree
+      .filter((category) => !isSectionCategory(category, BUSINESS_SECTIONS))
+      .map((category) => ({ name: category.name, href: `/categories/${category.slug}` })),
+    brands: brands.map((brand) => ({ name: brand.name, href: `/brands/${brand.slug}` })),
+    machineBrandCount: MACHINE_BRANDS.length,
+    sections: [
+      { ...vendingCopy, href: BUSINESS_SECTIONS.vending.path },
+      { ...consumablesCopy, href: BUSINESS_SECTIONS.consumables.path },
+    ].map((copy) => ({ name: copy.title, href: copy.href, description: copy.metaDescription })),
+    articles: siteConfig.features.blog
+      ? listArticles().map((article) => ({
+          name: article.title,
+          href: article.href,
+          description: article.description,
+        }))
+      : [],
+    company: usingPlaceholderBrand()
+      ? null
+      : `${siteConfig.legal.companyName}, ЕИК ${siteConfig.legal.companyId}`,
+  });
 
   return new Response(body, {
     headers: {

@@ -33,11 +33,8 @@ export function LegalDocumentView({ document }: { document: LegalDocument }) {
         <p className="mt-2 text-base text-ink-500">{document.summary}</p>
 
         {document.needsReview && (
-          <aside
-            role="note"
-            className="mt-6 rounded-md border border-clay-500/50 bg-clay-100 p-4 text-sm text-ink-900"
-          >
-            <p className="font-semibold">Този документ е чернова.</p>
+          <aside role="note" className="mt-6 rounded-md bg-caution-100 p-4 text-sm text-ink-900">
+            <p className="font-semibold text-caution">Този документ е чернова.</p>
             <p className="mt-1 text-ink-700">
               Той описва точно как работи този сайт, но текстът, специфичен за българското
               законодателство, не е преглеждан от юрист.
@@ -60,7 +57,7 @@ export function LegalDocumentView({ document }: { document: LegalDocument }) {
                 isReviewParagraph(paragraph) ? (
                   <p
                     key={paragraph}
-                    className="mt-3 rounded-sm border-l-2 border-clay-500 bg-clay-100/60 px-3 py-2 text-sm text-ink-700"
+                    className="mt-3 rounded-sm border-l-2 border-caution bg-caution-100 px-3 py-2 text-sm text-ink-700"
                   >
                     {paragraph}
                   </p>
