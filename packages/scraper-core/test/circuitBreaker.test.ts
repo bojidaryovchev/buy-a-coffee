@@ -65,7 +65,11 @@ describe("evaluateCircuitBreaker", () => {
   });
 
   it("opens when no catalog source could be used at all", () => {
-    const decision = evaluate({ catalogSource: "none", discoveredCount: 0, disappearingCount: 110 });
+    const decision = evaluate({
+      catalogSource: "none",
+      discoveredCount: 0,
+      disappearingCount: 110,
+    });
     expect(decision.reasons).toContain("catalog_entry_pages_failed");
   });
 
@@ -150,9 +154,14 @@ function change(changeType: ProductChange["changeType"], sourceKey: string): Pro
     changedFields: [],
     before: null,
     after: null,
-    nextStatus: changeType === "removed" ? "removed" : changeType === "marked_missing" ? "missing" : "active",
+    nextStatus:
+      changeType === "removed" ? "removed" : changeType === "marked_missing" ? "missing" : "active",
     nextMissingCount: 0,
     product: null,
+    movedFrom:
+      changeType === "moved"
+        ? { sourceKey: "old", matchedBy: "fingerprint", decidedBy: null }
+        : null,
   };
 }
 
@@ -165,6 +174,7 @@ describe("suppressRemovals", () => {
         change("restored", "c"),
         change("marked_missing", "d"),
         change("removed", "e"),
+        change("moved", "f"),
       ],
       created: [change("created", "a")],
       updated: [change("updated", "b")],
@@ -172,11 +182,26 @@ describe("suppressRemovals", () => {
       missing: [change("marked_missing", "d")],
       removed: [change("removed", "e")],
       restored: [change("restored", "c")],
-      counts: { created: 1, updated: 1, unchanged: 0, marked_missing: 1, removed: 1, restored: 1 },
+      moved: [change("moved", "f")],
+      unresolvedMoves: [],
+      counts: {
+        created: 1,
+        updated: 1,
+        unchanged: 0,
+        marked_missing: 1,
+        removed: 1,
+        restored: 1,
+        moved: 1,
+      },
     };
 
     const safe = suppressRemovals(diff);
-    expect(safe.changes.map((c) => c.changeType)).toEqual(["created", "updated", "restored"]);
+    expect(safe.changes.map((c) => c.changeType)).toEqual([
+      "created",
+      "updated",
+      "restored",
+      "moved",
+    ]);
     expect(safe.missing).toEqual([]);
     expect(safe.removed).toEqual([]);
     expect(safe.counts.marked_missing).toBe(0);
@@ -185,5 +210,8 @@ describe("suppressRemovals", () => {
     expect(safe.counts.created).toBe(1);
     expect(safe.counts.updated).toBe(1);
     expect(safe.counts.restored).toBe(1);
+    // A move re-points a row that stays in the catalog; it is not a removal.
+    expect(safe.moved).toHaveLength(1);
+    expect(safe.counts.moved).toBe(1);
   });
 });

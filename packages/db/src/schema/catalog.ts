@@ -33,7 +33,13 @@ export const brands = pgTable(
       .notNull()
       .references(() => sourceSites.id, { onDelete: "cascade" }),
     sourceKey: text("source_key").notNull(),
+    /** The source's own numeric id. Stable across slug renames; matched first. */
     sourceId: text("source_id"),
+    /** Source keys this row answered to before a rename, oldest first. */
+    previousSourceKeys: text("previous_source_keys")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     sourceUrl: text("source_url"),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
@@ -49,6 +55,7 @@ export const brands = pgTable(
   (table) => [
     uniqueIndex("brands_source_key_idx").on(table.sourceSiteId, table.sourceKey),
     uniqueIndex("brands_slug_idx").on(table.sourceSiteId, table.slug),
+    index("brands_source_id_idx").on(table.sourceSiteId, table.sourceId),
     index("brands_status_idx").on(table.status),
   ],
 );
@@ -62,7 +69,13 @@ export const categories = pgTable(
       .notNull()
       .references(() => sourceSites.id, { onDelete: "cascade" }),
     sourceKey: text("source_key").notNull(),
+    /** The source's own numeric id. Stable across slug renames; matched first. */
     sourceId: text("source_id"),
+    /** Source keys this row answered to before a rename, oldest first. */
+    previousSourceKeys: text("previous_source_keys")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     sourceUrl: text("source_url"),
     parentId: uuid("parent_id").references((): AnyPgColumn => categories.id, {
       onDelete: "set null",
@@ -80,6 +93,7 @@ export const categories = pgTable(
   (table) => [
     uniqueIndex("categories_source_key_idx").on(table.sourceSiteId, table.sourceKey),
     uniqueIndex("categories_slug_idx").on(table.sourceSiteId, table.slug),
+    index("categories_source_id_idx").on(table.sourceSiteId, table.sourceId),
     index("categories_parent_idx").on(table.parentId),
     index("categories_status_idx").on(table.status),
   ],
@@ -107,6 +121,16 @@ export const products = pgTable(
     sourceVariantKey: text("source_variant_key"),
     /** True when more than one product shares this source URL. */
     hasUrlCollision: boolean("has_url_collision").notNull().default(false),
+    /**
+     * Every `sourceKey` this row has answered to before its current one,
+     * oldest first. The source renames product URLs; when it does, the sync
+     * re-points the row instead of creating a twin, and the key it left is
+     * kept here so the rename stays traceable.
+     */
+    previousSourceKeys: text("previous_source_keys")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
 
     name: text("name").notNull(),
     slug: text("slug").notNull(),

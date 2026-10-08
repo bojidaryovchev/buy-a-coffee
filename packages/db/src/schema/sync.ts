@@ -50,6 +50,8 @@ export const syncRuns = pgTable(
     missingCount: integer("missing_count").notNull().default(0),
     removedCount: integer("removed_count").notNull().default(0),
     restoredCount: integer("restored_count").notNull().default(0),
+    /** Rows re-pointed at a renamed source URL rather than duplicated. */
+    movedCount: integer("moved_count").notNull().default(0),
     failedCount: integer("failed_count").notNull().default(0),
 
     imagesMirrored: integer("images_mirrored").notNull().default(0),
@@ -124,7 +126,9 @@ export const catalogBaselines = pgTable(
     brandCount: integer("brand_count").notNull().default(0),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().default(now),
   },
-  (table) => [index("catalog_baselines_site_recorded_idx").on(table.sourceSiteId, table.recordedAt)],
+  (table) => [
+    index("catalog_baselines_site_recorded_idx").on(table.sourceSiteId, table.recordedAt),
+  ],
 );
 
 export const syncRunsRelations = relations(syncRuns, ({ one, many }) => ({

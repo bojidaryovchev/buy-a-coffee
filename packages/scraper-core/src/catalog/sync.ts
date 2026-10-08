@@ -6,12 +6,18 @@ import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { ImageMirror } from "../storage/images.ts";
 import type { StorageDriver } from "../storage/driver.ts";
-import { type BreakerDecision, evaluateCircuitBreaker, suppressRemovals } from "./circuitBreaker.ts";
+import {
+  type BreakerDecision,
+  evaluateCircuitBreaker,
+  suppressRemovals,
+} from "./circuitBreaker.ts";
 import { type DiffResult, diffCatalog } from "./diff.ts";
 import { type CatalogDiscoveryResult, discoverCatalog } from "./discover.ts";
 import { assignUniqueSlug } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
+import type { TaxonomyChanges } from "./taxonomy.ts";
 import {
+  applyProductMove,
   countActiveProducts,
   countAllProducts,
   ensureSourceSite,
@@ -64,6 +70,8 @@ export interface SyncResult {
   readonly diff: DiffResult;
   readonly appliedDiff: DiffResult;
   readonly breaker: BreakerDecision;
+  /** Brand and category rows created, renamed in place, hidden or brought back. */
+  readonly taxonomy: { readonly brands: TaxonomyChanges; readonly categories: TaxonomyChanges };
   readonly productsBefore: number;
   readonly productsAfter: number;
   readonly images: { mirrored: number; skipped: number; failed: number };
@@ -139,6 +147,15 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       missingThreshold: config.missingThreshold,
     });
 
+    if (diff.unresolvedMoves.length > 0) {
+      // Each of these becomes a duplicate unless someone pairs it by hand
+      // (`catalog:link`), so it must not pass silently.
+      runLogger.warn("sync.moves_unresolved", {
+        count: diff.unresolvedMoves.length,
+        unresolved: diff.unresolvedMoves,
+      });
+    }
+
     // 3. Judge --------------------------------------------------------------
     const baseline = await loadLatestBaseline(db, site.id);
     const breaker = evaluateCircuitBreaker(
@@ -146,6 +163,8 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         discoveredCount: discovery.products.length,
         activeCount: activeBefore,
         baselineDiscoveredCount: baseline?.discoveredProductCount ?? null,
+        // Counted after move pairing: a renamed product is in `diff.moved`,
+        // not here, so a mass rename is not judged a mass removal.
         disappearingCount: diff.missing.length + diff.removed.length,
         parserConfidence: discovery.confidence,
         failedEntryPages: discovery.errors.filter((e) => e.stage.includes("fetch")).length,
@@ -172,9 +191,34 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
     // 4. Apply --------------------------------------------------------------
     let images = { mirrored: 0, skipped: 0, failed: 0 };
 
+    /*
+     * A brand or category missing from the listing is hidden, with the same
+     * caution as a product: never on a run the breaker refused, and never
+     * from the HTML fallback, which sees only part of the taxonomy. There is
+     * no counter here as there is for products — hiding is the whole effect,
+     * the row and its slug are kept, and the next listing that includes it
+     * brings it straight back.
+     */
+    const taxonomyOptions = {
+      markAbsent: !breaker.tripped && discovery.source === "filter_init",
+      dryRun,
+    };
+    const brandResult = await upsertBrands(db, site.id, discovery.brands, taxonomyOptions);
+    const categoryResult = await upsertCategories(
+      db,
+      site.id,
+      discovery.categories,
+      taxonomyOptions,
+    );
+    const taxonomy = { brands: brandResult.changes, categories: categoryResult.changes };
+    const taxonomyConflicts = [...taxonomy.brands.conflicts, ...taxonomy.categories.conflicts];
+    if (taxonomyConflicts.length > 0) {
+      runLogger.warn("sync.taxonomy_key_conflict", { conflicts: taxonomyConflicts });
+    }
+
     if (!dryRun) {
-      const brandMap = await upsertBrands(db, site.id, discovery.brands);
-      const categoryMap = await upsertCategories(db, site.id, discovery.categories);
+      const brandMap = brandResult.ids;
+      const categoryMap = categoryResult.ids;
       const existingSlugs = await loadTakenProductSlugs(db, site.id);
       const takenSlugs = new Set(existingSlugs.values());
 
@@ -205,6 +249,50 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
 
         const product = change.product;
         if (!product) continue;
+
+        if (change.changeType === "moved") {
+          // The existing row is re-pointed by id. It is never upserted — the
+          // new key matches no row, so an upsert would insert the twin this
+          // change type exists to prevent — and no slug is allocated.
+          const productId = change.productId as string;
+          const contentChanged = change.changedFields.includes("semanticHash");
+          await applyProductMove(db, {
+            syncRunId,
+            productId,
+            to: {
+              sourceKey: product.sourceKey,
+              sourcePath: product.sourcePath,
+              sourceUrl: product.sourceUrl,
+              sourceVariantKey: product.sourceVariantKey,
+            },
+            set: {
+              ...productColumns({
+                product,
+                syncRunId,
+                brandId: product.brandKey ? (brandMap.get(product.brandKey) ?? null) : null,
+              }),
+              removedAt: null,
+              lastSeenAt: sql`now()`,
+              // A bare rename is not a content change.
+              ...(contentChanged ? { lastChangedAt: sql`now()` } : {}),
+            },
+            changedFields: change.changedFields,
+            before: change.before ?? {},
+            after: change.after ?? {},
+          });
+          productIdByKey.set(product.sourceKey, productId);
+
+          const movedCategoryIds = product.categoryKeys
+            .map((key) => categoryMap.get(key))
+            .filter((id): id is string => typeof id === "string");
+          await replaceProductCategories(
+            db,
+            productId,
+            movedCategoryIds,
+            movedCategoryIds[0] ?? null,
+          );
+          continue;
+        }
 
         // Slug is allocated once and then never changed, so storefront URLs
         // and any external links to them stay stable across syncs.
@@ -293,6 +381,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         missingCount: appliedDiff.counts.marked_missing,
         removedCount: appliedDiff.counts.removed,
         restoredCount: appliedDiff.counts.restored,
+        movedCount: appliedDiff.counts.moved,
         failedCount: discovery.errors.length + discovery.invalidRecords.length,
         imagesMirrored: images.mirrored,
         imagesSkipped: images.skipped,
@@ -302,6 +391,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         circuitBreakerDetail: breaker.detail,
         catalogSource: discovery.source,
         parserConfidence: discovery.confidence.toFixed(3),
+        metadata: sql`${syncRuns.metadata} || ${JSON.stringify({ unresolvedMoves: diff.unresolvedMoves, taxonomy })}::jsonb`,
       })
       .where(eq(syncRuns.id, syncRunId));
 
@@ -310,6 +400,8 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       durationMs,
       discovered: discovery.products.length,
       ...appliedDiff.counts,
+      unresolvedMoves: diff.unresolvedMoves.length,
+      taxonomy,
       images,
       circuitBreakerTripped: breaker.tripped,
       catalogSource: discovery.source,
@@ -324,6 +416,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       diff,
       appliedDiff,
       breaker,
+      taxonomy,
       productsBefore,
       productsAfter,
       images,
@@ -366,14 +459,51 @@ async function upsertProduct(
   const { product } = input;
 
   const values = {
+    ...productColumns(input),
     sourceSiteId: input.sourceSiteId,
     sourceKey: product.sourceKey,
     sourceUrl: product.sourceUrl,
     sourcePath: product.sourcePath,
     sourceVariantKey: product.sourceVariantKey,
+    slug: input.slug,
+  };
+
+  const [row] = await db
+    .insert(products)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [products.sourceSiteId, products.sourceKey],
+      set: {
+        ...values,
+        // `slug` is intentionally omitted: it is allocated once and frozen.
+        slug: sql`${products.slug}`,
+        removedAt: null,
+        lastSeenAt: sql`now()`,
+        // `lastChangedAt` only moves when the content actually changed.
+        ...(input.isUnchanged ? {} : { lastChangedAt: sql`now()` }),
+      },
+    })
+    .returning({ id: products.id });
+
+  if (!row) throw new Error(`Failed to upsert product ${product.sourceKey}`);
+  return row.id;
+}
+
+/**
+ * The columns the sync owns, apart from identity and slug.
+ *
+ * Shared by the upsert and by a move, so a product that is renamed and edited
+ * in the same run is refreshed exactly as an ordinary update would refresh it.
+ */
+function productColumns(input: {
+  product: NormalizedProduct;
+  syncRunId: string;
+  brandId: string | null;
+}) {
+  const { product } = input;
+  return {
     hasUrlCollision: product.hasUrlCollision,
     name: product.name,
-    slug: input.slug,
     currentPrice: product.currentPrice?.amount ?? null,
     oldPrice: product.oldPrice?.amount ?? null,
     currency: product.currency,
@@ -400,26 +530,6 @@ async function upsertProduct(
     consecutiveMissingCount: 0,
     latestSyncRunId: input.syncRunId,
   };
-
-  const [row] = await db
-    .insert(products)
-    .values(values)
-    .onConflictDoUpdate({
-      target: [products.sourceSiteId, products.sourceKey],
-      set: {
-        ...values,
-        // `slug` is intentionally omitted: it is allocated once and frozen.
-        slug: sql`${products.slug}`,
-        removedAt: null,
-        lastSeenAt: sql`now()`,
-        // `lastChangedAt` only moves when the content actually changed.
-        ...(input.isUnchanged ? {} : { lastChangedAt: sql`now()` }),
-      },
-    })
-    .returning({ id: products.id });
-
-  if (!row) throw new Error(`Failed to upsert product ${product.sourceKey}`);
-  return row.id;
 }
 
 async function mirrorProductImages(input: {
@@ -485,7 +595,11 @@ async function mirrorProductImages(input: {
         })
         .onConflictDoUpdate({
           target: [productImages.productId, productImages.sourceUrl],
-          set: { status: "failed", lastError: (result.error ?? "unknown").slice(0, 1000), lastSeenAt: sql`now()` },
+          set: {
+            status: "failed",
+            lastError: (result.error ?? "unknown").slice(0, 1000),
+            lastSeenAt: sql`now()`,
+          },
         });
       continue;
     }
@@ -516,8 +630,10 @@ async function mirrorProductImages(input: {
           sourceContentHash: result.contentHash,
           objectKey: result.objectKey,
           publicUrl: result.publicUrl,
-          mimeType: result.mimeType,
-          byteSize: result.byteSize,
+          // A skipped image was not downloaded, so the mirror has nothing to
+          // say about its type or size. What an earlier run stored stands.
+          ...(result.mimeType !== null ? { mimeType: result.mimeType } : {}),
+          ...(result.byteSize !== null ? { byteSize: result.byteSize } : {}),
           ordinal: result.request.ordinal,
           isPrimary: result.request.ordinal === 0,
           alt: result.request.alt,

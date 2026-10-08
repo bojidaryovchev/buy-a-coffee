@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import type { AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
 import type { Database } from "@catalog/db";
 import {
   brands,
@@ -12,9 +13,9 @@ import {
   syncChanges,
   syncRuns,
 } from "@catalog/db/schema";
-import { slugify } from "@catalog/shared";
 import type { ExistingProduct } from "./diff.ts";
 import type { DiscoveredBrand, DiscoveredCategory } from "./discover.ts";
+import { type TaxonomyChanges, planEntities, summarisePlan } from "./taxonomy.ts";
 
 /**
  * All catalog persistence lives here.
@@ -65,6 +66,7 @@ export async function loadExistingProducts(
     .select({
       id: products.id,
       sourceKey: products.sourceKey,
+      sourcePath: products.sourcePath,
       semanticHash: products.semanticHash,
       status: products.status,
       consecutiveMissingCount: products.consecutiveMissingCount,
@@ -87,6 +89,7 @@ export async function loadExistingProducts(
   return rows.map((row) => ({
     id: row.id,
     sourceKey: row.sourceKey,
+    sourcePath: row.sourcePath,
     semanticHash: row.semanticHash,
     status: row.status,
     consecutiveMissingCount: row.consecutiveMissingCount,
@@ -158,23 +161,95 @@ export async function recordBaseline(
   await db.insert(catalogBaselines).values(input);
 }
 
-/** Upsert brands and return a source-key -> id map. */
+export interface TaxonomyOptions {
+  /**
+   * Hide live rows the listing does not account for. Only ever true for a run
+   * the circuit breaker trusted, read from the source's structured catalog.
+   */
+  readonly markAbsent?: boolean;
+  /** Work out what would change and write nothing. */
+  readonly dryRun?: boolean;
+}
+
+export interface TaxonomyResult {
+  /** Source key -> row id, for every record in the listing that has a row. */
+  readonly ids: Map<string, string>;
+  readonly changes: TaxonomyChanges;
+}
+
+/** Append `key` to a `previous_source_keys` column unless it is already there. */
+function appendKey(column: AnyPgColumn, key: string) {
+  return sql`case
+    when ${key}::text = any(${column}) then ${column}
+    else array_append(${column}, ${key}::text)
+  end`;
+}
+
+/**
+ * Reconcile brands against the listing and return a source-key -> id map.
+ *
+ * A brand is matched on the source's numeric id first and on its slug second
+ * (see `taxonomy.ts`), so a brand the source re-slugs is updated in place: its
+ * row id and its storefront `slug` — an indexed URL — never change, and the
+ * key it left is kept in `previous_source_keys`.
+ */
 export async function upsertBrands(
   db: Database,
   sourceSiteId: string,
   discovered: readonly DiscoveredBrand[],
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (discovered.length === 0) return map;
+  options: TaxonomyOptions = {},
+): Promise<TaxonomyResult> {
+  const existing = await db
+    .select({
+      id: brands.id,
+      sourceKey: brands.sourceKey,
+      sourceId: brands.sourceId,
+      slug: brands.slug,
+      status: brands.status,
+    })
+    .from(brands)
+    .where(eq(brands.sourceSiteId, sourceSiteId))
+    .orderBy(brands.firstSeenAt, brands.id);
 
-  const takenSlugs = new Set<string>();
-  for (const brand of discovered) {
-    let slug = slugify(brand.name) || brand.sourceKey;
-    let attempt = 2;
-    while (takenSlugs.has(slug)) slug = `${slugify(brand.name) || brand.sourceKey}-${attempt++}`;
-    takenSlugs.add(slug);
+  const plan = planEntities(existing, discovered);
+  const markAbsent = (options.markAbsent ?? false) && discovered.length > 0;
+  const changes = summarisePlan(plan, { markAbsent });
+  const ids = new Map<string, string>();
 
-    const [row] = await db
+  if (options.dryRun) {
+    for (const { incoming, existing: row } of plan.assignments) {
+      if (row) ids.set(incoming.sourceKey, row.id);
+    }
+    return { ids, changes };
+  }
+
+  for (const { incoming: brand, existing: row, renamedFrom, slug } of plan.assignments) {
+    if (row) {
+      await db
+        .update(brands)
+        .set({
+          sourceKey: brand.sourceKey,
+          name: brand.name,
+          // The HTML fallback knows no ids; it must not erase the ones we hold.
+          ...(brand.sourceId !== null ? { sourceId: brand.sourceId } : {}),
+          sourceUrl: brand.url,
+          sourceProductCount: brand.productCount,
+          status: "active",
+          lastSeenAt: sql`now()`,
+          // `slug` is not in this statement: it is allocated once and frozen.
+          ...(renamedFrom !== null
+            ? {
+                previousSourceKeys: appendKey(brands.previousSourceKeys, renamedFrom),
+                lastChangedAt: sql`now()`,
+              }
+            : {}),
+        })
+        .where(eq(brands.id, row.id));
+      ids.set(brand.sourceKey, row.id);
+      continue;
+    }
+
+    const [inserted] = await db
       .insert(brands)
       .values({
         sourceSiteId,
@@ -186,40 +261,89 @@ export async function upsertBrands(
         sourceProductCount: brand.productCount,
         status: "active",
       })
-      .onConflictDoUpdate({
-        target: [brands.sourceSiteId, brands.sourceKey],
-        set: {
-          name: brand.name,
-          sourceId: brand.sourceId,
-          sourceUrl: brand.url,
-          sourceProductCount: brand.productCount,
-          status: "active",
-          lastSeenAt: sql`now()`,
-        },
-      })
-      .returning({ id: brands.id, sourceKey: brands.sourceKey });
-    if (row) map.set(row.sourceKey, row.id);
+      .returning({ id: brands.id });
+    if (inserted) ids.set(brand.sourceKey, inserted.id);
   }
-  return map;
+
+  if (markAbsent && plan.absent.length > 0) {
+    await db
+      .update(brands)
+      .set({ status: "missing" })
+      .where(
+        inArray(
+          brands.id,
+          plan.absent.map((row) => row.id),
+        ),
+      );
+  }
+
+  return { ids, changes };
 }
 
-/** Upsert categories, then wire up parents in a second pass. */
+/**
+ * Reconcile categories, then wire up parents in a second pass.
+ *
+ * Matching and slug rules are the same as for brands. Parents are resolved
+ * through the row ids, so a parent the source renames keeps its children: the
+ * children's `parent_id` already points at the row, and the row stays.
+ */
 export async function upsertCategories(
   db: Database,
   sourceSiteId: string,
   discovered: readonly DiscoveredCategory[],
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (discovered.length === 0) return map;
+  options: TaxonomyOptions = {},
+): Promise<TaxonomyResult> {
+  const existing = await db
+    .select({
+      id: categories.id,
+      sourceKey: categories.sourceKey,
+      sourceId: categories.sourceId,
+      slug: categories.slug,
+      status: categories.status,
+    })
+    .from(categories)
+    .where(eq(categories.sourceSiteId, sourceSiteId))
+    .orderBy(categories.firstSeenAt, categories.id);
 
-  const takenSlugs = new Set<string>();
-  for (const category of discovered) {
-    let slug = slugify(category.name) || category.sourceKey;
-    let attempt = 2;
-    while (takenSlugs.has(slug)) slug = `${slugify(category.name) || category.sourceKey}-${attempt++}`;
-    takenSlugs.add(slug);
+  const plan = planEntities(existing, discovered);
+  const markAbsent = (options.markAbsent ?? false) && discovered.length > 0;
+  const changes = summarisePlan(plan, { markAbsent });
+  const ids = new Map<string, string>();
 
-    const [row] = await db
+  if (options.dryRun) {
+    for (const { incoming, existing: row } of plan.assignments) {
+      if (row) ids.set(incoming.sourceKey, row.id);
+    }
+    return { ids, changes };
+  }
+
+  for (const { incoming: category, existing: row, renamedFrom, slug } of plan.assignments) {
+    if (row) {
+      await db
+        .update(categories)
+        .set({
+          sourceKey: category.sourceKey,
+          name: category.name,
+          ...(category.sourceId !== null ? { sourceId: category.sourceId } : {}),
+          sourceUrl: category.url,
+          position: category.position,
+          sourceProductCount: category.productCount,
+          status: "active",
+          lastSeenAt: sql`now()`,
+          // `slug` is not in this statement: it is allocated once and frozen.
+          ...(renamedFrom !== null
+            ? {
+                previousSourceKeys: appendKey(categories.previousSourceKeys, renamedFrom),
+                lastChangedAt: sql`now()`,
+              }
+            : {}),
+        })
+        .where(eq(categories.id, row.id));
+      ids.set(category.sourceKey, row.id);
+      continue;
+    }
+
+    const [inserted] = await db
       .insert(categories)
       .values({
         sourceSiteId,
@@ -232,32 +356,35 @@ export async function upsertCategories(
         sourceProductCount: category.productCount,
         status: "active",
       })
-      .onConflictDoUpdate({
-        target: [categories.sourceSiteId, categories.sourceKey],
-        set: {
-          name: category.name,
-          sourceId: category.sourceId,
-          sourceUrl: category.url,
-          position: category.position,
-          sourceProductCount: category.productCount,
-          status: "active",
-          lastSeenAt: sql`now()`,
-        },
-      })
-      .returning({ id: categories.id, sourceKey: categories.sourceKey });
-    if (row) map.set(row.sourceKey, row.id);
+      .returning({ id: categories.id });
+    if (inserted) ids.set(category.sourceKey, inserted.id);
   }
 
-  // Parents can only be linked once every category has an id.
+  // Parents can only be linked once every category has an id. The listing is
+  // the whole tree, so a category it shows at the top level is moved there.
+  const linked = new Set<string>();
   for (const category of discovered) {
-    if (!category.parentKey) continue;
-    const childId = map.get(category.sourceKey);
-    const parentId = map.get(category.parentKey);
-    if (!childId || !parentId || childId === parentId) continue;
+    const childId = ids.get(category.sourceKey);
+    if (!childId || linked.has(childId)) continue;
+    linked.add(childId);
+    const parentId = category.parentKey ? (ids.get(category.parentKey) ?? null) : null;
+    if (category.parentKey && (!parentId || parentId === childId)) continue;
     await db.update(categories).set({ parentId }).where(eq(categories.id, childId));
   }
 
-  return map;
+  if (markAbsent && plan.absent.length > 0) {
+    await db
+      .update(categories)
+      .set({ status: "missing" })
+      .where(
+        inArray(
+          categories.id,
+          plan.absent.map((row) => row.id),
+        ),
+      );
+  }
+
+  return { ids, changes };
 }
 
 export async function loadTakenProductSlugs(
@@ -294,7 +421,9 @@ export async function replaceProductCategories(
 export async function loadProductImages(
   db: Database,
   productIds: readonly string[],
-): Promise<Map<string, Array<{ sourceUrl: string; contentHash: string | null; objectKey: string | null }>>> {
+): Promise<
+  Map<string, Array<{ sourceUrl: string; contentHash: string | null; objectKey: string | null }>>
+> {
   const map = new Map<
     string,
     Array<{ sourceUrl: string; contentHash: string | null; objectKey: string | null }>
@@ -363,6 +492,111 @@ export async function insertSyncChange(
   },
 ): Promise<void> {
   await db.insert(syncChanges).values(input);
+}
+
+/** What a move may write besides the key itself. Never the slug, never the copy. */
+export type ProductMoveColumns = Omit<
+  PgUpdateSetSource<typeof products>,
+  | "id"
+  | "sourceSiteId"
+  | "slug"
+  | "sourceKey"
+  | "sourcePath"
+  | "sourceUrl"
+  | "sourceVariantKey"
+  | "previousSourceKeys"
+  | "descriptionTextOverride"
+  | "descriptionHtmlOverride"
+  | "retailPriceOverride"
+  | "retailOldPriceOverride"
+>;
+
+export interface ProductMoveInput {
+  readonly syncRunId: string;
+  readonly productId: string;
+  readonly to: {
+    readonly sourceKey: string;
+    readonly sourcePath: string;
+    readonly sourceUrl: string;
+    readonly sourceVariantKey: string | null;
+  };
+  /** Further columns to refresh in the same statement, e.g. the new content. */
+  readonly set?: ProductMoveColumns;
+  readonly changedFields: string[];
+  readonly before: Record<string, unknown>;
+  readonly after: Record<string, unknown>;
+}
+
+export interface ProductMoveResult {
+  readonly previousSourceKey: string;
+  readonly slug: string;
+}
+
+/**
+ * Re-point an existing product row at a new source key.
+ *
+ * The one place a move is written, shared by the sync and by `catalog:link`,
+ * so an automatic and a manual move cannot drift apart. The row is addressed
+ * by id; its id, slug, description overrides and retail prices are not in the
+ * statement at all, which is what keeps storefront URLs, hand-written copy,
+ * mirrored images and order history attached to it.
+ *
+ * The audit record notes what was preserved, so `catalog:verify` can later
+ * prove that it still is.
+ */
+export async function applyProductMove(
+  db: Pick<Database, "transaction">,
+  input: ProductMoveInput,
+): Promise<ProductMoveResult> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({
+        sourceKey: products.sourceKey,
+        slug: products.slug,
+        descriptionTextOverride: products.descriptionTextOverride,
+        descriptionHtmlOverride: products.descriptionHtmlOverride,
+      })
+      .from(products)
+      .where(eq(products.id, input.productId))
+      .for("update");
+    if (!current) throw new Error(`Cannot move product ${input.productId}: no such row`);
+
+    await tx
+      .update(products)
+      .set({
+        ...input.set,
+        sourceKey: input.to.sourceKey,
+        sourcePath: input.to.sourcePath,
+        sourceUrl: input.to.sourceUrl,
+        sourceVariantKey: input.to.sourceVariantKey,
+        // A URL the source renames back and forth is still listed only once.
+        previousSourceKeys: sql`case
+          when ${current.sourceKey}::text = any(${products.previousSourceKeys}) then ${products.previousSourceKeys}
+          else array_append(${products.previousSourceKeys}, ${current.sourceKey}::text)
+        end`,
+      })
+      .where(eq(products.id, input.productId));
+
+    await tx.insert(syncChanges).values({
+      syncRunId: input.syncRunId,
+      productId: input.productId,
+      sourceKey: input.to.sourceKey,
+      changeType: "moved",
+      changedFields: input.changedFields,
+      before: { ...input.before, sourceKey: current.sourceKey },
+      after: {
+        ...input.after,
+        sourceKey: input.to.sourceKey,
+        preserved: {
+          slug: current.slug,
+          descriptionTextOverride: current.descriptionTextOverride !== null,
+          descriptionHtmlOverride: current.descriptionHtmlOverride !== null,
+        },
+      },
+    });
+
+    return { previousSourceKey: current.sourceKey, slug: current.slug };
+  });
 }
 
 export { brands, categories, productCategories, productImages, products, syncRuns };

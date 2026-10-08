@@ -9,7 +9,9 @@ import { type NormalizedProduct, normalizeProduct } from "../src/catalog/normali
 
 const OPTIONS = { sourceSite: "kafezona", defaultCurrency: "EUR" } as const;
 
-function product(overrides: Partial<Parameters<typeof normalizeProduct>[0]> = {}): NormalizedProduct {
+function product(
+  overrides: Partial<Parameters<typeof normalizeProduct>[0]> = {},
+): NormalizedProduct {
   return normalizeProduct(
     {
       path: "/lavazza-super-crema/",
@@ -58,6 +60,18 @@ describe("diffFields", () => {
   it("compares nested structures by value", () => {
     expect(diffFields({ a: { x: 1 } }, { a: { x: 1 } })).toEqual([]);
     expect(diffFields({ a: [1, 2] }, { a: [2, 1] })).toEqual(["a"]);
+  });
+
+  it("ignores the order of object keys, which a jsonb column does not keep", () => {
+    expect(
+      diffFields(
+        { attributes: { strength: "medium", decaf: "no", nested: { b: 1, a: 2 } } },
+        { attributes: { decaf: "no", nested: { a: 2, b: 1 }, strength: "medium" } },
+      ),
+    ).toEqual([]);
+    expect(diffFields({ attributes: { decaf: "no" } }, { attributes: { decaf: "yes" } })).toEqual([
+      "attributes",
+    ]);
   });
 });
 
@@ -119,11 +133,19 @@ describe("diffCatalog", () => {
 
   it("removes only once the threshold is reached", () => {
     const p = product();
-    const twice = diffCatalog([], [stored(p, { status: "missing", consecutiveMissingCount: 1 })], THRESHOLD);
+    const twice = diffCatalog(
+      [],
+      [stored(p, { status: "missing", consecutiveMissingCount: 1 })],
+      THRESHOLD,
+    );
     expect(twice.counts.removed).toBe(0);
     expect(twice.missing[0]?.nextMissingCount).toBe(2);
 
-    const thrice = diffCatalog([], [stored(p, { status: "missing", consecutiveMissingCount: 2 })], THRESHOLD);
+    const thrice = diffCatalog(
+      [],
+      [stored(p, { status: "missing", consecutiveMissingCount: 2 })],
+      THRESHOLD,
+    );
     expect(thrice.counts.removed).toBe(1);
     expect(thrice.removed[0]?.nextStatus).toBe("removed");
     expect(thrice.removed[0]?.nextMissingCount).toBe(3);
@@ -200,9 +222,23 @@ describe("diffCatalog", () => {
 
   it("handles a mixed run without cross-contamination", () => {
     const keep = product();
-    const changing = product({ path: "/illy-classico-500/", url: "https://www.kafezona.com/illy-classico-500/", name: "Illy Classico", priceText: "€9.80" });
-    const changed = product({ path: "/illy-classico-500/", url: "https://www.kafezona.com/illy-classico-500/", name: "Illy Classico", priceText: "€10.80" });
-    const vanishing = product({ path: "/gone/", url: "https://www.kafezona.com/gone/", name: "Gone" });
+    const changing = product({
+      path: "/illy-classico-500/",
+      url: "https://www.kafezona.com/illy-classico-500/",
+      name: "Illy Classico",
+      priceText: "€9.80",
+    });
+    const changed = product({
+      path: "/illy-classico-500/",
+      url: "https://www.kafezona.com/illy-classico-500/",
+      name: "Illy Classico",
+      priceText: "€10.80",
+    });
+    const vanishing = product({
+      path: "/gone/",
+      url: "https://www.kafezona.com/gone/",
+      name: "Gone",
+    });
     const fresh = product({ path: "/new/", url: "https://www.kafezona.com/new/", name: "New" });
 
     const result = diffCatalog(
