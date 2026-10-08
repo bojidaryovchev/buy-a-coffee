@@ -34,7 +34,7 @@ export default function manifest(): MetadataRoute.Manifest {
     /* The splash screen is the page background, not the header strip: an
        installed site that flashes dark and then turns paper reads as a fault.
        --color-paper, converted out of oklch. */
-    background_color: "#fbfaf6",
+    background_color: "#faf6ee",
     /* --color-pine-900, the colour of the header's utility strip, which is what
        Android paints the status bar to match. */
     theme_color: "#002c1d",

@@ -41,7 +41,7 @@ export const contentType = "image/png";
 
 /* Straight out of globals.css, converted from oklch. Values, not tokens: this
    renders through satori rather than a browser, so there is no CSS to read. */
-const PAPER = "#fbfaf6"; // --color-paper
+const PAPER = "#faf6ee"; // --color-paper
 const PINE_900 = "#002c1d"; // --color-pine-900
 
 export default async function Image() {

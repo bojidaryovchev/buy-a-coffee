@@ -56,8 +56,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     id: "dolce-gusto",
     name: "Dolce Gusto",
     summary: "Големи пластмасови капсули с фолио отгоре.",
-    recognise:
-      "Капсулата е широка и плоска, пластмасова, със сребристо фолио и баркод по ръба, който машината разчита.",
+    recognise: "Капсулата е широка и плоска, пластмасова, затворена отгоре със сребристо фолио.",
     method: "capsule",
     categorySlugs: ["dolce-gusto"],
     categorySourceKeys: ["dolce-gusto"],

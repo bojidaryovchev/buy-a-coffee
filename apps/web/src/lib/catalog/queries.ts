@@ -243,7 +243,10 @@ async function loadPrimaryImages(productIds: readonly string[]) {
   >();
   for (const row of rows) {
     if (map.has(row.productId)) continue; // first by ordinal wins
-    const url = row.publicUrl ?? row.objectKey;
+    // The object key, not the stored absolute URL: the key is resolved against
+    // whichever image host is configured today, so moving stores cannot strand
+    // a row that still remembers the old host.
+    const url = row.objectKey ?? row.publicUrl;
     if (!url) continue;
     map.set(row.productId, { url, alt: row.alt, width: row.width, height: row.height });
   }
@@ -659,7 +662,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
 
   const images = imageRows
     .map((image) => {
-      const url = image.publicUrl ?? image.objectKey;
+      const url = image.objectKey ?? image.publicUrl;
       return url
         ? {
             url: resolveImageUrl(url),
