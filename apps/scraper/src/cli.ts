@@ -7,6 +7,7 @@ import {
   commandStatus,
   commandSync,
 } from "./commands.ts";
+import { runImagesCommand } from "./commands-images.ts";
 import { createRuntime } from "./runtime.ts";
 
 /**
@@ -219,6 +220,10 @@ export async function main(argv: readonly string[]): Promise<number> {
         printJson({ command, orphaned: result.orphaned.length, deleted: result.deleted });
         return EXIT.ok;
       }
+
+      case "images:push":
+      case "images:verify":
+        return await runImagesCommand(command, runtime, flags);
 
       case "status": {
         printJson({ command, ...(await commandStatus(runtime)) });
