@@ -6,6 +6,7 @@ import { sha256Hex, type Logger, silentLogger } from "@catalog/shared";
 import { findWorkspaceRoot, resolveFromWorkspaceRoot } from "./paths.ts";
 import type { ScraperConfig } from "../config.ts";
 import type { CatalogDiscoveryResult } from "../catalog/discover.ts";
+import type { NormalizedProduct } from "../catalog/normalize.ts";
 import type { DiscoveryCrawlResult } from "../discovery/crawler.ts";
 import {
   buildFeatureInventory,
@@ -36,6 +37,16 @@ export interface ArtifactExportInput {
   readonly catalog: CatalogDiscoveryResult;
   readonly outputDir: string;
   readonly crawlRunId?: string | null;
+  /**
+   * Storefront slug per product, keyed by `sourceKey`.
+   *
+   * A slug is not something the crawl can observe: the sync allocates it the
+   * first time it stores a product and never changes it. The caller therefore
+   * has to read it from the database (`loadTakenProductSlugs`) and hand it in.
+   * A product missing from the map is exported with `slug: null`, which is the
+   * truth for one that has been discovered but not synced yet.
+   */
+  readonly productSlugs?: ReadonlyMap<string, string>;
   readonly logger?: Logger;
   /** Injected in tests so the manifest is reproducible. */
   readonly now?: () => Date;
@@ -63,8 +74,65 @@ export function stableSort(value: unknown): unknown {
   return Object.fromEntries(entries.map(([k, v]) => [k, stableSort(v)]));
 }
 
-function serialise(value: unknown): string {
+/** The one serialisation every artifact uses: sorted keys, two spaces, final newline. */
+export function serialise(value: unknown): string {
   return `${JSON.stringify(stableSort(value), null, 2)}\n`;
+}
+
+export const PRODUCTS_ARTIFACT_DESCRIPTION =
+  "Normalised catalog snapshot. `sourceKey` combines the canonical path with the normalised pack size because the source serves two different products from one URL. `slug` is the storefront's own identifier for the product, allocated at first sync and frozen; it is null for a product that has not been synced yet.";
+
+/**
+ * One product as it appears in `products.json`.
+ *
+ * `slug` is the only field here that is ours rather than observed. It is
+ * exported because the storefront's copy is keyed by it: `sourceKey` follows
+ * the source's URLs and changes when they are renamed, so anything that has to
+ * keep pointing at the same product across a rename — hand-written copy above
+ * all — joins on the slug instead. Carrying it in the snapshot is what lets
+ * the originality check make that join without a database.
+ */
+export function referenceProductRecord(
+  product: NormalizedProduct,
+  slug: string | null,
+): Record<string, unknown> {
+  return {
+    sourceKey: product.sourceKey,
+    slug,
+    sourceUrl: product.sourceUrl,
+    sourcePath: product.sourcePath,
+    sourceVariantKey: product.sourceVariantKey,
+    identityStrategy: product.identityStrategy,
+    hasUrlCollision: product.hasUrlCollision,
+    name: product.name,
+    currentPrice: product.currentPrice?.amount ?? null,
+    oldPrice: product.oldPrice?.amount ?? null,
+    currency: product.currency,
+    availability: product.availability,
+    brandKey: product.brandKey,
+    categoryKeys: [...product.categoryKeys].sort(),
+    weight: product.weightText,
+    weightCanonical: product.weight?.canonical ?? null,
+    sku: product.sku,
+    gtin: product.gtin,
+    attributes: product.attributes,
+    descriptionText: product.descriptionText,
+    sourceImageUrls: [...product.sourceImageUrls].sort(),
+    semanticHash: product.semanticHash,
+  };
+}
+
+/**
+ * The slug to export for a product: the stored one when the caller supplied
+ * it, null otherwise. Never derived from the name here — a slug that was not
+ * actually allocated would join the storefront's copy to the wrong product,
+ * or to none, and look entirely plausible while doing it.
+ */
+export function exportedSlug(
+  product: NormalizedProduct,
+  productSlugs: ReadonlyMap<string, string> | undefined,
+): string | null {
+  return productSlugs?.get(product.sourceKey) ?? product.slug ?? null;
 }
 
 async function readGitCommit(cwd: string): Promise<string | null> {
@@ -210,8 +278,7 @@ export async function exportReferenceArtifacts(
     name: "products.json",
     content: serialise({
       schemaVersion: ARTIFACT_SCHEMA_VERSION,
-      description:
-        "Normalised catalog snapshot. `sourceKey` combines the canonical path with the normalised pack size because the source serves two different products from one URL.",
+      description: PRODUCTS_ARTIFACT_DESCRIPTION,
       catalogSource: catalog.source,
       parserConfidence: catalog.confidence,
       rawRecordCount: catalog.rawRecordCount,
@@ -220,29 +287,9 @@ export async function exportReferenceArtifacts(
       duplicateKeys: [...new Set(catalog.duplicateKeys)].sort(),
       products: [...catalog.products]
         .sort((a, b) => (a.sourceKey < b.sourceKey ? -1 : 1))
-        .map((product) => ({
-          sourceKey: product.sourceKey,
-          sourceUrl: product.sourceUrl,
-          sourcePath: product.sourcePath,
-          sourceVariantKey: product.sourceVariantKey,
-          identityStrategy: product.identityStrategy,
-          hasUrlCollision: product.hasUrlCollision,
-          name: product.name,
-          currentPrice: product.currentPrice?.amount ?? null,
-          oldPrice: product.oldPrice?.amount ?? null,
-          currency: product.currency,
-          availability: product.availability,
-          brandKey: product.brandKey,
-          categoryKeys: [...product.categoryKeys].sort(),
-          weight: product.weightText,
-          weightCanonical: product.weight?.canonical ?? null,
-          sku: product.sku,
-          gtin: product.gtin,
-          attributes: product.attributes,
-          descriptionText: product.descriptionText,
-          sourceImageUrls: [...product.sourceImageUrls].sort(),
-          semanticHash: product.semanticHash,
-        })),
+        .map((product) =>
+          referenceProductRecord(product, exportedSlug(product, input.productSlugs)),
+        ),
     }),
   });
 

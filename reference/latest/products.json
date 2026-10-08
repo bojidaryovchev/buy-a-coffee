@@ -4,7 +4,7 @@
     "/borbone-crema-classica/"
   ],
   "count": 110,
-  "description": "Normalised catalog snapshot. `sourceKey` combines the canonical path with the normalised pack size because the source serves two different products from one URL.",
+  "description": "Normalised catalog snapshot. `sourceKey` combines the canonical path with the normalised pack size because the source serves two different products from one URL. `slug` is the storefront's own identifier for the product, allocated at first sync and frozen; it is null for a product that has not been synced yet.",
   "duplicateKeys": [
     "/eurocaf-piacere-oro/#1000g"
   ],
@@ -31,6 +31,7 @@
       "oldPrice": null,
       "semanticHash": "0fd3fc0c7e18e9180c4d9e7dbd811258391b2bdb6949077bad379a7b548bcfaf",
       "sku": null,
+      "slug": "kafe-na-zarna-amann-la-cascada-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1220.jpg-800w.jpg"
       ],
@@ -62,6 +63,7 @@
       "oldPrice": null,
       "semanticHash": "3bc9b642a40734c3da6051aa8875801533fc89494ace278639f5495c3b28d6b2",
       "sku": null,
+      "slug": "kafe-na-zarna-amann-sido-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1212.jpg-800w.jpg"
       ],
@@ -94,6 +96,7 @@
       "oldPrice": null,
       "semanticHash": "5a03e0a8811712ac668fc892312da3e9f9f2ee3fea1bc25473dd4c74a0cb9a50",
       "sku": null,
+      "slug": "kafe-na-zarna-biancaffe-arabica-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1193.jpg-800w.jpg"
       ],
@@ -126,6 +129,7 @@
       "oldPrice": null,
       "semanticHash": "8618b8be1add6be3118e8cd955101406604a1a4f4e835b2abe51d03c5214bf5e",
       "sku": null,
+      "slug": "kafe-na-zarna-biancaffe-classica-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1188.jpg-800w.jpg"
       ],
@@ -157,6 +161,7 @@
       "oldPrice": null,
       "semanticHash": "dcf1eab35efe1fb947107a94c2049af12905fbdbf6ee0899cfe74db9f05411e7",
       "sku": null,
+      "slug": "kafe-na-zarna-biancaffe-dek-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1194.jpg-800w.jpg"
       ],
@@ -189,6 +194,7 @@
       "oldPrice": null,
       "semanticHash": "1fce1c6c6d2b8824b712f385157211ca8b2589026e509eda7b3cd1137e451ee9",
       "sku": null,
+      "slug": "kafe-na-zarna-biancaffe-intenso-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1192.jpg-800w.jpg"
       ],
@@ -221,6 +227,7 @@
       "oldPrice": null,
       "semanticHash": "6f11caa8d619aeb23b7d4346bd1bdbc5c288c2076413c3926022bca4e4458134",
       "sku": null,
+      "slug": "kafe-na-zarna-biancaffe-soave-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1189.jpg-800w.jpg"
       ],
@@ -253,6 +260,7 @@
       "oldPrice": null,
       "semanticHash": "ae7c6f67429e202aee7f4c6c86501befe57e890914118f360e69e5da9021021d",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-gusto-forte-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1114.jpg-800w.jpg"
       ],
@@ -285,6 +293,7 @@
       "oldPrice": null,
       "semanticHash": "ebd8075ab69e55ca7801aabd9731be64673206243d816dc930c66a0f6d3747f5",
       "sku": null,
+      "slug": "kapsuli-blue-lavazza-decaffeinato-100-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1127.jpg-800w.jpg"
       ],
@@ -317,6 +326,7 @@
       "oldPrice": null,
       "semanticHash": "004353f5f77bddfeb9803e071e3160ed7cc95f180bb68b44d11b0931bbbb4ff4",
       "sku": null,
+      "slug": "kafe-na-zarna-borbone-crema-classica-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1204.jpg-800w.jpg"
       ],
@@ -349,6 +359,7 @@
       "oldPrice": null,
       "semanticHash": "87a97c39c8f3d947ee2aaa47c13b515551ca8b307728793c72268f1e1d7d41b7",
       "sku": null,
+      "slug": "kafe-na-zarna-borbone-crema-classica-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1221.jpg-800w.jpg"
       ],
@@ -381,6 +392,7 @@
       "oldPrice": null,
       "semanticHash": "6a901229831092a3fac9963baa03419bf0c2cf79954b27e65770580f23475cd7",
       "sku": null,
+      "slug": "kafe-na-zarna-borbone-crema-superiore-0-500kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1290.jpg-800w.jpg"
       ],
@@ -413,6 +425,7 @@
       "oldPrice": null,
       "semanticHash": "4b941f7c428bc3e7c0137de005cd68a04412c547dec9c14efcd37f0b4bdd4dec",
       "sku": null,
+      "slug": "kafe-na-zarna-borbone-crema-superiore-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1205.jpg-800w.jpg"
       ],
@@ -445,6 +458,7 @@
       "oldPrice": null,
       "semanticHash": "7857559b0f876cacba90128c4650e26b9ecac5747e0c56c870b4c746eb2519bf",
       "sku": null,
+      "slug": "kafe-na-zarna-borbone-intenso-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1179.jpg-800w.jpg"
       ],
@@ -477,6 +491,7 @@
       "oldPrice": null,
       "semanticHash": "a7910a4f23ae97ccbb4a28893eefb9c99d477f5ab76827870ec9ae780f98a607",
       "sku": null,
+      "slug": "kapsuli-caffitaly-espresso-corposo-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1121.jpg-800w.jpg"
       ],
@@ -509,6 +524,7 @@
       "oldPrice": null,
       "semanticHash": "a74b3d69c91357df35ec698115038273aaa276c65b2e313ba8f21c7872caaf70",
       "sku": null,
+      "slug": "kapsuli-caffitaly-espresso-morbido-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1122.jpg-800w.jpg"
       ],
@@ -541,6 +557,7 @@
       "oldPrice": null,
       "semanticHash": "f60be08cf63d62cbcccd599b2c173c6cb0a5e0e951d692dac521cdb1d9f81022",
       "sku": null,
+      "slug": "kapsuli-caffitaly-espresso-panettone-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1120.jpg-800w.jpg"
       ],
@@ -573,6 +590,7 @@
       "oldPrice": null,
       "semanticHash": "423ac53fe825217bee8cca25545979fa986de78bcfd03526388a64ac9f17d743",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-100-arabica-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1152.jpg-800w.jpg"
       ],
@@ -605,6 +623,7 @@
       "oldPrice": null,
       "semanticHash": "07c13977fa6a3427cbf2cb35e25767edd3cafc176cff60a1f404fbb21b103c47",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-chocolate-aroma-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1151.jpg-800w.jpg"
       ],
@@ -637,6 +656,7 @@
       "oldPrice": null,
       "semanticHash": "6f7e927f55772df25943757a885666eef21107ba0eb2f2dfb0d5c46c7defb083",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-crema-aroma-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1149.jpg-800w.jpg"
       ],
@@ -669,6 +689,7 @@
       "oldPrice": null,
       "semanticHash": "5c4cb5de0eaf24a17993723d6e60ce8fdf6217d8436c20ade173fe1282713df9",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-fine-aroma-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1147.jpg-800w.jpg"
       ],
@@ -701,6 +722,7 @@
       "oldPrice": null,
       "semanticHash": "466cb2e3ffd370c957023a28a85c6bc79dc0183a4ae0fd2bd3faadec891e5cb1",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-gusto-decaf-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1148.jpg-800w.jpg"
       ],
@@ -733,6 +755,7 @@
       "oldPrice": null,
       "semanticHash": "5d70effa88e193965c05aa221148b2aeb9e271866e89bcc5a6eb2bbf38a069e6",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-hazelnut-aroma-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1153.jpg-800w.jpg"
       ],
@@ -765,6 +788,7 @@
       "oldPrice": null,
       "semanticHash": "57e865a823136f888c3763070e49fd1cd78a548c89596ca52b9754573b1b21ec",
       "sku": null,
+      "slug": "kapsuli-dg-bianchi-irish-cream-aroma-espresso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1150.jpg-800w.jpg"
       ],
@@ -796,6 +820,7 @@
       "oldPrice": null,
       "semanticHash": "a846fed880ce0e07ce053cfdbda63823611f072191f7f2f79e130e15646503b8",
       "sku": null,
+      "slug": "kapsuli-dg-borbone-baileys-cappuccino-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1157.jpg-800w.jpg"
       ],
@@ -828,6 +853,7 @@
       "oldPrice": null,
       "semanticHash": "5966ef54fc8c756fb46327faf7e7d1fe91013602306c8a5f07f58728bb581929",
       "sku": null,
+      "slug": "kapsuli-dg-borbone-crema-classica-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1156.jpg-800w.jpg"
       ],
@@ -860,6 +886,7 @@
       "oldPrice": null,
       "semanticHash": "61462a39291ea2dfec6a266f496669cf13bc5f553176caad555b5a200a944c21",
       "sku": null,
+      "slug": "kapsuli-dg-borbone-crema-superiore-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1155.jpg-800w.jpg"
       ],
@@ -892,6 +919,7 @@
       "oldPrice": null,
       "semanticHash": "c86c4bb864d524c26a6061b1a45280d7a27c05437ca42df16820fd2f440f3f52",
       "sku": null,
+      "slug": "kapsuli-dg-borbone-lungo-sublime-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1154.jpg-800w.jpg"
       ],
@@ -924,6 +952,7 @@
       "oldPrice": null,
       "semanticHash": "a4a2ba9a6afd838a7296e1b67833f2090d8b6187c058dd564a946588d8eba835",
       "sku": null,
+      "slug": "kapsuli-dg-molini-firenze-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1134.jpg-800w.jpg"
       ],
@@ -956,6 +985,7 @@
       "oldPrice": null,
       "semanticHash": "89222e49f424e2cd7aa80795393429903cf6c60db737318a60f789acbdcd9397",
       "sku": null,
+      "slug": "kapsuli-dg-molini-milano-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1135.jpg-800w.jpg"
       ],
@@ -988,6 +1018,7 @@
       "oldPrice": null,
       "semanticHash": "b019922c01dec4d30391d564c7db11818b8bc44b179c31e52696f4a96772ba2b",
       "sku": null,
+      "slug": "kapsuli-dg-molini-napoli-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1133.jpg-800w.jpg"
       ],
@@ -1020,6 +1051,7 @@
       "oldPrice": null,
       "semanticHash": "8111fe1c35a1628d89984c5abd74f91d61ff248a3e861c6d144f9cd8c3e84949",
       "sku": null,
+      "slug": "kapsuli-dg-molini-torino-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1115.jpg-800w.jpg"
       ],
@@ -1051,6 +1083,7 @@
       "oldPrice": null,
       "semanticHash": "b786f67308c50f36f1ba370348fdd8f759e5f98ced3c17f5acf1e16b7f80c580",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-arabica-gold-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1137.jpg-800w.jpg"
       ],
@@ -1082,6 +1115,7 @@
       "oldPrice": null,
       "semanticHash": "34bb8a3828d796a88e8cc2b4859363a5ad9cc755887c554f6f989e61656e17bc",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-cappuccino-3in1-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1143.jpg-800w.jpg"
       ],
@@ -1114,6 +1148,7 @@
       "oldPrice": null,
       "semanticHash": "55e188d0de589702c02be4b4cbc82edb8683e393167605ce62cf30bbc7050bfe",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-caramel-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1145.jpg-800w.jpg"
       ],
@@ -1146,6 +1181,7 @@
       "oldPrice": null,
       "semanticHash": "beaf699d019a251138a6cf1a27f967115f602d3ba2fa97b22f4510e2826cea0a",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-cookies-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1113.jpg-800w.jpg"
       ],
@@ -1177,6 +1213,7 @@
       "oldPrice": null,
       "semanticHash": "711c2f396a06baa6638a25fa2cd5fb013f1520c7c155b0696c17bd38df2c5ca1",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-cortado-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1142.jpg-800w.jpg"
       ],
@@ -1208,6 +1245,7 @@
       "oldPrice": null,
       "semanticHash": "ab5af80fb6a07e192a8158743594ef22c639c94978e52c330d57f0b642977811",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-creme-brulee-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1139.jpg-800w.jpg"
       ],
@@ -1239,6 +1277,7 @@
       "oldPrice": null,
       "semanticHash": "e4c2c3bcdf1d82c5b6fc438f44a19aa07260557f08c8739b3759d5c417eef00d",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-forte-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1138.jpg-800w.jpg"
       ],
@@ -1270,6 +1309,7 @@
       "oldPrice": null,
       "semanticHash": "2f1684a03b941721f145ba79b2bfd76dfdc5e6a5e3d9e4141220b6e4e4aa731c",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-gusto-satin-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1136.jpg-800w.jpg"
       ],
@@ -1302,6 +1342,7 @@
       "oldPrice": null,
       "semanticHash": "c0c7faedc984fe818515e711b5b82cbd5b0d3b872f0a410a5662e62493f2efc0",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-hazelnut-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1144.jpg-800w.jpg"
       ],
@@ -1334,6 +1375,7 @@
       "oldPrice": null,
       "semanticHash": "a18fcf28417ac5609d1e4eef06dc82128f981c56d53d2bf47326f55ab9b9686c",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-intenso-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1112.jpg-800w.jpg"
       ],
@@ -1365,6 +1407,7 @@
       "oldPrice": null,
       "semanticHash": "27d0bb5da037d1f98a86573be96e890441c7159e8a696c04b38d987f9d8ca65f",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-irish-cream-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1146.jpg-800w.jpg"
       ],
@@ -1396,6 +1439,7 @@
       "oldPrice": null,
       "semanticHash": "728734f8ef921252f99a79728342ac17c28bc4006a3c6cc6254c4dffa2aa16e3",
       "sku": null,
+      "slug": "kapsuli-dg-rema-caffe-matcha-16-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1128.jpg-800w.jpg"
       ],
@@ -1428,6 +1472,7 @@
       "oldPrice": null,
       "semanticHash": "fbb3788183f098e6277fdda5a0a5b5418321401bccd0872d918c11af309d71c9",
       "sku": null,
+      "slug": "kafe-na-zarna-elia-vending-aroma-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1198.jpg-800w.jpg"
       ],
@@ -1460,6 +1505,7 @@
       "oldPrice": null,
       "semanticHash": "7a82043acfba969111c569b2656df8e3a5ec415d248b4849233e652ead2643ee",
       "sku": null,
+      "slug": "kafe-na-zarna-elia-vending-crema-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1195.jpg-800w.jpg"
       ],
@@ -1492,6 +1538,7 @@
       "oldPrice": null,
       "semanticHash": "5f4f1a8243401485ffe5f0ef88ce9a39261461d8d228ab40973e93d75e8948d3",
       "sku": null,
+      "slug": "kafe-na-zarna-elia-vending-intenso-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1197.jpg-800w.jpg"
       ],
@@ -1524,6 +1571,7 @@
       "oldPrice": null,
       "semanticHash": "00f2d992a1795ee7867972929f5c437c2b9ad786b630dbe16ed713580fbd7511",
       "sku": null,
+      "slug": "kafe-na-zarna-espressia-capri-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1202.jpg-800w.jpg"
       ],
@@ -1556,6 +1604,7 @@
       "oldPrice": null,
       "semanticHash": "c18723d1db184fd3fa1e72b3bcff6cb2db11c22fde54ebcffa1f63f836f7e164",
       "sku": null,
+      "slug": "kafe-na-zarna-espressia-positano-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1203.jpg-800w.jpg"
       ],
@@ -1587,6 +1636,7 @@
       "oldPrice": null,
       "semanticHash": "376c0d932e5ede94da51ea6fbc8b37c72499abe9fd456df9bcfa926d69ec98a9",
       "sku": null,
+      "slug": "kafe-na-zarna-este-aroma-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1214.jpg-800w.jpg"
       ],
@@ -1618,6 +1668,7 @@
       "oldPrice": null,
       "semanticHash": "60ca958c088cdb311de9ee478c8318288e431b80531e30a218b21320911238c2",
       "sku": null,
+      "slug": "kafe-na-zarna-este-crema-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1215.jpg-800w.jpg"
       ],
@@ -1649,6 +1700,7 @@
       "oldPrice": null,
       "semanticHash": "78b40700db47695c475e768256d0c8d6623521d068171213eaec691a3f0ed230",
       "sku": null,
+      "slug": "kafe-na-zarna-este-forte-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1213.jpg-800w.jpg"
       ],
@@ -1681,6 +1733,7 @@
       "oldPrice": null,
       "semanticHash": "9b7f5e8668111e6575ca5410c962c0ce2660a7cdc896e705a6ccd20f9be31772",
       "sku": null,
+      "slug": "kafe-na-zarna-eurocaf-crema-vivace-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1219.jpg-800w.jpg"
       ],
@@ -1713,6 +1766,7 @@
       "oldPrice": null,
       "semanticHash": "dc67f7421a233282482f3d5f74051b9a4f00b34904d0fbb0430d84ce9eefcbb2",
       "sku": null,
+      "slug": "kafe-na-zarna-eurocaf-piacere-d-oro-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1218.jpg-800w.jpg"
       ],
@@ -1745,6 +1799,7 @@
       "oldPrice": null,
       "semanticHash": "8f122d8578a684a598856e7c84980babd75dcfe65460db9fcac90aaa58cf06e6",
       "sku": null,
+      "slug": "kafe-na-zarna-eurocaf-rosso-fuoco-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1216.jpg-800w.jpg"
       ],
@@ -1777,6 +1832,7 @@
       "oldPrice": null,
       "semanticHash": "ad2e82b66ece4665ff77d7e119b770f65c8ba6e18ca04b5443d16e4be005a7b6",
       "sku": null,
+      "slug": "kafe-na-zarna-illy-classico-0-250kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1293.jpg-800w.jpg"
       ],
@@ -1809,6 +1865,7 @@
       "oldPrice": null,
       "semanticHash": "492570fe71966caa64c8dbbb108e668b8e63dc1e349916851ad1e56260569e17",
       "sku": null,
+      "slug": "kafe-na-zarna-julius-meinl-arabica-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1201.jpg-800w.jpg"
       ],
@@ -1841,6 +1898,7 @@
       "oldPrice": null,
       "semanticHash": "06ac59f605ddea150870f0631631cc419d0eae7259b5026b539e2a2cba620b53",
       "sku": null,
+      "slug": "kafe-na-zarna-julius-meinl-clasico-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1200.jpg-800w.jpg"
       ],
@@ -1873,6 +1931,7 @@
       "oldPrice": null,
       "semanticHash": "13cc447de6ea97e90a3e2ddeac9aea37273faeafcb550ce3ede18e6dd39205b2",
       "sku": null,
+      "slug": "kafe-na-zarna-julius-meinl-crema-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1199.jpg-800w.jpg"
       ],
@@ -1905,6 +1964,7 @@
       "oldPrice": null,
       "semanticHash": "154e9ffa999c05b4bab29fab8e8ad1508afe8e99fd96c4c77e2bb8e41432f02e",
       "sku": null,
+      "slug": "kafe-na-zarna-kimbo-aroma-gold-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1178.jpg-800w.jpg"
       ],
@@ -1937,6 +1997,7 @@
       "oldPrice": null,
       "semanticHash": "a531e0e4d976f49dce597b262c8ed44786408b1330cf073d8c0e24e55bc9d9bd",
       "sku": null,
+      "slug": "kafe-na-zarna-kimbo-barista-napoli-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1177.jpg-800w.jpg"
       ],
@@ -1969,6 +2030,7 @@
       "oldPrice": null,
       "semanticHash": "ecdfb9e4eeb5c9ebd3f9b17c586170e640d40df972d2efe2302b46d6feceb855",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-crema-e-aroma-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1183.jpg-800w.jpg"
       ],
@@ -2001,6 +2063,7 @@
       "oldPrice": null,
       "semanticHash": "3a8a1b0b71ff112336e6dd23ebbd783146c444d340f4f590d65a340cc7bfdf61",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-crema-e-aroma-1kg-1000g",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1174.jpg-800w.jpg"
       ],
@@ -2033,6 +2096,7 @@
       "oldPrice": null,
       "semanticHash": "18d39b715e9613f4cf73d47f12937f09108f5d2d5ca840e219fd9463574e8ba4",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-gold-selection-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1175.jpg-800w.jpg"
       ],
@@ -2064,6 +2128,7 @@
       "oldPrice": null,
       "semanticHash": "401c6d0bedc0d87612eb1f7a5a24e776de2478e07d5356a7987ad56ca7b5e8ad",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-gran-espresso-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/66123-800w.jpg"
       ],
@@ -2096,6 +2161,7 @@
       "oldPrice": null,
       "semanticHash": "a85558423d02b5d26ec0c99805e4ce7b10b565e775604b7f1b91dfc0a686a7be",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-gusto-forte-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1171.jpg-800w.jpg"
       ],
@@ -2128,6 +2194,7 @@
       "oldPrice": null,
       "semanticHash": "e2203c886540857f52bc347ea992472daaf19f125242f11e1f85000d28758c5b",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-gusto-pieno-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1180.jpg-800w.jpg"
       ],
@@ -2160,6 +2227,7 @@
       "oldPrice": null,
       "semanticHash": "4cd78cc5e706fe4542829e48c64ee0162af1e0bb7c5cf3f70f9032fd8ea8ccce",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-super-crema-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1182.jpg-800w.jpg"
       ],
@@ -2192,6 +2260,7 @@
       "oldPrice": null,
       "semanticHash": "cb1959ab2b8511f2506d9b8ed2a21ec534cb028da876147927fe69aeb1e08d97",
       "sku": null,
+      "slug": "kafe-na-zarna-lavazza-top-class-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1184.jpg-800w.jpg"
       ],
@@ -2224,6 +2293,7 @@
       "oldPrice": null,
       "semanticHash": "2045da3df04b43a62c8fde9437437358fccd2fb674bf696095809eb140d40181",
       "sku": null,
+      "slug": "kapsuli-a-modo-mio-lavazza-crema-e-gusto-36-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1125.jpg-800w.jpg"
       ],
@@ -2256,6 +2326,7 @@
       "oldPrice": null,
       "semanticHash": "f0edc2eb0809604cc582664016f43fbcb2571867154566c1fb5cbdff255dec98",
       "sku": null,
+      "slug": "kapsuli-a-modo-mio-lavazza-delizioso-36-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1126.jpg-800w.jpg"
       ],
@@ -2288,6 +2359,7 @@
       "oldPrice": null,
       "semanticHash": "f6eb864f500c2af5b25a4e0b4c0b78e2162af81ee3f3aafe5261a47ca25041e1",
       "sku": null,
+      "slug": "kapsuli-a-modo-mio-lavazza-intenso-36-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1124.jpg-800w.jpg"
       ],
@@ -2320,6 +2392,7 @@
       "oldPrice": null,
       "semanticHash": "0073609f692e8c80b00c36858ba6fbe4f4ab7820a205603f3e31222a24903ba2",
       "sku": null,
+      "slug": "dozeti-molini-firenze-150br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1131.jpg-800w.jpg"
       ],
@@ -2352,6 +2425,7 @@
       "oldPrice": null,
       "semanticHash": "aeee9297ee0302bad9f935e04fac1e77ab92c437bd7bd6744eb577d1144fa4dd",
       "sku": null,
+      "slug": "kafe-na-zarna-molini-firenze-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1185.jpg-800w.jpg"
       ],
@@ -2384,6 +2458,7 @@
       "oldPrice": null,
       "semanticHash": "23c7614586525e87f6fc8832e01fcd7a30183e5ea5921399f511ac8d298dcffb",
       "sku": null,
+      "slug": "kafe-na-zarna-molini-napoli-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1187.jpg-800w.jpg"
       ],
@@ -2416,6 +2491,7 @@
       "oldPrice": null,
       "semanticHash": "b7d7f4c04c4654dec830835c7c0182ca5a0e65379923736918931b4376b84db4",
       "sku": null,
+      "slug": "kafe-na-zarna-molini-torino-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1186.jpg-800w.jpg"
       ],
@@ -2448,6 +2524,7 @@
       "oldPrice": null,
       "semanticHash": "cefabd422fbeb7529e28d3ff64ef64c5433e4442c4a110b42348c98133cf3413",
       "sku": null,
+      "slug": "kapsuli-nespresso-bianchi-caffe-arte-classico-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1119.jpg-800w.jpg"
       ],
@@ -2480,6 +2557,7 @@
       "oldPrice": null,
       "semanticHash": "4fa692870ed6d00ec9b319e81c56f2069f55dd4ea4dcb8437ed98474a7479682",
       "sku": null,
+      "slug": "kapsuli-nespresso-bianchi-colombia-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1306.jpg-800w.jpg"
       ],
@@ -2512,6 +2590,7 @@
       "oldPrice": null,
       "semanticHash": "6e366bf188d633a0b156ab6539f3a583432895e6cf7eec2e534c61f0cb6e44e4",
       "sku": null,
+      "slug": "kapsuli-nespresso-bianchi-costa-rica-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1307.jpg-800w.jpg"
       ],
@@ -2544,6 +2623,7 @@
       "oldPrice": null,
       "semanticHash": "9eca570bdbcbc5e1dd570f68cd8637f4655e28e60308e6aa97050550f6bf5582",
       "sku": null,
+      "slug": "kapsuli-nespresso-bianchi-hazelnut-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1308.jpg-800w.jpg"
       ],
@@ -2576,6 +2656,7 @@
       "oldPrice": null,
       "semanticHash": "ab3c5c812c1651c49d8eb3b5fead290a315bd515d2d5d49c922d2c8a2efd737b",
       "sku": null,
+      "slug": "kapsuli-nespresso-lavazza-crema-e-gusto-classico-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1117.jpg-800w.jpg"
       ],
@@ -2608,6 +2689,7 @@
       "oldPrice": null,
       "semanticHash": "8954782c028eb60fb22548d55363bbfa5f2b4d0588fcd619679685c0d733d0a9",
       "sku": null,
+      "slug": "kapsuli-nespresso-lavazza-crema-e-gusto-forte-10br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1311.jpg-800w.jpg"
       ],
@@ -2640,6 +2722,7 @@
       "oldPrice": null,
       "semanticHash": "3189a4c221158536c58b40266570628df8f8eaff66abf63bc3e354bc758d53ac",
       "sku": null,
+      "slug": "kapsuli-nespresso-lavazza-crema-e-gusto-ricco-10br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1310.jpg-800w.jpg"
       ],
@@ -2672,6 +2755,7 @@
       "oldPrice": null,
       "semanticHash": "fc2afc7cc0991a1624cd411001881d95a1e3b7448f344a950fd4f6ab7cb6a63a",
       "sku": null,
+      "slug": "kapsuli-nespresso-molini-firenze-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1164.jpg-800w.jpg"
       ],
@@ -2704,6 +2788,7 @@
       "oldPrice": null,
       "semanticHash": "d28f2fe71f3741f0ec34cf196a2bbfd33a59a6c71758a832ef58613d1b9df67e",
       "sku": null,
+      "slug": "kapsuli-nespresso-molini-napoli-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1165.jpg-800w.jpg"
       ],
@@ -2736,6 +2821,7 @@
       "oldPrice": null,
       "semanticHash": "76eca79b0a2ee8f9d23bdbb7b32b8b9eb726892ef9e858ec0afa133edcf83b59",
       "sku": null,
+      "slug": "kapsuli-nespresso-molini-torino-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1116.jpg-800w.jpg"
       ],
@@ -2768,6 +2854,7 @@
       "oldPrice": null,
       "semanticHash": "e96b7c421dcd29840dddfb7889a5396dc0b78fa4f63edcfcecefb652a8a2c236",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-allegro-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1158.jpg-800w.jpg"
       ],
@@ -2800,6 +2887,7 @@
       "oldPrice": null,
       "semanticHash": "d8a6edb91b665a3301b9ee1150c2d6670d6c3412fe4c9674210474afc415d283",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-arabica-gold-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1160.jpg-800w.jpg"
       ],
@@ -2832,6 +2920,7 @@
       "oldPrice": null,
       "semanticHash": "d244530cd11fff6919ca4634617dc5c4690915d9b32b28e74546795e3e243c4b",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-caramel-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1118.jpg-800w.jpg"
       ],
@@ -2864,6 +2953,7 @@
       "oldPrice": null,
       "semanticHash": "704b544c1f2fc66747a79a90c14defe719025655239fbfd653d50cdd0dc176d2",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-cookies-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1301.jpg-800w.jpg"
       ],
@@ -2896,6 +2986,7 @@
       "oldPrice": null,
       "semanticHash": "a1b8c589f52cdbeab00c75b79302fec381f6a32d468ec8b73d207aee8d401db1",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-decaffeinato-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1163.jpg-800w.jpg"
       ],
@@ -2928,6 +3019,7 @@
       "oldPrice": null,
       "semanticHash": "6fed9396b541d414041734e945c9f5412821575e85f41538651a27327c173889",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-forte-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1159.jpg-800w.jpg"
       ],
@@ -2960,6 +3052,7 @@
       "oldPrice": null,
       "semanticHash": "e410940d1a0e71102169c946f68a0bafce1ccd23e6fe9a4dd47a893273ece64f",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-fortissimo-20-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1167.jpg-800w.jpg"
       ],
@@ -2992,6 +3085,7 @@
       "oldPrice": null,
       "semanticHash": "32a0e2afc7669a26742875f848d5439db82396ead12601111644ae127cc9653b",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-gusto-satin-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1162.jpg-800w.jpg"
       ],
@@ -3024,6 +3118,7 @@
       "oldPrice": null,
       "semanticHash": "c3b377db5340bd771cb9d7252d9440e472461ea2dd3a54c62b0f5c1aa86e6253",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-hazelnut-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1295.jpg-800w.jpg"
       ],
@@ -3056,6 +3151,7 @@
       "oldPrice": null,
       "semanticHash": "603cd933b16330a4ce387866a85ab746f2b2bf0a18c1cb682bbff80bf03f6b11",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-intenso-10-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1161.jpg-800w.jpg"
       ],
@@ -3088,6 +3184,7 @@
       "oldPrice": null,
       "semanticHash": "2ed4d7236dcbc7f36373f5e6ed3b60455bbd3ffec56ab14d0045aa00a4ae9362",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-ristretto-20-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1168.jpg-800w.jpg"
       ],
@@ -3120,6 +3217,7 @@
       "oldPrice": null,
       "semanticHash": "bae734422504fb322805e4ed30e73347f33397bb7597b69ab5991264d906dbcc",
       "sku": null,
+      "slug": "kapsuli-nespresso-rema-caffe-supremo-20-br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1166.jpg-800w.jpg"
       ],
@@ -3152,6 +3250,7 @@
       "oldPrice": null,
       "semanticHash": "ffa19980f66fba8b290f97793ea7ae14a7dedefcf31dce2c7f30c093d667797d",
       "sku": null,
+      "slug": "dozeti-rema-caffe-fortissimo-25br",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1312.jpg-800w.jpg"
       ],
@@ -3184,6 +3283,7 @@
       "oldPrice": null,
       "semanticHash": "8dce6330595c19402b6d19ab02f5e76a630b4a64a80310a64ac63b23c2f7d0d6",
       "sku": null,
+      "slug": "dozeti-rema-caffe-intenso",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1132.jpg-800w.jpg"
       ],
@@ -3215,6 +3315,7 @@
       "oldPrice": null,
       "semanticHash": "b15f73d72d70a377d7d190d314d0f28cf36f312b8635a8213c6d1d45b093eb28",
       "sku": null,
+      "slug": "kafe-na-zarna-tezzoro-espresso-classic-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1206.jpg-800w.jpg"
       ],
@@ -3246,6 +3347,7 @@
       "oldPrice": null,
       "semanticHash": "83fff54bf8238232a07006ef4743d84e430928f653e52a18e6bb58a30aadeb6d",
       "sku": null,
+      "slug": "kafe-na-zarna-tezzoro-excellence-0-250kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1294.jpg-800w.jpg"
       ],
@@ -3277,6 +3379,7 @@
       "oldPrice": null,
       "semanticHash": "a23bd995175e2a269655f10adef08a5f8257809ac1c4e526b328ea5354e1b6c5",
       "sku": null,
+      "slug": "kafe-na-zarna-tezzoro-espresso-excellence-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1208.jpg-800w.jpg"
       ],
@@ -3308,6 +3411,7 @@
       "oldPrice": null,
       "semanticHash": "b7a7e8c16960071d43b6d0daf96b952d748c29ad965cf365f27495b1c1520ffe",
       "sku": null,
+      "slug": "kafe-na-zarna-tezzoro-espresso-top-class-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1207.jpg-800w.jpg"
       ],
@@ -3339,6 +3443,7 @@
       "oldPrice": null,
       "semanticHash": "82b04cde960827a6e4573a823bdd12fd2d1130ed24e51612f2d1e9fa86cbd959",
       "sku": null,
+      "slug": "kafe-na-zarna-vandino-espresso-aroma-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1210.jpg-800w.jpg"
       ],
@@ -3370,6 +3475,7 @@
       "oldPrice": null,
       "semanticHash": "54282266f845759d3ff8a79a6f822bd01b78b5ccb84cce2546805c777abe8ea3",
       "sku": null,
+      "slug": "kafe-na-zarna-vandino-espresso-bar-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1211.jpg-800w.jpg"
       ],
@@ -3401,6 +3507,7 @@
       "oldPrice": null,
       "semanticHash": "a676797bfd8270a03befcc9fe5adf45ed25f91e10d712de06eca13054b65e7b0",
       "sku": null,
+      "slug": "kafe-na-zarna-vandino-espresso-club-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1209.jpg-800w.jpg"
       ],
@@ -3433,6 +3540,7 @@
       "oldPrice": null,
       "semanticHash": "96e04be372d4e13fe9bafbd789d43c1b6a108d79131668a730931e5e9277e36e",
       "sku": null,
+      "slug": "kafe-na-zarna-vergnano-antica-bottega-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1173.jpg-800w.jpg"
       ],
@@ -3465,6 +3573,7 @@
       "oldPrice": null,
       "semanticHash": "64b8a79f6417c7fdd619546ea8c53aae02bbb7f88c4cb25c85aa4d667d3236c9",
       "sku": null,
+      "slug": "kafe-na-zarna-vergnano-espresso-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1181.jpg-800w.jpg"
       ],
@@ -3497,6 +3606,7 @@
       "oldPrice": null,
       "semanticHash": "81211940a3bdacae50702a787de97cc6551d73b3f9804dce23dff90bc9cc0e82",
       "sku": null,
+      "slug": "kafe-na-zarna-vergnano-gran-aroma-1kg",
       "sourceImageUrls": [
         "https://www.kafezona.com/img/product-img-1176.jpg-800w.jpg"
       ],

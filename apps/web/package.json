@@ -19,7 +19,8 @@
     "seed:dev": "tsx scripts/seed-dev.ts",
     "reference:coverage": "tsx scripts/reference-coverage.ts",
     "check:originality": "tsx scripts/check-originality.ts",
-    "copy:apply": "tsx scripts/apply-product-copy.ts"
+    "copy:apply": "tsx scripts/apply-product-copy.ts",
+    "copy:todo": "tsx scripts/copy-todo.ts"
   },
   "dependencies": {
     "@catalog/db": "workspace:*",
