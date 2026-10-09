@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleBody } from "@/components/journal/article-body";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { JsonLd } from "@/components/seo/json-ld";
-import { absoluteUrl, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { EMPTY_JOURNAL_FIGURES } from "@/lib/catalog/journal-figures";
 import { getJournalFigures } from "@/lib/catalog/journal-queries";
 import {
@@ -20,10 +20,9 @@ import {
 } from "@/lib/journal";
 import { articleJsonLd } from "@/lib/seo/article-json-ld";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
-import { SHARE_CARD } from "@/lib/seo/share-card";
-import { OG_LOCALE } from "@/i18n/config";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 
 /**
@@ -76,24 +75,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: summary.title,
     description: summary.description,
     alternates: pageAlternates(locale, summary.href),
-    openGraph: {
-      type: "article",
-      siteName: siteConfig.name,
+    ...shareMetadata({
+      locale,
       title: summary.title,
       description: summary.description,
-      url: absoluteUrl(href(locale, summary.href)),
-      locale: OG_LOCALE[locale],
-      publishedTime: articleDate(summary.publishedAt).toISOString(),
-      modifiedTime: articleDate(summary.modifiedAt).toISOString(),
-      // Named explicitly: setting `openGraph` drops the inherited share card.
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: summary.title,
-      description: summary.description,
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
+      path: href(locale, summary.href),
+      article: {
+        publishedTime: articleDate(summary.publishedAt).toISOString(),
+        modifiedTime: articleDate(summary.modifiedAt).toISOString(),
+      },
+    }),
   };
 }
 

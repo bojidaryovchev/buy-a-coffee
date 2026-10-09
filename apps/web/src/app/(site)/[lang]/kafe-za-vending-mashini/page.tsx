@@ -9,6 +9,8 @@ import {
 } from "@/lib/catalog/vending";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
+import { href } from "@/lib/routes";
 import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
 import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { vendingCopy } from "../../../../../content/vending";
@@ -52,11 +54,19 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   ]);
   const cupRange = cupRangeOfRanges(listed.map((facts) => facts.cupRange));
 
+  const description = metaDescription(vendingCopy.metaDescription, cupRange);
+
   return {
     title: pageTitle(vendingCopy.metaTitle),
-    description: metaDescription(vendingCopy.metaDescription, cupRange),
+    description,
     // Filtered and paginated views of the listing consolidate on the clean page.
     alternates: pageAlternates(locale, section.path),
+    ...shareMetadata({
+      locale,
+      title: vendingCopy.metaTitle,
+      description,
+      path: href(locale, section.path),
+    }),
     robots: shouldIndexListing(query) ? undefined : { index: false, follow: true },
   };
 }

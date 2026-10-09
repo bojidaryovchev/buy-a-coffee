@@ -22,6 +22,7 @@ import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { relatedLandingLinks } from "@/lib/catalog/related-landings";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { localeAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import {
   BRANDS_INDEX_META,
   brandDescriptionLead,
@@ -72,14 +73,18 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   ]);
   const systems = systemsForCategories(categoryKeys);
 
+  /* „Кафе Bianchi (Бианчи): капсули и дози“ — the brand the way people
+     search for it, then the formats that are actually on the page. */
+  const title = brandTitle(brand, systems);
+  // What a cup of this brand costs here, and that ordering is a phone call.
+  const description = metaDescription(brandDescriptionLead(brand, systems), facts.cupRange);
+
   return {
-    /* „Кафе Bianchi (Бианчи): капсули и дози“ — the brand the way people
-       search for it, then the formats that are actually on the page. */
-    title: pageTitle(brandTitle(brand, systems)),
-    // What a cup of this brand costs here, and that ordering is a phone call.
-    description: metaDescription(brandDescriptionLead(brand, systems), facts.cupRange),
+    title: pageTitle(title),
+    description,
     // At the slug the brand is published at, which is not always the stored one.
     alternates: localeAlternates(locale, (each) => brandHref(each, brand)),
+    ...shareMetadata({ locale, title, description, path: brandHref(locale, brand) }),
     robots: shouldIndexListing(parseCatalogQuery(rawParams))
       ? undefined
       : { index: false, follow: true },

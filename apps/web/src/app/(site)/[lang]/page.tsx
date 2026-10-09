@@ -15,8 +15,9 @@ import {
 import { listArticles } from "@/lib/journal";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { HOME_META, metaDescription, pageTitle } from "@/lib/seo/listing-meta";
-import { routes } from "@/lib/routes";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Home page.
@@ -44,13 +45,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locale = await localeFrom(params);
   // Across the whole catalog: the cheapest cup in the shop to the dearest.
   const facts = await getListingFacts({ kind: "all" });
+  const description = metaDescription(HOME_META.description, facts.cupRange);
   return {
     /* The title carries the query the home page owns, „онлайн магазин за
        кафе“ (`docs/seo.md` §1), which leaves the `h1` free to be the shop's
        own line. */
     title: pageTitle(HOME_META.title),
-    description: metaDescription(HOME_META.description, facts.cupRange),
+    description,
     alternates: pageAlternates(locale, routes.home),
+    /* The home page's own, like any page's: the layout names no address or
+       title for sharing (see the note there). */
+    ...shareMetadata({
+      locale,
+      title: HOME_META.title,
+      description,
+      path: href(locale, routes.home),
+    }),
   };
 }
 

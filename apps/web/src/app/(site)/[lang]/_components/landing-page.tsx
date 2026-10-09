@@ -15,6 +15,7 @@ import { getArticle } from "@/lib/journal";
 import type { BrewingSystem } from "@/lib/recommend/systems";
 import { categoryHref, href, productHref, routes, systemCategory } from "@/lib/routes";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import { CUP_COST_SLUG } from "../../../../../content/journal/articles/cup-cost";
 import {
@@ -63,10 +64,13 @@ export async function landingMetadata(locale: Locale, id: LandingId): Promise<Me
   if (view.count === 0) return { title: copy.h1, robots: { index: false, follow: true } };
 
   const facts = factsOf(view);
+  const title = copy.title(facts);
+  const description = copy.description(facts);
   return {
-    title: copy.title(facts),
-    description: copy.description(facts),
+    title,
+    description,
     alternates: pageAlternates(locale, LANDING_PATHS[id]),
+    ...shareMetadata({ locale, title, description, path: href(locale, LANDING_PATHS[id]) }),
   };
 }
 

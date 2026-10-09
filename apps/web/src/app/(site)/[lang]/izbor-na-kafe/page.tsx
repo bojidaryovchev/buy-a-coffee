@@ -38,6 +38,7 @@ import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 
 export const revalidate = 300;
@@ -65,11 +66,15 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const answers = parseWizardAnswers(await searchParams);
   const started = answers.brew !== null;
 
+  const title = "Кое кафе е за вас";
+  const description =
+    "Няколко въпроса за машината и вкуса ви, и ви казваме кое кафе от асортимента ни пасва — с цена на чаша, не на опаковка.";
+
   return {
-    title: "Кое кафе е за вас",
-    description:
-      "Няколко въпроса за машината и вкуса ви, и ви казваме кое кафе от асортимента ни пасва — с цена на чаша, не на опаковка.",
+    title,
+    description,
     alternates: pageAlternates(locale, routes.wizard),
+    ...shareMetadata({ locale, title, description, path: href(locale, routes.wizard) }),
     /*
      * Only the unanswered wizard is indexed. Every partially answered
      * permutation is the same page with different state, and letting search

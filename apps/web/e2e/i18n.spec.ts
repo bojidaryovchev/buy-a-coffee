@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { BG, PRODUCT_LINK } from "./support/paths";
 
 /**
@@ -187,21 +187,93 @@ test.describe("locales", () => {
   });
 });
 
+const SHOP = "Buy a Coffee";
+/** The storefront's default `<title>`: the shop's name and its tagline. */
+const DEFAULT_TITLE = new RegExp(`^${SHOP} — `);
+const ARTICLE = "/bg/blog/kolko-struva-edna-chasha-kafe";
+
+/** A meta tag's content, or `null` at once when the page has no such tag. */
+const meta = (page: Page, selector: string): Promise<string | null> =>
+  page.locator(`meta[${selector}]`).evaluateAll((tags) => tags[0]?.getAttribute("content") ?? null);
+
+const canonicalOf = (page: Page) => page.locator('link[rel="canonical"]').getAttribute("href");
+
+/**
+ * A page shares as itself: under its own address, title and description.
+ *
+ * WHY THIS IS ASSERTED PAGE BY PAGE. Next hands the layout's whole `openGraph`
+ * to a page that declares none, so a page that forgets `shareMetadata`
+ * (`lib/seo/share.ts`) does not fail anywhere: it quietly shares as whatever
+ * the layout describes. That was once the home page, for most of the shop. A
+ * page that forgets today sends no `og:url`, and its `og:title` is its whole
+ * `<title>`, shop's name included; both are caught here.
+ */
+async function expectSharesAsItself(page: Page, canonical: string): Promise<void> {
+  // The same address the canonical names, to the character.
+  expect(await meta(page, 'property="og:url"'), "og:url").toBe(canonical);
+
+  const title = await meta(page, 'property="og:title"');
+  expect(title, "og:title").toBeTruthy();
+  expect(title, "og:title").not.toMatch(DEFAULT_TITLE);
+  // The page's own words: `og:site_name` carries the shop's name.
+  expect(title, "og:title").not.toContain(`| ${SHOP}`);
+  expect(await meta(page, 'property="og:site_name"')).toBe(SHOP);
+  // And they are the words its `<title>` is made of.
+  expect(await page.title(), "<title>").toBe(`${title} | ${SHOP}`);
+
+  const description = await meta(page, 'name="description"');
+  expect(description, "description").toBeTruthy();
+  expect(await meta(page, 'property="og:description"'), "og:description").toBe(description);
+
+  expect(await meta(page, 'property="og:locale"')).toBe("bg_BG");
+  const image = await meta(page, 'property="og:image"');
+  expect(new URL(image!).origin, "og:image").toBe(new URL(canonical).origin);
+  expect(new URL(image!).pathname, "og:image").toMatch(/^\/(opengraph-image$|media\/)/);
+
+  // The card X draws says the same thing.
+  expect(await meta(page, 'name="twitter:card"')).toBe("summary_large_image");
+  expect(await meta(page, 'name="twitter:title"'), "twitter:title").toBe(title);
+  expect(await meta(page, 'name="twitter:description"'), "twitter:description").toBe(description);
+  expect(await meta(page, 'name="twitter:image"'), "twitter:image").toBe(image);
+}
+
 test.describe("the head of every page", () => {
+  /*
+   * One of every kind of indexable page. A NEW PAGE GOES IN THIS LIST: it is
+   * what holds its canonical, its `hreflang` and what it shares as.
+   */
   const pages = [
     BG.home,
+    BG.categories,
     BG.capsules,
     BG.nespresso,
+    BG.dolceGusto,
+    BG.beans,
+    BG.lavazzaCapsules,
+    BG.lavazzaBeans,
+    BG.decaf,
+    BG.cheapestPerCup,
+    BG.brands,
     BG.brand("lavazza"),
+    BG.promotions,
     BG.wizard,
     BG.machines,
+    BG.machineBrand("krups"),
+    BG.machineBrand("tchibo"),
     BG.delivery,
+    BG.contact,
+    BG.privacy,
+    BG.terms,
+    BG.cookies,
     BG.journal,
+    ARTICLE,
     BG.vending,
   ];
 
   for (const path of pages) {
-    test(`${path}: lang, canonical, hreflang and JSON-LD all name /bg`, async ({ page }) => {
+    test(`${path}: lang, canonical, hreflang, share tags and JSON-LD all name /bg`, async ({
+      page,
+    }) => {
       await page.goto(path);
       await expect(page.locator("html")).toHaveAttribute("lang", "bg");
 
@@ -218,6 +290,8 @@ test.describe("the head of every page", () => {
         ["x-default", canonical],
       ]);
 
+      await expectSharesAsItself(page, canonical!);
+
       const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
       const urls = blocks.join(" ").match(/https?:\/\/[^"\s]+/g) ?? [];
       const ours = urls.filter((url) => !url.startsWith("https://schema.org"));
@@ -228,6 +302,71 @@ test.describe("the head of every page", () => {
       }
     });
   }
+
+  test("a product shares as itself, under its own name", async ({ page }) => {
+    await page.goto(BG.capsules);
+    const product = await page.locator(PRODUCT_LINK).first().getAttribute("href");
+    await page.goto(product!);
+    await expect(page.locator("#order")).toBeAttached();
+
+    const canonical = await canonicalOf(page);
+    expect(new URL(canonical!).pathname).toBe(product);
+    await expectSharesAsItself(page, canonical!);
+    expect(await meta(page, 'property="og:type"')).toBe("website");
+  });
+
+  test("an article shares as an article, with its dates", async ({ page }) => {
+    await page.goto(ARTICLE);
+    expect(await meta(page, 'property="og:type"')).toBe("article");
+    expect(await meta(page, 'property="article:published_time"')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(await meta(page, 'property="article:modified_time"')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("a filtered listing, a search and an answered wizard share as the clean page", async ({
+    page,
+  }) => {
+    const views: ReadonlyArray<readonly [string, string]> = [
+      [`${BG.capsules}?sort=price-asc`, BG.capsules],
+      [`${BG.brand("lavazza")}?sort=price-asc`, BG.brand("lavazza")],
+      [`${BG.search}?q=${encodeURIComponent("лаваца")}`, BG.search],
+      [`${BG.wizard}?brew=capsule`, BG.wizard],
+      [`${BG.wizardResult}?brew=capsule&system=dolce-gusto`, BG.wizard],
+    ];
+    for (const [view, clean] of views) {
+      await page.goto(view);
+      const canonical = await canonicalOf(page);
+      expect(new URL(canonical!).pathname, view).toBe(clean);
+      expect(await meta(page, 'property="og:url"'), view).toBe(canonical);
+      expect(await meta(page, 'property="og:title"'), view).not.toMatch(DEFAULT_TITLE);
+    }
+  });
+
+  /*
+   * The 404 is one route for every dead URL and has no layout above it. It
+   * must not claim an address, and the card Next attaches to it must be on the
+   * site: with no `metadataBase` Next resolves it against `localhost` and the
+   * port the server happens to listen on.
+   */
+  test("the 404 names no address, and its share image is on the site", async ({
+    page,
+    request,
+  }) => {
+    await page.goto(BG.home);
+    const site = new URL((await canonicalOf(page))!).origin;
+
+    for (const path of ["/nope", "/bg/no-such-product-or-category", "/bg/marki/no-such-brand"]) {
+      const html = await (await raw(request, path)).text();
+      const head = html.slice(0, html.indexOf("</head>"));
+      expect(head, path).not.toContain('property="og:url"');
+      expect(head, path).not.toContain('rel="canonical"');
+
+      const images = [
+        ...head.matchAll(/<meta (?:property|name)="(?:og|twitter):image" content="([^"]+)"/g),
+      ];
+      expect(images.length, path).toBeGreaterThan(0);
+      for (const [, image] of images) expect(new URL(image!).origin, path).toBe(site);
+    }
+  });
 
   test("search and a filtered listing are noindex, with the canonical on the clean page", async ({
     page,

@@ -3,14 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs, ButtonLink, EmptyState } from "@/components/ui/primitives";
 import { JsonLd } from "@/components/seo/json-ld";
-import { absoluteUrl, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { JOURNAL_NAME, JOURNAL_PATH, formatArticleDate, listArticles } from "@/lib/journal";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
-import { SHARE_CARD } from "@/lib/seo/share-card";
-import { fullTitle } from "@/lib/seo/title";
-import { OG_LOCALE } from "@/i18n/config";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 
 /**
@@ -39,22 +37,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: TITLE,
     description: DESCRIPTION,
     alternates: pageAlternates(locale, JOURNAL_PATH),
-    openGraph: {
-      type: "website",
-      siteName: siteConfig.name,
-      title: fullTitle(TITLE),
+    ...shareMetadata({
+      locale,
+      title: TITLE,
       description: DESCRIPTION,
-      url: absoluteUrl(href(locale, JOURNAL_PATH)),
-      locale: OG_LOCALE[locale],
-      // Named explicitly: setting `openGraph` drops the inherited share card.
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: fullTitle(TITLE),
-      description: DESCRIPTION,
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
+      path: href(locale, JOURNAL_PATH),
+    }),
   };
 }
 
