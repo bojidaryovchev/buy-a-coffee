@@ -14,7 +14,14 @@ import {
   type Inline,
   type InlineLink,
 } from "../blocks";
-import { CAPSULES_HREF, WIZARD_HREF, articleHref, systemCategoryHref } from "../links";
+import {
+  CAPSULES_HREF,
+  WIZARD_HREF,
+  articleHref,
+  landingHref,
+  linkWhile,
+  systemCategoryHref,
+} from "../links";
 import { ARABICA_ROBUSTA_SLUG, CHOOSE_BEANS_SLUG } from "./slugs";
 
 /**
@@ -122,7 +129,7 @@ export const arabicaRobusta: Article = {
   publishedAt: "2026-10-09",
   usesCatalog: true,
 
-  body: ({ composition }) => [
+  body: ({ composition, landings }) => [
     p(
       "Арабика и робуста са двата вида кафеено дърво, от които идва почти цялото кафе в света. Разликата се усеща в чашата: арабиката е по-ароматна и с по-изразена киселинност, а робустата е по-горчива, по-плътна и с около два пъти повече кофеин.",
     ),
@@ -174,7 +181,9 @@ export const arabicaRobusta: Article = {
     ),
     p("Изпичането не добавя кофеин: тъмно изпеченото кафе има по-силен вкус, не повече кофеин."),
     p(
-      "Ако търсите кафе без кофеин, видът на зърното не е отговорът — и арабиката, и робустата съдържат кофеин. Безкофеиновото кафе е отделен продукт и в каталога е отбелязано като такова.",
+      "Ако търсите кафе без кофеин, видът на зърното не е отговорът — и арабиката, и робустата съдържат кофеин. ",
+      linkWhile(landingHref("decaf", landings), "Безкофеиновото кафе"),
+      " е отделен продукт и в каталога е отбелязано като такова.",
     ),
 
     h2("Какво пише в каталога ни"),

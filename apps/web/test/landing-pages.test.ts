@@ -61,6 +61,8 @@ import MachineBrandPage, {
   generateMetadata as machineMetadata,
 } from "@/app/(site)/[lang]/za-kafemashina/[brand]/page";
 import { absoluteUrl } from "@/config/site";
+import { systemShelfLabel } from "../content/landing-copy";
+import { MACHINE_BRANDS } from "@/content/machines";
 import type { LandingView } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS } from "@/lib/catalog/landings";
 import type { ProductCardView } from "@/lib/catalog/types";
@@ -208,7 +210,10 @@ describe("a landing listing with products", () => {
     expect(markup).toContain("2 продукта с най-ниска цена на чаша от общо 7 в тази система.");
     expect(markup).toContain("1 продукт с най-ниска цена на чаша от общо 36 в тази система.");
     expect(markup).toContain('href="/bg/blog/');
-    expect(markup).toContain("Как смятаме цената на чаша");
+    // The one article this listing links (§13.4), under the article's own title.
+    expect(markup).toMatch(
+      /href="\/bg\/blog\/kolko-struva-edna-chasha-kafe"[^>]*>Колко струва една чаша кафе всъщност</,
+    );
   });
 
   it("gives a one-group page no second heading, and its cards the h2", async () => {
@@ -240,6 +245,22 @@ describe("a landing listing with products", () => {
       expect(markup).toMatch(/href="tel:/);
       expect(markup).not.toMatch(/!<|оригиналн|най-добр|безплатна доставка/i);
     }
+  });
+});
+
+describe("a landing's link to a system's whole shelf", () => {
+  it("names the shelf as the shelf names itself", () => {
+    // One anchor per listing (`docs/seo.md` §13.1): „Всички“ and the name the
+    // breadcrumbs, chips and footer give that listing.
+    expect(BREWING_SYSTEMS.map((entry) => [entry.id, systemShelfLabel(entry)])).toEqual([
+      ["nespresso-original", "Всички капсули за Nespresso"],
+      ["dolce-gusto", "Всички капсули за Dolce Gusto"],
+      ["a-modo-mio", "Всички капсули за Lavazza A Modo Mio"],
+      ["caffitaly", "Всички капсули Caffitaly"],
+      ["lavazza-blue", "Всички капсули за Lavazza Blue"],
+      ["ese-pod", "Всички дози ESE"],
+      ["beans", "Цялото кафе на зърна"],
+    ]);
   });
 });
 
@@ -310,6 +331,36 @@ describe("the machine-brand pages", () => {
     expect(markup).not.toContain("По-долу са капсулите");
     expect(markup).toContain('id="tchibo-cafissimo-classic"');
   });
+
+  it("sends each system's group to that system's shelf, once, under the shelf's name", async () => {
+    // Krups makes machines for Dolce Gusto and Nespresso (both on sale in the
+    // fixture) and bean-to-cup ones (not on sale in it).
+    const markup = html(await MachineBrandPage(params("krups")));
+    expect(markup).toMatch(
+      /<a[^>]*href="\/bg\/dolce-gusto-kapsuli"[^>]*>Капсули за Dolce Gusto<\/a>/,
+    );
+    expect(markup).toMatch(/<a[^>]*href="\/bg\/nespresso-kapsuli"[^>]*>Капсули за Nespresso<\/a>/);
+    for (const shelf of ["/bg/dolce-gusto-kapsuli", "/bg/nespresso-kapsuli"]) {
+      expect(markup.split(`href="${shelf}"`), shelf).toHaveLength(2);
+    }
+    // One anchor per listing (`docs/seo.md` §13.1): not seven links called the same.
+    expect(markup).not.toContain("Вижте всички");
+    // A system with nothing on sale offers the phone, not a link to an empty shelf.
+    expect(markup).not.toContain('href="/bg/kafe-na-zarna"');
+  });
+
+  it.each(MACHINE_BRANDS.map((brand) => brand.slug))(
+    "%s links nothing a crawler is told not to fetch",
+    async (slug) => {
+      // `robots.ts` disallows answered wizard states and filtered listings;
+      // nothing crawlable may point at one (`docs/seo.md` §13.6).
+      const markup = html(await MachineBrandPage(params(slug)));
+      const hrefs = [...markup.matchAll(/href="([^"]*)"/g)].map((match) => match[1] ?? "");
+      expect(hrefs.length).toBeGreaterThan(0);
+      expect(hrefs.filter((target) => target.includes("?"))).toEqual([]);
+      expect(hrefs.filter((target) => target.startsWith("/bg/izbor-na-kafe/"))).toEqual([]);
+    },
+  );
 
   it("gives every other brand the generic heading and no product list", async () => {
     const markup = html(await MachineBrandPage(params("krups")));

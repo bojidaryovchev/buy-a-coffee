@@ -1,8 +1,11 @@
 import { getMachineBrand } from "@/content/machines";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { SLUGS } from "@/i18n/slugs";
+import type { JournalLandings } from "@/lib/catalog/journal-figures";
+import { LANDING_PATHS, type LandingId } from "@/lib/catalog/landings";
 import { routes, type RouteTarget } from "@/lib/routes";
 import { getBrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
+import { link, type InlineLink } from "./blocks";
 
 /**
  * Link targets, derived rather than typed — and route keys, not URLs.
@@ -48,6 +51,27 @@ export function machineBrandHref(slug: string): RouteTarget {
   if (!getMachineBrand(slug)) throw new Error(`journal: unknown machine brand "${slug}"`);
   return routes.machineBrand(slug);
 }
+
+/**
+ * A landing listing — „Капсули Lavazza“, „Безкофеиново кафе“ — or null while
+ * it has nothing to list.
+ *
+ * A landing is a page only while its selection has products; the rest of the
+ * time its address is a 404. So this does not hand back a target
+ * unconditionally the way the others here do: it takes the availability the
+ * article's figures carry and answers null when the page is not there, which
+ * leaves the caller no way to link to it by accident.
+ */
+export function landingHref(id: LandingId, landings: JournalLandings): RouteTarget | null {
+  return landings[id] ? LANDING_PATHS[id] : null;
+}
+
+/**
+ * Words that are a link while their target exists and plain words when it does
+ * not, so the sentence around them is the same sentence either way.
+ */
+export const linkWhile = (target: RouteTarget | null, text: string): InlineLink | string =>
+  target ? link(target, text) : text;
 
 export const productHref = (slug: string): RouteTarget => ({ product: slug });
 

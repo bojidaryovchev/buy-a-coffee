@@ -8,6 +8,7 @@ import {
 } from "@catalog/shared";
 import { parseIntensity, STRENGTH_ORDER } from "./attributes";
 import { toPriceView } from "./format";
+import { LANDING_IDS, type LandingId } from "./landings";
 import { readArabicaShare, readRoastLevel, type RoastLevel } from "@/lib/recommend/facts";
 import {
   BREWING_SYSTEMS,
@@ -233,12 +234,33 @@ export interface BeanFigures {
   readonly decaf: number;
 }
 
+/* --- Landing listings ---------------------------------------------------- */
+
+/**
+ * Which landing listings exist right now.
+ *
+ * A landing is a page only while its selection has products
+ * (`landings.ts`), so an article may link to one only while it does. This is
+ * that answer, reduced to a yes or no per landing: the same one the routes 404
+ * on and the sitemap is built from. It is not derived from the journal's own
+ * rows — it is handed to `computeJournalFigures`, so the journal cannot hold a
+ * second opinion about whether a page exists.
+ */
+export type JournalLandings = Readonly<Record<LandingId, boolean>>;
+
+/** No landing exists: what an article is given when nobody could ask. */
+export const NO_JOURNAL_LANDINGS: JournalLandings = Object.fromEntries(
+  LANDING_IDS.map((id) => [id, false]),
+) as Record<LandingId, boolean>;
+
 export interface JournalFigures {
   readonly cupCost: CupCostFigures | null;
   readonly formats: FormatFigures | null;
   readonly intensity: IntensityFigures | null;
   readonly composition: CompositionFigures | null;
   readonly beans: BeanFigures | null;
+  /** The landing listings an article may link to. Never null: absent is `false`. */
+  readonly landings: JournalLandings;
 }
 
 /** What an empty or unreachable catalog produces. Articles must survive it. */
@@ -248,6 +270,7 @@ export const EMPTY_JOURNAL_FIGURES: JournalFigures = {
   intensity: null,
   composition: null,
   beans: null,
+  landings: NO_JOURNAL_LANDINGS,
 };
 
 /* --- Derivation ---------------------------------------------------------- */
@@ -633,11 +656,14 @@ function beanFigures(rows: readonly JournalCatalogRow[], currency: string): Bean
  * Everything the journal quotes, from one pass over the active catalog.
  *
  * `currency` is the shop's currency; it is a parameter rather than an import
- * so the function stays a pure one and a test can pin it.
+ * so the function stays a pure one and a test can pin it. `landings` is passed
+ * through untouched: which landing listings exist is decided by
+ * `landingAvailability`, not here.
  */
 export function computeJournalFigures(
   rows: readonly JournalCatalogRow[],
   currency: string,
+  landings: JournalLandings = NO_JOURNAL_LANDINGS,
 ): JournalFigures {
   const packs: PricedPack[] = [];
   const placed: PlacedRow[] = [];
@@ -724,5 +750,6 @@ export function computeJournalFigures(
       placed.filter(({ system }) => system.method === "beans").map(({ row }) => row),
       currency,
     ),
+    landings,
   };
 }

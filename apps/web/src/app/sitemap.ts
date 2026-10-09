@@ -1,7 +1,12 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { SHIPPING_LOCALES } from "@/i18n/config";
-import { getCategoryTree, listAllProductSlugs, listBrands } from "@/lib/catalog/queries";
+import {
+  countPromotions,
+  getCategoryTree,
+  listAllProductSlugs,
+  listBrands,
+} from "@/lib/catalog/queries";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
@@ -25,7 +30,10 @@ import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes
  * sitemap entry for a page that asks not to be indexed is a contradiction. The
  * landing listings (Lavazza capsules and beans, decaf, cheapest per cup) follow
  * the same rule from the other side: each is a 404 while its selection is
- * empty, and is listed here only while it is not.
+ * empty, and is listed here only while it is not. The promotions page is the
+ * third case: it answers 200 with nothing reduced, so that no link to it
+ * breaks, but it is `noindex` then, and it is listed here only while a
+ * reduction exists.
  *
  * **Every page once per shipping locale, each entry carrying the page's whole
  * `hreflang` set**, `x-default` included — the same set the page's own head
@@ -58,13 +66,15 @@ const at =
     href(locale, canonical);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [productSlugs, categories, brands, consumablesListed, landings] = await Promise.all([
-    listAllProductSlugs(),
-    getCategoryTree(),
-    listBrands({ withProductsOnly: true }),
-    sectionListsProducts("consumables"),
-    getLandingAvailability(),
-  ]);
+  const [productSlugs, categories, brands, consumablesListed, landings, promotionCount] =
+    await Promise.all([
+      listAllProductSlugs(),
+      getCategoryTree(),
+      listBrands({ withProductsOnly: true }),
+      sectionListsProducts("consumables"),
+      getLandingAvailability(),
+      countPromotions(),
+    ]);
 
   const now = new Date();
   const page = (
@@ -78,7 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page(at(routes.home), "daily", 1),
     page(at(routes.categories), "weekly", 0.8),
     page(at(routes.brands), "weekly", 0.7),
-    page(at(routes.promotions), "daily", 0.7),
+    ...(promotionCount > 0 ? [page(at(routes.promotions), "daily", 0.7)] : []),
     page(at(routes.wizard), "monthly", 0.8),
     page(at(routes.machines), "monthly", 0.7),
     page(at(BUSINESS_SECTIONS.vending.path), "weekly", 0.6),

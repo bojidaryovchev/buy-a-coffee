@@ -13,7 +13,8 @@ import {
   type Block,
   type Inline,
 } from "../blocks";
-import { CAPSULES_HREF, WIZARD_HREF, productHref, systemCategoryHref } from "../links";
+import { relatedCopy } from "../../landing-copy";
+import { CAPSULES_HREF, WIZARD_HREF, landingHref, productHref, systemCategoryHref } from "../links";
 
 /**
  * What a cup really costs.
@@ -61,7 +62,7 @@ export const cupCost: Article = {
   publishedAt: "2026-10-09",
   usesCatalog: true,
 
-  body: ({ cupCost: figures }) => {
+  body: ({ cupCost: figures, landings }) => {
     const reversal = figures?.reversal ?? null;
     const beans = figures?.byMethod.beans ?? null;
     const capsules = figures?.byMethod.capsule ?? null;
@@ -114,6 +115,19 @@ export const cupCost: Article = {
       current.push(
         p(
           "Точните числа зависят от текущите цени, затова не ги пишем тук наизуст. Във въпросника всяко предложение идва със своята цена на чаша, сметната от цената в момента.",
+        ),
+      );
+    }
+
+    /* The listing this article explains: the cheapest per cup in each system.
+       Linked only while it has something to list, with or without the table. */
+    const cheapest = landingHref("cheapest", landings);
+    if (cheapest) {
+      current.push(
+        p(
+          "Продуктите с най-ниска цена на чаша във всяка система са събрани на страницата „",
+          link(cheapest, relatedCopy.cheapest),
+          "“.",
         ),
       );
     }

@@ -110,12 +110,15 @@ export function SiteFooterView({
             {capsules?.systems.map((system) => (
               <FooterLink key={system.id} href={system.href}>
                 {/* The rail calls the group "Капсули" and names the systems
-                    under it; out of that context the word has to come along. */}
-                {fill(footer.systemCapsules, { system: system.name })}
+                    under it. Down here each link stands alone, so it is the
+                    listing's own name: „Капсули за Nespresso“, never „Капсули
+                    Nespresso“, which would pass a compatible capsule off as
+                    the system owner's. */}
+                {system.listingName}
               </FooterLink>
             ))}
-            {pods && <FooterLink href={pods.href}>{pods.name}</FooterLink>}
-            {beans && <FooterLink href={beans.href}>{beans.name}</FooterLink>}
+            {pods && <FooterLink href={pods.href}>{pods.listingName}</FooterLink>}
+            {beans && <FooterLink href={beans.href}>{beans.listingName}</FooterLink>}
             {landings.counts.decaf > 0 && (
               <FooterLink href={href(locale, LANDING_PATHS.decaf)}>{footer.decaf}</FooterLink>
             )}

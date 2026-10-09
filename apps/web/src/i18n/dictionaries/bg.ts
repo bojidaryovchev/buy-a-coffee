@@ -115,8 +115,6 @@ export const bg = {
     shop: "Магазин",
     help: "Помощ",
     legal: "Правна информация",
-    /** Out of the rail's context the word has to come along: "Капсули Nespresso". */
-    systemCapsules: "Капсули {system}",
     /** The two listings cut across every system; shown only while they list something. */
     decaf: "Безкофеиново кафе",
     cheapestPerCup: "Най-евтино на чаша",

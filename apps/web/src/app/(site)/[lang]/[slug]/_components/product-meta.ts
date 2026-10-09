@@ -1,5 +1,5 @@
-import { siteConfig } from "@/config/site";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import { fullTitle } from "@/lib/seo/title";
 
 /*
  * The product page's title and meta description, apart from the page so they
@@ -8,13 +8,13 @@ import type { ProductDetailView } from "@/lib/catalog/types";
  */
 
 /**
- * `<Brand> <Line> — <format>, <qty> | Buy-a-Coffee` (docs/seo.md §12).
+ * `<Brand> <Line> — <format>, <qty> | <shop>` (docs/seo.md §12).
  *
- * Used as an absolute title, so the separator before the shop's name is the
- * one the page plan gives product pages, whatever the layout's template is.
+ * Absolute, and ended by `fullTitle`, which is the one place the separator
+ * before the shop's name is spelled (`lib/seo/title.ts`).
  */
 export function productPageTitle(product: Pick<ProductDetailView, "name">): string {
-  return `${product.name} | ${siteConfig.name}`;
+  return fullTitle(product.name);
 }
 
 /**

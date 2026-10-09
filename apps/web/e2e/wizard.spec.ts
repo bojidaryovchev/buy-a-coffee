@@ -95,8 +95,12 @@ test("the machine finder answers which capsule a model takes", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Dolce Gusto" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nespresso Original" })).toBeVisible();
 
-  await page.getByRole("link", { name: /изберете кафе за dolce gusto/i }).click();
-  await expect(page).toHaveURL(/system=dolce-gusto/);
+  // The way on is the system's shelf, under the shelf's own name. It is not
+  // the wizard with the system already answered: robots.txt disallows answered
+  // states, and nothing crawlable may point at one.
+  await page.locator('main a[href="/bg/dolce-gusto-kapsuli"]').click();
+  await expect(page).toHaveURL(/\/bg\/dolce-gusto-kapsuli$/);
+  await expect(page.locator("h1")).toHaveText("Капсули за Dolce Gusto");
 });
 
 test("a machine we cannot supply gets a straight answer", async ({ page }) => {

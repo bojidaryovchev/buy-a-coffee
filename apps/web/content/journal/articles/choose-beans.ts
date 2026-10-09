@@ -12,7 +12,15 @@ import {
   type Block,
   type Inline,
 } from "../blocks";
-import { VENDING_HREF, WIZARD_HREF, articleHref, systemCategoryHref } from "../links";
+import { relatedCopy } from "../../landing-copy";
+import {
+  VENDING_HREF,
+  WIZARD_HREF,
+  articleHref,
+  landingHref,
+  linkWhile,
+  systemCategoryHref,
+} from "../links";
 import { shareBreakdown } from "./arabica-robusta";
 import { CUP_COST_SLUG, rangeText } from "./cup-cost";
 import { INTENSITY_SLUG } from "./intensity";
@@ -110,11 +118,12 @@ export const chooseBeans: Article = {
   publishedAt: "2026-10-09",
   usesCatalog: true,
 
-  body: ({ beans, formats, cupCost }) => {
+  body: ({ beans, formats, cupCost, landings }) => {
     /* From the shared helper, as in the cup-cost article: the number of cups
        a kilogram holds is the number the wizard would compute for the bag. */
     const cupsPerKilogram = packServings("1000", "g")?.whole ?? null;
     const decaf = beans?.decaf ?? 0;
+    const cheapest = landingHref("cheapest", landings);
 
     return [
       p(
@@ -132,7 +141,9 @@ export const chooseBeans: Article = {
       ...(decaf > 0
         ? [
             p(
-              `Ако не искате кофеин, не го търсете в състава: и двата вида го съдържат. Сред зърната има и кафе без кофеин — в момента ${pluralize(decaf, "продукт", "продукта")}.`,
+              "Ако не искате кофеин, не го търсете в състава: и двата вида го съдържат. Сред зърната има и ",
+              linkWhile(landingHref("decaf", landings), "кафе без кофеин"),
+              ` — в момента ${pluralize(decaf, "продукт", "продукта")}.`,
             ),
           ]
         : []),
@@ -167,6 +178,13 @@ export const chooseBeans: Article = {
         "Ако водеща за вас е цената, сравнявайте по цена за килограм или на чаша, а не по цена на пакета. Как се смята втората, пише в ",
         link(articleHref(CUP_COST_SLUG), "колко струва една чаша кафе"),
         ".",
+        ...(cheapest
+          ? [
+              " Кое кафе излиза най-евтино на чаша в момента, показва страницата „",
+              link(cheapest, relatedCopy.cheapest),
+              "“.",
+            ]
+          : []),
       ),
 
       h2("За каква машина е"),

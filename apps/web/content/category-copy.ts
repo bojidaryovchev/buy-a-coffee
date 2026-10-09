@@ -1,4 +1,5 @@
 import { routes, type RouteTarget } from "@/lib/routes";
+import { CHOOSE_BEANS_SLUG } from "./journal/articles/slugs";
 import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
 
 /**
@@ -101,6 +102,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     h1: "Кафе на зърна",
     title: "Кафе на зърна — цена за кг и на чаша",
     description: "Кафе на зърна с цена за килограм до всяка опаковка",
+    article: CHOOSE_BEANS_SLUG,
     heading: "За кого е кафето на зърна",
     paragraphs: [
       "Кафето на зърна е за хората, чиято машина мели сама, и за всеки, който има мелачка у дома. Зърната се смилат непосредствено преди приготвянето, затова тук не избирате система, а само вкус и размер на опаковката.",

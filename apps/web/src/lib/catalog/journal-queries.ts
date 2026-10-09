@@ -9,7 +9,10 @@ import {
   computeJournalFigures,
   type JournalCatalogRow,
   type JournalFigures,
+  type JournalLandings,
 } from "./journal-figures";
+import { getLandingAvailability } from "./landing-queries";
+import { LANDING_IDS, type LandingId } from "./landings";
 
 /**
  * The catalog read behind the journal's figures.
@@ -105,6 +108,21 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
 }
 
 /**
+ * Which landing listings an article may link to: the ones that have products.
+ *
+ * Asked of `getLandingAvailability`, the answer the landing routes 404 on and
+ * the sitemap and footer are built from, so a link in an article appears and
+ * disappears with the page it points at.
+ */
+async function loadJournalLandings(): Promise<JournalLandings> {
+  const { counts } = await getLandingAvailability();
+  return Object.fromEntries(LANDING_IDS.map((id) => [id, counts[id] > 0])) as Record<
+    LandingId,
+    boolean
+  >;
+}
+
+/**
  * The figures, or the empty set if the catalog cannot be read.
  *
  * Swallowing the error is deliberate and specific to this caller. Everywhere
@@ -115,7 +133,8 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
  */
 export async function getJournalFigures(): Promise<JournalFigures> {
   try {
-    return computeJournalFigures(await loadJournalRows(), siteConfig.currency);
+    const [rows, landings] = await Promise.all([loadJournalRows(), loadJournalLandings()]);
+    return computeJournalFigures(rows, siteConfig.currency, landings);
   } catch (error) {
     console.error("journal: catalog figures unavailable, rendering without them", error);
     return EMPTY_JOURNAL_FIGURES;

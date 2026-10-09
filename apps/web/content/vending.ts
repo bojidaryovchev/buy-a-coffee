@@ -169,8 +169,11 @@ export const consumablesCopy: BusinessSectionCopy = {
   },
 
   related: {
-    text: "Кафето за вендинг автомати и автоматични машини е във",
-    label: "Вендинг зона",
+    /* The anchor is the vending page's own head term (`docs/seo.md` §13.1),
+       the words the articles link it with too; „Вендинг зона“ is the menu's
+       short name for the section and stays in the menu. */
+    text: "За вендинг автомати и автоматични кафемашини има отделна страница —",
+    label: "кафе за вендинг машини",
     href: routes.vending,
   },
 };

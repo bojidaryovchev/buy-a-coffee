@@ -20,9 +20,11 @@ import {
   VENDING_HREF,
   WIZARD_HREF,
   articleHref,
+  landingHref,
   machineBrandHref,
   systemCategoryHref,
 } from "../links";
+import { relatedCopy } from "../../landing-copy";
 import { CUP_COST_SLUG, rangeText } from "./cup-cost";
 import { WHICH_CAPSULE_SLUG } from "./which-capsule";
 
@@ -72,7 +74,7 @@ export const formats: Article = {
   publishedAt: "2026-10-09",
   usesCatalog: true,
 
-  body: ({ formats: figures, cupCost }) => {
+  body: ({ formats: figures, cupCost, landings }) => {
     const beans = getBrewingSystem("beans");
     const pod = getBrewingSystem("ese-pod");
     const capsuleSystems = systemsForMethod("capsule");
@@ -102,6 +104,7 @@ export const formats: Article = {
       : [];
 
     const beansCheaper = cupCost?.beansUndercutCapsules ?? false;
+    const cheapest = landingHref("cheapest", landings);
 
     const summary: Block[] =
       summaryRows.length > 0
@@ -207,6 +210,13 @@ export const formats: Article = {
           ...(beansCheaper
             ? [
                 " В момента и най-скъпите зърна в каталога ни излизат по-евтино на чаша от най-евтините капсули.",
+              ]
+            : []),
+          ...(cheapest
+            ? [
+                " Най-ниските цени на чаша във всяка система са на страницата „",
+                link(cheapest, relatedCopy.cheapest),
+                "“.",
               ]
             : []),
         ],

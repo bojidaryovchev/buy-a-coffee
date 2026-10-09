@@ -6,7 +6,14 @@ import {
   type CupPrice,
   type LandingId,
 } from "@/lib/catalog/landings";
-import type { BrewMethod, BrewingSystem, BrewingSystemId } from "@/lib/recommend/systems";
+import { systemCategory } from "@/lib/routes";
+import { categoryNameFor } from "./category-copy";
+import {
+  getBrewingSystem,
+  type BrewMethod,
+  type BrewingSystem,
+  type BrewingSystemId,
+} from "@/lib/recommend/systems";
 
 /**
  * The words of the landing listings, the Tchibo machine page and the
@@ -91,9 +98,20 @@ const METHOD_WORDS: Readonly<Record<BrewMethod, string>> = {
   beans: "зърна",
 };
 
-/** "Всички капсули за Dolce Gusto", "Всички дози ESE", "Цялото кафе на зърна". */
+/**
+ * "Всички капсули за Dolce Gusto", "Всички капсули Caffitaly", "Всички дози
+ * ESE", "Цялото кафе на зърна".
+ *
+ * A capsule shelf is named as it names itself (`categoryNameFor`), with
+ * „Всички“ in front: „за Nespresso“, not „за Nespresso Original“, and
+ * „капсули Caffitaly“, not „капсули за Caffitaly“ — the same words every
+ * other link to that shelf uses (`docs/seo.md` §13.1).
+ */
 export function systemShelfLabel(system: BrewingSystem): string {
-  if (system.method === "capsule") return `Всички капсули за ${system.name}`;
+  if (system.method === "capsule") {
+    const name = categoryNameFor({ ...systemCategory(system), name: `Капсули за ${system.name}` });
+    return `Всички ${name.charAt(0).toLocaleLowerCase("bg")}${name.slice(1)}`;
+  }
   return system.method === "pod" ? "Всички дози ESE" : "Цялото кафе на зърна";
 }
 
@@ -174,7 +192,7 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
     description: (facts) =>
       `Безкофеиново кафе на ${joinList(
         facts.methods.map((method) => METHOD_WORDS[method]),
-      )}: ${pluralize(facts.count, "продукт", "продукта")}, подредени по системата на машината. ${closing(
+      )}. Общо ${pluralize(facts.count, "продукт", "продукта")} без кофеин, по системата на машината. ${closing(
         facts,
       )}`,
     intro: ({ count }) => [
@@ -247,7 +265,6 @@ export const landingLabels = {
   /** Accessible name of the row of in-page links to the groups. */
   jumpLabel: "Системи на тази страница",
   findMachine: "Намерете машината си по марка и модел",
-  cupCostArticle: "Как смятаме цената на чаша",
   orderHeading: "Поръчка по телефона",
   orderBody:
     "Няма количка и плащане онлайн. Оставяте телефон на страницата на продукта и ние ви се обаждаме, за да потвърдим поръчката. Можете и направо да ни позвъните:",
@@ -304,6 +321,70 @@ export const machineBrandFeatures: Readonly<Record<string, MachineBrandFeature>>
       }${closing(facts)}`,
   },
 };
+
+/**
+ * Whether any model in our list takes a capsule, of a system we stock or not.
+ * Pre-ground coffee is the one "system" in the unsupported list that is not a
+ * capsule.
+ */
+export function hasCapsuleMachines(brand: {
+  readonly models: ReadonlyArray<{ readonly system: string }>;
+}): boolean {
+  return brand.models.some((model) => {
+    const system = getBrewingSystem(model.system);
+    return system ? system.method === "capsule" : model.system !== "ground";
+  });
+}
+
+/**
+ * An entry in the machine list that is a kind of machine, not a maker. The
+ * generic wording puts „кафемашини“ before a brand's name, which is nonsense
+ * before „Вендинг машини“. The title stays clear of „кафе за вендинг машини“:
+ * that query belongs to the vending section's own page (`docs/seo.md` §1).
+ */
+export const machineKindCopy: Readonly<
+  Record<string, { readonly title: string; readonly h1: string; readonly description: string }>
+> = {
+  vending: {
+    title: "Вендинг машини и автомати на зърна — какво кафе приемат",
+    h1: "Вендинг машини: какво им пасва",
+    description: `Какво кафе приемат вендинг машините и автоматите на зърна — и какво от асортимента ни можете да поръчате за тях. ${CALLBACK_SENTENCE}`,
+  },
+};
+
+/** The generic description of a machine entry's page: a maker's, or a kind's. */
+export function machineBrandDescription(brand: {
+  readonly slug: string;
+  readonly name: string;
+  readonly models: ReadonlyArray<{ readonly system: string }>;
+}): string {
+  const kind = Object.hasOwn(machineKindCopy, brand.slug) ? machineKindCopy[brand.slug] : undefined;
+  return kind?.description ?? machineBrandCopy.description(brand.name, hasCapsuleMachines(brand));
+}
+
+/**
+ * The `<title>` (before the shop's name) and `h1` of one machine brand's page:
+ * the featured wording for the brand that has one, the generic one for the
+ * rest. In one place so that the page and `test/keyword-map.test.ts` cannot
+ * build them differently.
+ */
+export function machineBrandNames(brand: {
+  readonly slug: string;
+  readonly name: string;
+  readonly models: ReadonlyArray<{ readonly system: string }>;
+}): { readonly title: string; readonly h1: string } {
+  const feature = Object.hasOwn(machineBrandFeatures, brand.slug)
+    ? machineBrandFeatures[brand.slug]
+    : undefined;
+  const kind = Object.hasOwn(machineKindCopy, brand.slug) ? machineKindCopy[brand.slug] : undefined;
+  return {
+    title:
+      feature?.title ??
+      kind?.title ??
+      machineBrandCopy.title(brand.name, hasCapsuleMachines(brand)),
+    h1: feature?.h1 ?? kind?.h1 ?? machineBrandCopy.h1(brand.name),
+  };
+}
 
 /* --- Cross-links --------------------------------------------------------- */
 

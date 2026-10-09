@@ -7,6 +7,7 @@ import { absoluteUrl, siteConfig } from "@/config/site";
 import { JOURNAL_NAME, JOURNAL_PATH, formatArticleDate, listArticles } from "@/lib/journal";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
+import { fullTitle } from "@/lib/seo/title";
 import { OG_LOCALE } from "@/i18n/config";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       type: "website",
       siteName: siteConfig.name,
-      title: `${TITLE} — ${siteConfig.name}`,
+      title: fullTitle(TITLE),
       description: DESCRIPTION,
       url: absoluteUrl(href(locale, JOURNAL_PATH)),
       locale: OG_LOCALE[locale],
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: "summary_large_image",
-      title: `${TITLE} — ${siteConfig.name}`,
+      title: fullTitle(TITLE),
       description: DESCRIPTION,
       images: [{ url: absoluteUrl(SHARE_CARD) }],
     },

@@ -4,6 +4,7 @@ import { Measurement } from "@/components/measurement";
 import { siteConfig, absoluteUrl } from "@/config/site";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
+import { TITLE_TEMPLATE } from "@/lib/seo/title";
 import { JsonLd } from "@/components/seo/json-ld";
 import { HTML_LANG, OG_LOCALE, SHIPPING_LOCALES } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -53,7 +54,8 @@ export async function generateMetadata({
 
   return {
     metadataBase: new URL(siteConfig.url),
-    title: { default: title, template: `%s — ${siteConfig.name}` },
+    // The separator before the shop's name is decided in `lib/seo/title.ts`.
+    title: { default: title, template: TITLE_TEMPLATE },
     description: site.description,
     applicationName: siteConfig.name,
     formatDetection: { telephone: true },

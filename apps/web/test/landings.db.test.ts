@@ -16,6 +16,9 @@ import {
   getSystemListing,
 } from "@/lib/catalog/landing-queries";
 import { CHEAPEST_PER_SYSTEM, LANDING_IDS } from "@/lib/catalog/landings";
+import { getJournalFigures } from "@/lib/catalog/journal-queries";
+import { countPromotions } from "@/lib/catalog/queries";
+import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
@@ -150,5 +153,23 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
     expect(
       view.groups.flatMap((group) => group.products).map((p) => p.servingPrice?.formatted),
     ).toEqual(shelf.items.map((product) => product.servingPrice?.formatted));
+  });
+
+  it("tells the journal a landing exists exactly when the landing's route does", async () => {
+    // An article links a landing only while `figures.landings` says it is
+    // there; that has to be the answer the route 404s on, not a second one.
+    const { landings, cupCost } = await getJournalFigures();
+    for (const id of LANDING_IDS) {
+      expect(landings[id], id).toBe(availability.counts[id] > 0);
+    }
+    // And the read behind it did not cost the article its own figures.
+    expect(cupCost).not.toBeNull();
+  });
+
+  it("counts promotions for the sitemap as the promotions page counts them", async () => {
+    // The page is `noindex` on `getListingFacts`; the sitemap and `llms.txt`
+    // list it on `countPromotions`. One page, one answer.
+    const facts = await getListingFacts({ kind: "promotions" });
+    expect(await countPromotions()).toBe(facts.productCount);
   });
 });
