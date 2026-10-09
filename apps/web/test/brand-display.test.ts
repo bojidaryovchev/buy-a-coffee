@@ -47,16 +47,16 @@ const KNOWN_BRAND_KEYS = [
 /** Names exactly as the source types them, warts included. */
 const AS_TYPED_BY_THE_SOURCE: ReadonlyArray<[name: string, sourceKey: string, shown: string]> = [
   ["LAVAZZA", "lavazza", "Lavazza"],
-  ["REMA CAFFE", "rema-caffe", "Rema Caffe"],
+  ["REMA CAFFE", "rema-caffe", "Rema Caffè"],
   ["BORBONE ", "borbone", "Borbone"],
   [" VERGNANO", " vergnano", "Vergnano"],
   ["FoodNess", "foodness", "Foodness"],
   ["3bourbons", "3bourbons", "3 Bourbons"],
-  ["LOLLOCAFE", "lollocafe", "Lollocafe"],
+  ["LOLLOCAFE", "lollocafe", "Lollo Caffè"],
   ["JULIUS MEINL", "julius-meinl", "Julius Meinl"],
   ["ILLY", "illy", "illy"],
   // The snapshot's key for this brand is one "f" short of its name.
-  ["BIANCAFFE", "biancafe", "Biancaffe"],
+  ["BIANCAFFE", "biancafe", "Biancaffè"],
 ];
 
 describe("brand display names", () => {

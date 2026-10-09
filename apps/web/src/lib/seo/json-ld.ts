@@ -8,6 +8,7 @@ import {
 import { availabilitySchemaUrl } from "@/lib/catalog/format";
 import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import { brandLogoFor } from "../../../content/brand-logos";
 
 /**
  * Structured data builders.
@@ -222,6 +223,24 @@ export function productImageUrls(product: Pick<ProductDetailView, "images">): re
     .map((image) => absoluteUrl(image.url));
 }
 
+/**
+ * A `Brand`, as the product page and the brand page both publish it.
+ *
+ * `logo` only when we hold the brand's own logo (`content/brand-logos.ts`),
+ * as an absolute URL on our own origin; a brand without one is a name alone.
+ */
+export function brandJsonLd(brand: {
+  readonly slug: string;
+  readonly name: string;
+}): Record<string, unknown> {
+  const logo = brandLogoFor(brand.slug);
+  return {
+    "@type": "Brand",
+    name: brand.name,
+    ...(logo ? { logo: absoluteUrl(logo.file) } : {}),
+  };
+}
+
 export function productJsonLd(
   product: ProductDetailView,
   commerce: CommerceConfig = siteConfig.commerce,
@@ -237,7 +256,7 @@ export function productJsonLd(
     url: absoluteUrl(`/products/${product.slug}`),
     ...(product.descriptionText ? { description: product.descriptionText } : {}),
     ...(images.length > 0 ? { image: images } : {}),
-    ...(product.brand ? { brand: { "@type": "Brand", name: product.brand.name } } : {}),
+    ...(product.brand ? { brand: brandJsonLd(product.brand) } : {}),
     ...(sku ? { sku } : {}),
     ...(product.gtin ? { gtin: product.gtin } : {}),
     ...(product.weight ? { weight: product.weight } : {}),

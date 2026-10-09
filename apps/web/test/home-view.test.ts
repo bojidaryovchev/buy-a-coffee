@@ -429,14 +429,27 @@ describe("home page: modules that come and go", () => {
     expect(h2s(render({ ...FULL, newArrivals: [] }))).not.toContain(TITLES.arrivals);
   });
 
-  it("shows brands by name with their counts, and no logo", () => {
+  it("shows brands as tiles with their counts: the name where there is no logo", () => {
     const markup = render(SMALL);
     const section = markup.slice(markup.indexOf(TITLES.brands));
     expect(section).toContain('href="/brands/marka-1"');
     expect(text(section)).toContain("Марка 2 6 продукта");
     // A brand without products is not a route into anything.
     expect(section).not.toContain("marka-3");
+    // None of the fixture brands has a logo, so none is drawn.
     expect(section.slice(0, section.indexOf("</section>"))).not.toContain("<img");
+  });
+
+  it("shows a brand's own logo in its tile, named by its alt", () => {
+    const lavazza: BrandView = { ...brand(1, 21), slug: "lavazza", name: "Lavazza" };
+    const markup = render({ ...SMALL, brands: [lavazza, brand(2, 6)] });
+    const section = markup.slice(markup.indexOf(TITLES.brands));
+    const tiles = section.slice(0, section.indexOf("</section>"));
+    expect(tiles).toMatch(
+      /<a [^>]*href="\/brands\/lavazza"[^>]*>\s*<span[^>]*><img src="\/brands\/lavazza.svg" alt="Lavazza"/,
+    );
+    expect(text(tiles)).toContain("21 продукта");
+    expect(tiles.match(/<img/g)).toHaveLength(1);
 
     expect(h2s(render({ ...FULL, brands: [] }))).not.toContain(TITLES.brands);
     expect(h2s(render({ ...FULL, brands: [brand(1, 0)] }))).not.toContain(TITLES.brands);

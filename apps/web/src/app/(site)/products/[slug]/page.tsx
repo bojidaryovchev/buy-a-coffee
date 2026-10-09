@@ -19,6 +19,7 @@ import { ProductGallery } from "@/components/catalog/product-gallery";
 import { FactsTable, factRows } from "@/components/catalog/facts-table";
 import { ProductCompatibility } from "@/components/catalog/product-compatibility";
 import { SystemBadge } from "@/components/catalog/system-badge";
+import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { getProductBySlug, getRelatedProducts } from "@/lib/catalog/queries";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
@@ -149,14 +150,25 @@ export default async function ProductPage({ params }: PageProps) {
           {(system || product.brand) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <SystemBadge systemId={product.systemId} size="md" href={systemHref ?? undefined} />
-              {product.brand && (
-                <Link
-                  href={`/brands/${product.brand.slug}`}
-                  className="inline-flex min-h-6 items-center text-2xs font-semibold tracking-[0.06em] text-pine-700 uppercase underline-offset-4 hover:underline"
-                >
-                  {product.brand.name}
-                </Link>
-              )}
+              {product.brand &&
+                (legibleBrandLogo(product.brand.slug, "line") ? (
+                  // The brand's logo, linking to its page; its alt is the
+                  // brand's name, which is also the link's name. A brand with
+                  // no logo, or one unreadable this small, keeps the name.
+                  <Link
+                    href={`/brands/${product.brand.slug}`}
+                    className="inline-flex min-h-6 items-center rounded-xs"
+                  >
+                    <BrandLogo brand={product.brand} size="line" inline />
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/brands/${product.brand.slug}`}
+                    className="inline-flex min-h-6 items-center text-2xs font-semibold tracking-[0.06em] text-pine-700 uppercase underline-offset-4 hover:underline"
+                  >
+                    {product.brand.name}
+                  </Link>
+                ))}
             </div>
           )}
 

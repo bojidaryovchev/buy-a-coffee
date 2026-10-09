@@ -11,13 +11,25 @@
  * forgiving about separators and case (see `brand-display.ts`), so `3-bourbons`
  * here still matches a brand that arrives as "3bourbons".
  *
- * The rules this list was written under:
+ * The rules this list is written under:
  *
- *  - A brand is spelled the way it spells itself only where that is common
- *    public knowledge. That is one entry today: illy writes its name in lower
- *    case.
+ *  - A brand is spelled the way it spells itself where that has been checked
+ *    against its own website and packs, accents included: illy in lower case,
+ *    Biancaffè, Lollo Caffè, 3 Bourbons. The evidence for each is the
+ *    provenance record that came with the logos (`brand-logo-provenance.ts`).
+ *  - Rema Caffè is the one compromise: the brand's site and pods set it as
+ *    one word with an acute accent, "remacaffé", and some of its own pages
+ *    write "Rema Caffè". Two words with the grave is how our product copy
+ *    already writes it and how Italian writes "caffè".
+ *  - A descriptor the brand sets beside its name is not part of the name:
+ *    "Kaffee" under Amann, "Coffee" under Bianchi, "Caffè" in front of
+ *    Borbone and Vergnano, "Caffè" under Vandino. Our product names and the
+ *    URLs use the short name, and so does the page.
+ *  - A wordmark's styling is not a spelling: molini's packs set the name in
+ *    lower case, but nothing the brand writes in running text does, so it
+ *    stays title-cased.
  *  - Everything else is a clean title-case of what the catalogue gives, split
- *    into words where the source key splits it. No accents, no "Caffè", no
+ *    into words where the source key splits it. No guessed accents and no
  *    legal suffixes: a guessed diacritic on somebody else's trademark is worse
  *    than a plain spelling.
  *
@@ -28,7 +40,7 @@
 export const brandDisplayNames: Readonly<Record<string, string>> = {
   "3-bourbons": "3 Bourbons",
   amann: "Amann",
-  biancaffe: "Biancaffe",
+  biancaffe: "Biancaffè",
   bianchi: "Bianchi",
   borbone: "Borbone",
   caffitaly: "Caffitaly",
@@ -40,9 +52,9 @@ export const brandDisplayNames: Readonly<Record<string, string>> = {
   "julius-meinl": "Julius Meinl",
   kimbo: "Kimbo",
   lavazza: "Lavazza",
-  lollocafe: "Lollocafe",
+  lollocafe: "Lollo Caffè",
   molini: "Molini",
-  "rema-caffe": "Rema Caffe",
+  "rema-caffe": "Rema Caffè",
   tezzoro: "Tezzoro",
   vandino: "Vandino",
   vergnano: "Vergnano",
