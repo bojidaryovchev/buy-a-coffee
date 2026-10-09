@@ -40,4 +40,9 @@ export const en: LocaleSlugs = {
     "kafe-na-zyrna": "coffee-beans",
     "kafe-dozi": "ese-coffee-pods",
   },
+  // As in Bulgarian: a brand's name is the same in every language.
+  brands: {
+    lollocafe: "lollo-caffe",
+    "3-bourbons": "3-bourbons",
+  },
 };

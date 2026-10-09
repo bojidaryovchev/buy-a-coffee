@@ -7,7 +7,7 @@ import { MACHINE_BRANDS } from "@/content/machines";
 import { consumablesCopy, vendingCopy } from "../../../content/vending";
 import { llmsText } from "./body";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { categoryHref, href, routes } from "@/lib/routes";
+import { brandHref, categoryHref, href, routes } from "@/lib/routes";
 
 /**
  * `/llms.txt` — a plain-language map of the shop for AI search.
@@ -79,7 +79,7 @@ export async function GET() {
       .map((category) => ({ name: category.name, href: categoryHref(locale, category) })),
     brands: brands.map((brand) => ({
       name: brand.name,
-      href: href(locale, routes.brand(brand.slug)),
+      href: brandHref(locale, brand),
     })),
     machineBrandCount: MACHINE_BRANDS.length,
     sections: [

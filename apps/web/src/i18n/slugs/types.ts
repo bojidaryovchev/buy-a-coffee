@@ -51,4 +51,15 @@ export interface LocaleSlugs {
    * stored slug until someone gives it one.
    */
   readonly categories: Readonly<Record<string, string>>;
+  /**
+   * A brand's source key → the slug its page is published at in this locale,
+   * for the brands whose stored slug is not how the brand writes itself.
+   *
+   * The stored slug is derived from the supplier's label for the brand
+   * (`LOLLOCAFE` → `lollocafe`) and frozen; the brand calls itself Lollo
+   * Caffè. A brand with no entry is served at its stored slug, which for most
+   * of them is already right. The stored slug of a brand that has an entry
+   * answers 308 to the one here (`brandSlug` in `lib/routes.ts`).
+   */
+  readonly brands: Readonly<Record<string, string>>;
 }

@@ -20,6 +20,7 @@ import {
   parseWeight,
   planSlugMoves,
   productName,
+  productSearchName,
 } from "@catalog/shared";
 import { RESERVED_PRODUCT_SLUGS } from "@catalog/shared/storefront-data";
 
@@ -31,11 +32,20 @@ export interface ReslugRow {
   readonly slug: string;
   readonly previousSlugs: readonly string[];
   readonly base: string;
+  /** What `search_name` should hold, and what it holds. */
+  readonly searchName: string;
+  readonly storedSearchName: string | null;
 }
 
 export interface ReslugPlan {
   readonly rows: readonly ReslugRow[];
   readonly moves: ReadonlyArray<SlugMove & { readonly id: string; readonly name: string }>;
+  /**
+   * Products whose stored search name is not the shop's current name for them:
+   * every product the first time, and afterwards only one whose name changed
+   * (an override was written) before the sync has run again.
+   */
+  readonly renames: ReadonlyArray<{ readonly id: string; readonly searchName: string }>;
 }
 
 /** Every address a product may not take: routes, landing slugs, stored category slugs. */
@@ -52,7 +62,14 @@ function reservedWith(categorySlugs: Iterable<string>): ReadonlySet<string> {
  * product (`sync.ts`): the brand row's own key and name, the source keys of
  * the categories the product is linked to, the parsed pack size.
  */
-export async function planReslug(db: Database): Promise<ReslugPlan> {
+export async function planReslug(
+  db: Database,
+  options: {
+    /** Only this source site's products. The seed uses it; production has one site. */
+    readonly sourceSiteId?: string;
+  } = {},
+): Promise<ReslugPlan> {
+  const scope = options.sourceSiteId ? eq(products.sourceSiteId, options.sourceSiteId) : undefined;
   const [productRows, categoryLinks, categoryRows] = await Promise.all([
     db
       .select({
@@ -62,13 +79,15 @@ export async function planReslug(db: Database): Promise<ReslugPlan> {
         name: products.name,
         slug: products.slug,
         previousSlugs: products.previousSlugs,
+        searchName: products.searchName,
         weightValue: products.weightValue,
         weightUnit: products.weightUnit,
         brandKey: brands.sourceKey,
         brandName: brands.name,
       })
       .from(products)
-      .leftJoin(brands, eq(products.brandId, brands.id)),
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(scope),
     db
       .select({ productId: productCategories.productId, sourceKey: categories.sourceKey })
       .from(productCategories)
@@ -82,13 +101,8 @@ export async function planReslug(db: Database): Promise<ReslugPlan> {
     categoryKeys.set(link.productId, [...(categoryKeys.get(link.productId) ?? []), link.sourceKey]);
   }
 
-  const rows: ReslugRow[] = productRows.map((row) => ({
-    id: row.id,
-    sourceKey: row.sourceKey,
-    name: row.name,
-    slug: row.slug,
-    previousSlugs: row.previousSlugs,
-    base: productName({
+  const rows: ReslugRow[] = productRows.map((row) => {
+    const name = productName({
       sourceName: row.name,
       sourceKey: row.sourceKey,
       previousSourceKeys: row.previousSourceKeys,
@@ -96,8 +110,18 @@ export async function planReslug(db: Database): Promise<ReslugPlan> {
       categoryKeys: categoryKeys.get(row.id) ?? [],
       packValue: row.weightValue,
       packUnit: row.weightUnit,
-    }).slugBase,
-  }));
+    });
+    return {
+      id: row.id,
+      sourceKey: row.sourceKey,
+      name: row.name,
+      slug: row.slug,
+      previousSlugs: row.previousSlugs,
+      base: name.slugBase,
+      searchName: productSearchName(name),
+      storedSearchName: row.searchName,
+    };
+  });
 
   const byKey = new Map(rows.map((row) => [row.sourceKey, row]));
   const moves = planSlugMoves(rows, reservedWith(categoryRows.map((row) => row.slug))).map(
@@ -106,12 +130,16 @@ export async function planReslug(db: Database): Promise<ReslugPlan> {
       return { ...move, id: row.id, name: row.name };
     },
   );
-  return { rows, moves };
+  const renames = rows
+    .filter((row) => row.storedSearchName !== row.searchName)
+    .map((row) => ({ id: row.id, searchName: row.searchName }));
+  return { rows, moves, renames };
 }
 
 /**
- * Write a plan: each product gets its new slug, and the slug it leaves is
- * appended to `previous_slugs`, in one transaction.
+ * Write a plan: each product gets its new slug, the slug it leaves is
+ * appended to `previous_slugs`, and its search name is brought up to date, in
+ * one transaction.
  *
  * Two passes, because `(source_site_id, slug)` is unique and checked row by
  * row: were one product ever planned into the slug another is leaving, the
@@ -122,8 +150,15 @@ export async function planReslug(db: Database): Promise<ReslugPlan> {
  * never holds the address the product is currently at.
  */
 export async function applyReslug(db: Database, plan: ReslugPlan): Promise<number> {
-  if (plan.moves.length === 0) return 0;
+  if (plan.moves.length === 0 && plan.renames.length === 0) return 0;
   await db.transaction(async (tx) => {
+    // The name search matches by; no URL depends on it.
+    for (const rename of plan.renames) {
+      await tx
+        .update(products)
+        .set({ searchName: rename.searchName })
+        .where(eq(products.id, rename.id));
+    }
     for (const move of plan.moves) {
       await tx
         .update(products)
@@ -174,7 +209,7 @@ export interface SnapshotSlugProduct {
  */
 export function currentSlugsOfSnapshot(
   snapshotProducts: readonly SnapshotSlugProduct[],
-  snapshotBrands: ReadonlyArray<{ readonly sourceKey: string; readonly name: string }>,
+  snapshotBrands: ReadonlyArray<{ readonly sourceKey: string; readonly name: string }> = [],
   categorySlugs: Iterable<string> = [],
 ): Map<string, string> {
   const brandNames = new Map(snapshotBrands.map((brand) => [brand.sourceKey, brand.name]));
@@ -187,15 +222,21 @@ export function currentSlugsOfSnapshot(
       const input: ProductNameInput = {
         sourceName: product.name,
         sourceKey: product.sourceKey,
-        brand:
-          product.brandKey && brandNames.has(product.brandKey)
-            ? { sourceKey: product.brandKey, name: brandNames.get(product.brandKey) }
-            : null,
+        brand: product.brandKey
+          ? {
+              sourceKey: product.brandKey,
+              name: brandNames.get(product.brandKey) ?? product.brandKey,
+            }
+          : null,
         categoryKeys: product.categoryKeys ?? [],
         packValue: weight?.value ?? null,
         packUnit: weight?.unit ?? null,
       };
-      return { sourceKey: product.sourceKey, slug: product.slug, base: productName(input).slugBase };
+      return {
+        sourceKey: product.sourceKey,
+        slug: product.slug,
+        base: productName(input).slugBase,
+      };
     }),
     reservedWith(categorySlugs),
   );

@@ -494,6 +494,19 @@ export function productName(input: ProductNameInput): ProductName {
   return { brand, line, format, quantity, title, detail, full, slugBase };
 }
 
+/**
+ * What search matches a product by, beside the supplier's name.
+ *
+ * The whole name as the page prints it, and — where the brand or the line
+ * carries an accent — the heading once more without it, because nobody types
+ * "Caffè" into a search box and substring matching does not fold accents.
+ * Never displayed.
+ */
+export function productSearchName(name: ProductName): string {
+  const plain = name.title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  return plain === name.title ? name.full : `${name.full} ${plain}`;
+}
+
 /** The format's listing label for a set of category keys, or null. For breadcrumbs. */
 export function formatListingLabel(
   categoryKeys: readonly string[] | null | undefined,

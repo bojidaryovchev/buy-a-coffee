@@ -97,7 +97,7 @@ export function RecommendationCard({
 
         <Heading className="mt-1.5 font-sans text-base font-medium tracking-normal text-wrap text-ink-900">
           <Link href={productPath} className="underline-offset-2 hover:underline">
-            {product.name}
+            {product.title ?? product.name}
           </Link>
         </Heading>
 

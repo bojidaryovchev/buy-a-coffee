@@ -16,6 +16,8 @@
  * Plan mode prints old → new for every product that would move and writes
  * nothing. `--apply` writes each new slug and appends the old one to
  * `previous_slugs`, so the old URL answers 308 to the new one from then on.
+ * It also stores each product's own name for search (`products.search_name`),
+ * which the sync otherwise writes on its next run.
  *
  * Deterministic and safe to run twice. The plan is a function of the products
  * themselves — never of the order they were stored in — so production ends at
@@ -64,6 +66,7 @@ async function main(): Promise<void> {
     const plan = await planReslug(db);
     console.log(`products: ${plan.rows.length}`);
     console.log(`to move:  ${plan.moves.length}`);
+    console.log(`search names to refresh: ${plan.renames.length}`);
     for (const move of plan.moves) console.log(`  ${move.from}  ->  ${move.to}`);
 
     if (args.tsvFile) {
@@ -72,7 +75,7 @@ async function main(): Promise<void> {
       console.log(`wrote ${plan.moves.length} rows to ${args.tsvFile}`);
     }
 
-    if (plan.moves.length === 0) {
+    if (plan.moves.length === 0 && plan.renames.length === 0) {
       console.log("every product is already at its planned slug; nothing to do.");
       return;
     }
@@ -83,6 +86,7 @@ async function main(): Promise<void> {
 
     const moved = await applyReslug(db, plan);
     console.log(`moved ${moved} products; each old slug now redirects to the new one.`);
+    console.log(`refreshed ${plan.renames.length} search names.`);
     console.log("next: pnpm --filter @catalog/web copy:apply");
   } finally {
     await close();

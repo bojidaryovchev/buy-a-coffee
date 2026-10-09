@@ -6,7 +6,7 @@ import { listBrands } from "@/lib/catalog/queries";
 import { siteConfig } from "@/config/site";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
-import { href, routes } from "@/lib/routes";
+import { brandHref, href, routes } from "@/lib/routes";
 
 export const revalidate = 300;
 
@@ -57,7 +57,7 @@ export default async function BrandsPage({ params }: PageProps) {
           {stocked.map((brand) => (
             <li key={brand.slug}>
               <Link
-                href={href(locale, routes.brand(brand.slug))}
+                href={brandHref(locale, brand)}
                 className="group flex h-full flex-col items-center rounded-md border border-line bg-paper-raised p-3 text-center transition-colors hover:border-pine-500 md:p-5"
               >
                 {/* The name is printed under the logo, so the logo is

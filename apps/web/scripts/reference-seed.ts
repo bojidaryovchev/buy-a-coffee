@@ -51,6 +51,7 @@ import {
 } from "@catalog/db/schema";
 import { packServings, parseWeight } from "@catalog/shared";
 import type { ProductCopy } from "../content/product-copy.ts";
+import { applyReslug, planReslug } from "./catalog-reslug-lib.ts";
 import { publishProductCopy } from "./product-copy-publish.ts";
 
 /** The one source site every seeded row belongs to. */
@@ -548,6 +549,17 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
       await db.delete(productImages).where(inArray(productImages.id, staleIds));
     }
   }
+
+  /*
+   * The snapshot carries each product's slug as it was when the snapshot was
+   * exported. One exported before products moved to the shop's own slugs still
+   * says `kapsuli-dg-…`, so the seed then makes the same move production makes
+   * (`catalog:reslug`), by the same code: the seeded catalog has the new slugs
+   * our copy is keyed by, and the old ones in `previous_slugs`, which is what
+   * lets the redirect tests ask for a real old address. A snapshot exported
+   * after the move leaves nothing to move, and only the search names are set.
+   */
+  await applyReslug(db, await planReslug(db, { sourceSiteId: siteId }));
 
   // Our written copy, by the same rule `copy:apply` uses.
   const seeded = await db

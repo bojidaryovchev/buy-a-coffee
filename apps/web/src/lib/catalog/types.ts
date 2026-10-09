@@ -42,11 +42,34 @@ export interface ProductImageView {
 export interface ProductCardView {
   readonly id: string;
   readonly slug: string;
+  /**
+   * The product's whole name in one line, as this shop writes it: "Lavazza
+   * Super Crema — кафе на зърна, 1 кг". For a page title, an `alt`, a
+   * screen-reader label, structured data — anywhere the name stands alone.
+   *
+   * Never the supplier's name. That is `products.name`, which only the owner's
+   * side reads (the admin pages, the order record, the notification mail),
+   * because it is what the owner orders by. See `productName` in
+   * `@catalog/shared`.
+   */
   readonly name: string;
+  /**
+   * The heading: brand and line, "Lavazza Super Crema". What a card and the
+   * product page's `h1` show, where the format and the pack size are already
+   * beside it.
+   *
+   * Optional in the type only so that a view assembled by hand (a test, a
+   * narrowed copy) need not repeat it; every query sets it, and a reader falls
+   * back to `name`, which is also ours.
+   */
+  readonly title?: string;
+  /** The line under the heading: "Кафе на зърна, 1 кг". Null when neither part is known. */
+  readonly detail?: string | null;
   readonly price: PriceView | null;
   readonly oldPrice: PriceView | null;
   readonly discountPercent: number | null;
   readonly availability: Availability;
+  /** The pack size as the shop writes it ("1 кг", "16 бр."), else the stored text. */
   readonly weight: string | null;
   readonly intensity: string | null;
   /**
@@ -61,7 +84,12 @@ export interface ProductCardView {
    * weight rather than counted pieces.
    */
   readonly servingPrice: { readonly formatted: string; readonly estimated: boolean } | null;
-  readonly brand: { readonly slug: string; readonly name: string } | null;
+  readonly brand: {
+    readonly slug: string;
+    /** The key the brand's published slug is chosen by (`brandHref`). */
+    readonly sourceKey?: string | null;
+    readonly name: string;
+  } | null;
   readonly image: ProductImageView | null;
   /**
    * One sentence: our written summary, or a sentence generated from the
@@ -112,7 +140,16 @@ export interface ProductDetailView extends ProductCardView {
     readonly name: string;
     readonly isPrimary: boolean;
     readonly parentSlug: string | null;
+    /** The parent category, for the breadcrumb: format first, then system. */
+    readonly parent?: {
+      readonly slug: string;
+      readonly sourceKey: string | null;
+      readonly previousSourceKeys: readonly string[];
+      readonly name: string;
+    } | null;
   }>;
+  /** The name of the product's format listing: "Капсули за Dolce Gusto". */
+  readonly formatListingLabel?: string | null;
   readonly updatedAt: Date | null;
 }
 
@@ -136,7 +173,10 @@ export interface CategoryView {
 
 export interface BrandView {
   readonly id: string;
+  /** The stored slug: what filters, logos and queries key a brand by. */
   readonly slug: string;
+  /** The key the brand's published slug is chosen by (`brandHref`). */
+  readonly sourceKey?: string | null;
   readonly name: string;
   readonly tagline: string | null;
   readonly description: string | null;
@@ -179,7 +219,12 @@ export interface ProductListResult {
  */
 export interface ProductSuggestion {
   readonly slug: string;
+  /** The whole name, for the image's `alt`. */
   readonly name: string;
+  /** Brand and line: what the row prints. */
+  readonly title: string;
+  /** "Капсули за Dolce Gusto, 16 бр.": the row's second line. */
+  readonly detail: string | null;
   /** The brewing system, as on a card; null when the product belongs to none. */
   readonly systemId: BrewingSystemId | null;
   readonly brandName: string | null;
@@ -200,11 +245,16 @@ export interface CategorySuggestion extends LinkSuggestion {
   readonly previousSourceKeys: readonly string[];
 }
 
+/** A brand in the dropdown carries the key its published slug is chosen by. */
+export interface BrandSuggestion extends LinkSuggestion {
+  readonly sourceKey: string | null;
+}
+
 export interface SearchSuggestions {
   /** Echoed back so a client can discard a response for a stale term. */
   readonly term: string;
   readonly products: readonly ProductSuggestion[];
-  readonly brands: readonly LinkSuggestion[];
+  readonly brands: readonly BrandSuggestion[];
   readonly categories: readonly CategorySuggestion[];
   /** Total product matches, so the dropdown can offer "see all N". */
   readonly total: number;

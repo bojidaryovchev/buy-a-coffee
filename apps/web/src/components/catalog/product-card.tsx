@@ -107,7 +107,9 @@ export function ProductCard({
             href={href}
             className="underline-offset-2 group-focus-within:underline group-hover:underline after:absolute after:inset-0"
           >
-            {product.name}
+            {/* Brand and line. The format is the badge above and the pack size
+                is beside the brand, so the heading need not repeat either. */}
+            {product.title ?? product.name}
           </Link>
         </Heading>
 

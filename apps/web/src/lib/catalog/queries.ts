@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
-import { packServings, pricePerServing } from "@catalog/shared";
+import { formatListingLabel, packServings, pricePerServing, productName } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
 import { brandDisplayName } from "./brand-display";
@@ -109,10 +109,31 @@ const parentCategories = alias(categories, "parent_categories");
 /** Products that may appear anywhere on the storefront. */
 const isVisible = eq(products.status, "active");
 
+/**
+ * What the product's own name is built from, beyond the brand and the pack
+ * size: its identity for a name override, and the source keys alone of its
+ * categories. `categoryKeys` above mixes in our stored slugs, which is right
+ * for binding a brewing system and wrong here — the name model reads exactly
+ * what the sync hands it when it derives the slug.
+ */
+const nameColumns = {
+  sourceKey: products.sourceKey,
+  previousSourceKeys: products.previousSourceKeys,
+  categorySourceKeys: sql<string[]>`array(
+    select c.source_key
+    from ${productCategories} pc
+    join ${categories} c on c.id = pc.category_id
+    where pc.product_id = ${products.id} and c.source_key is not null
+    order by c.source_key
+  )`,
+} as const;
+
 const productColumns = {
   id: products.id,
   slug: products.slug,
+  /** The supplier's name. Never shown: `toCard` turns it into ours. */
   name: products.name,
+  ...nameColumns,
   price: retailPrice,
   oldPrice: retailOldPrice,
   currency: products.currency,
@@ -130,7 +151,11 @@ const productColumns = {
 type ProductRow = {
   id: string;
   slug: string;
+  /** The supplier's name; see `displayName`. */
   name: string;
+  sourceKey: string;
+  previousSourceKeys: string[] | null;
+  categorySourceKeys: string[] | null;
   price: string | null;
   oldPrice: string | null;
   currency: string | null;
@@ -148,6 +173,30 @@ type ProductRow = {
   lastChangedAt: Date | null;
 };
 
+/**
+ * The product's name as this shop writes it.
+ *
+ * **The one place a stored name becomes a displayed one.** Every view of a
+ * product is built by `toCard`, which calls this, so a card, the product page,
+ * its title, the search dropdown and the structured data cannot name one
+ * product two ways — and none of them can show the supplier's wording, because
+ * none of them is ever handed it.
+ */
+function displayName(row: ProductRow) {
+  return productName({
+    sourceName: row.name,
+    sourceKey: row.sourceKey,
+    previousSourceKeys: row.previousSourceKeys,
+    brand:
+      row.brandSourceKey || row.brandName
+        ? { sourceKey: row.brandSourceKey, name: row.brandName }
+        : null,
+    categoryKeys: row.categorySourceKeys,
+    packValue: row.weightValue,
+    packUnit: row.weightUnit,
+  });
+}
+
 function toCard(
   row: ProductRow,
   image:
@@ -163,16 +212,20 @@ function toCard(
    */
   const discount = discountPercent(row.price, row.oldPrice);
   const servings = packServings(row.weightValue, row.weightUnit);
+  const name = displayName(row);
   const card = {
     id: row.id,
     slug: row.slug,
-    name: row.name,
+    name: name.full,
+    title: name.title,
+    detail: name.detail,
     price,
     // An old price is only shown when it is genuinely a reduction.
     oldPrice: discount === null ? null : oldPrice,
     discountPercent: discount,
     availability: row.availability as ProductCardView["availability"],
-    weight: row.weight,
+    // Ours when the size parsed ("500 г"), the stored text ("0.500кг.") when not.
+    weight: name.quantity?.label ?? row.weight,
     intensity: row.attributes?.intensity ?? null,
     systemId: resolveProductFormat(row.categoryKeys).system?.id ?? null,
     servingPrice: toPerServingView(pricePerServing(row.price, servings), row.currency, {
@@ -182,13 +235,17 @@ function toCard(
       row.brandSlug && row.brandName
         ? {
             slug: row.brandSlug,
+            sourceKey: row.brandSourceKey,
             name: brandDisplayName({ name: row.brandName, sourceKey: row.brandSourceKey }),
           }
         : null,
     image: image
       ? {
           url: options.resolveUrl === false ? image.url : resolveImageUrl(image.url),
-          alt: image.alt ?? row.name,
+          // The stored alt is the supplier's name for the product, written by
+          // the sync when it mirrored the photograph. Ours says the same thing
+          // in the shop's words.
+          alt: name.full,
           width: image.width,
           height: image.height,
         }
@@ -662,6 +719,8 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
       return {
         slug: card.slug,
         name: card.name,
+        title: card.title ?? card.name,
+        detail: card.detail ?? null,
         systemId: card.systemId,
         brandName: card.brand?.name ?? null,
         weight: card.weight,
@@ -671,6 +730,7 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
     }),
     brands: brandRows.map((row) => ({
       slug: row.slug,
+      sourceKey: row.sourceKey,
       name: brandDisplayName(row),
       productCount: row.productCount,
     })),
@@ -737,6 +797,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
         // A real aliased join, not a select-list subquery, so the column
         // reference is properly table-qualified.
         parentSlug: parentCategories.slug,
+        parentSourceKey: parentCategories.sourceKey,
+        parentPreviousSourceKeys: parentCategories.previousSourceKeys,
+        parentName: parentCategories.name,
       })
       .from(productCategories)
       .innerJoin(categories, eq(categories.id, productCategories.categoryId))
@@ -751,7 +814,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
       return url
         ? {
             url: resolveImageUrl(url),
-            alt: image.alt ?? typed.name,
+            // Ours, not the stored one: see `toCard`.
+            alt: displayName(typed).full,
             width: image.width,
             height: image.height,
           }
@@ -802,7 +866,17 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
       name: row.name,
       isPrimary: row.isPrimary,
       parentSlug: row.parentSlug,
+      parent:
+        row.parentSlug && row.parentName
+          ? {
+              slug: row.parentSlug,
+              sourceKey: row.parentSourceKey,
+              previousSourceKeys: row.parentPreviousSourceKeys ?? [],
+              name: row.parentName,
+            }
+          : null,
     })),
+    formatListingLabel: formatListingLabel(typed.categorySourceKeys),
     updatedAt: typed.lastChangedAt,
   };
 }
@@ -1008,6 +1082,7 @@ export async function listBrands(
   const mapped = rows.map((row) => ({
     id: row.id,
     slug: row.slug,
+    sourceKey: row.sourceKey,
     // Ordered by the stored name above; only what is shown changes here.
     name: brandDisplayName(row),
     tagline: row.tagline,
@@ -1046,6 +1121,28 @@ export async function listNewArrivals(limit = 8): Promise<readonly ProductCardVi
   const typed = rows as unknown as ProductRow[];
   const images = await loadPrimaryImages(typed.map((row) => row.id));
   return typed.map((row) => toCard(row, images.get(row.id)));
+}
+
+/**
+ * The product that used to live at `slug`, or null.
+ *
+ * `catalog:reslug` moved every product from the supplier's wording to the
+ * shop's own and kept the slug each one left in `previous_slugs`. Those old
+ * addresses are indexed, bookmarked and printed in order mails, so each
+ * answers 308 to the product's current one (`resolve-slug.ts`). Only the
+ * current slug is returned: the caller builds the URL.
+ *
+ * Asked only after no product has `slug` as its current one, so a live
+ * address always wins over a retired one.
+ */
+export async function getCurrentSlugOfFormer(slug: string): Promise<string | null> {
+  const [row] = await db
+    .select({ slug: products.slug })
+    .from(products)
+    .where(sql`${products.previousSlugs} @> array[${slug}]::text[]`)
+    .orderBy(asc(products.slug))
+    .limit(1);
+  return row?.slug ?? null;
 }
 
 /** Every active product slug, for the sitemap. */

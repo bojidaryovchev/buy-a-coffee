@@ -84,6 +84,8 @@ function toCardView(product: ProductCardView): ProductCardView {
     id: product.id,
     slug: product.slug,
     name: product.name,
+    title: product.title,
+    detail: product.detail,
     price: product.price,
     oldPrice: product.oldPrice,
     discountPercent: product.discountPercent,

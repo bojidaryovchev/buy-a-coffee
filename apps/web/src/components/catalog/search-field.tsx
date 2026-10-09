@@ -17,7 +17,7 @@ import type { SearchSuggestions } from "@/lib/catalog/types";
 import { useAnalytics } from "@/components/analytics-provider";
 import type { Locale } from "@/i18n/config";
 import { fill, plural } from "@/i18n/fill";
-import { categoryHref, href, productHref, routes } from "@/lib/routes";
+import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
 
 /**
  * Header search with typeahead.
@@ -69,7 +69,7 @@ export function typedBeforeHydration(): {
 function suggestionLinks(locale: Locale) {
   return {
     product: (slug: string) => productHref(locale, { slug }),
-    brand: (slug: string) => href(locale, routes.brand(slug)),
+    brand: (brand: SearchSuggestions["brands"][number]) => brandHref(locale, brand),
     category: (category: SearchSuggestions["categories"][number]) => categoryHref(locale, category),
     results: (term: string) => href(locale, `${routes.search}?q=${encodeURIComponent(term)}`),
   };
@@ -178,7 +178,7 @@ export function SearchField({
     if (suggestions.term !== term) return [];
     const rows = [
       ...suggestions.products.map((product) => links.product(product.slug)),
-      ...suggestions.brands.map((brand) => links.brand(brand.slug)),
+      ...suggestions.brands.map((brand) => links.brand(brand)),
       ...suggestions.categories.map((category) => links.category(category)),
     ];
     if (suggestions.total > 0) rows.push(links.results(term));
@@ -387,7 +387,7 @@ function SuggestionPanel({
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-ink-900">{product.name}</span>
+                  <span className="block truncate text-sm text-ink-900">{product.title}</span>
                   <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
                     <SystemBadge systemId={product.systemId} size="sm" />
                     <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">
@@ -411,7 +411,7 @@ function SuggestionPanel({
                 id={id}
                 index={next()}
                 activeIndex={activeIndex}
-                href={links.brand(brand.slug)}
+                href={links.brand(brand)}
                 onHover={onHover}
                 onSelect={onSelect}
               >

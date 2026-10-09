@@ -146,6 +146,14 @@ export const products = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /**
+     * The shop's own name for the product, stored for search and for nothing
+     * else: `productSearchName` in `@catalog/shared`. Pages compute the name
+     * they show; this exists so a search for the words on the page finds the
+     * product, where `name` holds the supplier's wording. Written by the sync
+     * and by `catalog:reslug`.
+     */
+    searchName: text("search_name"),
 
     /**
      * Source prices, exactly as published by the reference site. Money is
