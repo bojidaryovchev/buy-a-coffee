@@ -7,6 +7,8 @@ import { ProductImage } from "@/components/catalog/product-image";
 import { QuickOrderControl } from "@/components/catalog/quick-order-control";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import type { ProductCardView } from "@/lib/catalog/types";
+import type { Locale } from "@/i18n/config";
+import { productHref } from "@/lib/routes";
 
 /**
  * Product card. Specified row by row in DESIGN.md, "Product card".
@@ -28,10 +30,12 @@ import type { ProductCardView } from "@/lib/catalog/types";
  * stops per card, in reading order.
  */
 export function ProductCard({
+  locale,
   product,
   priority = false,
   headingLevel: Heading = "h3",
 }: {
+  locale: Locale;
   product: ProductCardView;
   priority?: boolean;
   /**
@@ -41,7 +45,7 @@ export function ProductCard({
   headingLevel?: "h2" | "h3";
 }) {
   const reduced = product.price !== null && product.oldPrice !== null;
-  const href = `/products/${product.slug}`;
+  const href = productHref(locale, product);
   const controlClasses = "relative z-10 mt-3 min-h-10 w-full";
 
   return (
@@ -177,11 +181,13 @@ const GRID_COLUMNS = {
 } as const;
 
 export function ProductGrid({
+  locale,
   products,
   priorityCount = 4,
   columns = 4,
   headingLevel = "h3",
 }: {
+  locale: Locale;
   products: readonly ProductCardView[];
   priorityCount?: number;
   /** Columns from `lg` up. Use 3 for a grid beside the filter rail. */
@@ -194,6 +200,7 @@ export function ProductGrid({
       {products.map((product, index) => (
         <li key={product.id} className="min-w-0">
           <ProductCard
+            locale={locale}
             product={product}
             priority={index < priorityCount}
             headingLevel={headingLevel}

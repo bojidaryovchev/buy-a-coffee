@@ -41,50 +41,87 @@ instead, for work that needs no real catalog.
 
 ## Routes
 
-| Route                                       | Purpose                                                                                                                      |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                         | Home. Every section is data-driven and disappears when there is nothing behind it                                            |
-| `/categories`                               | Category index with live counts                                                                                              |
-| `/categories/[slug]`                        | Category listing. Parent categories include their children's products. A business section's category answers 308 to its page |
-| `/brands`                                   | Brand index. Brands with no stock are listed but not linked                                                                  |
-| `/brands/[slug]`                            | Brand listing, with a summary of formats and systems computed from the catalog                                               |
-| `/products/[slug]`                          | Product detail: gallery, facts table, compatibility, the order panel (`#order`), related products                            |
-| `/promotions`                               | Products with a genuine reduction                                                                                            |
-| `/search`                                   | Server-side search over PostgreSQL                                                                                           |
-| `/vending`, `/consumables`                  | The two business sections. Prose of ours around whatever the catalog files under them; an enquiry form                       |
-| `/delivery`                                 | Delivery, payment and returns, from the same sentence builders as the terms                                                  |
-| `/wizard`                                   | Recommendation wizard. One question per URL, step derived from the answers                                                   |
-| `/wizard/result`                            | The recommendation, with the reasons behind each pick                                                                        |
-| `/wizard/machines`                          | Machine brands, and how to recognise each capsule system (with drawings)                                                     |
-| `/wizard/machines/[brand]`                  | Every model of one brand, grouped by the system it takes                                                                     |
-| `/journal`, `/journal/[slug]`               | The journal: four articles as typed content in `apps/web/content/journal/`                                                   |
-| `/contact`                                  | Contact details and message form                                                                                             |
-| `/newsletter/unsubscribe`                   | Tokenised unsubscribe. GET confirms, POST unsubscribes                                                                       |
-| `/privacy`, `/terms`, `/cookies`            | Legal documents written for this business                                                                                    |
-| `/sitemap.xml`, `/robots.txt`               | Generated from the live catalog                                                                                              |
-| `/llms.txt`                                 | A plain-language map of the shop, generated from the catalog; closed whenever `robots.txt` is                                |
-| `/opengraph-image`, `/manifest.webmanifest` | The default share card and the web app manifest                                                                              |
-| `/media/[...key]`                           | Development-only local image serving; refuses everything once an image host is configured                                    |
-| `/admin`                                    | Panel index: what is waiting                                                                                                 |
-| `/admin/vhod`                               | Password sign-in. Outside the panel group, which would otherwise redirect it                                                 |
-| `/admin/zayavki`, `/[id]`                   | Order enquiries. Phone number on the list, because dialling it is the next move                                              |
-| `/admin/sabshteniya`, `/[id]`               | Contact-form messages                                                                                                        |
-| `/admin/poshta`, `/[id]`                    | The `info@` mailbox: inbound threads, answered as the shop                                                                   |
-| `/admin/poshta/fail/[messageId]/[index]`    | An attachment, streamed through the session                                                                                  |
-| `/admin/byuletin`                           | Newsletter subscribers and their consent records. A list and an unsubscribe, and deliberately not a sender                   |
-| `/admin/sinhron`                            | Is the catalog current, and if not, why                                                                                      |
-| `/api/inbound`                              | Resend `email.received` webhook                                                                                              |
-| `/api/search/suggest`                       | The typeahead                                                                                                                |
-| `/api/cron/sync-health`                     | Daily sync alarm (Vercel cron)                                                                                               |
-| `/api/cron/retention`                       | Daily retention deletion (Vercel cron)                                                                                       |
+Every shop page is under a locale prefix, Bulgarian included: `/bg/…` ships,
+`/en/…` is built and switched off. The table shows the Bulgarian URL and, in
+brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 
-**Two route groups, no URL change.** `src/app/(site)/` holds the shop and
-`src/app/(admin)/` the panel; a group name in parentheses is not part of any
-path. The split exists so the admin does not inherit the storefront layout — the
-shop layout reads the category tree on every render to build the navigation, and
-its `robots` metadata declares the page indexable. `app/layout.tsx` above both is
-deliberately almost empty: `<html>`, `<body>`, the fonts, the stylesheet and the
-measurement scripts.
+| Route (`/bg`, [`/en`])                                                 | Purpose                                                                                                                  |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                                                    | 307 to a locale by `Accept-Language` alone (`Vary: Accept-Language`, no cookie). With English off, always `/bg`          |
+| `/bg` [`/en`]                                                          | Home. Every section is data-driven and disappears when there is nothing behind it                                        |
+| `/bg/kategorii` [`categories`]                                         | Category index with live counts                                                                                          |
+| `/bg/<category>`                                                       | Category listing at its landing slug (`kafe-kapsuli`, `nespresso-kapsuli`, …). Parents include their children's products |
+| `/bg/<product>`                                                        | Product detail: gallery, facts table, compatibility, the order panel (`#order`), related products                        |
+| `/bg/marki` [`brands`], `/<brand>`                                     | Brand index (brands with no stock are listed but not linked) and brand listing                                           |
+| `/bg/promotsii` [`offers`]                                             | Products with a genuine reduction                                                                                        |
+| `/bg/tarsene` [`search`]                                               | Server-side search over PostgreSQL                                                                                       |
+| `/bg/kafe-za-vending-mashini` [`vending-coffee`]                       | The vending section: prose of ours around whatever the catalog files under it; an enquiry form                           |
+| `/bg/konsumativi` [`consumables`]                                      | The consumables section. `noindex` and out of the sitemap while it lists no products                                     |
+| `/bg/dostavka-i-plashtane` [`delivery-and-payment`]                    | Delivery, payment and returns, from the same sentence builders as the terms                                              |
+| `/bg/izbor-na-kafe` [`which-coffee`]                                   | Recommendation wizard. One question per URL, step derived from the answers                                               |
+| `/bg/izbor-na-kafe/rezultat` [`…/result`]                              | The recommendation, with the reasons behind each pick                                                                    |
+| `/bg/za-kafemashina` [`by-machine`], `/<brand>`                        | Machine brands and how to recognise each capsule system (with drawings); every model of one brand, grouped by system     |
+| `/bg/blog` [`journal`], `/<slug>`                                      | The journal: four articles as typed content in `apps/web/content/journal/`                                               |
+| `/bg/kontakti` [`contact`]                                             | Contact details and message form                                                                                         |
+| `/bg/byuletin/otpisvane` [`newsletter/unsubscribe`]                    | Tokenised unsubscribe. GET confirms, POST unsubscribes                                                                   |
+| `/bg/poveritelnost`, `/bg/obshti-usloviya`, `/bg/biskvitki`            | Legal documents written for this business [`privacy`, `terms`, `cookies`]                                                |
+| `/products/…`, `/categories/…`, `/brands/…`, `/wizard/…`, `/search`, … | The pre-locale URLs. Each answers 308 to its `/bg` equivalent, query string kept                                         |
+| `/sitemap.xml`, `/robots.txt`                                          | Generated from the live catalog; one entry per page per shipping locale, each with its `hreflang` set                    |
+| `/llms.txt`                                                            | A plain-language map of the shop, generated from the catalog; closed whenever `robots.txt` is                            |
+| `/opengraph-image`, `/manifest.webmanifest`                            | The default share card and the web app manifest                                                                          |
+| `/media/[...key]`                                                      | Development-only local image serving; refuses everything once an image host is configured                                |
+| `/admin`                                                               | Panel index: what is waiting                                                                                             |
+| `/admin/vhod`                                                          | Password sign-in. Outside the panel group, which would otherwise redirect it                                             |
+| `/admin/zayavki`, `/[id]`                                              | Order enquiries. Phone number on the list, because dialling it is the next move                                          |
+| `/admin/sabshteniya`, `/[id]`                                          | Contact-form messages                                                                                                    |
+| `/admin/poshta`, `/[id]`                                               | The `info@` mailbox: inbound threads, answered as the shop                                                               |
+| `/admin/poshta/fail/[messageId]/[index]`                               | An attachment, streamed through the session                                                                              |
+| `/admin/byuletin`                                                      | Newsletter subscribers and their consent records. A list and an unsubscribe, and deliberately not a sender               |
+| `/admin/sinhron`                                                       | Is the catalog current, and if not, why                                                                                  |
+| `/api/inbound`                                                         | Resend `email.received` webhook                                                                                          |
+| `/api/search/suggest`                                                  | The typeahead                                                                                                            |
+| `/api/cron/sync-health`                                                | Daily sync alarm (Vercel cron)                                                                                           |
+| `/api/cron/retention`                                                  | Daily retention deletion (Vercel cron)                                                                                   |
+
+The admin panel, the API, `/media`, the share card and every file with an
+extension carry no locale and are never touched by the proxy.
+
+**Locales and URLs.** `src/i18n/config.ts` declares the locales and
+`LOCALE_READY`, the gate: a locale that is `false` serves nothing, appears in no
+`hreflang`, no sitemap and no language switcher. Folder names under
+`src/app/(site)/[lang]/` are the canonical (Bulgarian) segments.
+`lib/routes.ts` holds the route table and `href(locale, path)`, which adds the
+prefix and translates each static segment through that locale's slug table
+(`src/i18n/slugs/<locale>.ts` — one table per locale, also holding each
+category's landing slug by source key). `src/proxy.ts` does the reverse on the
+way in: a translated URL is rewritten to its folder, a spelling the locale does
+not publish answers 308, the bare `/` is negotiated, the pre-locale URLs are
+redirected (`lib/legacy-routes.ts`; old category slugs by
+`app/categories/[slug]/route.ts`, which needs the catalog), and anything under
+no shipping locale is the global 404. Every link, canonical, `hreflang`,
+sitemap entry, breadcrumb and JSON-LD URL goes through `href`;
+`test/bare-paths.test.ts` fails on a path written as a string.
+
+Categories and products share the first level (`[lang]/[slug]`), resolved by
+`lib/catalog/resolve-slug.ts`: a category at its landing slug, then a category
+at any other of its slugs (308 to the landing slug), then a product by
+`productSlug(locale, product)` — the one function to change when products get
+per-locale slugs. Static folders win by construction, and no slug may take
+their names (`RESERVED_SLUGS`, `test/slug-collisions.db.test.ts`).
+
+The frame's strings — header, navigation, drawer, search field, footer,
+announcement bar, skip link, 404 — are in `src/i18n/dictionaries/`, typed from
+the Bulgarian one so a missing English string is a compile error; the error
+page's are in `i18n/error-copy.ts`. Page bodies are still Bulgarian inline.
+
+**Three root layouts, no `app/layout.tsx`.** `<html lang>` follows the locale,
+and a layout cannot read a segment below itself, so the shop's root layout is
+`src/app/(site)/[lang]/layout.tsx`; the panel's is `src/app/(admin)/layout.tsx`;
+and `src/app/global-not-found.tsx` draws the 404 for a URL under no locale. The
+split also keeps the admin from inheriting the storefront layout — the shop
+layout reads the category tree on every render to build the navigation, and its
+`robots` metadata declares the page indexable. The faces are defined once, in
+`app/fonts.ts`.
 
 **Navigation is built once per render**, by `buildNavigation()` in
 `components/layout/navigation.ts`, from the category tree the layout already

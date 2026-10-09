@@ -1,0 +1,104 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { isShipping } from "@/i18n/config";
+import { LOCALE_VARY, preferredLocale } from "@/i18n/negotiate";
+import { legacyAnswer } from "@/lib/legacy-routes";
+import { localeOfPath, resolveLocalisedPath } from "@/lib/routes";
+
+/**
+ * Locale routing.
+ *
+ * In Next.js 16 this file is `proxy.ts`, exporting `proxy`; it runs before the
+ * route tree on the Node runtime. Four jobs, in this order:
+ *
+ *   1. **A path under a shipping locale** is served as asked. A translated
+ *      segment is rewritten to the canonical folder it lives in, and a
+ *      spelling the locale does not publish — the Bulgarian folder name under
+ *      `/en`, say — answers 308 to the one it does (`resolveLocalisedPath`).
+ *      Nobody is ever moved *off* the locale in their URL: not by their
+ *      browser's language, and never by where they appear to be. Regulation
+ *      (EU) 2018/302 forbids routing a visitor by residence, and Googlebot
+ *      crawls from the US with an English `Accept-Language` — redirecting on
+ *      either would bounce it off the Bulgarian pages every time.
+ *   2. **The bare `/`** has to resolve to some locale, and resolves by
+ *      `Accept-Language` alone (`i18n/negotiate.ts`): a 307, because the answer
+ *      is per visitor and a cached permanent redirect would freeze one
+ *      visitor's language for everyone sharing the browser, with
+ *      `Vary: Accept-Language` so a shared cache cannot do the same. No cookie
+ *      is read or set; the Cookies page promises there are none.
+ *   3. **The URLs the shop served before locales** answer 308 to their
+ *      Bulgarian equivalents, query string kept (`lib/legacy-routes.ts`).
+ *   4. **Everything else is the 404** — a first segment that is not a
+ *      shipping locale, `/en` while English is switched off, `/nope`. It is
+ *      rewritten to Next's own `/_not-found`, which draws
+ *      `app/global-not-found.tsx` with a real 404 status. Left to the route
+ *      tree it would match `[lang]`, whose layout can only answer with Next's
+ *      bare error document: a root layout has no not-found boundary above it.
+ *      The one route outside `[lang]` that is not untouched, the old
+ *      `/categories/<slug>`, is let through to its handler.
+ *
+ * What it never touches: the admin panel, the API, the development image
+ * route, Next's internals, the share card and every file with an extension —
+ * `/sitemap.xml`, `/robots.txt`, `/llms.txt`, the manifest, the icons. The
+ * matcher keeps the proxy from running on them at all, and `isUntouched`
+ * repeats the rule, so a matcher edit cannot quietly start rewriting the panel.
+ */
+export function proxy(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+  if (isUntouched(pathname)) return NextResponse.next();
+
+  const locale = localeOfPath(pathname);
+  if (locale && isShipping(locale)) {
+    const action = resolveLocalisedPath(locale, pathname);
+    if (action.type === "next") return NextResponse.next();
+    const url = request.nextUrl.clone();
+    url.pathname = action.pathname;
+    return action.type === "rewrite" ? NextResponse.rewrite(url) : NextResponse.redirect(url, 308);
+  }
+
+  if (pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${preferredLocale(request.headers.get("accept-language"))}`;
+    const response = NextResponse.redirect(url, 307);
+    response.headers.set("Vary", LOCALE_VARY);
+    return response;
+  }
+
+  const legacy = legacyAnswer(pathname);
+  if (legacy?.type === "redirect") {
+    const url = request.nextUrl.clone();
+    url.pathname = legacy.pathname;
+    return NextResponse.redirect(url, 308);
+  }
+  if (legacy?.type === "category") return NextResponse.next();
+
+  const url = request.nextUrl.clone();
+  url.pathname = NOT_FOUND;
+  return NextResponse.rewrite(url);
+}
+
+/** Next's internal route for the global 404 (`app/global-not-found.tsx`). */
+const NOT_FOUND = "/_not-found";
+
+const UNTOUCHED_PREFIXES = [
+  "/_next",
+  "/_vercel",
+  "/_not-found",
+  "/api",
+  "/media",
+  "/admin",
+] as const;
+
+/** Paths that are not storefront pages and never were. */
+export function isUntouched(pathname: string): boolean {
+  if (UNTOUCHED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)))
+    return true;
+  if (pathname === "/opengraph-image" || pathname.startsWith("/opengraph-image/")) return true;
+  // A file: `/sitemap.xml`, `/llms.txt`, `/favicon.ico`, `/manifest.webmanifest`.
+  return /\.[^/]+$/.test(pathname);
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/|_vercel/|_not-found(?:/|$)|api(?:/|$)|media(?:/|$)|admin(?:/|$)|opengraph-image(?:/|$)|.*\\.[^/]+$).*)",
+  ],
+};

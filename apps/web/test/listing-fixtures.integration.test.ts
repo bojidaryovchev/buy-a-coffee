@@ -14,7 +14,7 @@ vi.mock("next/navigation", async (importOriginal) => ({
 
 import { parseCatalogQuery, type RawSearchParams } from "@/lib/catalog/filters";
 import type * as Queries from "@/lib/catalog/queries";
-import type * as CategoryScope from "@/app/(site)/categories/_lib/category-scope";
+import type * as CategoryScope from "@/app/(site)/[lang]/_lib/category-scope";
 
 /**
  * The listing rules that the live catalog cannot show, against a seeded
@@ -313,7 +313,7 @@ suite("listing rules on seeded data (integration)", () => {
     });
 
     queries = await import("@/lib/catalog/queries");
-    scope = await import("@/app/(site)/categories/_lib/category-scope");
+    scope = await import("@/app/(site)/[lang]/_lib/category-scope");
   });
 
   afterAll(async () => {
@@ -497,13 +497,13 @@ suite("listing rules on seeded data (integration)", () => {
           slug: "vending-zona-avtomati",
           sourceKey: "vending-zona",
         })?.path,
-      ).toBe("/vending");
+      ).toBe("/kafe-za-vending-mashini");
       expect(
         scope.businessSectionForCategory({ slug: "konsumativi", sourceKey: "consumables-2026" })
           ?.path,
-      ).toBe("/consumables");
+      ).toBe("/konsumativi");
       expect(scope.businessSectionForCategory({ slug: "konsumativi", sourceKey: null })?.path).toBe(
-        "/consumables",
+        "/konsumativi",
       );
       expect(
         scope.businessSectionForCategory({ slug: "nespresso", sourceKey: "nespresso" }),
@@ -518,40 +518,57 @@ suite("listing rules on seeded data (integration)", () => {
       ]);
     });
 
-    it("permanently redirects /categories/<slug> to the section page", async () => {
-      const { default: CategoryPage } = await import("@/app/(site)/categories/[slug]/page");
+    it("permanently redirects a section's category to the section page, in one hop", async () => {
+      const { default: SlugPage } = await import("@/app/(site)/[lang]/[slug]/page");
       const visit = (slug: string, searchParams: RawSearchParams = {}) =>
-        CategoryPage({
-          params: Promise.resolve({ slug }),
+        SlugPage({
+          params: Promise.resolve({ lang: "bg", slug }),
           searchParams: Promise.resolve(searchParams),
         });
 
       // Next signals a redirect by throwing; the digest carries target and status.
       await expect(visit("vending-zona-avtomati")).rejects.toMatchObject({
-        digest: expect.stringMatching(/^NEXT_REDIRECT;[a-z]+;\/vending;308;/),
+        digest: expect.stringMatching(/^NEXT_REDIRECT;[a-z]+;\/bg\/kafe-za-vending-mashini;308;/),
       });
-      await expect(visit("konsumativi")).rejects.toMatchObject({
-        digest: expect.stringMatching(/^NEXT_REDIRECT;[a-z]+;\/consumables;308;/),
+      /* Its stored slug is a route of its own (`konsumativi`), so it is
+         published at `konsumativi-kategoriya` — and that, too, goes to the
+         section rather than to a second page about the same shelf. */
+      await expect(visit("konsumativi-kategoriya")).rejects.toMatchObject({
+        digest: expect.stringMatching(/^NEXT_REDIRECT;[a-z]+;\/bg\/konsumativi;308;/),
       });
       // A filtered link keeps its filters on the way.
       await expect(
         visit("vending-zona-avtomati", { strength: "strong", sort: "price-per-cup" }),
       ).rejects.toMatchObject({
         digest: expect.stringMatching(
-          /^NEXT_REDIRECT;[a-z]+;\/vending\?strength=strong&sort=price-per-cup;308;/,
+          /^NEXT_REDIRECT;[a-z]+;\/bg\/kafe-za-vending-mashini\?strength=strong&sort=price-per-cup;308;/,
+        ),
+      });
+    });
+
+    it("sends a stored slug to the landing slug, filters and all", async () => {
+      const { default: SlugPage } = await import("@/app/(site)/[lang]/[slug]/page");
+      await expect(
+        SlugPage({
+          params: Promise.resolve({ lang: "bg", slug: "nespresso" }),
+          searchParams: Promise.resolve({ sort: "price-asc" }),
+        }),
+      ).rejects.toMatchObject({
+        digest: expect.stringMatching(
+          /^NEXT_REDIRECT;[a-z]+;\/bg\/nespresso-kapsuli\?sort=price-asc;308;/,
         ),
       });
     });
 
     it("still renders an ordinary category", async () => {
-      const { default: CategoryPage } = await import("@/app/(site)/categories/[slug]/page");
+      const { default: SlugPage } = await import("@/app/(site)/[lang]/[slug]/page");
       const html = renderToStaticMarkup(
-        await CategoryPage({
-          params: Promise.resolve({ slug: "nespresso" }),
+        await SlugPage({
+          params: Promise.resolve({ lang: "bg", slug: "nespresso-kapsuli" }),
           searchParams: Promise.resolve({}),
         }),
       );
-      expect(html).toContain('href="/products/alfa"');
+      expect(html).toContain('href="/bg/alfa"');
       // A single-system listing names its system above the title.
       expect(html).toMatch(/data-system="nespresso-original"[^>]*>.*Nespresso Original.*<h1/s);
     });
@@ -564,11 +581,14 @@ suite("listing rules on seeded data (integration)", () => {
       );
 
       // …and the index page does not link to them.
-      const { default: CategoriesPage } = await import("@/app/(site)/categories/page");
-      const page = renderToStaticMarkup(await CategoriesPage());
-      expect(page).toContain('href="/categories/kapsuli"');
-      expect(page).toContain('href="/categories/nespresso"');
-      expect(page).toContain('href="/categories/beans-renamed"');
+      const { default: CategoriesPage } = await import("@/app/(site)/[lang]/kategorii/page");
+      const page = renderToStaticMarkup(
+        await CategoriesPage({ params: Promise.resolve({ lang: "bg" }) }),
+      );
+      // By landing slug, through each category's source key.
+      expect(page).toContain('href="/bg/kafe-kapsuli"');
+      expect(page).toContain('href="/bg/nespresso-kapsuli"');
+      expect(page).toContain('href="/bg/kafe-na-zarna"');
       expect(page).not.toContain("vending-zona-avtomati");
       expect(page).not.toContain("konsumativi");
       expect(page).not.toContain("Вендинг Зона");

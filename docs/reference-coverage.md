@@ -8,41 +8,41 @@ Every capability observed on the reference site, and what implements it here. Th
 
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
-| Category browsing | /categories, /categories/[slug] | e2e/catalog.spec.ts | PASS |
-| Vending Zone page | /vending: our own copy, the vending blends in the catalog, and the category once the source lists products under it | e2e/sections.spec.ts, test/vending.test.ts, test/business-section.test.ts | PASS |
-| Consumables page | /consumables: what the section covers and an enquiry form; its category's products once the source lists any | e2e/sections.spec.ts, test/business-section.test.ts | PASS |
-| Brand browsing | /brands, /brands/[slug] | e2e/catalog.spec.ts | PASS |
-| Product detail page | /products/[slug] | e2e/product.spec.ts | PASS |
+| Category browsing | /bg/kategorii, and each category at /bg/<landing slug> | e2e/catalog.spec.ts | PASS |
+| Vending Zone page | /bg/kafe-za-vending-mashini: our own copy, the vending blends in the catalog, and the category once the source lists products under it | e2e/sections.spec.ts, test/vending.test.ts, test/business-section.test.ts | PASS |
+| Consumables page | /bg/konsumativi: what the section covers and an enquiry form; its category's products once the source lists any | e2e/sections.spec.ts, test/business-section.test.ts | PASS |
+| Brand browsing | /bg/marki, /bg/marki/<brand> | e2e/catalog.spec.ts | PASS |
+| Product detail page | /bg/<product slug> | e2e/product.spec.ts | PASS |
 | Product code | Product code read by the sync's enrichment step, shown in the facts table and in the Product JSON-LD | test/product-facts.test.ts, test/product-page-parts.test.ts | PASS |
 | Product characteristics list | Composition, origin and roast as stated facts in the product page's facts table; the full list is stored | test/product-facts.test.ts | PASS |
 | Catalog filtering | URL-driven filters on every listing | test/filters.test.ts, e2e/catalog.spec.ts | PASS |
-| Promotions | /promotions | e2e/catalog.spec.ts | PASS |
+| Promotions | /bg/promotsii | e2e/catalog.spec.ts | PASS |
 | Quick order by phone | Quick-order form on every product page, stored in order_inquiries | e2e/quick-order.spec.ts, test/forms.test.ts | PASS |
 | Newsletter signup | Footer newsletter form, stored in newsletter_subscribers | test/forms.test.ts | PASS |
 | Related products | Related products on product pages (category, then brand) | e2e/product.spec.ts | PASS |
 | Breadcrumb navigation | Breadcrumbs plus BreadcrumbList structured data | e2e/product.spec.ts | PASS |
-| Blog | /journal, and an article page at /journal/[slug] | e2e/routes.spec.ts, e2e/sections.spec.ts, test/journal-content.test.ts | PASS |
-| Legal and policy pages | /privacy, /terms, /cookies | e2e/routes.spec.ts | PASS |
+| Blog | /bg/blog, and an article page at /bg/blog/<slug> | e2e/routes.spec.ts, e2e/sections.spec.ts, test/journal-content.test.ts | PASS |
+| Legal and policy pages | /bg/poveritelnost, /bg/obshti-usloviya, /bg/biskvitki | e2e/routes.spec.ts | PASS |
 | Sitewide notice banner | Announcement bar on every page: the free-delivery threshold and one-step ordering. Not dismissible, because it carries the phone number and hours | test/layout-frame.test.ts | PASS |
 | Free-delivery threshold | Announcement bar on every page, the delivery block beside the order form and /delivery, all from `siteConfig.commerce` | test/commerce.test.ts, test/layout-frame.test.ts | PASS |
 | Listed payment methods | Payment methods in the footer, beside the order form and on /delivery, from `siteConfig.commerce` | test/commerce.test.ts | PASS |
-| Phone contact | Phone links in header, footer and /contact | e2e/routes.spec.ts | PASS |
+| Phone contact | Phone links in header, footer and /bg/kontakti | e2e/routes.spec.ts | PASS |
 
 ## Page types
 
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
-| blog_article (1) | /journal/[slug] | e2e/sections.spec.ts | PASS |
-| blog_index (1) | /journal | e2e/routes.spec.ts | PASS |
-| brand (23) | /brands/[slug] | e2e/routes.spec.ts | PASS |
-| brand_index (1) | /brands | e2e/routes.spec.ts | PASS |
-| category (5) | /categories/[slug], and /vending for the reference's vending category | e2e/routes.spec.ts, e2e/sections.spec.ts | PASS |
-| home (1) | / | e2e/routes.spec.ts | PASS |
-| legal (2) | /privacy, /terms, /cookies | e2e/routes.spec.ts | PASS |
+| blog_article (1) | /bg/blog/<slug> | e2e/sections.spec.ts | PASS |
+| blog_index (1) | /bg/blog | e2e/routes.spec.ts | PASS |
+| brand (23) | /bg/marki/<brand> | e2e/routes.spec.ts | PASS |
+| brand_index (1) | /bg/marki | e2e/routes.spec.ts | PASS |
+| category (5) | /bg/<category landing slug>, and /bg/kafe-za-vending-mashini for the reference's vending category | e2e/routes.spec.ts, e2e/sections.spec.ts | PASS |
+| home (1) | /bg (the bare / resolves to it) | e2e/routes.spec.ts | PASS |
+| legal (2) | /bg/poveritelnost, /bg/obshti-usloviya, /bg/biskvitki | e2e/routes.spec.ts | PASS |
 | other (1) | n/a — unclassified | n/a | PASS |
-| product (187) | /products/[slug] | e2e/routes.spec.ts | PASS |
-| promotion (1) | /promotions | e2e/routes.spec.ts | PASS |
-| subcategory (5) | /categories/[slug] | e2e/routes.spec.ts | PASS |
+| product (187) | /bg/<product slug> | e2e/routes.spec.ts | PASS |
+| promotion (1) | /bg/promotsii | e2e/routes.spec.ts | PASS |
+| subcategory (5) | /bg/<category landing slug> | e2e/routes.spec.ts | PASS |
 
 ## Filters
 
@@ -67,10 +67,10 @@ These are not reference capabilities, so they are not rows above. They are liste
 
 | Capability | Our implementation | Test |
 | --- | --- | --- |
-| Delivery and payment terms | /delivery, from `siteConfig.commerce` | e2e/sections.spec.ts |
-| Consumables for business buyers | /consumables | e2e/sections.spec.ts |
-| Journal articles | /journal/[slug], from `content/journal/` | e2e/sections.spec.ts |
-| Recommendation wizard and machine finder | /wizard, /wizard/result, /wizard/machines | e2e/wizard.spec.ts, test/recommend.test.ts |
+| Delivery and payment terms | /bg/dostavka-i-plashtane, from `siteConfig.commerce` | e2e/sections.spec.ts |
+| Consumables for business buyers | /bg/konsumativi | e2e/sections.spec.ts |
+| Journal articles | /bg/blog/<slug>, from `content/journal/` | e2e/sections.spec.ts |
+| Recommendation wizard and machine finder | /bg/izbor-na-kafe, /bg/izbor-na-kafe/rezultat, /bg/za-kafemashina | e2e/wizard.spec.ts, test/recommend.test.ts |
 
 ## Deliberate differences from the reference
 
@@ -79,5 +79,5 @@ These are not reference capabilities, so they are not rows above. They are liste
 - **Listings paginate and can be sorted.** The reference renders every product at once with no sort control. Pagination and sorting are additions, not omissions.
 - **Forms post to our own endpoints.** The reference posts to a third-party CMS. Ours validate, rate-limit and store in our own database.
 - **Removed products get a real page.** The reference has no concept of a retired product. Ours keeps the URL and explains that the item is gone, rather than 404ing a link that may be indexed.
-- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/wizard` asks four questions and ranks the compatible catalog against the answers; `/wizard/machines` answers "which capsule fits my machine" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.
+- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/bg/izbor-na-kafe` asks four questions and ranks the compatible catalog against the answers; `/bg/za-kafemashina` answers "which capsule fits my machine" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.
 - **Price per cup.** Derived from pack size and price, shown alongside the pack price. The reference shows pack price only, which reverses the true ordering: 100 capsules at EUR 33.25 is cheaper per cup than 16 at EUR 5.60.

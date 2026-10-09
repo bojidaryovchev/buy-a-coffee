@@ -1,5 +1,7 @@
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { isReviewParagraph, openReviewItems, type LegalDocument } from "@/content/legal";
+import type { Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Renders a legal document.
@@ -14,15 +16,24 @@ import { isReviewParagraph, openReviewItems, type LegalDocument } from "@/conten
  * reader to look for markers that are not there is its own small untruth.
  * `pnpm check:launch` fails while a marker would render.
  */
-export function LegalDocumentView({ document }: { document: LegalDocument }) {
+export function LegalDocumentView({
+  locale,
+  path,
+  document,
+}: {
+  locale: Locale;
+  /** The page's canonical route, e.g. `routes.privacy`. */
+  path: string;
+  document: LegalDocument;
+}) {
   const hasOpenItems = openReviewItems(document).length > 0;
 
   return (
     <div className="shell pb-16">
       <Breadcrumbs
         items={[
-          { name: "Начало", href: "/" },
-          { name: document.title, href: `/${document.slug}` },
+          { name: "Начало", href: href(locale, routes.home) },
+          { name: document.title, href: href(locale, path) },
         ]}
       />
 

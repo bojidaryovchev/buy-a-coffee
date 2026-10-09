@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { productHref } from "@/lib/routes";
 import {
   getSyncRun,
   lastSuccessfulSync,
@@ -313,7 +315,7 @@ export default async function AdminSyncPage({
                         <td className="px-3 py-2">
                           {c.productName && c.productSlug ? (
                             <Link
-                              href={`/products/${c.productSlug}`}
+                              href={productHref(DEFAULT_LOCALE, { slug: c.productSlug })}
                               className="text-pine-700 underline"
                             >
                               {c.productName}
@@ -371,7 +373,7 @@ export default async function AdminSyncPage({
             <ul className="mt-3 columns-1 gap-6 text-sm sm:columns-2">
               {withoutCopy.sample.map((p) => (
                 <li key={p.id} className="py-0.5">
-                  <Link href={`/products/${p.slug}`} className="text-pine-700 underline">
+                  <Link href={productHref(DEFAULT_LOCALE, p)} className="text-pine-700 underline">
                     {p.name}
                   </Link>
                 </li>

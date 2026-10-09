@@ -1035,7 +1035,7 @@ which reads as a photograph that failed to load.
 ### Brand logo
 
 `BrandLogo` in `components/catalog/brand-logo.tsx`; the files in
-`public/brands/`, what a page needs to draw them in `content/brand-logos.ts`,
+`public/brand-logos/`, what a page needs to draw them in `content/brand-logos.ts`,
 and where each came from in `content/brand-logo-provenance.ts` (imported by
 tests only, so it never reaches the browser). A brand's own logo, shown where
 the brand itself is the subject.

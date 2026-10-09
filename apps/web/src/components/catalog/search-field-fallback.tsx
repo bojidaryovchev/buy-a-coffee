@@ -1,3 +1,7 @@
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/bg";
+import { href, routes } from "@/lib/routes";
+
 /*
  * The search field's look, shared with the interactive `SearchField` so the
  * server's version and the hydrated one cannot drift. DESIGN.md, "Inputs" at
@@ -20,7 +24,8 @@ export const SEARCH_INPUT_CLASS =
 export const SEARCH_BUTTON_CLASS =
   "flex shrink-0 items-center gap-1.5 bg-pine-900 px-4 text-sm font-medium text-paper transition-colors hover:bg-pine-700 focus-visible:-outline-offset-4 focus-visible:outline-gold-300";
 
-export const SEARCH_PLACEHOLDER = "Търсете кафе, марки, капсули…";
+/** The field's words, from the frame's dictionary (`search`). */
+export type SearchCopy = Dictionary["search"];
 
 /**
  * Static fallback for the search field.
@@ -29,11 +34,11 @@ export const SEARCH_PLACEHOLDER = "Търсете кафе, марки, капс
  * working `GET` form — not a skeleton — so search is usable immediately and
  * for anyone without JavaScript.
  */
-export function SearchFieldFallback() {
+export function SearchFieldFallback({ locale, copy }: { locale: Locale; copy: SearchCopy }) {
   return (
-    <form role="search" action="/search" method="get" className="w-full">
+    <form role="search" action={href(locale, routes.search)} method="get" className="w-full">
       <label htmlFor="search-fallback" className="sr-only">
-        Търсене на продукти
+        {copy.label}
       </label>
       <div className={SEARCH_BOX_CLASS}>
         <input
@@ -42,17 +47,17 @@ export function SearchFieldFallback() {
           type="search"
           inputMode="search"
           enterKeyHint="search"
-          placeholder={SEARCH_PLACEHOLDER}
+          placeholder={copy.placeholder}
           className={SEARCH_INPUT_CLASS}
           autoComplete="off"
         />
-        <SearchSubmit />
+        <SearchSubmit label={copy.submit} />
       </div>
     </form>
   );
 }
 
-export function SearchSubmit() {
+export function SearchSubmit({ label }: { label: string }) {
   return (
     <button type="submit" className={SEARCH_BUTTON_CLASS}>
       <svg
@@ -66,7 +71,7 @@ export function SearchSubmit() {
         <circle cx="11" cy="11" r="7" />
         <path d="M16.5 16.5L21 21" strokeLinecap="round" />
       </svg>
-      <span className="sr-only sm:not-sr-only">Търси</span>
+      <span className="sr-only sm:not-sr-only">{label}</span>
     </button>
   );
 }

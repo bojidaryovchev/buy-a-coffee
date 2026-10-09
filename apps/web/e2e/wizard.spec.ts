@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { PRODUCT_LINK } from "./support/paths";
 
 /**
  * The recommendation wizard.
@@ -10,7 +11,7 @@ import { expect, test } from "@playwright/test";
  */
 
 test("the wizard walks from brew method to a recommendation", async ({ page }) => {
-  await page.goto("/wizard");
+  await page.goto("/bg/izbor-na-kafe");
   await expect(
     page.getByRole("heading", { level: 1, name: /как правите кафето си/i }),
   ).toBeVisible();
@@ -33,20 +34,20 @@ test("the wizard walks from brew method to a recommendation", async ({ page }) =
    * A system with almost nothing in it skips straight to the result rather
    * than asking four questions to narrow three products.
    */
-  if (!page.url().includes("/wizard/result")) {
+  if (!page.url().includes("/bg/izbor-na-kafe/rezultat")) {
     const main = page.locator("main");
     await main.getByRole("link", { name: /класическо еспресо/i }).click();
     await main.getByRole("link", { name: /3–5 чаши/i }).click();
     await main.getByRole("link", { name: /баланс между цена и вкус/i }).click();
   }
 
-  await expect(page).toHaveURL(/\/wizard\/result/);
-  await expect(page.locator('main a[href^="/products/"]').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/bg\/izbor-na-kafe\/rezultat/);
+  await expect(page.locator(`main ${PRODUCT_LINK}`).first()).toBeVisible();
 });
 
 test("every recommendation explains itself and shows a price per cup", async ({ page }) => {
   await page.goto(
-    "/wizard/result?system=nespresso-original&taste=intense&volume=regular&budget=cheap",
+    "/bg/izbor-na-kafe/rezultat?system=nespresso-original&taste=intense&volume=regular&budget=cheap",
   );
 
   // Named, because the page also carries a breadcrumb list.
@@ -65,14 +66,14 @@ test("every recommendation explains itself and shows a price per cup", async ({ 
 
 test("an answer we cannot honour is stated, not hidden", async ({ page }) => {
   // Caffitaly holds no decaffeinated product, so the requirement must be relaxed.
-  await page.goto("/wizard/result?system=caffitaly&requirements=decaf");
+  await page.goto("/bg/izbor-na-kafe/rezultat?system=caffitaly&requirements=decaf");
 
   await expect(page.getByText(/не можахме да изпълним всичко/i)).toBeVisible();
   await expect(page.getByText(/съдържа кофеин/i).first()).toBeVisible();
 });
 
 test("answers stay in the URL and can be changed one at a time", async ({ page }) => {
-  await page.goto("/wizard?brew=capsule&system=nespresso-original&taste=intense");
+  await page.goto("/bg/izbor-na-kafe?brew=capsule&system=nespresso-original&taste=intense");
 
   const chip = page.getByRole("link", { name: /силно и наситено/i }).first();
   await expect(chip).toBeVisible();
@@ -84,11 +85,11 @@ test("answers stay in the URL and can be changed one at a time", async ({ page }
 });
 
 test("the machine finder answers which capsule a model takes", async ({ page }) => {
-  await page.goto("/wizard/machines");
+  await page.goto("/bg/za-kafemashina");
   await expect(page.getByRole("heading", { level: 1, name: /коя капсула пасва/i })).toBeVisible();
 
-  await page.locator('main a[href="/wizard/machines/krups"]').click();
-  await expect(page).toHaveURL(/\/wizard\/machines\/krups/);
+  await page.locator('main a[href="/bg/za-kafemashina/krups"]').click();
+  await expect(page).toHaveURL(/\/bg\/za-kafemashina\/krups/);
 
   // One brand, three incompatible systems: the reason this page exists.
   await expect(page.getByRole("heading", { name: "Dolce Gusto" })).toBeVisible();
@@ -99,7 +100,7 @@ test("the machine finder answers which capsule a model takes", async ({ page }) 
 });
 
 test("a machine we cannot supply gets a straight answer", async ({ page }) => {
-  await page.goto("/wizard/machines/nespresso");
+  await page.goto("/bg/za-kafemashina/nespresso");
 
   await expect(page.getByRole("heading", { name: /не предлагаме кафе/i })).toBeVisible();
   await expect(page.getByText(/vertuo чете баркод/i)).toBeVisible();
@@ -114,7 +115,7 @@ test("the wizard works with JavaScript disabled", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
 
-  await page.goto("/wizard");
+  await page.goto("/bg/izbor-na-kafe");
   // Scoped to <main>: the header rail carries a category link of the same name.
   await page
     .locator("main")

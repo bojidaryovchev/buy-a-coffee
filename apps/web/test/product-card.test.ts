@@ -42,7 +42,7 @@ const product = (overrides: Partial<ProductCardView> = {}): ProductCardView => (
 function card(overrides: Partial<ProductCardView> = {}, props: Record<string, unknown> = {}) {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(
-    createElement(ProductCard, { product: product(overrides), ...props }),
+    createElement(ProductCard, { locale: "bg", product: product(overrides), ...props }),
   );
   return host;
 }
@@ -186,7 +186,7 @@ describe("ProductCard: links and controls", () => {
     const root = card();
     const links = Array.from(root.querySelectorAll("a"));
     expect(links).toHaveLength(2);
-    expect(links[0]!.getAttribute("href")).toBe("/products/kapsuli-dg-bianchi-gusto-forte-16-br");
+    expect(links[0]!.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br");
     expect(links[0]!.className).toContain("after:absolute");
     expect(links[0]!.closest("h3")).not.toBeNull();
   });
@@ -204,9 +204,7 @@ describe("ProductCard: links and controls", () => {
 
   it("server-renders the order control as a link to the form on the product page", () => {
     const control = card().querySelectorAll("a")[1]!;
-    expect(control.getAttribute("href")).toBe(
-      "/products/kapsuli-dg-bianchi-gusto-forte-16-br#order",
-    );
+    expect(control.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br#order");
     expect(text(control)).toBe("Бърза поръчка: Капсули DG Bianchi Gusto Forte Espresso 16 бр.");
     // Above the stretched link, or the click would land on the product link.
     expect(control.className).toContain("relative");
@@ -232,7 +230,7 @@ describe("ProductCard: links and controls", () => {
     expect(root.querySelector("a[href$='#order']")).toBeNull();
     expect(text(root)).not.toContain("Бърза поръчка");
     const fallback = root.querySelectorAll("a")[1]!;
-    expect(fallback.getAttribute("href")).toBe("/products/kapsuli-dg-bianchi-gusto-forte-16-br");
+    expect(fallback.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br");
     expect(text(fallback)).toContain("Виж продукта");
     expect(fallback.className).toBe(card().querySelectorAll("a")[1]!.className);
   });
@@ -243,6 +241,7 @@ describe("ProductGrid", () => {
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
       createElement(ProductGrid, {
+        locale: "bg",
         products: [
           product({ id: "a" }),
           product({ id: "b", slug: "b" }),
@@ -291,7 +290,7 @@ describe("RecommendationCard", () => {
   const render = (props: Record<string, unknown> = {}) => {
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
-      createElement(RecommendationCard, { entry: entry(), rank: 1, ...props }),
+      createElement(RecommendationCard, { locale: "bg", entry: entry(), rank: 1, ...props }),
     );
     return host;
   };

@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/config/site";
+import { SHIPPING_LOCALES } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * robots.txt
@@ -17,6 +19,13 @@ import { absoluteUrl } from "@/config/site";
  * env var scoped to Preview by mistake cannot re-open them, which is the
  * failure this check exists to prevent. `NEXT_PUBLIC_ENVIRONMENT` is the
  * fallback for hosts that provide no such signal.
+ *
+ * Paths are built through `href`, one per shipping locale — `/bg/tarsene`,
+ * `/bg/izbor-na-kafe/rezultat` — so a slug change or a new locale cannot leave
+ * this file guarding a URL nobody serves. The pre-locale paths (`/search`,
+ * `/wizard/result`) are deliberately not disallowed: they answer 308 now, and
+ * a crawler has to be allowed to fetch a redirect to learn where it leads.
+ * The query-string rules match under any path, the locale prefix included.
  */
 export default function robots(): MetadataRoute.Robots {
   const hostEnvironment = process.env.VERCEL_ENV;
@@ -37,7 +46,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
-          "/search",
+          ...SHIPPING_LOCALES.map((locale) => href(locale, routes.search)),
           "/api/",
           "/media/",
           /* Belt to the layout's braces. `(admin)/layout.tsx` sets `noindex`,
@@ -58,7 +67,7 @@ export default function robots(): MetadataRoute.Robots {
           // The wizard's answer permutations. The unanswered wizard and the
           // machine pages stay crawlable; every answered state is the same
           // page with different state, exactly like a filtered listing.
-          "/wizard/result",
+          ...SHIPPING_LOCALES.map((locale) => href(locale, routes.wizardResult)),
           "/*?brew=",
           "/*?system=",
           "/*?taste=",

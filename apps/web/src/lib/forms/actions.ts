@@ -1,5 +1,7 @@
 "use server";
 
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { productHref } from "@/lib/routes";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { contactMessages, orderInquiries, products } from "@catalog/db/schema";
@@ -172,7 +174,10 @@ export async function submitOrderInquiry(
         email: input.email || null,
         quantity: input.quantity,
         notes: input.notes || null,
-        sourcePage: `/products/${input.productSlug}`,
+        /* The page the order came from. A server action is not told its
+           page's locale; the order form exists on Bulgarian pages only until
+           another locale ships, and this column is a note for the operator. */
+        sourcePage: productHref(DEFAULT_LOCALE, { slug: input.productSlug }),
         idempotencyKey: key,
         requestMetadata: { ...metadata, fingerprint },
       })

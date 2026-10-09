@@ -77,7 +77,7 @@ describe("brand logos: the data file", () => {
 
   it("serves every logo from our own origin, from a file that exists, named by its key", () => {
     for (const [key, logo] of entries) {
-      expect(logo.file, key).toBe(`/brands/${key}.${logo.format}`);
+      expect(logo.file, key).toBe(`/brand-logos/${key}.${logo.format}`);
       expect(existsSync(path.join(PUBLIC, logo.file)), `${logo.file} is missing`).toBe(true);
     }
   });
@@ -128,8 +128,8 @@ describe("brand logos: the data file", () => {
   });
 
   it("finds a logo by key or slug, forgivingly, and nothing for an unknown brand", () => {
-    expect(brandLogoFor("lavazza")?.file).toBe("/brands/lavazza.svg");
-    expect(brandLogoFor("Julius_Meinl")?.file).toBe("/brands/julius-meinl.svg");
+    expect(brandLogoFor("lavazza")?.file).toBe("/brand-logos/lavazza.svg");
+    expect(brandLogoFor("Julius_Meinl")?.file).toBe("/brand-logos/julius-meinl.svg");
     expect(brandLogoFor("molini")).toBeNull();
     expect(brandLogoFor("a-brand-added-tomorrow")).toBeNull();
     expect(brandLogoFor(null)).toBeNull();
@@ -266,7 +266,7 @@ describe("BrandLogo", () => {
     );
     const img = root.querySelector("img");
     const expected = brandLogoLayout(brandLogos.lavazza!, "tile").image;
-    expect(img?.getAttribute("src")).toBe("/brands/lavazza.svg");
+    expect(img?.getAttribute("src")).toBe("/brand-logos/lavazza.svg");
     expect(img?.getAttribute("alt")).toBe("Lavazza");
     expect(img?.getAttribute("width")).toBe(String(expected.width));
     expect(img?.getAttribute("height")).toBe(String(expected.height));
@@ -407,11 +407,11 @@ const cardProduct: ProductCardView = {
 
 describe("brand logos: where they do not appear", () => {
   it("a product card names the brand in text and draws no logo", () => {
-    const root = render(createElement(ProductCard, { product: cardProduct }));
+    const root = render(createElement(ProductCard, { locale: "bg", product: cardProduct }));
     expect(root.textContent).toContain("Lavazza");
     expect(root.querySelector("[data-brand-logo]")).toBeNull();
     for (const img of root.querySelectorAll("img")) {
-      expect(img.getAttribute("src")).not.toMatch(/^\/brands\//);
+      expect(img.getAttribute("src")).not.toMatch(/^\/brand-logos\//);
     }
   });
 });
@@ -421,7 +421,7 @@ describe("brand logos: structured data", () => {
     expect(brandJsonLd({ slug: "lavazza", name: "Lavazza" })).toEqual({
       "@type": "Brand",
       name: "Lavazza",
-      logo: absoluteUrl("/brands/lavazza.svg"),
+      logo: absoluteUrl("/brand-logos/lavazza.svg"),
     });
     expect(String(brandJsonLd({ slug: "illy", name: "illy" }).logo)).toMatch(/^https?:\/\//);
   });
@@ -443,10 +443,10 @@ describe("brand logos: structured data", () => {
       gtin: null,
       price: null,
     } as unknown as ProductDetailView;
-    expect(productJsonLd(product).brand).toEqual({
+    expect(productJsonLd(product, "bg").brand).toEqual({
       "@type": "Brand",
       name: "Rema Caffè",
-      logo: absoluteUrl("/brands/rema-caffe.png"),
+      logo: absoluteUrl("/brand-logos/rema-caffe.png"),
     });
   });
 });

@@ -47,6 +47,7 @@ const CAPSULE: FactsTableProduct = {
     {
       slug: "dolce-gusto",
       sourceKey: "dolce-gusto",
+      previousSourceKeys: [],
       name: "Dolce Gusto",
       isPrimary: true,
       parentSlug: "kapsuli",
@@ -71,6 +72,7 @@ const BEANS_ENRICHED: FactsTableProduct = {
     {
       slug: "kafe-na-zarna",
       sourceKey: "kafe-na-zyrna",
+      previousSourceKeys: [],
       name: "Кафе на зърна",
       isPrimary: true,
       parentSlug: null,
@@ -169,20 +171,23 @@ describe("pack size", () => {
 
 describe("where the system badge links", () => {
   it("is the product's own category that binds it to the system", () => {
-    expect(systemListingHref("dolce-gusto", CAPSULE.categories)).toBe("/categories/dolce-gusto");
+    // At the category's landing slug, through its source key.
+    expect(systemListingHref("bg", "dolce-gusto", CAPSULE.categories)).toBe(
+      "/bg/dolce-gusto-kapsuli",
+    );
   });
 
   it("matches on the source key when the storefront slug was renamed", () => {
     expect(
-      systemListingHref("beans", [{ slug: "zarna-novo-ime", sourceKey: "kafe-na-zyrna" }]),
-    ).toBe("/categories/zarna-novo-ime");
+      systemListingHref("bg", "beans", [{ slug: "zarna-novo-ime", sourceKey: "kafe-na-zyrna" }]),
+    ).toBe("/bg/kafe-na-zarna");
   });
 
   it("is null rather than a guess when no category of the product belongs to the system", () => {
-    expect(systemListingHref("nespresso-original", CAPSULE.categories)).toBeNull();
-    expect(systemListingHref("dolce-gusto", [])).toBeNull();
-    expect(systemListingHref(null, CAPSULE.categories)).toBeNull();
-    expect(systemListingHref("vertuo", CAPSULE.categories)).toBeNull();
+    expect(systemListingHref("bg", "nespresso-original", CAPSULE.categories)).toBeNull();
+    expect(systemListingHref("bg", "dolce-gusto", [])).toBeNull();
+    expect(systemListingHref("bg", null, CAPSULE.categories)).toBeNull();
+    expect(systemListingHref("bg", "vertuo", CAPSULE.categories)).toBeNull();
   });
 });
 
@@ -207,7 +212,7 @@ describe("compatibility", () => {
           if (model.system !== system.id) continue;
           known.set(
             model.name.startsWith(brand.name) ? model.name : `${brand.name} ${model.name}`,
-            `/wizard/machines/${brand.slug}`,
+            `/za-kafemashina/${brand.slug}`,
           );
         }
       }
@@ -236,30 +241,36 @@ describe("compatibility", () => {
 
   it("renders the section for a capsule, with the cross-format sentence where it applies", () => {
     const caffitaly = getBrewingSystem("caffitaly")!;
-    const markup = html(createElement(ProductCompatibility, { system: caffitaly }));
+    const markup = html(createElement(ProductCompatibility, { locale: "bg", system: caffitaly }));
     expect(markup).toContain("<h2");
     expect(markup).toContain("Става за тези машини");
     expect(markup).toContain(caffitaly.recognise);
     expect(stripTags(markup)).toContain("Машините Tchibo и K-fee приемат същия формат капсула.");
-    expect(markup).toContain('href="/wizard/machines"');
+    expect(markup).toContain('href="/bg/za-kafemashina"');
+    expect(markup).toContain('href="/bg/za-kafemashina/tchibo"');
     expect(stripTags(markup)).toMatch(/Показани са 12 от \d+ модела\./);
 
     const nespresso = html(
-      createElement(ProductCompatibility, { system: getBrewingSystem("nespresso-original")! }),
+      createElement(ProductCompatibility, {
+        locale: "bg",
+        system: getBrewingSystem("nespresso-original")!,
+      }),
     );
     expect(nespresso).not.toContain("приемат същия формат");
   });
 
   it("renders nothing for beans", () => {
-    expect(html(createElement(ProductCompatibility, { system: getBrewingSystem("beans")! }))).toBe(
-      "",
-    );
+    expect(
+      html(
+        createElement(ProductCompatibility, { locale: "bg", system: getBrewingSystem("beans")! }),
+      ),
+    ).toBe("");
   });
 });
 
 describe("FactsTable", () => {
   it("keeps the fixed order when every row has a value", () => {
-    const markup = html(createElement(FactsTable, { product: BEANS_ENRICHED }));
+    const markup = html(createElement(FactsTable, { locale: "bg", product: BEANS_ENRICHED }));
     expect(labels(markup)).toEqual([
       "Система",
       "Интензивност",
@@ -277,7 +288,7 @@ describe("FactsTable", () => {
   });
 
   it("is correct with every enriched fact null — today's catalog", () => {
-    const markup = html(createElement(FactsTable, { product: CAPSULE }));
+    const markup = html(createElement(FactsTable, { locale: "bg", product: CAPSULE }));
     expect(labels(markup)).toEqual([
       "Система",
       "Интензивност",
@@ -294,7 +305,7 @@ describe("FactsTable", () => {
 
   it("omits a row without data instead of printing a dash or a placeholder", () => {
     for (const product of [CAPSULE, BEANS_ENRICHED, EMPTY]) {
-      const markup = html(createElement(FactsTable, { product }));
+      const markup = html(createElement(FactsTable, { locale: "bg", product }));
       expect(markup).not.toMatch(/<dd[^>]*>\s*<\/dd>/);
       expect(markup).not.toMatch(/<dd[^>]*>\s*[-–—]\s*<\/dd>/);
       expect(markup).not.toMatch(/няма данни|null|undefined|NaN/);
@@ -302,8 +313,8 @@ describe("FactsTable", () => {
   });
 
   it("renders nothing at all when the record holds no fact", () => {
-    expect(factRows(EMPTY)).toEqual([]);
-    expect(html(createElement(FactsTable, { product: EMPTY }))).toBe("");
+    expect(factRows(EMPTY, "bg")).toEqual([]);
+    expect(html(createElement(FactsTable, { locale: "bg", product: EMPTY }))).toBe("");
   });
 
   it("treats blank text as absent", () => {
@@ -316,12 +327,12 @@ describe("FactsTable", () => {
       weight: " ",
       attributes: { decaf: "", aromas: " " },
     };
-    expect(factRows(blank)).toEqual([]);
+    expect(factRows(blank, "bg")).toEqual([]);
   });
 
   it("drops each row independently", () => {
     const only = (patch: Partial<FactsTableProduct>) =>
-      labels(html(createElement(FactsTable, { product: { ...EMPTY, ...patch } })));
+      labels(html(createElement(FactsTable, { locale: "bg", product: { ...EMPTY, ...patch } })));
 
     expect(only({ systemId: "ese-pod" })).toEqual(["Система"]);
     expect(only({ intensity: "4 от 5" })).toEqual(["Интензивност"]);
@@ -343,21 +354,23 @@ describe("FactsTable", () => {
   });
 
   describe("formatting", () => {
-    const enriched = html(createElement(FactsTable, { product: BEANS_ENRICHED }));
-    const capsule = html(createElement(FactsTable, { product: CAPSULE }));
+    const enriched = html(createElement(FactsTable, { locale: "bg", product: BEANS_ENRICHED }));
+    const capsule = html(createElement(FactsTable, { locale: "bg", product: CAPSULE }));
 
     it("system: the badge, named, linked to the product's own system category", () => {
       const value = cell(capsule, "Система");
       expect(value).toContain('data-system="dolce-gusto"');
-      expect(value).toContain('href="/categories/dolce-gusto"');
+      expect(value).toContain('href="/bg/dolce-gusto-kapsuli"');
       expect(stripTags(value)).toBe("Dolce Gusto");
       expect(value).toContain("min-h-6");
 
-      expect(cell(enriched, "Система")).toContain('href="/categories/kafe-na-zarna"');
+      expect(cell(enriched, "Система")).toContain('href="/bg/kafe-na-zarna"');
     });
 
     it("system: unlinked when the product has no category of that system", () => {
-      const markup = html(createElement(FactsTable, { product: { ...CAPSULE, categories: [] } }));
+      const markup = html(
+        createElement(FactsTable, { locale: "bg", product: { ...CAPSULE, categories: [] } }),
+      );
       expect(cell(markup, "Система")).not.toContain("<a ");
       expect(stripTags(cell(markup, "Система"))).toBe("Dolce Gusto");
     });
@@ -378,7 +391,7 @@ describe("FactsTable", () => {
       const row = (patch: Partial<FactsTableProduct>) =>
         stripTags(
           cell(
-            html(createElement(FactsTable, { product: { ...EMPTY, ...patch } })),
+            html(createElement(FactsTable, { locale: "bg", product: { ...EMPTY, ...patch } })),
             "Интензивност",
           ),
         );
@@ -410,7 +423,9 @@ describe("FactsTable", () => {
       expect(cell(capsule, "Опаковка")).toContain("tabular-nums");
       expect(stripTags(cell(enriched, "Опаковка"))).toBe("1 кг");
 
-      const raw = html(createElement(FactsTable, { product: { ...EMPTY, weight: " 2 кутии " } }));
+      const raw = html(
+        createElement(FactsTable, { locale: "bg", product: { ...EMPTY, weight: " 2 кутии " } }),
+      );
       expect(stripTags(cell(raw, "Опаковка"))).toBe("2 кутии");
     });
 
@@ -429,6 +444,7 @@ describe("FactsTable", () => {
 
       const litre = html(
         createElement(FactsTable, {
+          locale: "bg",
           product: {
             ...EMPTY,
             unitPrice: { amount: "12.0000", currency: "EUR", formatted: "12,00 € / л" },
@@ -442,24 +458,39 @@ describe("FactsTable", () => {
       expect(cell(enriched, "Код")).toBe("AB-1234");
       const categories = html(
         createElement(FactsTable, {
+          locale: "bg",
           product: {
             ...EMPTY,
             categories: [
-              { slug: "a", sourceKey: null, name: "Първа", isPrimary: true, parentSlug: null },
-              { slug: "b", sourceKey: null, name: "Втора", isPrimary: false, parentSlug: null },
+              {
+                slug: "a",
+                sourceKey: null,
+                previousSourceKeys: [],
+                name: "Първа",
+                isPrimary: true,
+                parentSlug: null,
+              },
+              {
+                slug: "b",
+                sourceKey: null,
+                previousSourceKeys: [],
+                name: "Втора",
+                isPrimary: false,
+                parentSlug: null,
+              },
             ],
           },
         }),
       );
       const value = cell(categories, "Категория");
       expect(stripTags(value)).toBe("Първа, Втора");
-      expect(value).toContain('href="/categories/a"');
-      expect(value).toContain('href="/categories/b"');
+      expect(value).toContain('href="/bg/a"');
+      expect(value).toContain('href="/bg/b"');
     });
   });
 
   it("is a description list with one term and one value per row", () => {
-    const markup = html(createElement(FactsTable, { product: BEANS_ENRICHED }));
+    const markup = html(createElement(FactsTable, { locale: "bg", product: BEANS_ENRICHED }));
     expect(markup).toMatch(/^<dl /);
     expect((markup.match(/<dt/g) ?? []).length).toBe(12);
     expect((markup.match(/<dd/g) ?? []).length).toBe(12);

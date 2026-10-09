@@ -639,6 +639,8 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
     db
       .select({
         slug: categories.slug,
+        sourceKey: categories.sourceKey,
+        previousSourceKeys: categories.previousSourceKeys,
         name: categories.name,
         productCount: categorySuggestionCount,
       })
@@ -729,6 +731,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
       .select({
         slug: categories.slug,
         sourceKey: categories.sourceKey,
+        previousSourceKeys: categories.previousSourceKeys,
         name: categories.name,
         isPrimary: productCategories.isPrimary,
         // A real aliased join, not a select-list subquery, so the column
@@ -795,6 +798,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     categories: categoryRows.map((row) => ({
       slug: row.slug,
       sourceKey: row.sourceKey,
+      previousSourceKeys: row.previousSourceKeys,
       name: row.name,
       isPrimary: row.isPrimary,
       parentSlug: row.parentSlug,
@@ -922,6 +926,8 @@ export async function getCategoryTree(): Promise<readonly CategoryView[]> {
       .select({
         id: categories.id,
         slug: categories.slug,
+        sourceKey: categories.sourceKey,
+        previousSourceKeys: categories.previousSourceKeys,
         name: categories.name,
         description: categories.description,
         parentId: categories.parentId,
@@ -953,6 +959,8 @@ export async function getCategoryTree(): Promise<readonly CategoryView[]> {
         return {
           id: row.id,
           slug: row.slug,
+          sourceKey: row.sourceKey,
+          previousSourceKeys: row.previousSourceKeys,
           name: row.name,
           description: row.description,
           parentSlug: row.parentId ? (byId.get(row.parentId)?.slug ?? null) : null,

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { PRODUCT_LINK } from "./support/paths";
 import { expectNoSourceReference, findSourceUrls } from "./support/source-guard";
 
 /**
@@ -9,7 +10,7 @@ import { expectNoSourceReference, findSourceUrls } from "./support/source-guard"
  * which is what would catch branding leaking in through data rather than code.
  */
 
-const PAGES = ["/", "/categories/kapsuli", "/brands", "/promotions", "/contact"];
+const PAGES = ["/", "/bg/kafe-kapsuli", "/bg/marki", "/bg/promotsii", "/bg/kontakti"];
 
 for (const route of PAGES) {
   test(`${route} carries no source branding in the rendered HTML`, async ({ page }) => {
@@ -24,16 +25,16 @@ test("no request during a full browse touches the source domain", async ({ page 
 
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await page.goto("/categories/kapsuli");
+  await page.goto("/bg/kafe-kapsuli");
   await page.waitForLoadState("networkidle");
-  await page.locator('a[href^="/products/"]').first().click();
+  await page.locator(PRODUCT_LINK).first().click();
   await page.waitForLoadState("networkidle");
 
   expect(findSourceUrls(requested)).toEqual([]);
 });
 
 test("every rendered image points at our own infrastructure", async ({ page }) => {
-  await page.goto("/categories/kapsuli");
+  await page.goto("/bg/kafe-kapsuli");
 
   const sources = await page
     .locator("img")

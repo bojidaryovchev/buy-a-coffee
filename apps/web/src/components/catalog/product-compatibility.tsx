@@ -2,6 +2,8 @@ import Link from "next/link";
 import { joinList } from "@/components/commerce/terms";
 import { compatibleMachines } from "@/lib/catalog/product-facts";
 import type { BrewingSystem } from "@/lib/recommend/systems";
+import type { Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * "Става за тези машини" on a capsule or pod product page.
@@ -18,7 +20,13 @@ import type { BrewingSystem } from "@/lib/recommend/systems";
  * Renders nothing for beans: "an automatic machine with a grinder" is not a
  * list of models anybody needs to check a bag of coffee against.
  */
-export function ProductCompatibility({ system }: { system: BrewingSystem }) {
+export function ProductCompatibility({
+  locale,
+  system,
+}: {
+  locale: Locale;
+  system: BrewingSystem;
+}) {
   if (system.method === "beans") return null;
 
   const machines = compatibleMachines(system.id);
@@ -35,7 +43,7 @@ export function ProductCompatibility({ system }: { system: BrewingSystem }) {
         {machines.shown.map((machine) => (
           <li key={machine.name}>
             <Link
-              href={machine.href}
+              href={href(locale, machine.href)}
               className="inline-flex min-h-9 items-center rounded-sm border border-line bg-paper-raised px-3 py-1 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
             >
               {machine.name}
@@ -63,7 +71,7 @@ export function ProductCompatibility({ system }: { system: BrewingSystem }) {
           </>
         )}
         <Link
-          href="/wizard/machines"
+          href={href(locale, routes.machines)}
           className="inline-flex min-h-6 items-center text-pine-700 underline underline-offset-2 hover:no-underline"
         >
           Вижте всички машини

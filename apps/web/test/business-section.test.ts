@@ -15,9 +15,10 @@ vi.mock("@/lib/forms/actions", () => ({
 // The listing toolbar asks for the App Router, which only exists inside Next.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => undefined, replace: () => undefined }),
+  useParams: () => ({ lang: "bg" }),
 }));
 
-import { BusinessSectionView } from "@/app/(site)/vending/_components/business-section";
+import { BusinessSectionView } from "@/app/(site)/[lang]/_components/business-section";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import type { ProductCardView, ProductListResult } from "@/lib/catalog/types";
 import type { SectionListing } from "@/lib/catalog/vending";
@@ -77,6 +78,7 @@ function render(props: {
 }): string {
   return renderToStaticMarkup(
     createElement(BusinessSectionView, {
+      locale: "bg",
       copy: props.copy,
       path: props.path,
       query,
@@ -103,7 +105,7 @@ function expectSoundOutline(html: string): void {
 
 describe("vending page", () => {
   it("omits both product sections when the catalog has nothing for them", () => {
-    const html = render({ copy: vendingCopy, path: "/vending" });
+    const html = render({ copy: vendingCopy, path: "/kafe-za-vending-mashini" });
 
     expect(html).not.toContain(vendingCopy.blends?.heading);
     expect(html).not.toContain(vendingCopy.listing.heading);
@@ -118,10 +120,14 @@ describe("vending page", () => {
   });
 
   it("shows the blends, and only the blends, when that is what the catalog has", () => {
-    const html = render({ copy: vendingCopy, path: "/vending", blends: [product()] });
+    const html = render({
+      copy: vendingCopy,
+      path: "/kafe-za-vending-mashini",
+      blends: [product()],
+    });
 
     expect(html).toContain(vendingCopy.blends?.heading);
-    expect(html).toContain('href="/products/test-vending-blend"');
+    expect(html).toContain('href="/bg/test-vending-blend"');
     expect(html).toContain("20,00 €");
     expect(html).not.toContain(vendingCopy.listing.heading);
     expect(html).not.toContain(vendingCopy.nothingListed);
@@ -132,23 +138,23 @@ describe("vending page", () => {
   it("shows the category listing when the catalog has one", () => {
     const html = render({
       copy: vendingCopy,
-      path: "/vending",
+      path: "/kafe-za-vending-mashini",
       listing: listing([product({ id: "p-2", slug: "from-category", name: "From category" })]),
       blends: [product()],
     });
 
     expect(html).toContain(vendingCopy.listing.heading);
-    expect(html).toContain('href="/products/from-category"');
+    expect(html).toContain('href="/bg/from-category"');
     expect(html).toContain(vendingCopy.blends?.heading);
-    // Sorting and filtering stay on this page rather than leaving for /categories.
-    expect(html).toContain('action="/vending"');
+    // Sorting and filtering stay on this page rather than leaving for the category.
+    expect(html).toContain('action="/bg/kafe-za-vending-mashini"');
     expectSoundOutline(html);
   });
 });
 
 describe("consumables page", () => {
   it("lists nothing and says so while the catalog holds no consumables", () => {
-    const html = render({ copy: consumablesCopy, path: "/consumables" });
+    const html = render({ copy: consumablesCopy, path: "/konsumativi" });
 
     expect(html).not.toContain(consumablesCopy.listing.heading);
     expect(html).not.toContain("<article");
@@ -159,7 +165,7 @@ describe("consumables page", () => {
   });
 
   it("never shows vending blends, even if handed some", () => {
-    const html = render({ copy: consumablesCopy, path: "/consumables", blends: [product()] });
+    const html = render({ copy: consumablesCopy, path: "/konsumativi", blends: [product()] });
 
     expect(html).not.toContain("test-vending-blend");
     expect(html).toContain(consumablesCopy.nothingListed);
@@ -168,20 +174,20 @@ describe("consumables page", () => {
   it("shows the category listing, and drops the disclaimer, once products arrive", () => {
     const html = render({
       copy: consumablesCopy,
-      path: "/consumables",
+      path: "/konsumativi",
       listing: listing([product({ slug: "paper-cups", name: "Seeded consumable" })]),
     });
 
     expect(html).toContain(consumablesCopy.listing.heading);
-    expect(html).toContain('href="/products/paper-cups"');
+    expect(html).toContain('href="/bg/paper-cups"');
     expect(html).not.toContain(consumablesCopy.nothingListed);
     expectSoundOutline(html);
   });
 });
 
 describe.each([
-  ["/vending", vendingCopy],
-  ["/consumables", consumablesCopy],
+  ["/kafe-za-vending-mashini", vendingCopy],
+  ["/konsumativi", consumablesCopy],
 ] as const)("enquiry form on %s", (path, copy) => {
   const html = render({ copy, path });
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { routes } from "@/lib/routes";
 import { BREWING_SYSTEMS, type BrewMethod, type BrewingSystemId } from "./systems";
 
 /**
@@ -223,8 +224,16 @@ export function parseWizardAnswers(params: RawWizardParams): WizardAnswers {
   return { ...answers, brew: system ? system.method : answers.brew };
 }
 
-/** Serialise answers back into a query string, omitting everything unanswered. */
-export function wizardHref(answers: Partial<WizardAnswers>, basePath = "/wizard"): string {
+/**
+ * Serialise answers back into a query string, omitting everything unanswered.
+ *
+ * The path is canonical (`routes.wizard`, `routes.wizardResult`), like every
+ * route constant; a page puts the result through `href(locale, …)`.
+ */
+export function wizardHref(
+  answers: Partial<WizardAnswers>,
+  basePath: string = routes.wizard,
+): string {
   const params = new URLSearchParams();
   if (answers.brew) params.set("brew", answers.brew);
   if (answers.system) params.set("system", answers.system);

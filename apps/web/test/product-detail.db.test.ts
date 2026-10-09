@@ -4,6 +4,7 @@ import { systemListingHref } from "@/lib/catalog/product-facts";
 import type * as Queries from "@/lib/catalog/queries";
 import type { ProductCardView, ProductDetailView } from "@/lib/catalog/types";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
+import { categoryHref } from "@/lib/routes";
 
 /**
  * The product-detail queries against a database holding the real catalog.
@@ -59,7 +60,7 @@ describe("getProductBySlug", () => {
         expect(value).not.toBe("");
       }
       // Whatever is null, the table still renders, and every row has a label.
-      const rows = factRows(product);
+      const rows = factRows(product, "bg");
       expect(rows.length).toBeGreaterThan(0);
       expect(rows[0]?.label).toBe("Система");
     }
@@ -69,9 +70,9 @@ describe("getProductBySlug", () => {
     if (!queries || samples.size === 0) skip();
 
     for (const product of samples.values()) {
-      const href = systemListingHref(product.systemId, product.categories);
+      const href = systemListingHref("bg", product.systemId, product.categories);
       expect(href, product.slug).not.toBeNull();
-      expect(product.categories.map((category) => `/categories/${category.slug}`)).toContain(href);
+      expect(product.categories.map((category) => categoryHref("bg", category))).toContain(href);
     }
   });
 });

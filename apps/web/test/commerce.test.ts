@@ -432,10 +432,10 @@ describe("structured data", () => {
     }) as unknown as ProductDetailView;
 
   const offer = (amount: string | null, commerce: CommerceConfig) =>
-    productJsonLd(product(amount), commerce).offers as Record<string, unknown> | undefined;
+    productJsonLd(product(amount), "bg", commerce).offers as Record<string, unknown> | undefined;
 
   it("emits neither policy for the shipped, unconfirmed config", () => {
-    const shipped = productJsonLd(product("60.00")).offers as Record<string, unknown>;
+    const shipped = productJsonLd(product("60.00"), "bg").offers as Record<string, unknown>;
     expect(shipped.price).toBe("60.00");
     expect(shipped).not.toHaveProperty("shippingDetails");
     expect(shipped).not.toHaveProperty("hasMerchantReturnPolicy");
@@ -501,7 +501,7 @@ describe("structured data", () => {
       returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: 14,
       returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
-      merchantReturnLink: expect.stringMatching(/\/delivery$/),
+      merchantReturnLink: expect.stringMatching(/\/bg\/dostavka-i-plashtane$/),
     });
   });
 
@@ -524,7 +524,7 @@ describe("structured data", () => {
 
   it("publishes the opening hours on the contact point, and nothing when there are none", () => {
     const contact = (commerce: CommerceConfig) =>
-      (organizationJsonLd(commerce).contactPoint as Array<Record<string, unknown>>)[0]!;
+      (organizationJsonLd("bg", commerce).contactPoint as Array<Record<string, unknown>>)[0]!;
 
     expect(contact(COMPLETE).hoursAvailable).toEqual([
       {

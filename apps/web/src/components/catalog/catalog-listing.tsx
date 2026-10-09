@@ -10,6 +10,8 @@ import {
   type CatalogQuery,
 } from "@/lib/catalog/filters";
 import type { ProductListResult } from "@/lib/catalog/types";
+import type { Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * The listing view shared by categories, brands, promotions and search.
@@ -18,8 +20,13 @@ import type { ProductListResult } from "@/lib/catalog/types";
  * One implementation means filtering, sorting, pagination, empty states and
  * the mobile filter sheet behave identically everywhere, and a fix in one
  * place fixes them all.
+ *
+ * `basePath` is the listing's public URL, already in the page's locale
+ * (`categoryHref`, `href(locale, routes.brand(slug))`); every filter, sort and
+ * page link is that path plus a query string.
  */
 export function CatalogListing({
+  locale,
   basePath,
   query,
   result,
@@ -29,6 +36,7 @@ export function CatalogListing({
   emptyDescription,
   emptyAction,
 }: {
+  locale: Locale;
   basePath: string;
   query: CatalogQuery;
   result: ProductListResult;
@@ -55,7 +63,11 @@ export function CatalogListing({
       <EmptyState
         title={emptyTitle}
         {...(emptyDescription ? { description: emptyDescription } : {})}
-        action={emptyAction ?? <ButtonLink href="/wizard">Кое кафе е за вас</ButtonLink>}
+        action={
+          emptyAction ?? (
+            <ButtonLink href={href(locale, routes.wizard)}>Кое кафе е за вас</ButtonLink>
+          )
+        }
       />
     );
   }
@@ -114,7 +126,7 @@ export function CatalogListing({
         ) : (
           <>
             {/* Beside the rail the grid is three columns wide, not four. */}
-            <ProductGrid products={result.items} columns={3} />
+            <ProductGrid locale={locale} products={result.items} columns={3} />
             <Pagination
               page={result.page}
               pageCount={result.pageCount}

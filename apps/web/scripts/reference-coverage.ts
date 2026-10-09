@@ -49,7 +49,7 @@ const OUTPUT_DOC = path.join(REPO_ROOT, "docs/reference-coverage.md");
 interface Implementation {
   /** Prose for the matrix: what implements the capability. */
   readonly implementation: string;
-  /** Route patterns, e.g. `/categories/[slug]`. Each must resolve to a page or route handler. */
+  /** Route patterns under `[lang]`, e.g. `/marki/[slug]`. Each must resolve to a page or route handler. */
   readonly routes?: readonly string[];
   /** Other files that must exist for the claim to be credible, relative to `apps/web`. */
   readonly files?: readonly string[];
@@ -63,18 +63,18 @@ interface Implementation {
  */
 const FEATURE_COVERAGE: Record<string, Implementation> = {
   "category-browsing": {
-    implementation: "/categories, /categories/[slug]",
-    routes: ["/categories", "/categories/[slug]"],
+    implementation: "/bg/kategorii, and each category at /bg/<landing slug>",
+    routes: ["/kategorii", "/[slug]"],
     tests: ["e2e/catalog.spec.ts"],
   },
   "brand-browsing": {
-    implementation: "/brands, /brands/[slug]",
-    routes: ["/brands", "/brands/[slug]"],
+    implementation: "/bg/marki, /bg/marki/<brand>",
+    routes: ["/marki", "/marki/[slug]"],
     tests: ["e2e/catalog.spec.ts"],
   },
   "product-detail": {
-    implementation: "/products/[slug]",
-    routes: ["/products/[slug]"],
+    implementation: "/bg/<product slug>",
+    routes: ["/[slug]"],
     tests: ["e2e/product.spec.ts"],
   },
   "catalog-filters": {
@@ -83,8 +83,8 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
     tests: ["test/filters.test.ts", "e2e/catalog.spec.ts"],
   },
   promotions: {
-    implementation: "/promotions",
-    routes: ["/promotions"],
+    implementation: "/bg/promotsii",
+    routes: ["/promotsii"],
     tests: ["e2e/catalog.spec.ts"],
   },
   "quick-order": {
@@ -108,62 +108,62 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
     tests: ["e2e/product.spec.ts"],
   },
   blog: {
-    implementation: "/journal, and an article page at /journal/[slug]",
-    routes: ["/journal", "/journal/[slug]"],
+    implementation: "/bg/blog, and an article page at /bg/blog/<slug>",
+    routes: ["/blog", "/blog/[slug]"],
     files: ["content/journal/index.ts"],
     tests: ["e2e/routes.spec.ts", "e2e/sections.spec.ts", "test/journal-content.test.ts"],
   },
   "legal-pages": {
-    implementation: "/privacy, /terms, /cookies",
-    routes: ["/privacy", "/terms", "/cookies"],
+    implementation: "/bg/poveritelnost, /bg/obshti-usloviya, /bg/biskvitki",
+    routes: ["/poveritelnost", "/obshti-usloviya", "/biskvitki"],
     files: ["src/content/legal.ts"],
     tests: ["e2e/routes.spec.ts"],
   },
   "phone-contact": {
-    implementation: "Phone links in header, footer and /contact",
-    routes: ["/contact"],
+    implementation: "Phone links in header, footer and /bg/kontakti",
+    routes: ["/kontakti"],
     files: ["src/config/site.ts"],
     tests: ["e2e/routes.spec.ts"],
   },
   "vending-zone": {
     implementation:
-      "/vending: our own copy, the vending blends in the catalog, and the category once the source lists products under it",
-    routes: ["/vending"],
+      "/bg/kafe-za-vending-mashini: our own copy, the vending blends in the catalog, and the category once the source lists products under it",
+    routes: ["/kafe-za-vending-mashini"],
     files: ["src/lib/catalog/vending.ts", "src/lib/catalog/business-sections.ts"],
     tests: ["e2e/sections.spec.ts", "test/vending.test.ts", "test/business-section.test.ts"],
   },
   consumables: {
     implementation:
-      "/consumables: what the section covers and an enquiry form; its category's products once the source lists any",
-    routes: ["/consumables"],
+      "/bg/konsumativi: what the section covers and an enquiry form; its category's products once the source lists any",
+    routes: ["/konsumativi"],
     files: ["src/lib/catalog/vending.ts", "content/vending.ts"],
     tests: ["e2e/sections.spec.ts", "test/business-section.test.ts"],
   },
   "product-code": {
     implementation:
       "Product code read by the sync's enrichment step, shown in the facts table and in the Product JSON-LD",
-    routes: ["/products/[slug]"],
+    routes: ["/[slug]"],
     files: ["src/components/catalog/facts-table.tsx", "src/lib/seo/json-ld.ts"],
     tests: ["test/product-facts.test.ts", "test/product-page-parts.test.ts"],
   },
   "product-characteristics": {
     implementation:
       "Composition, origin and roast as stated facts in the product page's facts table; the full list is stored",
-    routes: ["/products/[slug]"],
+    routes: ["/[slug]"],
     files: ["src/components/catalog/facts-table.tsx", "src/lib/catalog/product-facts.ts"],
     tests: ["test/product-facts.test.ts"],
   },
   "delivery-threshold": {
     implementation:
       "Announcement bar on every page, the delivery block beside the order form and /delivery, all from `siteConfig.commerce`",
-    routes: ["/delivery"],
+    routes: ["/dostavka-i-plashtane"],
     files: ["src/components/commerce/announcement-bar.tsx", "src/components/commerce/terms.ts"],
     tests: ["test/commerce.test.ts", "test/layout-frame.test.ts"],
   },
   "payment-methods": {
     implementation:
       "Payment methods in the footer, beside the order form and on /delivery, from `siteConfig.commerce`",
-    routes: ["/delivery"],
+    routes: ["/dostavka-i-plashtane"],
     files: ["src/components/layout/site-footer.tsx", "src/components/commerce/terms.ts"],
     tests: ["test/commerce.test.ts"],
   },
@@ -180,8 +180,8 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
  * as a function of the catalog, so it is claimed here and checked with the rest.
  */
 const SEARCH: Implementation = {
-  implementation: "/search (PostgreSQL full-text + trigram)",
-  routes: ["/search"],
+  implementation: "/bg/tarsene (PostgreSQL full-text + trigram)",
+  routes: ["/tarsene"],
   files: ["src/lib/catalog/search.ts"],
   tests: ["e2e/search.spec.ts"],
 };
@@ -199,48 +199,53 @@ interface NotApplicable {
 
 /** Page types the storefront must have an equivalent for. */
 const PAGE_TYPE_COVERAGE: Record<string, Implementation | NotApplicable> = {
-  home: { implementation: "/", routes: ["/"], tests: ["e2e/routes.spec.ts"] },
+  home: {
+    implementation: "/bg (the bare / resolves to it)",
+    routes: ["/"],
+    tests: ["e2e/routes.spec.ts"],
+  },
   category: {
     // The reference's `vending-zona` is one of its five category pages; ours is
     // a section of its own, because it also serves business buyers.
-    implementation: "/categories/[slug], and /vending for the reference's vending category",
-    routes: ["/categories/[slug]", "/vending"],
+    implementation:
+      "/bg/<category landing slug>, and /bg/kafe-za-vending-mashini for the reference's vending category",
+    routes: ["/[slug]", "/kafe-za-vending-mashini"],
     tests: ["e2e/routes.spec.ts", "e2e/sections.spec.ts"],
   },
   subcategory: {
-    implementation: "/categories/[slug]",
-    routes: ["/categories/[slug]"],
+    implementation: "/bg/<category landing slug>",
+    routes: ["/[slug]"],
     tests: ["e2e/routes.spec.ts"],
   },
   product: {
-    implementation: "/products/[slug]",
-    routes: ["/products/[slug]"],
+    implementation: "/bg/<product slug>",
+    routes: ["/[slug]"],
     tests: ["e2e/routes.spec.ts"],
   },
   brand: {
-    implementation: "/brands/[slug]",
-    routes: ["/brands/[slug]"],
+    implementation: "/bg/marki/<brand>",
+    routes: ["/marki/[slug]"],
     tests: ["e2e/routes.spec.ts"],
   },
-  brand_index: { implementation: "/brands", routes: ["/brands"], tests: ["e2e/routes.spec.ts"] },
+  brand_index: { implementation: "/bg/marki", routes: ["/marki"], tests: ["e2e/routes.spec.ts"] },
   promotion: {
-    implementation: "/promotions",
-    routes: ["/promotions"],
+    implementation: "/bg/promotsii",
+    routes: ["/promotsii"],
     tests: ["e2e/routes.spec.ts"],
   },
   search: SEARCH,
-  blog_index: { implementation: "/journal", routes: ["/journal"], tests: ["e2e/routes.spec.ts"] },
+  blog_index: { implementation: "/bg/blog", routes: ["/blog"], tests: ["e2e/routes.spec.ts"] },
   blog_article: {
-    implementation: "/journal/[slug]",
-    routes: ["/journal/[slug]"],
+    implementation: "/bg/blog/<slug>",
+    routes: ["/blog/[slug]"],
     tests: ["e2e/sections.spec.ts"],
   },
   legal: {
-    implementation: "/privacy, /terms, /cookies",
-    routes: ["/privacy", "/terms", "/cookies"],
+    implementation: "/bg/poveritelnost, /bg/obshti-usloviya, /bg/biskvitki",
+    routes: ["/poveritelnost", "/obshti-usloviya", "/biskvitki"],
     tests: ["e2e/routes.spec.ts"],
   },
-  contact: { implementation: "/contact", routes: ["/contact"], tests: ["e2e/routes.spec.ts"] },
+  contact: { implementation: "/bg/kontakti", routes: ["/kontakti"], tests: ["e2e/routes.spec.ts"] },
   // Not storefront pages.
   soft_404: { notApplicable: "the source's not-found shell; our 404 is a real 404" },
   asset: { notApplicable: "static assets" },
@@ -256,26 +261,26 @@ const PAGE_TYPE_COVERAGE: Record<string, Implementation | NotApplicable> = {
 const ADDITIONS: ReadonlyArray<{ readonly name: string } & Implementation> = [
   {
     name: "Delivery and payment terms",
-    implementation: "/delivery, from `siteConfig.commerce`",
-    routes: ["/delivery"],
+    implementation: "/bg/dostavka-i-plashtane, from `siteConfig.commerce`",
+    routes: ["/dostavka-i-plashtane"],
     tests: ["e2e/sections.spec.ts"],
   },
   {
     name: "Consumables for business buyers",
-    implementation: "/consumables",
-    routes: ["/consumables"],
+    implementation: "/bg/konsumativi",
+    routes: ["/konsumativi"],
     tests: ["e2e/sections.spec.ts"],
   },
   {
     name: "Journal articles",
-    implementation: "/journal/[slug], from `content/journal/`",
-    routes: ["/journal/[slug]"],
+    implementation: "/bg/blog/<slug>, from `content/journal/`",
+    routes: ["/blog/[slug]"],
     tests: ["e2e/sections.spec.ts"],
   },
   {
     name: "Recommendation wizard and machine finder",
-    implementation: "/wizard, /wizard/result, /wizard/machines",
-    routes: ["/wizard", "/wizard/result", "/wizard/machines"],
+    implementation: "/bg/izbor-na-kafe, /bg/izbor-na-kafe/rezultat, /bg/za-kafemashina",
+    routes: ["/izbor-na-kafe", "/izbor-na-kafe/rezultat", "/za-kafemashina"],
     tests: ["e2e/wizard.spec.ts", "test/recommend.test.ts"],
   },
 ];
@@ -312,15 +317,17 @@ const FORM_COVERAGE: Record<string, Implementation> = {
 /* --- Verifying a claim --------------------------------------------------- */
 
 /**
- * Where a route pattern lives. Pages sit in the `(site)` route group; the
- * unprefixed location is accepted too so a page moving back is not a failure
- * of this check. Anything else must be a claim about a file that exists.
+ * Where a route pattern lives. Shop pages sit under `(site)/[lang]/`, whose
+ * folder names are the canonical (Bulgarian) segments — so a pattern here is
+ * the public path minus its locale: `/marki/[slug]` is `/bg/marki/<brand>`.
+ * The app root is accepted too, for route handlers outside the locale tree.
+ * Anything else must be a claim about a file that exists.
  */
 function routeCandidates(route: string): string[] {
   const segments = route === "/" ? [] : route.replace(/^\/+/, "").split("/");
   const base = segments.join("/");
   const suffixes = ["page.tsx", "page.ts", "route.ts"];
-  const roots = ["src/app/(site)", "src/app"];
+  const roots = ["src/app/(site)/[lang]", "src/app"];
   return roots.flatMap((root) => suffixes.map((suffix) => path.posix.join(root, base, suffix)));
 }
 
@@ -599,7 +606,7 @@ function renderDocument(rows: readonly Row[]): string {
     "- **Removed products get a real page.** The reference has no concept of a retired product. Ours keeps the URL and explains that the item is gone, rather than 404ing a link that may be indexed.",
   );
   lines.push(
-    '- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/wizard` asks four questions and ranks the compatible catalog against the answers; `/wizard/machines` answers "which capsule fits my machine" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.',
+    '- **A recommendation wizard, and machine compatibility pages.** The reference has neither. `/bg/izbor-na-kafe` asks four questions and ranks the compatible catalog against the answers; `/bg/za-kafemashina` answers "which capsule fits my machine" from our own editorial data, including for machines we cannot supply. Neither is derived from the source, so neither can be checked against it — they are covered by `test/recommend.test.ts` and `e2e/wizard.spec.ts` instead.',
   );
   lines.push(
     "- **Price per cup.** Derived from pack size and price, shown alongside the pack price. The reference shows pack price only, which reverses the true ordering: 100 capsules at EUR 33.25 is cheaper per cup than 16 at EUR 5.60.",

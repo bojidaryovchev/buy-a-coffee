@@ -1,6 +1,8 @@
 import { ARTICLES } from "../../content/journal";
 import type { Article, Block, Inline, InlineContent } from "../../content/journal/blocks";
 import { siteConfig } from "@/config/site";
+import { DEFAULT_LOCALE, NUMBER_LOCALE, type Locale } from "@/i18n/config";
+import { routes, type RouteTarget } from "@/lib/routes";
 
 /**
  * The journal's registry and its small amount of logic.
@@ -20,7 +22,7 @@ export type { Article, Block, Inline, InlineContent };
 /** What a listing needs: everything about an article except its body. */
 export interface ArticleSummary {
   readonly slug: string;
-  /** Site-relative path, e.g. `/journal/some-slug`. */
+  /** Canonical path, e.g. `/blog/some-slug`; `href(locale, …)` gives the URL. */
   readonly href: `/${string}`;
   readonly title: string;
   readonly description: string;
@@ -32,9 +34,10 @@ export interface ArticleSummary {
   readonly lastModified: Date;
 }
 
-export const JOURNAL_PATH = "/journal" as const;
+/** Canonical; a link to it goes through `href(locale, JOURNAL_PATH)`. */
+export const JOURNAL_PATH = routes.journal;
 
-export const articlePath = (slug: string): `/${string}` => `${JOURNAL_PATH}/${slug}`;
+export const articlePath = (slug: string): `/${string}` => routes.article(slug);
 
 /**
  * A calendar date as a `Date`, pinned to UTC midnight.
@@ -47,16 +50,21 @@ export function articleDate(isoDate: string): Date {
   return new Date(`${isoDate}T00:00:00.000Z`);
 }
 
-const dateFormatter = new Intl.DateTimeFormat(siteConfig.locale, {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
+const dateFormatters = new Map<Locale, Intl.DateTimeFormat>();
 
-/** "9 октомври 2026 г." */
-export function formatArticleDate(isoDate: string): string {
-  return dateFormatter.format(articleDate(isoDate));
+/** "9 октомври 2026 г." in Bulgarian, "9 October 2026" in English. */
+export function formatArticleDate(isoDate: string, locale: Locale = DEFAULT_LOCALE): string {
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(NUMBER_LOCALE[locale], {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter.format(articleDate(isoDate));
 }
 
 function summarise(article: Article): ArticleSummary {
@@ -120,7 +128,7 @@ export function inlineRuns(blocks: readonly Block[]): readonly InlineContent[] {
 }
 
 /** Every internal link target in a body: inline links and action buttons. */
-export function collectLinks(blocks: readonly Block[]): readonly string[] {
+export function collectLinks(blocks: readonly Block[]): readonly RouteTarget[] {
   const inline = inlineRuns(blocks)
     .flat()
     .flatMap((node) => (typeof node !== "string" && node.type === "link" ? [node.href] : []));

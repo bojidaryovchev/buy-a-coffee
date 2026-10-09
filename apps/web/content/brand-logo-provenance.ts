@@ -3,7 +3,7 @@
  *
  * A logo is a brand's trademark. We show it for one reason: to identify the
  * genuine product the shop sells, on the pages where the brand itself is the
- * subject (DESIGN.md, "Brand logo"). So every file in `public/brands/` is the
+ * subject (DESIGN.md, "Brand logo"). So every file in `public/brand-logos/` is the
  * brand's own, taken unmodified from the brand's own website, and checked
  * against the mark printed on the packs in our product photographs. The
  * record of that check is kept here, because "may we show this?" is a

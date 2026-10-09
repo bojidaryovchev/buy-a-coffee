@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { productHref } from "@/lib/routes";
 import { notFound } from "next/navigation";
 import { getOrder, getSubscriberByEmail } from "@/lib/admin-queries";
 import { updateOrderStatus } from "@/lib/admin-actions";
@@ -62,7 +64,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Продукт</dt>
           <dd className="mt-1 text-ink-900">
             {order.productSlug ? (
-              <Link href={`/products/${order.productSlug}`} className="underline">
+              <Link
+                href={productHref(DEFAULT_LOCALE, { slug: order.productSlug })}
+                className="underline"
+              >
                 {order.productName ?? order.productSlug}
               </Link>
             ) : (

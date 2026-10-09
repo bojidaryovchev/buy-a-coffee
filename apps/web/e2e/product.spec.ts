@@ -1,12 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
+import { PRODUCT_LINK, expectProductPage } from "./support/paths";
 import { expectNoSourceReference, findSourceUrls } from "./support/source-guard";
 
 /** Product detail, images, related products and the quick-order flow. */
 
 async function openFirstProduct(page: Page) {
-  await page.goto("/categories/kapsuli");
-  await page.locator('a[href^="/products/"]').first().click();
-  await expect(page).toHaveURL(/\/products\//);
+  await page.goto("/bg/kafe-kapsuli");
+  await page.locator(PRODUCT_LINK).first().click();
+  await expectProductPage(page);
 }
 
 test("product detail shows name, price and availability", async ({ page }) => {
@@ -61,7 +62,7 @@ test("related products are shown and are different from this product", async ({ 
 
   const related = page.getByRole("heading", { name: /може да ви хареса и/i });
   if (await related.count()) {
-    const links = page.locator('a[href^="/products/"]');
+    const links = page.locator(PRODUCT_LINK);
     const hrefs = await links.evaluateAll((nodes) =>
       nodes.map((node) => (node as HTMLAnchorElement).href),
     );
@@ -87,7 +88,7 @@ test("the canonical URL points at our own domain", async ({ page }) => {
 });
 
 test("an unknown product slug returns 404", async ({ page }) => {
-  const response = await page.goto("/products/definitely-not-a-real-product-slug");
+  const response = await page.goto("/bg/definitely-not-a-real-product-slug");
   expect(response?.status()).toBe(404);
 });
 

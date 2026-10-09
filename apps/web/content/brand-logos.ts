@@ -18,7 +18,7 @@ import { brandLookupKey } from "../src/lib/catalog/brand-display";
  * reasons are in the provenance file), or the sync added it after this file
  * was written.
  *
- * The files live in `public/brands/` and are served from our own origin.
+ * The files live in `public/brand-logos/` and are served from our own origin.
  */
 
 export type BrandLogoGround = "light" | "dark";
@@ -49,21 +49,21 @@ export interface BrandLogo {
 
 export const brandLogos: Readonly<Record<string, BrandLogo>> = {
   amann: {
-    file: "/brands/amann.png",
+    file: "/brand-logos/amann.png",
     format: "png",
     width: 563,
     height: 267,
     ground: "light",
   },
   biancaffe: {
-    file: "/brands/biancaffe.png",
+    file: "/brand-logos/biancaffe.png",
     format: "png",
     width: 1204,
     height: 221,
     ground: "light",
   },
   bianchi: {
-    file: "/brands/bianchi.png",
+    file: "/brand-logos/bianchi.png",
     format: "png",
     width: 464,
     height: 276,
@@ -71,42 +71,42 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     minHeight: 24,
   },
   borbone: {
-    file: "/brands/borbone.png",
+    file: "/brand-logos/borbone.png",
     format: "png",
     width: 1377,
     height: 474,
     ground: "light",
   },
   caffitaly: {
-    file: "/brands/caffitaly.png",
+    file: "/brand-logos/caffitaly.png",
     format: "png",
     width: 563,
     height: 242,
     ground: "light",
   },
   elia: {
-    file: "/brands/elia.png",
+    file: "/brand-logos/elia.png",
     format: "png",
     width: 296,
     height: 276,
     ground: "light",
   },
   foodness: {
-    file: "/brands/foodness.svg",
+    file: "/brand-logos/foodness.svg",
     format: "svg",
     width: 140,
     height: 61.3,
     ground: "light",
   },
   illy: {
-    file: "/brands/illy.svg",
+    file: "/brand-logos/illy.svg",
     format: "svg",
     width: 50,
     height: 50,
     ground: "light",
   },
   "julius-meinl": {
-    file: "/brands/julius-meinl.svg",
+    file: "/brand-logos/julius-meinl.svg",
     format: "svg",
     width: 198.43,
     height: 198.42,
@@ -114,21 +114,21 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     minHeight: 20,
   },
   kimbo: {
-    file: "/brands/kimbo.svg",
+    file: "/brand-logos/kimbo.svg",
     format: "svg",
     width: 179,
     height: 56,
     ground: "light",
   },
   lavazza: {
-    file: "/brands/lavazza.svg",
+    file: "/brand-logos/lavazza.svg",
     format: "svg",
     width: 4096,
     height: 1032.57,
     ground: "light",
   },
   lollocafe: {
-    file: "/brands/lollocafe.png",
+    file: "/brand-logos/lollocafe.png",
     format: "png",
     width: 184,
     height: 80,
@@ -136,21 +136,21 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     minHeight: 20,
   },
   "rema-caffe": {
-    file: "/brands/rema-caffe.png",
+    file: "/brand-logos/rema-caffe.png",
     format: "png",
     width: 240,
     height: 63,
     ground: "dark",
   },
   tezzoro: {
-    file: "/brands/tezzoro.png",
+    file: "/brand-logos/tezzoro.png",
     format: "png",
     width: 1441,
     height: 405,
     ground: "light",
   },
   vandino: {
-    file: "/brands/vandino.png",
+    file: "/brand-logos/vandino.png",
     format: "png",
     width: 244,
     height: 150,
@@ -158,7 +158,7 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     minHeight: 24,
   },
   vergnano: {
-    file: "/brands/vergnano.svg",
+    file: "/brand-logos/vergnano.svg",
     format: "svg",
     width: 90.367,
     height: 90.361,

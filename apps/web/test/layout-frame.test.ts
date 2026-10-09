@@ -14,6 +14,7 @@ const catalog = vi.hoisted(() => ({
   tree: [] as unknown[],
   products: [] as { slug: string; updatedAt: Date | null }[],
   brands: [] as { slug: string; name: string }[],
+  consumablesListed: false,
 }));
 
 vi.mock("@/lib/db", () => ({ db: {} }));
@@ -25,8 +26,12 @@ vi.mock("@/lib/catalog/queries", () => ({
   getProductBySlug: async () => null,
   listProducts: async () => ({ items: [] }),
 }));
+vi.mock("@/lib/catalog/vending", () => ({
+  sectionListsProducts: async () => catalog.consumablesListed,
+}));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/categories/nespresso",
+  usePathname: () => "/bg/nespresso-kapsuli",
+  useParams: () => ({ lang: "bg" }),
   useRouter: () => ({ push: () => {}, prefetch: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -54,6 +59,11 @@ import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import type { CategoryView } from "@/lib/catalog/types";
 import { listArticles } from "@/lib/journal";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
+import { bg as dict } from "@/i18n/dictionaries/bg";
+import { href } from "@/lib/routes";
+
+/** A canonical path as a Bulgarian URL, the way every link is built. */
+const bgPath = (path: string) => href("bg", path);
 
 const html = (element: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(element);
 
@@ -80,10 +90,15 @@ function category(
   productCount: number,
   children: CategoryView[] = [],
   parentSlug: string | null = null,
+  /* The source's key. For most categories it is our slug; the capsule parent
+     is the one the source renamed (`kapsuli` became `kafe-kapsuli`). */
+  sourceKey: string = slug,
 ): CategoryView {
   return {
     id: slug,
     slug,
+    sourceKey,
+    previousSourceKeys: [],
     name: `Име ${slug}`,
     description: null,
     parentSlug,
@@ -99,12 +114,18 @@ function category(
  */
 const TREE: CategoryView[] = [
   category("kafe-dozi", 41),
-  category("kapsuli", 72, [
-    category("nespresso", 36),
-    category("dolce-gusto", 33),
-    category("a-modo-mio", 3),
-    category("caffitaly", 0),
-  ]),
+  category(
+    "kapsuli",
+    72,
+    [
+      category("nespresso", 36),
+      category("dolce-gusto", 33),
+      category("a-modo-mio", 3),
+      category("caffitaly", 0),
+    ],
+    null,
+    "kafe-kapsuli",
+  ),
   category("kafe-na-zyrna", 58),
   category("vending-zona", 5),
   category("konsumativi", 12),
@@ -112,12 +133,13 @@ const TREE: CategoryView[] = [
 ];
 
 const navigation = (tree: CategoryView[] = TREE) =>
-  buildNavigation(tree, { sections: BUSINESS_SECTIONS });
+  buildNavigation(tree, { locale: "bg", labels: dict.nav, sections: BUSINESS_SECTIONS });
 
 beforeEach(() => {
   catalog.tree = TREE;
   catalog.products = [{ slug: "kapsuli-a", updatedAt: new Date("2026-05-01T00:00:00.000Z") }];
   catalog.brands = [{ slug: "bianchi", name: "Bianchi" }];
+  catalog.consumablesListed = false;
 });
 
 describe("the navigation built from the category tree", () => {
@@ -130,7 +152,7 @@ describe("the navigation built from the category tree", () => {
     ]);
     expect(nav.capsules?.systems[0]).toMatchObject({
       name: "Nespresso Original",
-      href: "/categories/nespresso",
+      href: "/bg/nespresso-kapsuli",
       count: 36,
     });
   });
@@ -142,19 +164,21 @@ describe("the navigation built from the category tree", () => {
   });
 
   it("reads the capsules parent from the tree instead of naming it", () => {
-    expect(navigation().capsules?.href).toBe("/categories/kapsuli");
+    // By its landing slug, found through the source key, not its stored `kapsuli`.
+    expect(navigation().capsules?.href).toBe("/bg/kafe-kapsuli");
 
+    // A parent the slug table does not know is linked at its stored slug.
     const renamed = [category("kapsuli-za-kafe", 36, [category("nespresso", 36)])];
-    expect(navigation(renamed).capsules?.href).toBe("/categories/kapsuli-za-kafe");
+    expect(navigation(renamed).capsules?.href).toBe("/bg/kapsuli-za-kafe");
 
     // Systems at the top level: there is no parent listing to link.
-    expect(navigation([category("nespresso", 36)]).capsules?.href).toBe("/categories");
+    expect(navigation([category("nespresso", 36)]).capsules?.href).toBe("/bg/kategorii");
   });
 
   it("binds pods and beans through BREWING_SYSTEMS, and drops them when empty", () => {
     const nav = navigation();
-    expect(nav.pods).toMatchObject({ id: "ese-pod", href: "/categories/kafe-dozi", count: 41 });
-    expect(nav.beans).toMatchObject({ id: "beans", href: "/categories/kafe-na-zyrna" });
+    expect(nav.pods).toMatchObject({ id: "ese-pod", href: "/bg/kafe-dozi", count: 41 });
+    expect(nav.beans).toMatchObject({ id: "beans", href: "/bg/kafe-na-zarna" });
 
     const none = navigation([category("kafe-dozi", 0)]);
     expect(none.pods).toBeNull();
@@ -164,36 +188,38 @@ describe("the navigation built from the category tree", () => {
 
   it("links the business sections by their pages and never as categories", () => {
     const nav = navigation();
-    expect(nav.vending.href).toBe(BUSINESS_SECTIONS.vending.path);
-    expect(nav.consumables.href).toBe(BUSINESS_SECTIONS.consumables.path);
+    expect(nav.vending.href).toBe("/bg/kafe-za-vending-mashini");
+    expect(nav.consumables.href).toBe("/bg/konsumativi");
 
     const hrefs = nav.otherCategories.map((entry) => entry.href);
-    for (const section of Object.values(BUSINESS_SECTIONS)) {
-      for (const key of section.categoryKeys) {
-        expect(hrefs).not.toContain(`/categories/${key}`);
-      }
-    }
-    // A category nobody planned for is still reachable.
-    expect(hrefs).toEqual(["/categories/aksesoari"]);
+    // A category nobody planned for is still reachable, at its stored slug.
+    expect(hrefs).toEqual(["/bg/aksesoari"]);
   });
 
   it("knows a section from its neighbour", () => {
-    expect(isCurrentSection("/wizard/machines/krups", "/wizard/machines")).toBe(true);
-    expect(isCurrentSection("/wizard/machines", "/wizard", ["/wizard/machines"])).toBe(false);
-    expect(isCurrentSection("/wizard/result", "/wizard", ["/wizard/machines"])).toBe(true);
-    expect(isCurrentSection("/brandsmith", "/brands")).toBe(false);
+    expect(isCurrentSection("/bg/za-kafemashina/krups", "/bg/za-kafemashina")).toBe(true);
+    expect(isCurrentSection("/bg/izbor-na-kafe/rezultat", "/bg/izbor-na-kafe")).toBe(true);
+    expect(
+      isCurrentSection("/bg/izbor-na-kafe/rezultat", "/bg/izbor-na-kafe", [
+        "/bg/izbor-na-kafe/rezultat",
+      ]),
+    ).toBe(false);
+    expect(isCurrentSection("/bg/markisti", "/bg/marki")).toBe(false);
+    // The locale's home is above every page and counts only as itself.
+    expect(isCurrentSection("/bg/marki", "/bg")).toBe(false);
+    expect(isCurrentSection("/bg", "/bg")).toBe(true);
   });
 });
 
 describe("the header", () => {
-  const markup = () => html(createElement(SiteHeader, { navigation: navigation() }));
+  const markup = () => html(createElement(SiteHeader, { navigation: navigation(), dict }));
   const rail = () => markup().match(/<nav aria-label="Основна навигация".*?<\/nav>/s)?.[0] ?? "";
 
   it("puts the machine finder and the wizard in the rail", () => {
-    expect(rail()).toContain('href="/wizard/machines"');
+    expect(rail()).toContain('href="/bg/za-kafemashina"');
     expect(rail()).toContain("Намери по машина");
-    expect(rail()).toContain('href="/wizard"');
-    expect(rail()).toContain('href="/vending"');
+    expect(rail()).toContain('href="/bg/izbor-na-kafe"');
+    expect(rail()).toContain('href="/bg/kafe-za-vending-mashini"');
   });
 
   it("names every listed system beside its colour, and leaves the empty one out", () => {
@@ -206,22 +232,24 @@ describe("the header", () => {
   });
 
   it("never lists a business-section category", () => {
-    expect(markup()).not.toContain("/categories/vending-zona");
-    expect(markup()).not.toContain("/categories/konsumativi");
+    expect(markup()).not.toContain("/bg/vending-zona");
+    expect(markup()).not.toContain("konsumativi-kategoriya");
   });
 
   it("puts systems ahead of brands", () => {
-    expect(rail().indexOf("/categories/nespresso")).toBeLessThan(rail().indexOf('href="/brands"'));
-    expect(rail().indexOf("/wizard/machines")).toBeLessThan(rail().indexOf('href="/brands"'));
+    expect(rail().indexOf("/bg/nespresso-kapsuli")).toBeLessThan(
+      rail().indexOf('href="/bg/marki"'),
+    );
+    expect(rail().indexOf("/bg/za-kafemashina")).toBeLessThan(rail().indexOf('href="/bg/marki"'));
   });
 
   it("marks the current section in text, not only in colour", () => {
-    // The mocked path is /categories/nespresso: the system is under "Капсули".
-    expect(rail()).toMatch(/aria-current="true"[^>]*href="\/categories\/kapsuli"/);
+    // The mocked path is the Nespresso shelf: the system is under "Капсули".
+    expect(rail()).toMatch(/aria-current="true"[^>]*href="\/bg\/kafe-kapsuli"/);
   });
 
   it("makes the menu trigger a real link, so it works without JavaScript", () => {
-    expect(markup()).toMatch(/<a[^>]*href="\/categories"[^>]*aria-label="Меню"/);
+    expect(markup()).toMatch(/<a[^>]*href="\/bg\/kategorii"[^>]*aria-label="Меню"/);
     // The drawer itself is not in the server markup.
     expect(markup()).not.toContain('role="dialog"');
   });
@@ -231,28 +259,45 @@ describe("the header", () => {
     expect(markup()).not.toContain("bg-pine-900");
   });
 
+  it("draws no language switcher while one locale ships", () => {
+    expect(markup()).not.toContain("hreflang=");
+    expect(markup()).not.toContain('aria-label="Език"');
+  });
+
   it("prints the phone number itself only when there is no bar to carry it", () => {
     expect(markup()).not.toContain(siteConfig.contact.phone);
     expect(
-      html(createElement(SiteHeader, { navigation: navigation(), showPhone: true })),
+      html(createElement(SiteHeader, { navigation: navigation(), dict, showPhone: true })),
     ).toContain(siteConfig.contact.phone);
   });
 });
 
 describe("the footer", () => {
-  const markup = () => html(createElement(SiteFooter, { navigation: navigation() }));
+  const markup = () => html(createElement(SiteFooter, { navigation: navigation(), dict }));
 
   it("reaches every new section", () => {
-    for (const href of ["/vending", "/consumables", "/delivery", "/journal", "/wizard/machines"]) {
-      expect(markup()).toContain(`href="${href}"`);
+    for (const path of [
+      "/bg/kafe-za-vending-mashini",
+      "/bg/konsumativi",
+      "/bg/dostavka-i-plashtane",
+      "/bg/blog",
+      "/bg/za-kafemashina",
+      "/bg/obshti-usloviya",
+      "/bg/poveritelnost",
+      "/bg/biskvitki",
+    ]) {
+      expect(markup()).toContain(`href="${path}"`);
     }
   });
 
+  it("draws no language switcher while one locale ships", () => {
+    expect(markup()).not.toContain("hreflang=");
+  });
+
   it("lists systems, not the business-section categories", () => {
-    expect(markup()).toContain('href="/categories/nespresso"');
-    expect(markup()).not.toContain("/categories/vending-zona");
-    expect(markup()).not.toContain("/categories/konsumativi");
-    expect(markup()).not.toContain("/categories/caffitaly");
+    expect(markup()).toContain('href="/bg/nespresso-kapsuli"');
+    expect(markup()).not.toContain("/bg/vending-zona");
+    expect(markup()).not.toContain("caffitaly-kapsuli");
   });
 
   it("uses no clay: nothing here is a reduced price", () => {
@@ -298,10 +343,23 @@ describe("the announcement bar", () => {
 describe("the sitemap", () => {
   const urls = async () => (await sitemap()).map((entry) => entry.url);
 
-  it("lists delivery, both business sections and the journal", async () => {
+  it("lists delivery, the vending section and the journal", async () => {
     const listed = await urls();
-    for (const path of ["/delivery", "/vending", "/consumables", "/journal"]) {
+    for (const path of ["/bg/dostavka-i-plashtane", "/bg/kafe-za-vending-mashini", "/bg/blog"]) {
       expect(listed).toContain(absoluteUrl(path));
+    }
+  });
+
+  it("leaves consumables out while it lists nothing, and in once it does", async () => {
+    expect(await urls()).not.toContain(absoluteUrl("/bg/konsumativi"));
+    catalog.consumablesListed = true;
+    expect(await urls()).toContain(absoluteUrl("/bg/konsumativi"));
+  });
+
+  it("gives every entry its hreflang set, x-default included", async () => {
+    for (const entry of await sitemap()) {
+      expect(entry.url.startsWith(absoluteUrl("/bg"))).toBe(true);
+      expect(entry.alternates?.languages).toEqual({ bg: entry.url, "x-default": entry.url });
     }
   });
 
@@ -310,7 +368,9 @@ describe("the sitemap", () => {
     const articles = listArticles();
     expect(articles.length).toBeGreaterThan(0);
     for (const article of articles) {
-      const entry = entries.find((candidate) => candidate.url === absoluteUrl(article.href));
+      const entry = entries.find(
+        (candidate) => candidate.url === absoluteUrl(bgPath(article.href)),
+      );
       expect(entry?.lastModified).toEqual(article.lastModified);
     }
   });
@@ -318,10 +378,10 @@ describe("the sitemap", () => {
   it("dates the journal by its newest article and a product by its last change", async () => {
     const entries = await sitemap();
     const newest = Math.max(...listArticles().map((article) => article.lastModified.getTime()));
-    const journal = entries.find((entry) => entry.url === absoluteUrl("/journal"));
+    const journal = entries.find((entry) => entry.url === absoluteUrl("/bg/blog"));
     expect((journal?.lastModified as Date).getTime()).toBe(newest);
 
-    const product = entries.find((entry) => entry.url === absoluteUrl("/products/kapsuli-a"));
+    const product = entries.find((entry) => entry.url === absoluteUrl("/bg/kapsuli-a"));
     expect(product?.lastModified).toEqual(new Date("2026-05-01T00:00:00.000Z"));
   });
 
@@ -334,25 +394,27 @@ describe("the sitemap", () => {
 
   it("advertises a business section once, at its own page", async () => {
     const listed = await urls();
-    expect(listed).not.toContain(absoluteUrl("/categories/vending-zona"));
-    expect(listed).not.toContain(absoluteUrl("/categories/konsumativi"));
-    expect(listed).toContain(absoluteUrl("/categories/nespresso"));
+    expect(listed).not.toContain(absoluteUrl("/bg/vending-zona"));
+    expect(listed.some((url) => url.includes("konsumativi-kategoriya"))).toBe(false);
+    expect(listed).toContain(absoluteUrl("/bg/nespresso-kapsuli"));
   });
 
   it("is still the live catalog: no product, no URL", async () => {
     catalog.products = [];
-    expect((await urls()).some((url) => url.includes("/products/"))).toBe(false);
+    expect(await urls()).not.toContain(absoluteUrl("/bg/kapsuli-a"));
   });
 });
 
 describe("llms.txt", () => {
   const input = (commerce: CommerceConfig): LlmsInput => ({
     summary: { products: 3, brands: 1, categories: 2 },
-    categories: [{ name: "Кафе капсули", href: "/categories/kapsuli" }],
-    brands: [{ name: "Bianchi", href: "/brands/bianchi" }],
+    categories: [{ name: "Кафе капсули", href: "/bg/kafe-kapsuli" }],
+    brands: [{ name: "Bianchi", href: "/bg/marki/bianchi" }],
     machineBrandCount: 4,
-    sections: [{ name: "Вендинг зона", href: "/vending", description: "За оператори." }],
-    articles: [{ name: "Статия", href: "/journal/statiya", description: "За какво е." }],
+    sections: [
+      { name: "Вендинг зона", href: "/bg/kafe-za-vending-mashini", description: "За оператори." },
+    ],
+    articles: [{ name: "Статия", href: "/bg/blog/statiya", description: "За какво е." }],
     commerce,
     company: null,
   });
@@ -386,9 +448,12 @@ describe("llms.txt", () => {
 
   it("lists the business sections and the journal, and drops an empty journal", () => {
     const text = llmsText(input(UNSET));
-    expect(text).toContain(`- [Вендинг зона](${absoluteUrl("/vending")}): За оператори.`);
-    expect(text).toContain(`- [Статия](${absoluteUrl("/journal/statiya")}): За какво е.`);
-    expect(text).toContain(`(${absoluteUrl("/delivery")})`);
+    expect(text).toContain(
+      `- [Вендинг зона](${absoluteUrl("/bg/kafe-za-vending-mashini")}): За оператори.`,
+    );
+    expect(text).toContain(`- [Статия](${absoluteUrl("/bg/blog/statiya")}): За какво е.`);
+    expect(text).toContain(`(${absoluteUrl("/bg/dostavka-i-plashtane")})`);
+    expect(text).toContain(`(${absoluteUrl("/bg/za-kafemashina")})`);
 
     expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Дневник");
   });
@@ -401,13 +466,14 @@ describe("llms.txt", () => {
 
       process.env.VERCEL_ENV = "production";
       const text = await (await llmsRoute()).text();
-      expect(text).toContain(`(${absoluteUrl("/vending")})`);
-      expect(text).toContain(`(${absoluteUrl("/consumables")})`);
+      expect(text).toContain(`(${absoluteUrl("/bg/kafe-za-vending-mashini")})`);
+      expect(text).toContain(`(${absoluteUrl("/bg/konsumativi")})`);
       for (const article of listArticles()) {
-        expect(text).toContain(`(${absoluteUrl(article.href)})`);
+        expect(text).toContain(`(${absoluteUrl(bgPath(article.href))})`);
       }
       // The category behind a section is named by the section, not twice.
-      expect(text).not.toContain("/categories/vending-zona");
+      expect(text).not.toContain("/bg/vending-zona");
+      expect(text).toContain(`(${absoluteUrl("/bg/kafe-kapsuli")})`);
     } finally {
       if (previous === undefined) delete process.env.VERCEL_ENV;
       else process.env.VERCEL_ENV = previous;

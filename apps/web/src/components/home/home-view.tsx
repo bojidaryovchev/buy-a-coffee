@@ -3,6 +3,7 @@ import type { HeroShelfItem } from "@/lib/catalog/home-shelf";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
 import type { ArticleSummary } from "@/lib/journal";
 import { HomeHero } from "./hero";
+import type { Locale } from "@/i18n/config";
 import {
   DeliveryPromise,
   HomeBrands,
@@ -27,6 +28,8 @@ import {
  * with nothing behind it is gone, not empty.
  */
 export interface HomeData {
+  /** The locale the page is rendered in; every link inside follows it. */
+  readonly locale: Locale;
   /** Active products in the catalog. */
   readonly productCount: number;
   /** Brands, each with its own product count; those with none are ignored. */
@@ -44,6 +47,7 @@ export interface HomeData {
 
 /** The sections, in the order DESIGN.md gives them ("Home page"). */
 export function HomeView({
+  locale,
   productCount,
   brands,
   systemCounts,
@@ -59,22 +63,23 @@ export function HomeView({
   return (
     <>
       <HomeHero
+        locale={locale}
         brandCount={stockedBrands.length}
         productCount={productCount}
         shelf={shelf}
         systemsHref={hasSystems ? `#${SYSTEMS_ANCHOR}` : null}
       />
       <DeliveryPromise commerce={commerce} />
-      <ShopBySystem counts={systemCounts} />
+      <ShopBySystem counts={systemCounts} locale={locale} />
       {/* The wizard asks which system first; with none stocked it has no
           first question to ask. */}
-      {hasSystems && <WizardEntry />}
-      <HomePromotions products={promotions} />
-      <NewArrivals products={newArrivals} />
+      {hasSystems && <WizardEntry locale={locale} />}
+      <HomePromotions products={promotions} locale={locale} />
+      <NewArrivals products={newArrivals} locale={locale} />
       <HowOrderingWorks />
-      <HomeBrands brands={stockedBrands} />
-      <JournalTeaser articles={articles} />
-      <VendingBand />
+      <HomeBrands brands={stockedBrands} locale={locale} />
+      <JournalTeaser articles={articles} locale={locale} />
+      <VendingBand locale={locale} />
     </>
   );
 }

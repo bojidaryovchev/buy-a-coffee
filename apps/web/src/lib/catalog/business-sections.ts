@@ -1,7 +1,10 @@
+import { routes } from "@/lib/routes";
+
 /**
- * The two business sections, `/vending` and `/consumables`.
+ * The two business sections, `/bg/kafe-za-vending-mashini` and
+ * `/bg/konsumativi`.
  *
- * Constants only, and no imports: the navigation, the sitemap, the home page
+ * Constants only, and no database: the navigation, the sitemap, the home page
  * and their tests all need to know which sections exist, and none of them
  * should have to open a database to find out. The reads are in `vending.ts`.
  */
@@ -10,6 +13,7 @@ export type BusinessSectionId = "vending" | "consumables";
 
 export interface BusinessSection {
   readonly id: BusinessSectionId;
+  /** Canonical, from `lib/routes.ts`; `href()` gives it a locale. */
   readonly path: string;
   /**
    * The category that backs the section, by source key.
@@ -23,6 +27,6 @@ export interface BusinessSection {
 }
 
 export const BUSINESS_SECTIONS: Readonly<Record<BusinessSectionId, BusinessSection>> = {
-  vending: { id: "vending", path: "/vending", categoryKeys: ["vending-zona"] },
-  consumables: { id: "consumables", path: "/consumables", categoryKeys: ["konsumativi"] },
+  vending: { id: "vending", path: routes.vending, categoryKeys: ["vending-zona"] },
+  consumables: { id: "consumables", path: routes.consumables, categoryKeys: ["konsumativi"] },
 };

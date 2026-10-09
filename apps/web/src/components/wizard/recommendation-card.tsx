@@ -6,6 +6,8 @@ import { ProductImage } from "@/components/catalog/product-image";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import { toPerServingView } from "@/lib/catalog/format";
 import type { ScoredRecommendation } from "@/lib/recommend/score";
+import type { Locale } from "@/i18n/config";
+import { productHref } from "@/lib/routes";
 
 /**
  * A recommendation, with its reasons.
@@ -25,11 +27,13 @@ import type { ScoredRecommendation } from "@/lib/recommend/score";
  * the same white, unpadded well, the same system badge, the same sans name.
  */
 export function RecommendationCard({
+  locale,
   entry,
   rank,
   emphasis = false,
   headingLevel: Heading = "h3",
 }: {
+  locale: Locale;
   entry: ScoredRecommendation;
   /** 1-based position, shown so the ordering is legible rather than implied. */
   rank?: number;
@@ -40,7 +44,9 @@ export function RecommendationCard({
   const product = entry.product;
   const perServing = toPerServingView(product.pricePerServing, product.price?.currency, {
     estimated: product.servingsEstimated,
+    locale,
   });
+  const productPath = productHref(locale, product);
 
   return (
     <article
@@ -90,7 +96,7 @@ export function RecommendationCard({
         )}
 
         <Heading className="mt-1.5 font-sans text-base font-medium tracking-normal text-wrap text-ink-900">
-          <Link href={`/products/${product.slug}`} className="underline-offset-2 hover:underline">
+          <Link href={productPath} className="underline-offset-2 hover:underline">
             {product.name}
           </Link>
         </Heading>
@@ -127,11 +133,7 @@ export function RecommendationCard({
         </div>
 
         <div className="mt-3">
-          <ButtonLink
-            href={`/products/${product.slug}`}
-            size="sm"
-            variant={emphasis ? "primary" : "secondary"}
-          >
+          <ButtonLink href={productPath} size="sm" variant={emphasis ? "primary" : "secondary"}>
             Вижте и поръчайте
           </ButtonLink>
         </div>

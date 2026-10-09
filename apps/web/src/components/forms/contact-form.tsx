@@ -14,6 +14,8 @@ import {
   LABEL_CLASS,
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
+import { useLocale } from "@/i18n/use-locale";
+import { href, routes } from "@/lib/routes";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -74,6 +76,7 @@ export function ContactForm({
   defaultSubject?: string;
 } = {}) {
   const [state, formAction] = useActionState(submitContactMessage, IDLE_FORM_STATE);
+  const locale = useLocale();
   const nameId = useId();
   const emailId = useId();
   const phoneId = useId();
@@ -196,7 +199,7 @@ export function ContactForm({
 
       <p className={HELPER_CLASS}>
         Използваме данните ви само за да отговорим на това съобщение. Вижте нашата{" "}
-        <a href="/privacy" className="underline underline-offset-2">
+        <a href={href(locale, routes.privacy)} className="underline underline-offset-2">
           политика за поверителност
         </a>
         .

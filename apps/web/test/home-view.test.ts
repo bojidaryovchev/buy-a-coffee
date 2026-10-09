@@ -30,6 +30,7 @@ import type { BrandView, ProductCardView } from "@/lib/catalog/types";
 import type { ArticleSummary } from "@/lib/journal";
 import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
+import { categoryHref, systemCategory } from "@/lib/routes";
 
 /**
  * The home page rendered from fixtures: which sections exist, in what order,
@@ -88,7 +89,7 @@ function shelfItem(index: number, systemId: BrewingSystemId = "beans"): HeroShel
 function article(index: number): ArticleSummary {
   return {
     slug: `statia-${index}`,
-    href: `/journal/statia-${index}`,
+    href: `/blog/statia-${index}`,
     title: `Статия номер ${index}`,
     description: `Кратко описание ${index}.`,
     publishedAt: "2026-10-09",
@@ -122,6 +123,7 @@ const BARE_COMMERCE: CommerceConfig = {
 
 /** A catalog with something in every module. */
 const FULL: HomeData = {
+  locale: "bg",
   productCount: 187,
   brands: range(20, (index) => brand(index, 20 + index)),
   systemCounts: {
@@ -142,6 +144,7 @@ const FULL: HomeData = {
 
 /** A different catalog: every number differs from `FULL`. */
 const SMALL: HomeData = {
+  locale: "bg",
   productCount: 12,
   brands: [brand(1, 5), brand(2, 6), brand(3, 0)],
   systemCounts: { "dolce-gusto": 4, beans: 8 },
@@ -154,6 +157,7 @@ const SMALL: HomeData = {
 
 /** Nothing at all: a database before its first synchronisation. */
 const EMPTY: HomeData = {
+  locale: "bg",
   productCount: 0,
   brands: [],
   systemCounts: {},
@@ -255,7 +259,7 @@ describe("home page: order and outline", () => {
     expect(bands).toHaveLength(2);
     for (const band of bands) expect(band).toContain("on-pine");
     // The finder tile is pine inside a paper section, so its own item carries it.
-    expect(markup).toMatch(/<li class="on-pine"><a[^>]*href="\/wizard\/machines"/);
+    expect(markup).toMatch(/<li class="on-pine"><a[^>]*href="\/bg\/za-kafemashina"/);
   });
 });
 
@@ -265,14 +269,14 @@ describe("home page: the hero", () => {
   it("offers the wizard, the tiles and the machine finder, in that order", () => {
     const hero = markup.slice(0, markup.indexOf("</section>"));
     const hrefs = [...hero.matchAll(/<a\b[^>]*href="([^"]+)"/g)].map((match) => match[1]);
-    expect(hrefs.slice(0, 3)).toEqual(["/wizard", "#systems", "/wizard/machines"]);
+    expect(hrefs.slice(0, 3)).toEqual(["/bg/izbor-na-kafe", "#systems", "/bg/za-kafemashina"]);
     expect(markup).toContain('id="systems"');
   });
 
   it("has one gold control on the whole page: the hero's", () => {
     const controls = markup.match(/<a\b[^>]*\bbg-gold-500\b[^>]*>/g) ?? [];
     expect(controls).toHaveLength(1);
-    expect(controls[0]).toContain('href="/wizard"');
+    expect(controls[0]).toContain('href="/bg/izbor-na-kafe"');
     expect(controls[0]).toContain("text-ink-900");
     expect(controls[0]).toContain("hover:bg-gold-300");
   });
@@ -281,7 +285,7 @@ describe("home page: the hero", () => {
     const images = shelfImages(markup);
     expect(images).toHaveLength(6);
     for (const [index, item] of FULL.shelf.entries()) {
-      expect(markup).toContain(`href="/products/${item.slug}"`);
+      expect(markup).toContain(`href="/bg/${item.slug}"`);
       expect(images[index]).toContain(`alt="${item.name}"`);
       expect(images[index]).toContain(`sizes="${HERO_SHELF_SIZES}"`);
     }
@@ -359,13 +363,13 @@ describe("home page: shop by system", () => {
       // Colour and name together, and a link to the system's own listing.
       expect(tiles).toMatch(
         new RegExp(
-          `<a[^>]*href="/categories/${system.categorySlugs[0]}"[^>]*data-system="${system.id}"|` +
-            `<a[^>]*data-system="${system.id}"[^>]*href="/categories/${system.categorySlugs[0]}"`,
+          `<a[^>]*href="${categoryHref("bg", systemCategory(system))}"[^>]*data-system="${system.id}"|` +
+            `<a[^>]*data-system="${system.id}"[^>]*href="${categoryHref("bg", systemCategory(system))}"`,
         ),
       );
       expect(text(tiles)).toContain(`${FULL.systemCounts[system.id]} продукта`);
     }
-    expect(tiles).toContain('href="/wizard/machines"');
+    expect(tiles).toContain('href="/bg/za-kafemashina"');
     expect(text(tiles)).toContain("Намери по машина");
   });
 
@@ -373,7 +377,7 @@ describe("home page: shop by system", () => {
     const markup = render({ ...FULL, systemCounts: { ...FULL.systemCounts, "a-modo-mio": 0 } });
     expect(markup).not.toContain('data-system="a-modo-mio"');
     expect(markup).toContain('data-system="caffitaly"');
-    expect(markup).toContain('href="/wizard/machines"');
+    expect(markup).toContain('href="/bg/za-kafemashina"');
   });
 
   it("drops the section, the wizard entry and the hero's link to it with no system at all", () => {
@@ -383,7 +387,7 @@ describe("home page: shop by system", () => {
     expect(markup).not.toContain('id="systems"');
     expect(markup).not.toContain('href="#systems"');
     // The finder is still one tap away, from the hero.
-    expect(markup).toContain('href="/wizard/machines"');
+    expect(markup).toContain('href="/bg/za-kafemashina"');
   });
 });
 
@@ -391,7 +395,7 @@ describe("home page: the wizard entry", () => {
   it("is its own block, with the wizard's own step labels", () => {
     const markup = render(FULL);
     const block = markup.slice(markup.indexOf(TITLES.wizard), markup.indexOf(TITLES.promotions));
-    expect(block).toContain('href="/wizard"');
+    expect(block).toContain('href="/bg/izbor-na-kafe"');
     for (const step of STEP_SEQUENCE) expect(block).toContain(STEP_LABELS[step]);
     // The page's gold is the hero's; this block's action is the primary button.
     expect(block).not.toContain("bg-gold-500 px");
@@ -402,7 +406,7 @@ describe("home page: the wizard entry", () => {
 describe("home page: modules that come and go", () => {
   it("shows promotions only for a genuine reduction", () => {
     expect(h2s(render(FULL))).toContain(TITLES.promotions);
-    expect(render(FULL)).toContain('href="/promotions"');
+    expect(render(FULL)).toContain('href="/bg/promotsii"');
 
     const none = render({ ...FULL, promotions: [] });
     expect(h2s(none)).not.toContain(TITLES.promotions);
@@ -421,7 +425,7 @@ describe("home page: modules that come and go", () => {
   it("shows new arrivals when there are any, with no priority image", () => {
     const markup = render(FULL);
     const section = markup.slice(markup.indexOf(TITLES.arrivals), markup.indexOf(TITLES.ordering));
-    for (const item of FULL.newArrivals) expect(section).toContain(`/products/${item.slug}`);
+    for (const item of FULL.newArrivals) expect(section).toContain(`/bg/${item.slug}"`);
     expect(section).not.toContain('data-preload="true"');
     // Eight on a desktop, four on a phone.
     expect(markup).toContain("max-md:[&amp;&gt;ul&gt;li:nth-child(n+5)]:hidden");
@@ -432,7 +436,7 @@ describe("home page: modules that come and go", () => {
   it("shows brands as tiles with their counts: the name where there is no logo", () => {
     const markup = render(SMALL);
     const section = markup.slice(markup.indexOf(TITLES.brands));
-    expect(section).toContain('href="/brands/marka-1"');
+    expect(section).toContain('href="/bg/marki/marka-1"');
     expect(text(section)).toContain("Марка 2 6 продукта");
     // A brand without products is not a route into anything.
     expect(section).not.toContain("marka-3");
@@ -446,7 +450,7 @@ describe("home page: modules that come and go", () => {
     const section = markup.slice(markup.indexOf(TITLES.brands));
     const tiles = section.slice(0, section.indexOf("</section>"));
     expect(tiles).toMatch(
-      /<a [^>]*href="\/brands\/lavazza"[^>]*>\s*<span[^>]*><img src="\/brands\/lavazza.svg" alt="Lavazza"/,
+      /<a [^>]*href="\/bg\/marki\/lavazza"[^>]*>\s*<span[^>]*><img src="\/brand-logos\/lavazza.svg" alt="Lavazza"/,
     );
     expect(text(tiles)).toContain("21 продукта");
     expect(tiles.match(/<img/g)).toHaveLength(1);
@@ -459,13 +463,13 @@ describe("home page: modules that come and go", () => {
     const markup = render({ ...FULL, articles: range(5, article) });
     const section = markup.slice(markup.indexOf(TITLES.journal), markup.indexOf(TITLES.vending));
     expect(section.match(/<article\b/g)).toHaveLength(3);
-    expect(section).toContain('href="/journal/statia-1"');
+    expect(section).toContain('href="/bg/blog/statia-1"');
     expect(section).toMatch(/<time datetime="2026-10-09">/i);
-    expect(section).toContain('href="/journal"');
+    expect(section).toContain('href="/bg/blog"');
 
     const none = render({ ...FULL, articles: [] });
     expect(h2s(none)).not.toContain(TITLES.journal);
-    expect(none).not.toContain("/journal");
+    expect(none).not.toContain("/bg/blog");
   });
 
   it("always explains ordering and points the business buyer to the Vending Zone", () => {
@@ -474,7 +478,7 @@ describe("home page: modules that come and go", () => {
       expect(h2s(markup)).toContain(TITLES.ordering);
       expect(markup).toContain(`href="tel:${siteConfig.contact.phoneHref}"`);
       expect(h2s(markup)).toContain(TITLES.vending);
-      expect(markup).toContain('href="/vending"');
+      expect(markup).toContain('href="/bg/kafe-za-vending-mashini"');
     }
   });
 

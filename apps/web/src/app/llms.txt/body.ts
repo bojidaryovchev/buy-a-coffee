@@ -8,6 +8,8 @@ import {
   paymentSentence,
   returnShippingSentence,
 } from "@/components/commerce/terms";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * The text of `/llms.txt`, as a function of what it describes.
@@ -19,7 +21,7 @@ import {
 
 export interface LlmsLink {
   readonly name: string;
-  /** Site-relative. */
+  /** A public path, already in the file's locale (`/bg/marki/lavazza`). */
   readonly href: string;
 }
 
@@ -40,6 +42,11 @@ export interface LlmsInput {
   readonly commerce?: CommerceConfig;
   /** The company's legal line, or null while it is not yet real. */
   readonly company: string | null;
+  /**
+   * The locale the file is written in and links into. Bulgarian, the default:
+   * the file is the shop's prose, and its prose is Bulgarian.
+   */
+  readonly locale?: Locale;
 }
 
 /**
@@ -75,14 +82,19 @@ const section = (title: string, lines: readonly string[]): string | null =>
   lines.length === 0 ? null : `## ${title}\n\n${lines.join("\n")}`;
 
 export function llmsText(input: LlmsInput): string {
+  const locale = input.locale ?? DEFAULT_LOCALE;
+  const at = (path: string) => href(locale, path);
   const key: readonly LlmsLink[] = [
-    { href: "/wizard", name: "Кое кафе е за мен — препоръка по система, вкус и бюджет" },
-    { href: "/wizard/machines", name: "Коя капсула става за моята машина — по марка и модел" },
-    { href: "/categories", name: "Всички категории" },
-    { href: "/brands", name: "Всички марки" },
-    { href: "/promotions", name: "Промоции" },
-    { href: "/delivery", name: "Доставка и плащане" },
-    { href: "/contact", name: "Контакти" },
+    { href: at(routes.wizard), name: "Кое кафе е за мен — препоръка по система, вкус и бюджет" },
+    {
+      href: at(routes.machines),
+      name: "Коя капсула става за моята машина — по марка и модел",
+    },
+    { href: at(routes.categories), name: "Всички категории" },
+    { href: at(routes.brands), name: "Всички марки" },
+    { href: at(routes.promotions), name: "Промоции" },
+    { href: at(routes.delivery), name: "Доставка и плащане" },
+    { href: at(routes.contact), name: "Контакти" },
   ];
 
   const blocks: readonly (string | null)[] = [

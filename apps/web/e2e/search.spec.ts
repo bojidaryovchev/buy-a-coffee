@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { PRODUCT_LINK, expectProductPage } from "./support/paths";
 
 /** Search behaviour against our own PostgreSQL catalog. */
 
@@ -25,16 +26,16 @@ async function interactiveSearchInput(page: Page) {
 }
 
 test("search page loads with no query", async ({ page }) => {
-  await page.goto("/search");
+  await page.goto("/bg/tarsene");
   await expect(page.getByRole("heading", { name: "Търсене", exact: true })).toBeVisible();
   await expect(page.getByText(/какво търсите/i)).toBeVisible();
 });
 
 test("searching a known brand returns matching products", async ({ page }) => {
-  await page.goto("/search?q=lavazza");
+  await page.goto("/bg/tarsene?q=lavazza");
 
   await expect(page.getByText(/резултата? за/i)).toBeVisible();
-  const links = page.locator('a[href^="/products/"]');
+  const links = page.locator(PRODUCT_LINK);
   await expect(links.first()).toBeVisible();
   expect(await links.count()).toBeGreaterThan(0);
 });
@@ -45,14 +46,14 @@ test("search works from the header field", async ({ page }) => {
   await field.fill("lavazza");
   await field.press("Enter");
 
-  await expect(page).toHaveURL(/\/search\?q=lavazza/);
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/bg\/tarsene\?q=lavazza/);
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
 });
 
 test("search matches Cyrillic product names", async ({ page }) => {
   // The catalog is Bulgarian; Latin-only search would find almost nothing.
-  await page.goto("/search?q=" + encodeURIComponent("Капсули"));
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await page.goto("/bg/tarsene?q=" + encodeURIComponent("Капсули"));
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
 });
 
 /*
@@ -64,24 +65,24 @@ test("search matches Cyrillic product names", async ({ page }) => {
  */
 test("a Cyrillic query finds Latin product names", async ({ page }) => {
   // „крема" must reach the products written "Crema".
-  await page.goto("/search?q=" + encodeURIComponent("крема"));
+  await page.goto("/bg/tarsene?q=" + encodeURIComponent("крема"));
 
-  const links = page.locator('a[href^="/products/"]');
+  const links = page.locator(PRODUCT_LINK);
   await expect(links.first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/crema/i);
 });
 
 test("a Latin query finds Cyrillic product names", async ({ page }) => {
   // "kapsuli" must reach the products written „Капсули".
-  await page.goto("/search?q=kapsuli");
+  await page.goto("/bg/tarsene?q=kapsuli");
 
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/капсули/i);
 });
 
 test("both scripts return the same result count", async ({ page }) => {
   const countFor = async (query: string): Promise<number> => {
-    await page.goto("/search?q=" + encodeURIComponent(query));
+    await page.goto("/bg/tarsene?q=" + encodeURIComponent(query));
     const heading = await page
       .getByText(/резултата? за/i)
       .first()
@@ -96,8 +97,8 @@ test("both scripts return the same result count", async ({ page }) => {
 
 test("a misspelled query still finds the product", async ({ page }) => {
   // One letter short of "lavazza" — the trigram fallback has to cover this.
-  await page.goto("/search?q=lavaza");
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await page.goto("/bg/tarsene?q=lavaza");
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
 });
 
@@ -109,15 +110,15 @@ test("a misspelled query still finds the product", async ({ page }) => {
  * and it has to do so identically on the results page and in the dropdown.
  */
 test("a phonetic Cyrillic brand spelling finds the brand's products", async ({ page }) => {
-  await page.goto("/search?q=" + encodeURIComponent("лаваца"));
+  await page.goto("/bg/tarsene?q=" + encodeURIComponent("лаваца"));
 
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
 });
 
 test("a phonetic spelling returns the same count as the Latin one", async ({ page }) => {
   const countFor = async (query: string): Promise<number> => {
-    await page.goto("/search?q=" + encodeURIComponent(query));
+    await page.goto("/bg/tarsene?q=" + encodeURIComponent(query));
     const heading = await page
       .getByText(/резултата? за/i)
       .first()
@@ -132,52 +133,54 @@ test("a phonetic spelling returns the same count as the Latin one", async ({ pag
 });
 
 test("a synonym inside a longer query still works", async ({ page }) => {
-  await page.goto("/search?q=" + encodeURIComponent("капсули лаваца"));
+  await page.goto("/bg/tarsene?q=" + encodeURIComponent("капсули лаваца"));
 
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/lavazza/i);
 });
 
 test("a phonetic spelling of a brewing system finds its capsules", async ({ page }) => {
   // Dolce Gusto capsules are named "DG" in the catalog; the spelled-out
   // Cyrillic name has to reach them.
-  await page.goto("/search?q=" + encodeURIComponent("долче густо"));
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await page.goto("/bg/tarsene?q=" + encodeURIComponent("долче густо"));
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/DG/);
 });
 
 test("a nonsense query shows a helpful no-results state", async ({ page }) => {
-  await page.goto("/search?q=zzzzqqqqxxxx");
+  await page.goto("/bg/tarsene?q=zzzzqqqqxxxx");
   // It names the term, so a typo is visible, and offers a way forward.
   await expect(page.getByRole("heading", { name: "Не намерихме „zzzzqqqqxxxx“" })).toBeVisible();
-  await expect(page.locator('main a[href^="/products/"]')).toHaveCount(0);
+  await expect(page.locator(`main ${PRODUCT_LINK}`)).toHaveCount(0);
   // In <main>: the header rail has a link of the same name.
   await expect(
     page.locator("main").getByRole("link", { name: "Намери по машина" }),
-  ).toHaveAttribute("href", "/wizard/machines");
+  ).toHaveAttribute("href", "/bg/za-kafemashina");
 });
 
 test("search results are not indexable", async ({ page }) => {
   // Unbounded user-generated URLs must not be crawled.
-  await page.goto("/search?q=lavazza");
+  await page.goto("/bg/tarsene?q=lavazza");
   const robots = await page.locator('meta[name="robots"]').getAttribute("content");
   expect(robots).toContain("noindex");
 });
 
 test("an over-long query is handled safely", async ({ page }) => {
-  const response = await page.goto("/search?q=" + "a".repeat(2000));
+  const response = await page.goto("/bg/tarsene?q=" + "a".repeat(2000));
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
 test("a query containing SQL syntax is treated as text", async ({ page }) => {
-  const response = await page.goto("/search?q=" + encodeURIComponent("'; drop table products; --"));
+  const response = await page.goto(
+    "/bg/tarsene?q=" + encodeURIComponent("'; drop table products; --"),
+  );
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
   // Prove the catalog is intact afterwards.
-  await page.goto("/categories/kapsuli");
-  await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+  await page.goto("/bg/kafe-kapsuli");
+  await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
 });
 
 test.describe("typeahead", () => {
@@ -219,7 +222,7 @@ test.describe("typeahead", () => {
     const suggested = await (await request.get("/api/search/suggest?q=" + query)).json();
     expect(suggested.total).toBeGreaterThan(0);
 
-    await page.goto("/search?q=" + query);
+    await page.goto("/bg/tarsene?q=" + query);
     const heading = await page
       .getByText(/резултата? за/i)
       .first()
@@ -239,7 +242,7 @@ test.describe("typeahead", () => {
     await expect(field).toHaveAttribute("aria-activedescendant", /.+/);
 
     await field.press("Enter");
-    await expect(page).toHaveURL(/\/products\//);
+    await expectProductPage(page);
   });
 
   test("Escape closes the dropdown without running the search", async ({ page }) => {
@@ -250,7 +253,7 @@ test.describe("typeahead", () => {
 
     await field.press("Escape");
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeHidden();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL(/\/bg$/);
   });
 
   test("Enter with nothing highlighted runs the full search", async ({ page }) => {
@@ -260,7 +263,7 @@ test.describe("typeahead", () => {
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
 
     await field.press("Enter");
-    await expect(page).toHaveURL(/\/search\?q=lavazza/);
+    await expect(page).toHaveURL(/\/bg\/tarsene\?q=lavazza/);
   });
 
   test("the suggest endpoint treats LIKE wildcards as text", async ({ request }) => {
@@ -281,7 +284,7 @@ test.describe("typeahead", () => {
     const suggested = await (await request.get("/api/search/suggest?q=rema")).json();
     expect(suggested.total).toBeGreaterThan(0);
 
-    await page.goto("/search?q=rema");
+    await page.goto("/bg/tarsene?q=rema");
     const heading = await page
       .getByText(/резултата? за/i)
       .first()
