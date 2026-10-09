@@ -98,8 +98,14 @@ describe.skipIf(!handle)("synonym search against the real catalog", () => {
   it("finds Lavazza by „лаваца“, which folding alone cannot", async (context) => {
     if (!available) return context.skip();
     const rows = await find("лаваца");
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((row) => /lavazza/i.test(row.name))).toBe(true);
+    const named = rows.filter((row) => /lavazza/i.test(row.name));
+    expect(named.length).toBeGreaterThan(0);
+    /*
+     * The brand's own products, ahead of anything else. Another brand's
+     * capsule made for the Lavazza Blue system says so in its description,
+     * so it is found too, after them, exactly as it is for "lavazza".
+     */
+    expect(rows.slice(0, named.length)).toEqual(named);
   });
 
   it("finds a synonym inside a longer query", async (context) => {
