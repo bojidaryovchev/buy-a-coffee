@@ -136,6 +136,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: remotePatternFor(imageHost),
     formats: ["image/avif", "image/webp"],
+    /*
+     * Widths to offer. The defaults run to 3840 px, but the mirrored photos are
+     * about 800 px wide, so anything past a phone's 2× width only upscales — and
+     * each offered width is markup in every <img> on a 24-card listing, which
+     * the browser parses before it paints.
+     */
+    deviceSizes: [384, 640, 828, 1080, 1200],
+    imageSizes: [40, 64, 96, 128, 256],
     // Product imagery is content-addressed and immutable, so it can be cached
     // for a long time.
     minimumCacheTTL: 60 * 60 * 24 * 30,

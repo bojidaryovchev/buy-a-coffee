@@ -1679,18 +1679,31 @@ works.
 
 ## Budgets
 
-Measured on a preview deployment, mobile profile (Lighthouse mobile
-throttling), median of three runs. Recorded here when measured (task F9).
+**Lab numbers, not field data.** Measured 9 October 2026 with
+`pnpm measure:budgets` against a local production build on a shared laptop:
+Pixel 7 profile, DevTools "Fast 4G" network, 4× CPU slowdown, five cold runs
+per page, with stand-in photos of the real size. Re-measure on a preview
+deployment before launch; the field numbers arrive through Speed Insights.
 
-| Page                     | Metric | Budget      | Measured         |
-| ------------------------ | ------ | ----------- | ---------------- |
-| Home                     | LCP    | under 2.5 s | not yet measured |
-| Home                     | CLS    | under 0.1   | not yet measured |
-| Listing (a system)       | LCP    | under 2.5 s | not yet measured |
-| Listing (a system)       | CLS    | under 0.1   | not yet measured |
-| Product page             | LCP    | under 2.5 s | not yet measured |
-| Product page             | CLS    | under 0.1   | not yet measured |
-| Every page and component | WCAG   | 2.2 AA      | not yet measured |
+| Page                     | Metric | Budget      | Median    | Worst  | LCP element               |
+| ------------------------ | ------ | ----------- | --------- | ------ | ------------------------- |
+| Home                     | LCP    | under 2.5 s | 1.22 s    | 1.82 s | the hero's lead paragraph |
+| Home                     | CLS    | under 0.1   | 0.000     | 0.000  |                           |
+| Listing (a system)       | LCP    | under 2.5 s | 1.32 s    | 3.02 s | the first card's photo    |
+| Listing (a system)       | CLS    | under 0.1   | 0.000     | 0.000  |                           |
+| Product page             | LCP    | under 2.5 s | 1.46 s    | 1.76 s | the gallery photo         |
+| Product page             | CLS    | under 0.1   | 0.000     | 0.000  |                           |
+| Every page and component | WCAG   | 2.2 AA      | see below |        |                           |
+
+Every median is within budget. The listing's worst run was not: on the
+listing the photo had arrived by about 0.8 s, and paint waited behind long
+main-thread tasks from a 339 KB page, much of it the `srcset` lists of 26
+images. Those lists are now cut to the widths the ~800 px photos can fill
+(`images.deviceSizes` and `imageSizes` in `next.config.ts`); re-measure. On a
+phone the home page's LCP element is the hero's lead paragraph, not a
+packshot. Accessibility is checked by the browser suite (headings, landmarks,
+labels, focus, the mobile drawer, no horizontal scroll) and by
+`test/contrast.test.ts`; there is no automated WCAG audit.
 
 What the specification already does to meet them:
 

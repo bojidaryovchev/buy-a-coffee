@@ -41,6 +41,26 @@ const CACHE_LIMIT = 40;
 
 const EMPTY: SearchSuggestions = { term: "", products: [], brands: [], categories: [], total: 0 };
 
+/**
+ * What the visitor typed into the server-rendered field before this one
+ * replaced it, and whether it had focus.
+ *
+ * The header renders `SearchFieldFallback` (a real GET form) while this
+ * component waits for the URL, then swaps it out. On a slow phone that window
+ * is long enough to type in, and without this the swap threw the text away
+ * and dropped focus mid-word. Read during the first render, while the fallback
+ * is still in the document; null on the server and wherever there was none.
+ */
+export function typedBeforeHydration(): {
+  readonly value: string;
+  readonly focused: boolean;
+} | null {
+  if (typeof document === "undefined") return null;
+  const fallback = document.getElementById("search-fallback");
+  if (!(fallback instanceof HTMLInputElement)) return null;
+  return { value: fallback.value, focused: document.activeElement === fallback };
+}
+
 export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,7 +70,17 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const analytics = useAnalytics();
 
-  const [value, setValue] = useState(searchParams.get("q") ?? "");
+  const [carried] = useState(typedBeforeHydration);
+  const [value, setValue] = useState(() => carried?.value || searchParams.get("q") || "");
+
+  useEffect(() => {
+    if (!carried?.focused) return;
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    // Once, on mount: this only hands over what the fallback had.
+  }, [carried]);
   const [suggestions, setSuggestions] = useState<SearchSuggestions>(EMPTY);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);

@@ -9,7 +9,7 @@
 #           production build backed by the same catalog. Nothing is excluded.
 #
 # The catalog is `seed:reference`: the committed snapshot in reference/latest/
-# (110 products, 15 brands, 8 categories, a generated image per product, our
+# (187 products, 20 brands, 8 categories, a generated image per product, our
 # written copy). CI cannot crawl the source, and this is the one offline copy
 # of the data the specs and the database-backed tests were written against.
 # `seed:dev` (six invented products) is not used: it has none of it.

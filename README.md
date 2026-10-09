@@ -228,7 +228,7 @@ From the repository root:
 | `pnpm db:studio`                | Drizzle Studio                                                                                                    |
 | `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                           |
 | `pnpm crawl:discovery`          | Full public-surface crawl, then export `reference/latest/`                                                        |
-| `pnpm reference:export`         | Re-export the reference artifacts                                                                                 |
+| `pnpm reference:export`         | Re-crawl the source and rewrite `reference/latest/` (contacts the source; a writing run)                          |
 | `pnpm catalog:verify`           | Assert the catalog invariants against the database; exit 2 on a violation (`--json` for the report)               |
 | `pnpm catalog:link`             | `<our-slug> <new-source-key>`: re-point a product the sync could not pair (plan only; `--apply`, `--absorb-twin`) |
 | `pnpm catalog:enrich`           | Read the product page of every active product without a code (plan only; `--apply`, `--limit <n>`)                |
