@@ -224,7 +224,7 @@ test.describe("the head of every page", () => {
       expect(ours.length).toBeGreaterThan(0);
       for (const url of ours) {
         const { pathname } = new URL(url);
-        expect(pathname, url).toMatch(/^\/(bg(\/|$)|media\/|opengraph-image)/);
+        expect(pathname, url).toMatch(/^\/(bg(\/|$)|media\/|brand-logos\/|opengraph-image)/);
       }
     });
   }
