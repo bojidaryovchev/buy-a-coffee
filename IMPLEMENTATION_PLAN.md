@@ -128,9 +128,22 @@ performance budgets measured. The six staged migrations are folded into
 `0006_completion`, checked against an empty database, a copy in production's
 current state and a copy that already had them. The repository is formatted.
 
-**Where `completion` stands:** 88 commits ahead of `main`, nothing pushed.
-`format:check`, `typecheck` and `lint` are clean; 1,811 unit, 279
-integration and 314 browser tests pass (desktop and mobile, `CI=true`, against
+**Fourth to sixth waves, 9 October.** [Phase J](#phase-j--bulgarian-urls-brand-logos-and-search-demand):
+every storefront URL moved under `/bg/` with Bulgarian slugs chosen from
+measured demand, and every old URL answers 308; brand logos; a market study
+([docs/seo.md](docs/seo.md)); the shop's own product names and brand-first
+addresses; four landing listings and a Tchibo Cafissimo page; titles,
+descriptions and internal links from the study; the journal retitled and
+grown from four articles to six; a 404 the server renders; one rule for a
+pack size the source records wrongly; and pages that share as themselves.
+The move of the product addresses was rehearsed on the local catalog with the
+steps H6 uses: 187 moved there (production will move 110, because the sync
+creates its 77 new products at their final address), copy matched for 187 of
+187, and a second run changed nothing.
+
+**Where `completion` stands:** 137 commits ahead of `main`, nothing pushed.
+`format:check`, `typecheck` and `lint` are clean; 2,637 unit, 350
+integration and 748 browser tests pass (desktop and mobile, `CI=true`, against
 a production build seeded exactly as CI seeds it); `check:originality` and
 `reference:coverage` pass; `check:launch` fails by design with the business's
 eight open questions. Everything left is in Phase H.
@@ -758,7 +771,11 @@ passes.
       the source's owner for the catalog use, and the contact address for the
       crawler's user agent. Someone holding real A Modo Mio, Caffitaly and
       Lavazza Blue capsules compares them with the drawings on
-      `/wizard/machines`.
+      `/bg/za-kafemashina`. From Phase J: logo files for 3 Bourbons, Este,
+      Eurocaf and Molini, which the source's owner may be able to ask those
+      brands for; which of Eurocaf, Molini, Este, 3 Bourbons and Tezzoro are
+      Italian; and a word to the source about the illy tin it lists as 100
+      pods.
 - [ ] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.
 - [ ] **H3 · Databases** — create a database branch for previews and point the
@@ -784,10 +801,17 @@ passes.
       `pnpm catalog:link <slug> <new-key> --apply` (the dry run names both; in
       Git Bash prefix the command with `MSYS_NO_PATHCONV=1`, or the leading `/`
       of the key is rewritten). Then the real run — expect 187 products, 77
-      created, 0 missing — followed by `pnpm catalog:verify`,
-      `pnpm catalog:enrich --apply`, `pnpm copy:apply` (it also writes the 31
-      stale bodies), a second sync that must change nothing, and a hand
-      comparison of ten products against the source.
+      created, 0 missing — followed by `pnpm catalog:verify` and
+      `pnpm catalog:enrich --apply`. Then move the old addresses:
+      `pnpm --filter @catalog/web catalog:reslug --tsv <file>` and read the
+      plan (110 to move: the 77 new products were created at their final
+      address), then `--apply`, and once more without it (0 to move). Every
+      old address answers 308 from then on. Then `pnpm copy:apply`, which is
+      keyed by the new addresses (187 matched, none orphaned; it also writes
+      the 31 stale bodies), a second sync that must change nothing, and a
+      hand comparison of ten products against the source. Check the admin's
+      sync page: it should list one pack-size conflict, the illy tin, shown
+      as 18 pods.
 - [ ] **H7 · Turn on the schedule** — add the workflow's secrets, run it once
       by hand, enable the schedule, and prove the alarm by letting a preview go
       stale.
@@ -833,7 +857,7 @@ English while every customer is Bulgarian; every brand was plain text; and
 nobody had measured what Bulgarians search for. Like A–G, this is code and
 content only.
 
-- [ ] **J1 · Locale-prefixed routing, Bulgarian URLs · L**
+- [x] **J1 · Locale-prefixed routing, Bulgarian URLs · L**
   - Every storefront URL under `/bg/`, with transliterated Bulgarian slugs
     chosen from measured demand (`/bg/dolce-gusto-kapsuli`, `/bg/kafe-na-zarna`,
     `/bg/marki/lavazza`, products at the first level). One table of slugs per
@@ -844,6 +868,12 @@ content only.
   - _Done when_ no bare path survives (`test/bare-paths.test.ts`), the sitemap
     and `hreflang` list only shipping locales, and the browser suite passes on
     the new URLs.
+  - **Found.** Next 16 answers a page's own `notFound()` with a 404 status and
+    an empty document that JavaScript fills in, and did so before this work
+    too: without scripts a dead product link was a blank page. The proxy now
+    asks the catalog first and serves the 404 the server renders. For the same
+    reason there is no route-level loading boundary: a shell sent first would
+    turn the 308s and 404s these pages answer into 200s.
 
 - [x] **J2 · Brand logos · M**
   - Each brand's own logo where the brand is the subject: the brand index, the
@@ -868,7 +898,7 @@ content only.
     type; the source ranks for almost nothing, so the risk is looking like a
     copy, not competing with it; English is 2–3 % of demand.
 
-- [ ] **J4 · Our own product names and URLs · L**
+- [x] **J4 · Our own product names and URLs · L**
   - Names as Bulgarians search them („Капсули за Dolce Gusto", „Кафе дози", not
     „DG", „Дозети"); brand-first product URLs; distinct names for the two
     products the source calls by one name; brand URLs spelled as the brand
@@ -876,27 +906,45 @@ content only.
     names, which is what they order by.
   - _Done when_ every product name a customer reads is ours, and a test parses
     all 187 real names.
+  - **Found.** The source records one product, an illy tin of 18 pods, with a
+    pack size of 100, which made its price per cup 0,09 € instead of 0,51 €
+    and put it first on the cheapest-per-cup page. Where the source's name and
+    its pack field disagree, the name's size is used now, in the sync, and the
+    conflict is listed on the admin's sync page. The source should be told.
+    `owner`. The two products the source calls „Lavazza Crema E Aroma 1кг."
+    are different bags; one is „Crema e Aroma Expert". Twenty-nine product
+    descriptions said „Капсули Dolce Gusto" of third-party capsules; they say
+    „за Dolce Gusto" now.
 
-- [ ] **J5 · Pages with measured demand · M**
+- [x] **J5 · Pages with measured demand · M**
   - Капсули Lavazza, Кафе на зърна Lavazza, Безкофеиново кафе, Най-евтино на
     чаша, and the Tchibo Cafissimo machine page: about 9,000 searches a month
     the shop had no page for. Each disappears when it would be empty.
+  - **Found.** The source flags eleven products as caffeine-free. Nine are
+    coffee; two are drinks for Dolce Gusto that are not. The page counts
+    products without caffeine, not coffees.
 
-- [ ] **J6 · Titles, headings and links · M**
+- [x] **J6 · Titles, headings and links · M**
   - Every page's title and heading in the words its searchers use, one page per
     query cluster, descriptions that show the price per cup and the callback,
     breadcrumbs by format, and internal links per [docs/seo.md](docs/seo.md)
     §13. The consumables page stays out of the index while it is empty.
+  - **Found.** About fifteen kinds of page declared the home page's address,
+    title and description for sharing, so a category link pasted into a chat
+    was presented as the home page; each page declares its own now. The
+    brands page names as Italian only the brands whose own sites say so:
+    Rema Caffè's says it is made in Plovdiv, and Eurocaf, Molini, Este, 3
+    Bourbons and Tezzoro could not be checked. `owner`. The promotions page
+    stays out of the index while nothing is reduced.
 
-- [ ] **J7 · Journal · M**
+- [x] **J7 · Journal · M**
   - The capsule article retitled for „видове капсули за кафе" and moved with a
     308; the formats article retitled; two new articles, choosing beans and
     arabica against robusta, with every catalog figure computed.
 
-**For the runbook.** J4 adds a migration (it goes out with H3's) and one step
-to H6: after the catch-up sync and before `copy:apply`, `pnpm --filter
-@catalog/web catalog:reslug` (plan), then `--apply`. The exact sequence is
-written into H6 when J4 is merged.
+**For the runbook.** J4 adds a migration, `0007`, which goes out with H3's,
+and the address move, which is written into H6. The pack-size rule needs no
+step: the first sync that runs this code corrects the record.
 
 ## Order and dependencies
 
@@ -929,6 +977,7 @@ Where the work is:
 | F     | 9     | 5 M, 4 S                        |
 | G     | 5     | 2 M, 3 S                        |
 | H     | 10    | One sitting, plus waiting on H1 |
+| J     | 7     | 2 L, 5 M                        |
 
 How the workspace TODO list maps onto this:
 
