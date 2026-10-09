@@ -223,7 +223,7 @@ From the repository root:
 | `pnpm test:all`                 | All four Vitest projects                                                                                          |
 | `pnpm test:watch`               | Vitest in watch mode                                                                                              |
 | `pnpm test:e2e`                 | Playwright, desktop and mobile, against a production build (run `pnpm build` first)                               |
-| `pnpm db:migrate`               | Apply the numbered migrations, then `packages/db/migrations-pending/*.sql`                                        |
+| `pnpm db:migrate`               | Apply the database migrations (`packages/db/migrations/`); safe to run repeatedly                                 |
 | `pnpm db:generate`              | Generate a migration from schema changes                                                                          |
 | `pnpm db:studio`                | Drizzle Studio                                                                                                    |
 | `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                           |

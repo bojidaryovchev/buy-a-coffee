@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { sql } from "drizzle-orm";
-import { applyPendingMigrations, createDatabase, type Database } from "@catalog/db";
+import { createDatabase, type Database } from "@catalog/db";
 
 /**
  * Integration-test database.
@@ -71,10 +71,8 @@ export async function setupTestDatabase(): Promise<{ db: Database; close: () => 
     await admin.close();
   }
 
-  const { db, sql: client, close } = createDatabase({ url: testDatabaseUrl(), max: 1 });
+  const { db, close } = createDatabase({ url: testDatabaseUrl(), max: 1 });
   await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
-  // Temporary: see packages/db/migrations-pending/README.md.
-  await applyPendingMigrations(client);
   return { db, close };
 }
 

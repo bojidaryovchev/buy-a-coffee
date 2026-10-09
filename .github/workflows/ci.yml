@@ -96,7 +96,6 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      # Applies packages/db/migrations and then migrations-pending/*.sql.
       - name: Migrate database
         run: pnpm db:migrate
 

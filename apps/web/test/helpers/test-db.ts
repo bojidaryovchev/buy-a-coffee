@@ -1,6 +1,7 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { applyPendingMigrations, createDatabase, type Database } from "@catalog/db";
+import { createDatabase, type Database } from "@catalog/db";
 
 /**
  * A private, migrated database for one integration test file.
@@ -62,11 +63,26 @@ export async function useTestDatabase(
   const url = new URL(base);
   url.pathname = `/${name}`;
 
-  const { db, sql, close } = createDatabase({ url: url.toString(), max: 2 });
+  const { db, close } = createDatabase({ url: url.toString(), max: 2 });
   await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
-  // Temporary: see packages/db/migrations-pending/README.md.
-  await applyPendingMigrations(sql);
 
   process.env.DATABASE_URL = url.toString();
   return { db, url: url.toString(), close };
+}
+
+/**
+ * Run one numbered migration's statements directly, outside Drizzle's journal.
+ *
+ * For tests that prove a migration is safe to run twice: Drizzle itself never
+ * runs a migration a second time, but a database that already holds part of
+ * it (a development copy) effectively does.
+ */
+export async function runMigrationFile(
+  client: ReturnType<typeof createDatabase>["sql"],
+  tag: string,
+): Promise<void> {
+  const text = await readFile(path.join(MIGRATIONS_DIR, `${tag}.sql`), "utf8");
+  for (const statement of text.split("--> statement-breakpoint")) {
+    if (statement.trim()) await client.unsafe(statement);
+  }
 }

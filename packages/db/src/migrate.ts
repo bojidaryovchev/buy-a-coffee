@@ -2,7 +2,6 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createDatabase } from "./client.ts";
-import { applyPendingMigrations } from "./pending.ts";
 
 /**
  * Apply pending migrations. Safe to run repeatedly: Drizzle records applied
@@ -13,13 +12,11 @@ async function main(): Promise<void> {
     path.dirname(fileURLToPath(import.meta.url)),
     "../migrations",
   );
-  const { db, sql, close } = createDatabase({ max: 1 });
+  const { db, close } = createDatabase({ max: 1 });
   try {
     console.log(JSON.stringify({ level: "info", msg: "migrate:start", migrationsFolder }));
     await migrate(db, { migrationsFolder });
-    // Temporary: see migrations-pending/README.md.
-    const pending = await applyPendingMigrations(sql);
-    console.log(JSON.stringify({ level: "info", msg: "migrate:done", pending }));
+    console.log(JSON.stringify({ level: "info", msg: "migrate:done" }));
   } finally {
     await close();
   }

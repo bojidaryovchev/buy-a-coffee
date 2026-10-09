@@ -7,7 +7,7 @@ import {
   products,
   sourceSites,
 } from "@catalog/db/schema";
-import { applyPendingMigrations, createDatabase, type Database } from "@catalog/db";
+import { createDatabase, type Database } from "@catalog/db";
 import type { Notification } from "@/lib/notifications";
 // Types only: the modules themselves are imported in `beforeAll`, once the test
 // database has been chosen.
@@ -15,7 +15,7 @@ import type * as Actions from "@/lib/forms/actions";
 import type * as Admin from "@/lib/admin-actions";
 import type * as Unsubscribe from "@/app/(site)/newsletter/unsubscribe/actions";
 import type * as Page from "@/app/(site)/newsletter/unsubscribe/page";
-import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
+import { isDatabaseAvailable, runMigrationFile, useTestDatabase } from "./helpers/test-db";
 
 /**
  * Newsletter consent, end to end against a real database: the two ticked
@@ -567,8 +567,8 @@ suite("newsletter consent (integration)", () => {
 
       const { sql: client, close: closeClient } = createDatabase({ url, max: 1 });
       try {
-        await applyPendingMigrations(client);
-        await applyPendingMigrations(client);
+        await runMigrationFile(client, "0006_completion");
+        await runMigrationFile(client, "0006_completion");
       } finally {
         await closeClient();
       }

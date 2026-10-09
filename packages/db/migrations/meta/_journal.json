@@ -43,6 +43,13 @@
       "when": 1788626780436,
       "tag": "0005_description_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791547200000,
+      "tag": "0006_completion",
+      "breakpoints": true
     }
   ]
 }
