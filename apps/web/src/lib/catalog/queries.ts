@@ -1048,6 +1048,32 @@ export async function listNewArrivals(limit = 8): Promise<readonly ProductCardVi
   return typed.map((row) => toCard(row, images.get(row.id)));
 }
 
+/**
+ * Cards for a set of products chosen elsewhere, keyed by product id.
+ *
+ * For the pages that pick their own products — the landing listings group and
+ * rank the catalog in code (`landings.ts`) and then need the same card every
+ * other listing draws. The row-to-card mapping (which price wins, whether a
+ * reduction is genuine, which image) is private to this file, so the choice is
+ * made there and the card is made here: one query for the rows and one for
+ * their images, whatever the size of the set. Only products on sale come back;
+ * an id that has since left the catalog is simply absent.
+ */
+export async function listProductCardsByIds(
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, ProductCardView>> {
+  if (ids.length === 0) return new Map();
+
+  const rows = (await db
+    .select(productColumns)
+    .from(products)
+    .leftJoin(brands, eq(products.brandId, brands.id))
+    .where(and(isVisible, inArray(products.id, [...ids])))) as unknown as ProductRow[];
+
+  const images = await loadPrimaryImages(rows.map((row) => row.id));
+  return new Map(rows.map((row) => [row.id, toCard(row, images.get(row.id))]));
+}
+
 /** Every active product slug, for the sitemap. */
 export async function listAllProductSlugs(): Promise<
   ReadonlyArray<{ slug: string; updatedAt: Date | null }>

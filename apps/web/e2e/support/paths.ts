@@ -14,6 +14,17 @@ export const BG = {
   /** The capsule parent category, at its landing slug (stored slug `kapsuli`). */
   capsules: "/bg/kafe-kapsuli",
   nespresso: "/bg/nespresso-kapsuli",
+  dolceGusto: "/bg/dolce-gusto-kapsuli",
+  lavazzaBlue: "/bg/lavazza-blue-kapsuli",
+  lavazzaAModoMio: "/bg/lavazza-a-modo-mio-kapsuli",
+  caffitaly: "/bg/caffitaly-kapsuli",
+  beans: "/bg/kafe-na-zarna",
+  pods: "/bg/kafe-dozi",
+  /** The landing listings: selections over the catalog, not categories. */
+  lavazzaCapsules: "/bg/lavazza-kapsuli",
+  lavazzaBeans: "/bg/kafe-na-zarna-lavazza",
+  decaf: "/bg/bezkofeinovo-kafe",
+  cheapestPerCup: "/bg/nay-evtino-na-chasha",
   brands: "/bg/marki",
   brand: (slug: string) => `/bg/marki/${slug}`,
   search: "/bg/tarsene",

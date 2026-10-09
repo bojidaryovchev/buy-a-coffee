@@ -15,6 +15,8 @@ const catalog = vi.hoisted(() => ({
   products: [] as { slug: string; updatedAt: Date | null }[],
   brands: [] as { slug: string; name: string }[],
   consumablesListed: false,
+  /** Products each landing listing holds; zero means the page does not exist. */
+  landings: { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 },
 }));
 
 vi.mock("@/lib/db", () => ({ db: {} }));
@@ -29,6 +31,12 @@ vi.mock("@/lib/catalog/queries", () => ({
 vi.mock("@/lib/catalog/vending", () => ({
   sectionListsProducts: async () => catalog.consumablesListed,
 }));
+vi.mock("@/lib/catalog/landing-queries", async () => {
+  const { NO_LANDINGS } = await import("@/lib/catalog/landings");
+  return {
+    getLandingAvailability: async () => ({ ...NO_LANDINGS, counts: { ...catalog.landings } }),
+  };
+});
 vi.mock("next/navigation", () => ({
   usePathname: () => "/bg/nespresso-kapsuli",
   useParams: () => ({ lang: "bg" }),
@@ -52,10 +60,11 @@ import { GET as llmsRoute } from "@/app/llms.txt/route";
 import { deliveryTermLines, llmsText, type LlmsInput } from "@/app/llms.txt/body";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
 import { buildNavigation, isCurrentSection } from "@/components/layout/navigation";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteFooter, SiteFooterView } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
+import { NO_LANDINGS, type LandingAvailability } from "@/lib/catalog/landings";
 import type { CategoryView } from "@/lib/catalog/types";
 import { listArticles } from "@/lib/journal";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
@@ -140,7 +149,15 @@ beforeEach(() => {
   catalog.products = [{ slug: "kapsuli-a", updatedAt: new Date("2026-05-01T00:00:00.000Z") }];
   catalog.brands = [{ slug: "bianchi", name: "Bianchi" }];
   catalog.consumablesListed = false;
+  catalog.landings = { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 };
 });
+
+const LANDING_URLS = [
+  "/bg/lavazza-kapsuli",
+  "/bg/kafe-na-zarna-lavazza",
+  "/bg/bezkofeinovo-kafe",
+  "/bg/nay-evtino-na-chasha",
+] as const;
 
 describe("the navigation built from the category tree", () => {
   it("lists capsule systems that have products, in the systems' own order", () => {
@@ -273,7 +290,32 @@ describe("the header", () => {
 });
 
 describe("the footer", () => {
-  const markup = () => html(createElement(SiteFooter, { navigation: navigation(), dict }));
+  const markup = (landings?: LandingAvailability) =>
+    html(createElement(SiteFooterView, { navigation: navigation(), dict, landings }));
+
+  it("links decaf and cheapest per cup, each only while it lists something", () => {
+    expect(markup()).not.toContain("/bg/bezkofeinovo-kafe");
+    expect(markup()).not.toContain("/bg/nay-evtino-na-chasha");
+
+    const both = markup({
+      ...NO_LANDINGS,
+      counts: { ...NO_LANDINGS.counts, decaf: 8, cheapest: 21 },
+    });
+    expect(both).toMatch(/href="\/bg\/bezkofeinovo-kafe"[^>]*>Безкофеиново кафе</);
+    expect(both).toMatch(/href="\/bg\/nay-evtino-na-chasha"[^>]*>Най-евтино на чаша</);
+
+    const one = markup({ ...NO_LANDINGS, counts: { ...NO_LANDINGS.counts, cheapest: 21 } });
+    expect(one).not.toContain("/bg/bezkofeinovo-kafe");
+    expect(one).toContain('href="/bg/nay-evtino-na-chasha"');
+  });
+
+  it("reads for itself which landings exist, so the layout passes nothing new", async () => {
+    catalog.landings = { ...catalog.landings, decaf: 8 };
+    const element = await SiteFooter({ navigation: navigation(), dict });
+    const rendered = html(element);
+    expect(rendered).toContain('href="/bg/bezkofeinovo-kafe"');
+    expect(rendered).not.toContain("/bg/nay-evtino-na-chasha");
+  });
 
   it("reaches every new section", () => {
     for (const path of [
@@ -354,6 +396,22 @@ describe("the sitemap", () => {
     expect(await urls()).not.toContain(absoluteUrl("/bg/konsumativi"));
     catalog.consumablesListed = true;
     expect(await urls()).toContain(absoluteUrl("/bg/konsumativi"));
+  });
+
+  it("lists each landing only while it has products", async () => {
+    const none = await urls();
+    for (const path of LANDING_URLS) expect(none).not.toContain(absoluteUrl(path));
+
+    catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 0, decaf: 8, cheapest: 0 };
+    const some = await urls();
+    expect(some).toContain(absoluteUrl("/bg/lavazza-kapsuli"));
+    expect(some).toContain(absoluteUrl("/bg/bezkofeinovo-kafe"));
+    expect(some).not.toContain(absoluteUrl("/bg/kafe-na-zarna-lavazza"));
+    expect(some).not.toContain(absoluteUrl("/bg/nay-evtino-na-chasha"));
+
+    catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 8, decaf: 8, cheapest: 21 };
+    const all = await urls();
+    for (const path of LANDING_URLS) expect(all).toContain(absoluteUrl(path));
   });
 
   it("gives every entry its hreflang set, x-default included", async () => {
@@ -455,7 +513,21 @@ describe("llms.txt", () => {
     expect(text).toContain(`(${absoluteUrl("/bg/dostavka-i-plashtane")})`);
     expect(text).toContain(`(${absoluteUrl("/bg/za-kafemashina")})`);
 
-    expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Дневник");
+    expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Блог");
+  });
+
+  it("lists the landing listings it is given, and no empty block without them", () => {
+    expect(llmsText(input(UNSET))).not.toContain("## Подбрани списъци");
+    const text = llmsText({
+      ...input(UNSET),
+      landings: [
+        { name: "Безкофеиново кафе", href: "/bg/bezkofeinovo-kafe", description: "Без кофеин." },
+      ],
+    });
+    expect(text).toContain("## Подбрани списъци");
+    expect(text).toContain(
+      `- [Безкофеиново кафе](${absoluteUrl("/bg/bezkofeinovo-kafe")}): Без кофеин.`,
+    );
   });
 
   it("is served only on production, with the real sections and articles", async () => {
@@ -467,7 +539,15 @@ describe("llms.txt", () => {
       process.env.VERCEL_ENV = "production";
       const text = await (await llmsRoute()).text();
       expect(text).toContain(`(${absoluteUrl("/bg/kafe-za-vending-mashini")})`);
-      expect(text).toContain(`(${absoluteUrl("/bg/konsumativi")})`);
+      // Consumables and the landings follow the sitemap: out while they list nothing.
+      expect(text).not.toContain(`(${absoluteUrl("/bg/konsumativi")})`);
+      for (const path of LANDING_URLS) expect(text).not.toContain(`(${absoluteUrl(path)})`);
+
+      catalog.consumablesListed = true;
+      catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 8, decaf: 8, cheapest: 21 };
+      const filled = await (await llmsRoute()).text();
+      expect(filled).toContain(`(${absoluteUrl("/bg/konsumativi")})`);
+      for (const path of LANDING_URLS) expect(filled).toContain(`(${absoluteUrl(path)})`);
       for (const article of listArticles()) {
         expect(text).toContain(`(${absoluteUrl(bgPath(article.href))})`);
       }

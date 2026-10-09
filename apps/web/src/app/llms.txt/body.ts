@@ -10,6 +10,7 @@ import {
 } from "@/components/commerce/terms";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { href, routes } from "@/lib/routes";
+import { landingLabels } from "../../../content/landing-copy";
 
 /**
  * The text of `/llms.txt`, as a function of what it describes.
@@ -37,6 +38,11 @@ export interface LlmsInput {
   readonly machineBrandCount: number;
   /** The business sections, by their own pages. */
   readonly sections: readonly (LlmsLink & { readonly description: string })[];
+  /**
+   * The landing listings that have products right now (Lavazza capsules and
+   * beans, decaf, cheapest per cup). Absent or empty: no block.
+   */
+  readonly landings?: readonly (LlmsLink & { readonly description: string })[];
   /** Journal articles, newest first. Empty when the journal is off. */
   readonly articles: readonly (LlmsLink & { readonly description: string })[];
   readonly commerce?: CommerceConfig;
@@ -125,6 +131,10 @@ ${input.summary.brands} марки в ${input.summary.categories} категор
       input.brands.map((entry) => link(entry)),
     ),
     section(
+      landingLabels.llmsHeading,
+      (input.landings ?? []).map((entry) => link(entry, entry.description)),
+    ),
+    section(
       "Основни страници",
       key.map((entry) => link(entry)),
     ),
@@ -138,7 +148,7 @@ ${input.summary.brands} марки в ${input.summary.categories} категор
 която казва коя капсулна система използва тя и кои капсули от каталога стават за
 нея.`,
     section(
-      "Дневник",
+      "Блог",
       input.articles.map((entry) => link(entry, entry.description)),
     ),
     `## Бележки

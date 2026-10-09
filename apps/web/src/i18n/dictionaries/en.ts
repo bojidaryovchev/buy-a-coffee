@@ -93,6 +93,8 @@ export const en: Dictionary = {
     help: "Help",
     legal: "Legal",
     systemCapsules: "{system} capsules",
+    decaf: "Decaf coffee",
+    cheapestPerCup: "Cheapest per cup",
     terms: "Terms and conditions",
     privacy: "Privacy",
     cookies: "Cookies",

@@ -10,6 +10,7 @@ import { composeBrandSummary, systemsForCategories } from "@/lib/catalog/brand-s
 import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
 import { brandJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { BrandLogo } from "@/components/catalog/brand-logo";
+import { RelatedLandings } from "@/components/catalog/related-landings";
 import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
@@ -115,6 +116,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
             )}
           </p>
         )}
+        {await RelatedLandings({ locale, subject: { brand } })}
       </header>
 
       <CatalogListing

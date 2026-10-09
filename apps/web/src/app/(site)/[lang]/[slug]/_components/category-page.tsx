@@ -3,6 +3,7 @@ import Link from "next/link";
 import { permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
+import { RelatedLandings } from "@/components/catalog/related-landings";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
@@ -186,6 +187,7 @@ export async function CategoryPage({
             </ul>
           </nav>
         )}
+        {await RelatedLandings({ locale, subject: { category } })}
       </header>
 
       <CatalogListing locale={locale} basePath={path} query={query} result={result} />
