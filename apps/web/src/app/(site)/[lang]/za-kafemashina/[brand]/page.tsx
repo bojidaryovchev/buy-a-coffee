@@ -39,6 +39,14 @@ export function generateStaticParams() {
   return MACHINE_BRANDS.map((brand) => ({ brand: brand.slug }));
 }
 
+/*
+ * Every brand is in `MACHINE_BRANDS`, so an unknown one is a 404 at routing,
+ * before anything renders — which is the 404 Next draws on the server
+ * (`global-not-found.tsx`). A `notFound()` thrown from the page would be drawn
+ * by JavaScript; the one below is only the type guard.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { lang, brand: slug } = await params;
   const locale = shippingLocale(lang);
