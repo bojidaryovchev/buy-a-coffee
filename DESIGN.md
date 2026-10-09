@@ -1056,8 +1056,15 @@ the brand itself is the subject.
 
 **Why it exists, and its limit.** A logo is the brand's trademark. We show it
 for one reason: to identify the genuine product the shop sells. So it is the
-brand's own file, from the brand's own website, checked against the mark on
-the packs in our photographs, with that check written down beside it. It
+brand's own file, checked against the mark on the packs in our photographs,
+with that check written down beside it. It comes, in this order of
+preference, from the brand's own website or press kit, the site of the company
+that owns or makes the brand, the brand's own social media page, or Wikimedia
+Commons; a logo library or another seller's copy only as a last resort, and
+only if it matches the pack exactly (none is used today). A logo published
+only on a white ground may have that white made transparent, exactly and with
+nothing else changed, and a file may be scaled down; both are written down in
+its provenance. It
 identifies a _brand_ — the maker of a coffee — and never stands for a brewing
 system: a system is named by the system badge, in text, even where the system
 owner is also a brand we sell (Lavazza, Caffitaly).
@@ -1113,11 +1120,12 @@ what a logo on paper does. `test/brand-logo.test.ts` checks the rule and runs
 every logo in the catalogue through every box.
 
 **Legibility.** Some files are lockups whose name is a thin line under an
-emblem (Bianchi, Lollo Caffè, Vandino). Each such file records a `minHeight`,
-judged by eye at 1x: the smallest height at which its name can still be read.
-A placement whose box would draw the logo below that shows the name in text
-instead. Today that is the product line for those three brands, and their
-typeahead rows.
+emblem (Bianchi, Lollo Caffè, Vandino), a brushed script under a large numeral
+(3 Bourbons), or a pale gold name that fades at small sizes (Este). Each such
+file records a `minHeight`, judged by eye at 1x: the smallest height at which
+its name can still be read. A placement whose box would draw the logo below
+that shows the name in text instead. Today that is the product line for those
+five brands, and their typeahead rows.
 
 **Grounds.** Most logos are drawn for light grounds and sit on the page's own
 paper or a white tile. A logo the brand publishes only in white — Lollo Caffè,
@@ -1125,13 +1133,15 @@ Rema Caffè — sits on what it was made for, a dark tile in `ink-900`, the dark
 neutral; Rema's black pods agree, and Lollo's packs change colour by blend, so
 no single colour of theirs is the brand's ground. Vandino's only logo is gold
 drawn for a dark-green pack, about 2.1:1 on white, under the 3:1 a graphic
-needs, so it sits on the same tile. The logo's own white on `ink-900` measures
+needs, so it sits on the same tile. Este's gold is about 2.6:1 on white too,
+but every letter carries a near-black shadow and "COFFEE" is near-black, which
+a dark tile would swallow, so Este sits on paper. The logo's own white on `ink-900` measures
 17.36:1 (see the contrast table). Self-contained marks that carry their own
 fill (illy's and Julius Meinl's red squares, the Vergnano roundel) sit on paper
 as they are.
 
-**Text fallback.** A brand with no logo — none found (3 Bourbons, Este, Eurocaf,
-Molini, each with the reason recorded), or one the sync added after the file
+**Text fallback.** A brand with no logo — none found (Eurocaf, Molini, each
+with the reason recorded), or one the sync added after the file
 was written — shows its display name in the same box: `font-display
 font-semibold text-ink-700`, `text-lg` in a tile, clamped to two lines, centred.
 A row of tiles stays even. Where the name is already printed next to the logo
@@ -1161,9 +1171,9 @@ shown.
 **Never.** Recolour, invert, crop, stretch, redraw, outline or trace a logo.
 Combine two logos, or a logo with our own mark, or set text over one. Put a
 logo on a ground it was not drawn for (a white-only logo on paper, a dark logo
-on the dark tile). Upscale a PNG past its own pixels. A logo from a reseller,
-a marketplace, an image search or the shop this one mirrors, or one whose
-provenance is not recorded. A logo for a brewing system or as a compatibility
+on the dark tile). Upscale a PNG past its own pixels. A logo from the shop
+this one mirrors, an image search's thumbnail, or a copy that does not match
+the pack exactly, or one whose provenance is not recorded. A logo for a brewing system or as a compatibility
 claim. A logo in place of the brand's name where a screen reader needs it. A
 logo as a product's photograph.
 

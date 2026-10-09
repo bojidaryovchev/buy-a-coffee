@@ -48,6 +48,14 @@ export interface BrandLogo {
 }
 
 export const brandLogos: Readonly<Record<string, BrandLogo>> = {
+  "3-bourbons": {
+    file: "/brand-logos/3-bourbons.png",
+    format: "png",
+    width: 400,
+    height: 339,
+    ground: "light",
+    minHeight: 28,
+  },
   amann: {
     file: "/brand-logos/amann.png",
     format: "png",
@@ -90,6 +98,14 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     width: 296,
     height: 276,
     ground: "light",
+  },
+  este: {
+    file: "/brand-logos/este.png",
+    format: "png",
+    width: 320,
+    height: 215,
+    ground: "light",
+    minHeight: 24,
   },
   foodness: {
     file: "/brand-logos/foodness.svg",

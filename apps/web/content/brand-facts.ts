@@ -25,12 +25,17 @@ import type { BrewMethod } from "@/lib/recommend/systems";
  *    names (`brand-logo-provenance.ts`).
  *
  * Searched and left out on 9 October 2026, so the next person need not repeat
- * it: **Eurocaf** — an Italian roaster of that name exists (EUROCAF SRL,
- * Druento, Turin, eurocafcaffe.it), but its site lists none of the four coffees
- * we sell and shows a different mark from the one on our packs, so it is not
- * established that it makes them; **Este**, **Tezzoro**, **3 Bourbons** — no
- * owner's site found, and the packs (English text only) say nothing about
- * where the coffee is roasted.
+ * it. **Este**, **Tezzoro** and **Elia** are Bulgarian: Este is the house
+ * vending brand of Европейски Кафе Експерти ООД (formerly Enco Vending, Sofia),
+ * and Elia and Tezzoro are made at its EV Coffee Factory
+ * (enco-vending.com, "About" and "History"). **3 Bourbons** is a Bulgarian label
+ * produced by ФОНТЕ ФРЕСКО ЕООД, Sofia. **Molini**: its packs say "Tostato in
+ * Italia", roasted in Italy, but the brand appears to be a line of РЕМА КАФЕ
+ * ЕООД, Plovdiv (remacaffe.com sells it under the vendor MOLINI), so it is not
+ * called an Italian brand. **Eurocaf**: an Italian roaster of that name exists
+ * (EUROCAF SRL, Druento, Turin, eurocafcaffe.it), but its site lists none of
+ * the four coffees we sell and shows a different mark from the one on our
+ * packs, so it is not established that it makes them.
  */
 
 export interface BrandFacts {
@@ -72,10 +77,6 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
     formatPages: ["capsule", "beans"],
   },
   lollocafe: { cyrillic: "Лоло", italian: "lollocaffe.it, the brand's own Italian site." },
-  molini: {
-    italian:
-      "The packs print 'Tostato in Italia' (beans) and 'Arrosto in Italia' (Nespresso capsules) beside an Italian flag: roasted in Italy. No owner's site was found.",
-  },
   "rema-caffe": { cyrillic: "Рема" },
   vandino: {
     italian: "vandinocaffe.com calls it an Italian coffee brand, produced and packed in Italy.",
