@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs, EmptyState, SectionHeading } from "@/components/ui/primitives";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { listBrands } from "@/lib/catalog/queries";
 import { siteConfig } from "@/config/site";
 
@@ -41,21 +42,26 @@ export default async function BrandsPage() {
           description="Асортиментът се обновява. Моля, проверете отново скоро."
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
           {stocked.map((brand) => (
             <li key={brand.slug}>
               <Link
                 href={`/brands/${brand.slug}`}
-                className="group flex h-full flex-col rounded-md border border-line bg-paper-raised p-5 transition-colors hover:border-pine-500"
+                className="group flex h-full flex-col items-center rounded-md border border-line bg-paper-raised p-3 text-center transition-colors hover:border-pine-500 md:p-5"
               >
-                <h2 className="font-display text-lg font-semibold text-ink-900">{brand.name}</h2>
+                {/* The name is printed under the logo, so the logo is
+                    decorative here: the link reads "Lavazza, 21 продукта",
+                    not the name twice. A brand with no logo shows its name in
+                    the same box, so every tile in a row is the same height. */}
+                <BrandLogo brand={brand} size="tile" decorative />
+                <h2 className="mt-3 text-sm font-semibold text-ink-900">{brand.name}</h2>
                 {brand.tagline && (
                   <p className="mt-1 text-sm text-ink-500 italic">{brand.tagline}</p>
                 )}
                 {brand.description && (
                   <p className="mt-2 line-clamp-3 text-sm text-ink-500">{brand.description}</p>
                 )}
-                <p className="mt-auto pt-4 text-sm font-medium text-pine-700">
+                <p className="mt-auto pt-1 text-xs font-medium text-pine-700 tabular-nums">
                   {brand.productCount} {brand.productCount === 1 ? "продукт" : "продукта"}
                   <span
                     aria-hidden

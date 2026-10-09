@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { ButtonLink, SectionHeading } from "@/components/ui/primitives";
 import {
@@ -363,27 +364,25 @@ export function HomeBrands({ brands }: { readonly brands: readonly BrandView[] }
             </ButtonLink>
           }
         />
-        {/* Names only: there is no logo file we are permitted to use. */}
-        {/* On a phone twenty chips would wrap to seven lines, so they become
-            one scrolling row (DESIGN.md, "Chips"); the padding keeps the focus
-            ring inside the scroller's clip. */}
-        <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:p-0">
+        {/* Logo tiles (DESIGN.md, "Brand logo"): the logo's alt is the name;
+            a brand with no logo shows its name in the same box, so the row
+            stays even. On a phone twenty tiles would stack ten deep, so
+            they become one scrolling row; the padding keeps the focus ring
+            inside the scroller's clip. */}
+        <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:p-0 lg:grid-cols-6">
           {stocked.map((brand) => (
             <li key={brand.slug} className="shrink-0 snap-start scroll-ml-4">
               <Link
                 href={`/brands/${brand.slug}`}
-                // `relative` keeps the visually hidden unit inside the chip;
+                // `relative` keeps the visually hidden count inside the tile;
                 // unanchored, it would sit outside the scroller's clip and
                 // widen the whole page on a phone.
-                className="relative inline-flex min-h-9 items-center whitespace-nowrap gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
+                className="relative flex h-full items-center justify-center rounded-md border border-line bg-paper-raised p-3 transition-colors hover:border-pine-500"
               >
-                {brand.name}
-                <span className="text-2xs font-normal text-ink-300 tabular-nums">
-                  {brand.productCount}
-                  <span className="sr-only">
-                    {" "}
-                    {brand.productCount === 1 ? "продукт" : "продукта"}
-                  </span>
+                <BrandLogo brand={brand} size="tile" />
+                <span className="sr-only">
+                  {" "}
+                  {brand.productCount} {brand.productCount === 1 ? "продукт" : "продукта"}
                 </span>
               </Link>
             </li>

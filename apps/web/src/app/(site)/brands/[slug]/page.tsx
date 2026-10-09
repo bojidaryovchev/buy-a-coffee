@@ -8,7 +8,8 @@ import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/l
 import { getBrandBySlug, listProducts } from "@/lib/catalog/queries";
 import { composeBrandSummary, systemsForCategories } from "@/lib/catalog/brand-summary";
 import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
-import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { brandJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { siteConfig } from "@/config/site";
 
 export const revalidate = 300;
@@ -74,8 +75,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
         id="ld-brand"
         data={{
           "@context": "https://schema.org",
-          "@type": "Brand",
-          name: brand.name,
+          ...brandJsonLd(brand),
           ...(brand.description ? { description: brand.description } : {}),
         }}
       />
@@ -83,13 +83,9 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
       <Breadcrumbs items={breadcrumbs} />
 
       <header className="mb-8 max-w-prose">
-        {/*
-         * Brand logo: this is where it goes, above the name. Deliberately not
-         * rendered yet — we hold no logo files and no permission to use any,
-         * and an image slot with nothing in it is worse than no slot. When
-         * logos exist, add an optional `logo` to the brand view and render it
-         * here only when present.
-         */}
+        {/* The brand's own logo above its name; the `h1` stays text. A brand
+            with no logo shows nothing here — the name follows anyway. */}
+        <BrandLogo brand={brand} size="header" fallback="none" inline eager className="mb-4" />
         <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">
           {brand.name}
         </h1>

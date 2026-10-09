@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
 import {
@@ -385,6 +386,9 @@ function SuggestionPanel({
                 onHover={onHover}
                 onSelect={onSelect}
               >
+                {/* Decorative: the name follows in text. A brand with no logo
+                    keeps the empty box, so the names line up. */}
+                <BrandLogo brand={brand} size="suggestion" decorative fallback="blank" />
                 <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{brand.name}</span>
                 <span className="shrink-0 text-2xs text-ink-300">{brand.productCount}</span>
               </SuggestionRow>
