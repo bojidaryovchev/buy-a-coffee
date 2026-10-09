@@ -2,7 +2,7 @@
 
 ## What this is
 
-An online coffee shop for Bulgaria, trading as **Buy-a-Coffee**. It sells coffee
+An online coffee shop for Bulgaria, trading as **Buy a Coffee**. It sells coffee
 beans, capsules for five mutually incompatible capsule systems, and ESE paper
 pods, from about twenty mostly Italian brands — roughly 190 products.
 
@@ -13,7 +13,7 @@ customer leaves a phone number and is called back.
 Success is the number of order requests and how few of them end in "that does
 not fit my machine". Traffic, time on page and pages per session are not goals.
 
-Platform: web. Language: Bulgarian, and only Bulgarian. Currency: euro.
+Platform: web. Language: Bulgarian; only Bulgarian ships. Currency: euro.
 
 ## Who buys, and what each is trying to get done
 
@@ -71,14 +71,19 @@ look comparable when they are not.
 
 ## Operating context
 
-- **Market:** Bulgaria only. No language switcher and no plan for one.
+- **Market:** Bulgaria only. Every address carries its language (`/bg/…`), and
+  an English version is built and switched off until its content is written;
+  until then there is nothing to switch to and no switcher is shown.
 - **Ordering:** by phone callback. The form takes a phone number; name, quantity
   and a note are optional. A person calls to confirm the order and arrange
   delivery. The request is stored before any notification is sent.
 - **Mirrored catalog:** products, prices and availability are synchronised from
   one source shop, which also fulfils the order. The storefront never names that
   shop, never links to it and never loads anything from it. Product copy is
-  rewritten; the source's prose is not published.
+  rewritten; the source's prose is not published. A product's name and address
+  are the shop's own too, put together from the brand, the line, the format and
+  the pack size; the source's name for it is for the owner, who orders by it,
+  and is never shown to a customer.
 - **Commercial terms** — delivery fee, free-delivery threshold, delivery time,
   payment methods, returns — live in configuration. A term that has not been
   set is omitted from the page. It is never guessed and never written into copy
@@ -98,11 +103,14 @@ brand and model; search with typeahead in both alphabets; contact form;
 newsletter consent capture; legal pages; an admin panel for order requests,
 messages and the shared mailbox.
 
-**Planned and specified in `DESIGN.md`:** machine-first navigation; system badge
-and intensity scale on every card; quick order from the card; a facts table and
-a delivery-and-payment block on the product page; filters by system and
-intensity band and a sort by price per cup; a home page built from packshots;
-Vending Zone and Consumables pages; a journal.
+**Also built, to the standard in `DESIGN.md`:** machine-first navigation; system
+badge and intensity scale on every card; quick order from the card; a facts
+table and a delivery-and-payment block on the product page; filters by system
+and intensity band and a sort by price per cup; a home page built from
+packshots; Vending Zone and Consumables pages; a journal, called „Блог“ on the
+site; and four listings cut across the catalog — Lavazza's capsules, Lavazza's
+beans, decaf, and the cheapest per cup in each system — each shown only while
+it has products.
 
 **Deliberately out of scope:**
 
@@ -120,7 +128,7 @@ Vending Zone and Consumables pages; a journal.
 
 ## Brand
 
-**Buy-a-Coffee** is one of four sibling storefronts of the same company. It
+**Buy a Coffee** is one of four sibling storefronts of the same company. It
 shares the company's phone number and legal entity with them and nothing else:
 no shared visual identity, no cross-branding in the interface.
 

@@ -731,3 +731,92 @@ share the account, so this is an upper bound on this study's spend.
 | A rank tracker on the ~40 owner terms in §1, weekly after launch                                          | price with `estimate_rank_tracker_cost` |
 | After launch: Search Console replaces most of this; re-run §2 only for pages it shows as under-performing |                                       0 |
 | Romania / Greece, only if delivery abroad becomes real (§11)                                              |                             ~60–70 each |
+
+---
+
+## 18. What was built from this
+
+Added after the work, and the only part of this file that describes code. The
+sections above are the study as it was measured and are left as written, so
+where they say "Buy-a-Coffee", "four articles" or "eight decaf products" they
+record what was true or proposed on the day. How the pieces work is in
+[architecture.md](architecture.md); the reasons are in
+[decisions.md](decisions.md#addresses-and-names).
+
+### The decisions in §0
+
+| §0  | Decision                                 | Status                 | Where it lives                                                                                                                                                                                                          |
+| --- | ---------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Demand is capsules first                 | Built into the frame   | The navigation leads with the capsule systems (`apps/web/src/components/layout/navigation.ts`); four of the five added pages are capsule or brand × format pages                                                        |
+| 2   | Slugs put the system first               | Done                   | `categories` in `apps/web/src/i18n/slugs/bg.ts`; a category's stored slug answers 308 to its landing slug (`apps/web/src/lib/catalog/resolve-slug.ts`)                                                                  |
+| 3   | Add five pages                           | Done                   | Four landing listings (`apps/web/src/lib/catalog/landings.ts`, `apps/web/content/landing-copy.ts`) and the Tchibo machine page (`machineBrandFeatures` in the same copy file)                                           |
+| 4   | Keep names, slugs, copy and data our own | Done                   | `productName()` in `packages/shared/src/product-name.ts`; slugs in `packages/shared/src/product-slug.ts`; copy in `apps/web/content/product-copy.ts`, enforced by `pnpm check:originality`                              |
+| 5   | Build English, switch `/en` off          | Done                   | `LOCALE_READY` in `apps/web/src/i18n/config.ts`; `apps/web/src/proxy.ts`; `apps/web/src/lib/seo/alternates.ts`                                                                                                          |
+| 6   | Journal: one strong target, new articles | Done, with a deviation | Six articles in `apps/web/content/journal/articles/`. The capsule article is retitled and moved; two of the three proposed articles are written (choosing beans; arabica and robusta). See the deviations for the third |
+| 7   | The wizard: index the entry page only    | Done                   | `/bg/izbor-na-kafe` is in the sitemap; an answered state is `noindex` and disallowed in `apps/web/src/app/robots.ts`                                                                                                    |
+| 8   | Paid search pays only on large packs     | Not a code change      | Nothing in the repository runs or configures a campaign                                                                                                                                                                 |
+
+### The changes in §16
+
+| #   | Change                                                                      | Status                 | Where it lives                                                                                                                                                                                                                     |
+| --- | --------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Route slugs per §7, `/bg/` prefix, `/en/` off                               | Done                   | `apps/web/src/i18n/slugs/` (every row of §7 as decided), `apps/web/src/lib/routes.ts`, `apps/web/src/proxy.ts`; the pre-locale URLs answer 308 (`apps/web/src/lib/legacy-routes.ts`)                                               |
+| 2   | Product slug pattern; reserved list of top-level slugs                      | Done                   | `<brand>-<line>-<format>-<qty>` from `productName().slugBase`; `RESERVED_PRODUCT_SLUGS` in `packages/shared/src/storefront-data.ts`; stored products moved by `catalog:reslug`, old slugs kept in `products.previous_slugs`        |
+| 3   | Display names in the searched words                                         | Done                   | `productName()`: "Капсули за Dolce Gusto", "Кафе дози ESE". The source's name is shown only to the owner                                                                                                                           |
+| 4   | Distinguish the two "Lavazza Crema E Aroma 1кг." products                   | Done                   | One override in `apps/web/content/product-names.ts`: the bag from the Expert range is "Crema e Aroma Expert"                                                                                                                       |
+| 5   | Five new listings, each 404 and out of the sitemap when empty; a decaf flag | Done, with a deviation | `LandingAvailability` in `apps/web/src/lib/catalog/landings.ts` drives the 404, the sitemap, `llms.txt` and every link. Decaf reads `attributes.decaf`, which the record already held. The fifth page is the machine page in row 6 |
+| 6   | Tchibo machine page leads with Cafissimo and lists the Caffitaly products   | Done                   | `apps/web/src/app/(site)/[lang]/za-kafemashina/[brand]/page.tsx`, `machineBrandFeatures`                                                                                                                                           |
+| 7   | Titles and H1s per §12                                                      | Done, with deviations  | `apps/web/src/lib/seo/title.ts`, `apps/web/src/lib/seo/listing-meta.ts`, `apps/web/content/category-copy.ts`, `apps/web/content/landing-copy.ts`; §1 is held by `apps/web/test/keyword-map.test.ts`                                |
+| 8   | Retitle and reslug the "which capsule" article; journal at `/bg/blog/`      | Done                   | `apps/web/content/journal/articles/which-capsule.ts`, with its old slug in `previousSlugs`; the section is called „Блог“ (`JOURNAL_NAME` in `apps/web/src/lib/journal.ts`)                                                         |
+| 9   | `konsumativi` noindex while empty                                           | Done                   | `apps/web/src/app/(site)/[lang]/konsumativi/page.tsx`; left out of the sitemap and `llms.txt` on the same test                                                                                                                     |
+
+The internal-linking rules of §13 are built too: breadcrumbs by format
+(`categoryCrumbs` in `apps/web/src/lib/seo/json-ld.ts`), one link from a
+system's listing to the machine finder, one article per listing (`article` in
+`category-copy.ts`), and the links between pages that must not compete
+(`apps/web/src/lib/catalog/related-landings.ts`).
+
+### Found while building, outside the study
+
+The study did not cover share tags. While the titles were being built, most
+kinds of page were found to share under the home page's address, title and
+description, because a page that declares no `openGraph` inherits the
+layout's. Every page now declares its own (`apps/web/src/lib/seo/share.ts`),
+and `og:title` is the page's title without the shop's name.
+
+### Deliberate deviations
+
+- **The shop's name is printed "Buy a Coffee", not "Buy-a-Coffee".** Every
+  title in §12 ends with the hyphenated form; the built titles end
+  `| Buy a Coffee`, from `siteConfig.name`.
+- **The Caffitaly listing's title does not mention Tchibo Cafissimo.** §12
+  gives it "стават и за Tchibo Cafissimo"; §1 gives that term to the Tchibo
+  machine page, so the two tables of this study pull against each other. The
+  built title is "Капсули Caffitaly (Кафитали) — цена на чаша"; the listing's
+  description and introduction say it fits Cafissimo and link to that page.
+- **Titles are not held to sixty characters.** §12 asks for fifty to sixty,
+  and its own examples run longer once the name is added. Nothing enforces a
+  length. The one place the figure is used is the brand title, which adds
+  "— цена на чаша" only while the whole title stays within sixty.
+- **No figure is typed into a title.** §12 writes "100 бр." into the Lavazza
+  Blue title, "1 кг" into the Lavazza beans title, a list of systems into the
+  Lavazza capsules title and a list of formats into the decaf title. Each is
+  computed from the catalog when the page renders, and left out when it is not
+  true of everything on the page.
+- **Decaf lists more products than §8 counted.** §8 says eight, counted by
+  name. The page lists by the record's flag, which eleven products in the
+  reference snapshot carry. As the catalog stood on 9 October 2026, nine of
+  the eleven are coffee and two are caffeine-free drinks that are not coffee
+  (a spirulina latte and a crème brûlée drink, both for Dolce Gusto). The
+  page's own description therefore counts products without caffeine, not
+  coffees. This is data and will drift.
+- **Two new articles, not three.** §9 leaves „Италиански марки кафе“ to either
+  an article or the brands index, "one, not both". The brands index carries
+  it: its title is "Марки кафе — италиански и други" and its introduction
+  names the brands recorded as Italian (`apps/web/content/brand-facts.ts`).
+- **The promotions page does not disappear.** §1 has it exist only while a
+  reduction exists. It answers 200 so no link to it breaks, and is `noindex`
+  and out of the sitemap, `llms.txt` and the navigation while nothing is
+  reduced.
+- **A Modo Mio has a title §12 does not list:** "Капсули Lavazza A Modo Mio
+  (Лаваца А Модо Мио)".

@@ -39,7 +39,13 @@ Two more that cost a day rather than the panel:
 - **The catch-up sync as a dry run first.** Read its unresolved moves, and link
   what it could not pair with `pnpm catalog:link` before the real run, or each
   one becomes a duplicate. Then `catalog:verify`, `catalog:enrich --apply`,
+  `pnpm --filter @catalog/web catalog:reslug` (read the plan, then `--apply`),
   `copy:apply`, and a second sync that must change nothing.
+- **`catalog:reslug` before `copy:apply`, and after the migrations.** The
+  written copy is keyed by the shop's own product slugs, so `copy:apply` finds
+  nothing to attach to until the stored products have been moved to them. The
+  move needs migration `0007_product_previous_slugs`, and it leaves every old
+  slug answering 308 to the new one.
 
 ## Watch for, in the first weeks
 
@@ -65,6 +71,11 @@ conditions to `MAIL_TO`, once per condition per day. Start there.
   as `sync.moves_unresolved`, and stored in the run's `metadata.unresolvedMoves`.
   Each one is a product the source renamed that the sync would not guess at. Pair it with `catalog:link`, then
   `catalog:verify`.
+- **A pack-size conflict on the sync page.** The source states one pack size in
+  a product's name and another in its pack field. The storefront already shows
+  the name's and computes the price per cup from it, so nothing is wrong on the
+  site; the mistake is the source's to correct, and the line leaves the page
+  when it does.
 - **Products accumulating without copy.** They publish the generated sentence,
   which is correct but thin. `pnpm copy:todo` lists them; write entries, then
   `pnpm copy:apply`.
@@ -86,6 +97,6 @@ conditions to `MAIL_TO`, once per condition per day. Start there.
 ## After a brand change
 
 Brand values in `src/config/site.ts` are compiled into the bundle and the
-prerender cache can serve a stale page: a rename once updated `/brands` while
-`/` kept the old name. **Delete `.next` and rebuild**, then check the built HTML
+prerender cache can serve a stale page, one page showing the new name and
+another the old. **Delete `.next` and rebuild**, then check the built HTML
 rather than trusting a running server.

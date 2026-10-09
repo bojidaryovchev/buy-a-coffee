@@ -128,6 +128,29 @@ comparisons use integer minor units, because comparing decimal strings makes
 price and one has no pack size — observed, not hypothetical — so price is
 nullable and "Price on request" is a real render path, never `0.00`.
 
+**Where the source states two pack sizes, the name's is the product's.** The
+source types a pack size twice: at the end of the product's name and in a pack
+field of its own. For one tin of pods the two disagree, 18 in the name and 100
+in the field, and the price is the price of 18; dividing it by 100 printed a
+price per cup about a sixth of the true one, on the figure this shop exists to
+get right. The name is what the source's own customers read and order by, so it
+is the one of the two that has been checked. The rule is one function
+(`decidePackSize` in `@catalog/shared`) applied in the sync's normalisation, so
+the stored size, the servings and every price per cup follow from one decision
+and no reader had to change. Rejected: correcting it at display time, which
+leaves the sort column and the card able to disagree; and a list of known
+conflicts in a test, which cannot stop the next one arriving with a sync. A
+conflict is therefore data on the product, written on every run, cleared when
+the source corrects itself, and listed for the owner on the sync page.
+
+Three edges of that rule are deliberate. Identity still comes from the pack
+field as the source typed it: a key has to recognise the source's record, not
+be right about coffee, and re-keying on a correction would move the product for
+nothing. An empty pack field takes the name's size and raises no conflict,
+because nothing was contradicted. And a multipack name ("2 x 250 г") is read as
+stating no size, so the pack field stands: multiplying it out would raise
+conflicts on a guess.
+
 ## Safety
 
 **A product is never removed because of one bad request.** Absence increments a
@@ -406,7 +429,8 @@ source serving something structurally wrong is not one to ask for more.
 **Copy is keyed by our slug, not the source's key.** `copy:apply` used to match
 entries on `source_key`. The rename changed every key, which would have orphaned
 every entry at once. The slug is ours, allocated once and frozen, and a move
-keeps it.
+keeps it. (The one deliberate exception is `catalog:reslug`, after which
+`copy:apply` is run again; see [Addresses and names](#addresses-and-names).)
 
 **Override or generated, never the source.** The storefront first read
 `coalesce(override, source)`, the shape of the price layer. A price may fall
@@ -424,6 +448,171 @@ the pressure would be to write quickly rather than well. The generated sentence
 is ours and is held to the same standard by its own test
 (`test/fallback-copy.test.ts`), so a missing entry is unfinished, not wrong: the
 check reports the count and `copy:todo` lists the products.
+
+## Addresses and names
+
+The measurements behind these are in [seo.md](seo.md); its last section lists
+what was built from it.
+
+**Every locale is prefixed, Bulgarian included, and English is built but
+switched off.** A bare default beside prefixed siblings leaves `/kafe-kapsuli`
+ambiguous between a page and a redirect to one, and search engines settle an
+ambiguity by guessing. Prefixing from the start also means a second language
+can be added without moving a URL. English is not shipped because its content
+does not exist: a locale switched on before its copy publishes Bulgarian pages
+under English addresses, which teaches a crawler they are duplicates. So the
+gate is data (`LOCALE_READY`), and a locale that is off serves nothing and
+appears in no `hreflang`, sitemap or switcher.
+
+**The bare `/` is negotiated by `Accept-Language` alone.** A 307, because the
+answer is per visitor. No cookie, because the Cookies page promises the shop
+sets none and that promise is worth more than remembering a language. Nothing
+geographic, because EU rules on geo-blocking forbid routing a visitor by where
+they are, and because a crawler arriving from another country would be bounced
+off the Bulgarian pages, which are the whole shop. For the same reasons nobody
+is ever moved off the locale already in their URL.
+
+**Every URL the shop used to serve answers 308.** The unprefixed English routes
+were live and may be indexed, bookmarked or printed in a mail. Each goes to its
+replacement in one hop, query string kept. They are not disallowed in
+`robots.txt`: a crawler has to fetch a redirect to learn where it leads.
+
+**The proxy decides a catalog 404, not the page.** In Next.js 16 a page-level
+`notFound()` returns a 404 status over a document that is empty until
+JavaScript runs. The only 404 rendered on the server is the global one, and
+only routing can reach it, so the proxy asks the catalog whether a slug exists
+before the route tree sees it. The cost is a cached list of slugs and one more
+thing that must agree with the pages; it is bounded (five minutes, a reload on
+a miss at most every 15 seconds) and it fails open, because a wrong 404 from a
+failed lookup is worse than a blank one. Rejected: leaving it to `notFound()`,
+which fails the "works without JavaScript" rule on exactly the pages a dead
+link lands on.
+
+**No route-level loading state.** There is no `loading.tsx` and no Suspense
+boundary above a page, and none is to be added. Either lets Next send the shell
+before the page has decided what it is, and after that a page cannot answer
+with a status: the 308 for a product's previous slug, a brand's stored slug or
+a category's stored slug, and the 404 for what does not exist, would each
+become a 200 that JavaScript corrects. That is the defect the proxy's
+existence check removes, arriving by another door. The pages are cached and
+render whole, so a skeleton would cover very little waiting; the standard used
+to ask for one per fetching segment and no longer does. Boundaries below the
+page are fine, and the search field has one, whose fallback is a working form.
+
+**The 404 is always Bulgarian.** It is one page for every URL and is not told
+which was asked for; an honest fixed language beats a guessed one. This has to
+be revisited when a second locale ships.
+
+**A product's name on the storefront is the shop's own; the source's name is
+for the owner.** The source's names are its shorthand ("DG", "Дозети"), which
+nobody searches for, and printing them made every product page a reworded copy
+of the source's. The name is rebuilt from data the catalog already holds —
+brand, line, format from the category, pack size — by one pure function shared
+by the sync and the storefront, because the sync derives a URL from the name
+and a URL is frozen the moment it is published. The source's name is kept
+untouched for the owner's side, who orders by it, and search matches both.
+Rejected: a hand-written name per product, which the sync would outrun.
+
+**A product slug is a function of the product, never of arrival order.** A
+counter suffix makes the slug depend on which of two products was stored first,
+and the shop has two databases that were filled in different orders and must
+publish the same URLs, with the written copy keyed by them. So when products
+share a base, every one of them takes a discriminator derived from its own
+source key and nobody keeps the bare base. The sync applies the same rule to a
+newcomer and never moves a product already stored; closing that gap is
+`catalog:reslug`, which a person runs after reading its plan.
+
+**Every address a product has had keeps redirecting, and is never reused.** The
+products moved once, from the source's wording to the shop's, and the old
+addresses are the ones search engines hold. They are stored on the row rather
+than in a redirect table so they travel with the product and stay reserved.
+
+**A brand is published at the slug it writes itself with.** The stored slug is
+derived from the source's label and frozen (`lollocafe`); the brand calls
+itself Lollo Caffè. Only the brands that differ are curated, the stored slug
+answers 308, and everything internal keeps keying a brand by the stored slug
+so no filter, logo or query had to change. Display names follow the brand's
+own spelling where it was checked against its site and packs; Rema Caffè is
+the one compromise, written as two words with a grave accent although the
+brand's mark sets it as one word, because that is how Italian writes "caffè"
+and how the product copy already wrote it.
+
+**One doorway from a package into the app.** The sync allocates product URLs,
+so it must know which first-level addresses the storefront has taken, and the
+sync cannot depend on the web app. `packages/shared/src/storefront-data.ts`
+imports the storefront's plain-data tables directly. Rejected: a second copy of
+each table inside a package held equal by a test, which is wrong on the day
+someone adds a route and has not yet run the test, and on that day the sync
+could hand a product the URL of a page.
+
+**A landing listing is a rule over the catalog, and exists only while it lists
+something.** The four pages are not categories the source keeps, so each is a
+pure selection in code. One answer (`LandingAvailability`) drives the page's
+404, the sitemap, `llms.txt`, the footer and every cross-link, because a link
+to a page that says "nothing here" is worse than no link, and five separate
+checks would drift.
+
+**"Cheapest" means the head of the per-cup sort, among what can be ordered.**
+Three per system: enough to compare, few enough to be a shortlist. A sold-out
+pack is left out, because calling something the cheapest way to drink coffee
+when it cannot be ordered is a claim about nothing. Ties are broken as the
+listing's own sort breaks them, so the page can never show an order the
+listing contradicts.
+
+**Decaf is what the record's flag says, never what the name says.** A name that
+contains "Decaf" proves nothing, and a product without the word may still be
+flagged. The flag selects more products than a count by name does; the page
+lists what the data says, and the "Без кофеин" filter on every listing applies
+the same test.
+
+**The journal is called „Блог“ to customers.** „Дневник“ reads in Bulgaria as a
+school register or a newspaper, and searches for it are for those. The code
+keeps the word "journal"; only the label and the address changed.
+
+**One title format, and the shop's name is printed "Buy a Coffee".** A bar
+before the name, decided in one function, because the titles themselves use a
+dash and a second one would read as a third clause. The name is written as
+three words everywhere a customer or a search result shows it, as
+`siteConfig.name` has it, not hyphenated as the study's examples were.
+
+**The layout's share tags describe no page.** Next merges `openGraph`
+shallowly: a page that sets none inherits the layout's whole object. While the
+layout's object carried a URL, a title and a description, they were the home
+page's, and every page that declared nothing of its own shared as the home
+page. So the layout declares only what is true of every page — the kind, the
+shop's name, the locale, the card — and each page declares its own address,
+title and description through one helper (`lib/seo/share.ts`). A page that
+forgets now shares with no `og:url` at all, which is honest and which a test
+catches; the alternative, a default that is wrong for every page but one, is
+neither. Three rules follow from the same helper. `og:title` is the page's own
+words without the shop's name, because `og:site_name` carries the name and a
+preview prints both. A `noindex` view shares as its canonical, because a
+filtered listing passed around in a message should open the page that is
+meant to be found. And nothing spells `openGraph` by hand.
+
+**One page owns each search term, and a test holds it.** Three consequences
+that are easy to undo by accident:
+
+- The Caffitaly listing's title does not say that its capsules fit Tchibo
+  Cafissimo, although the study's own example does. That term belongs to the
+  Tchibo machine page, and two titles carrying it would compete. The listing's
+  description and introduction say it and link there.
+- The brands index, not a journal article, owns „италиански марки кафе“. The
+  study left the choice open and asked for one, not both; the index already
+  lists the brands, so it says which are Italian, from recorded evidence.
+- The Lavazza brand page does not repeat, in its row of system chips, a shelf
+  its block of related pages already links: one destination, one link in a
+  page's header.
+
+**The promotions page answers 200 with nothing reduced, and is `noindex`
+then.** A 404 would break every link to it the day the last reduction ends. It
+leaves the sitemap, `llms.txt` and the navigation while it is empty and
+returns by itself.
+
+**A machine page links to the system's shelf, not to an answered wizard.**
+Answered wizard states are disallowed in `robots.txt`, and a crawlable link to
+a disallowed URL is wasted. The shelf is also where a visitor who now knows
+their system wants to be.
 
 ## Design
 
@@ -452,6 +641,15 @@ as equally strong. So it is always "8 от 12", with the scale drawn.
 
 **Packshots sit on pure white.** The photographs have white grounds; any tinted
 well draws a rectangle around each one.
+
+**A brand's logo appears only where the brand is the subject, and never marks
+a system.** A logo is the brand's trademark, shown to identify the genuine
+product: on the brand's page, the brands index, its own products. It is the
+brand's own file, checked against the packs, with the provenance recorded, and
+never recoloured; a logo published only in white sits on a dark tile. A system
+is named in text by the system badge even where the system's owner is a brand
+on sale, because a logo beside somebody else's compatible capsule would read
+as an endorsement. Four brands have no usable logo and show their name.
 
 **`@theme static`.** Tailwind normally emits only the theme variables some
 utility uses. The system colours are reached only through `var()` from the

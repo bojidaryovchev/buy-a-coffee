@@ -63,6 +63,30 @@ product type: listings filter by system and sort by price per cup, every product
 page states which machines it fits, and a recommendation wizard asks which
 machine is on the counter before anything else.
 
+**Every page is under a locale prefix.** The shop is at `/bg/…`, with
+Bulgarian transliterated slugs: `/bg/kafe-kapsuli`, `/bg/marki/lavazza`,
+`/bg/za-kafemashina/krups`, `/bg/blog`. Categories and products share the first
+level, `/bg/<slug>`. An English locale (`/en/…`) is built and switched off by
+one flag, `LOCALE_READY` in `apps/web/src/i18n/config.ts`. The bare `/` answers
+307 to a locale, and every URL the shop served before locales
+(`/products/<slug>`, `/categories/<slug>`, `/wizard`, …) answers 308 to its
+replacement. No link in the code is written as a path: every one is built by
+`href()` and its helpers in `apps/web/src/lib/routes.ts`, from the slug tables
+in `apps/web/src/i18n/slugs/`, and a test fails on a bare one. The route table
+is in [`docs/architecture.md`](docs/architecture.md#routes).
+
+**Product names and addresses are the shop's own.** The source's name for a
+product is stored and shown only to the owner. What a customer reads is
+computed from the record by `productName()` in `packages/shared` — brand and
+line, then format and quantity, "Lavazza Super Crema — кафе на зърна, 1 кг" —
+and the product's slug is derived from the same name:
+`lavazza-super-crema-kafe-na-zarna-1-kg`. A slug a product used to have keeps
+answering 308.
+
+Besides the categories the source keeps, four **landing listings** are rules
+over the catalog: Lavazza's capsules, Lavazza's beans, decaf, and the cheapest
+per cup in each system. Each exists only while it lists something.
+
 **Product descriptions are ours, or they are a generated sentence; they are
 never the source's.** The sync records what the source publishes and the
 storefront never selects it. Copy is written in
@@ -107,8 +131,9 @@ apps/
   web/                Next.js storefront and the admin panel at /admin
 packages/
   shared/             URL canonicalisation, exact decimals, money, weights,
-                      servings per pack, hashing, structured logging
-                      (no I/O, no dependencies)
+                      servings per pack, the pack-size rule, product names
+                      and slugs, hashing, structured logging (no I/O, no
+                      dependencies)
   db/                 Drizzle schema, migrations, database client
   scraper-core/       fetcher, parsers, catalog discovery, diff engine, move
                       detection, circuit breaker, enrichment, image mirror,
@@ -125,7 +150,11 @@ Layering is strict and one-directional: `shared` knows nothing about the
 source, `scraper-core` knows nothing about the CLI or the scheduler, and the
 diff engine, move detection, taxonomy matching and circuit breaker are pure
 functions with no database or network access at all — which is what makes the
-dangerous logic exhaustively testable.
+dangerous logic exhaustively testable. There is one deliberate exception to
+"packages do not import the app": `packages/shared/src/storefront-data.ts`
+reads three plain-data tables from `apps/web` (brand names, product-name
+overrides, the slug tables), so the sync allocates product slugs against the
+storefront's own list of taken addresses and not a copy of it.
 
 ### Key design decisions
 
@@ -192,14 +221,16 @@ pnpm sync:catalog                    # a real sync from the source
 ```
 
 `seed:reference` loads `reference/latest/` into the database with our copy and a
-generated image per product. It refuses any database that is not on this machine
+generated image per product, applies the pack-size rule, moves every product to
+the shop's own slug with the code `catalog:reslug` uses, and plants four former
+slugs (`apps/web/scripts/reference-former-slugs.ts`) for the redirect tests. It refuses any database that is not on this machine
 or that already holds another source's catalog, so use an empty database for
 it. A real sync (any run that writes) refuses to start until `CRAWL_USER_AGENT`
 in `.env` names a contact the source's operator can reach; `--dry-run` works with
 the placeholder.
 
 ```bash
-pnpm dev                             # http://localhost:3000
+pnpm dev                             # http://localhost:3000, which redirects to /bg
 ```
 
 `next dev` reads `apps/web/.env.local` on its own; the scripts and the CLI read
@@ -211,41 +242,42 @@ the storefront serves them through a development-only `/media` route.
 
 From the repository root:
 
-| Command                         | What it does                                                                                                      |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`                      | Run the storefront locally (`next dev`, port 3000)                                                                |
-| `pnpm build`                    | Production build of the storefront                                                                                |
-| `pnpm typecheck`                | Strict TypeScript across every package                                                                            |
-| `pnpm lint` / `pnpm lint:fix`   | ESLint                                                                                                            |
-| `pnpm format` / `format:check`  | Prettier, write or check                                                                                          |
-| `pnpm test`                     | Unit tests only, with no database configured                                                                      |
-| `pnpm test:integration`         | Every `*.integration.test.ts` and `*.db.test.ts`; needs PostgreSQL                                                |
-| `pnpm test:all`                 | All four Vitest projects                                                                                          |
-| `pnpm test:watch`               | Vitest in watch mode                                                                                              |
-| `pnpm test:e2e`                 | Playwright, desktop and mobile, against a production build (run `pnpm build` first)                               |
-| `pnpm db:migrate`               | Apply the database migrations (`packages/db/migrations/`); safe to run repeatedly                                 |
-| `pnpm db:generate`              | Generate a migration from schema changes                                                                          |
-| `pnpm db:studio`                | Drizzle Studio                                                                                                    |
-| `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                           |
-| `pnpm crawl:discovery`          | Full public-surface crawl, then export `reference/latest/`                                                        |
-| `pnpm reference:export`         | Re-crawl the source and rewrite `reference/latest/` (contacts the source; a writing run)                          |
-| `pnpm catalog:verify`           | Assert the catalog invariants against the database; exit 2 on a violation (`--json` for the report)               |
-| `pnpm catalog:link`             | `<our-slug> <new-source-key>`: re-point a product the sync could not pair (plan only; `--apply`, `--absorb-twin`) |
-| `pnpm catalog:enrich`           | Read the product page of every active product without a code (plan only; `--apply`, `--limit <n>`)                |
-| `pnpm images:gc`                | Report unreferenced mirrored images (`--apply` to delete)                                                         |
-| `pnpm images:push`              | Copy every referenced image between stores: `--from <driver> --to <driver>` (plan only; `--apply`)                |
-| `pnpm images:verify`            | Check every referenced image is in the configured store (`--http` also fetches each public URL)                   |
-| `pnpm seed:reference`           | Load the committed snapshot into an empty local database                                                          |
-| `pnpm seed:dev`                 | Add six invented products under a `seed-dev` source key                                                           |
-| `pnpm copy:apply`               | Publish `content/product-copy.ts` into the override columns (`--dry-run` to preview)                              |
-| `pnpm copy:todo`                | List the products that still publish the generated sentence                                                       |
-| `pnpm check:originality`        | No source branding or source copy in the storefront                                                               |
-| `pnpm check:launch`             | Fails while a draft marker would render or a commercial term is unset or unconfirmed                              |
-| `pnpm reference:coverage`       | Fails if the storefront misses an observed capability or `docs/reference-coverage.md` is stale                    |
-| `pnpm reference:coverage:write` | Regenerate `docs/reference-coverage.md`                                                                           |
-| `pnpm env:check`                | Report the storefront's environment against the manifest, and what each absence costs                             |
-| `pnpm env:example`              | Regenerate `apps/web/.env.example` from the manifest                                                              |
-| `pnpm env:push`                 | Apply the manifest to Vercel (plan only; `--apply`, `--offline`, `--prune`)                                       |
+| Command                         | What it does                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                      | Run the storefront locally (`next dev`, port 3000)                                                                  |
+| `pnpm build`                    | Production build of the storefront                                                                                  |
+| `pnpm typecheck`                | Strict TypeScript across every package                                                                              |
+| `pnpm lint` / `pnpm lint:fix`   | ESLint                                                                                                              |
+| `pnpm format` / `format:check`  | Prettier, write or check                                                                                            |
+| `pnpm test`                     | Unit tests only, with no database configured                                                                        |
+| `pnpm test:integration`         | Every `*.integration.test.ts` and `*.db.test.ts`; needs PostgreSQL                                                  |
+| `pnpm test:all`                 | All four Vitest projects                                                                                            |
+| `pnpm test:watch`               | Vitest in watch mode                                                                                                |
+| `pnpm test:e2e`                 | Playwright, desktop and mobile, against a production build (run `pnpm build` first; see [Testing](#testing))        |
+| `pnpm db:migrate`               | Apply the database migrations (`packages/db/migrations/`); safe to run repeatedly                                   |
+| `pnpm db:generate`              | Generate a migration from schema changes                                                                            |
+| `pnpm db:studio`                | Drizzle Studio                                                                                                      |
+| `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                             |
+| `pnpm crawl:discovery`          | Full public-surface crawl, then export `reference/latest/`                                                          |
+| `pnpm reference:export`         | Re-crawl the source and rewrite `reference/latest/` (contacts the source; a writing run)                            |
+| `pnpm catalog:verify`           | Assert the catalog invariants against the database; exit 2 on a violation (`--json` for the report)                 |
+| `pnpm catalog:link`             | `<our-slug> <new-source-key>`: re-point a product the sync could not pair (plan only; `--apply`, `--absorb-twin`)   |
+| `pnpm catalog:enrich`           | Read the product page of every active product without a code (plan only; `--apply`, `--limit <n>`)                  |
+| `pnpm images:gc`                | Report unreferenced mirrored images (`--apply` to delete)                                                           |
+| `pnpm images:push`              | Copy every referenced image between stores: `--from <driver> --to <driver>` (plan only; `--apply`)                  |
+| `pnpm images:verify`            | Check every referenced image is in the configured store (`--http` also fetches each public URL)                     |
+| `pnpm seed:reference`           | Load the committed snapshot into an empty local database                                                            |
+| `pnpm seed:dev`                 | Add six invented products under a `seed-dev` source key                                                             |
+| `pnpm copy:apply`               | Publish `content/product-copy.ts` into the override columns (`--dry-run` to preview)                                |
+| `pnpm copy:todo`                | List the products that still publish the generated sentence                                                         |
+| `pnpm check:originality`        | No source branding or source copy in the storefront                                                                 |
+| `pnpm check:launch`             | Fails while a draft marker would render or a commercial term is unset or unconfirmed                                |
+| `pnpm reference:coverage`       | Fails if the storefront misses an observed capability or `docs/reference-coverage.md` is stale                      |
+| `pnpm reference:coverage:write` | Regenerate `docs/reference-coverage.md`                                                                             |
+| `pnpm measure:budgets`          | Measure mobile LCP and CLS against the budgets in `DESIGN.md`, on a production build already running (`--base-url`) |
+| `pnpm env:check`                | Report the storefront's environment against the manifest, and what each absence costs                               |
+| `pnpm env:example`              | Regenerate `apps/web/.env.example` from the manifest                                                                |
+| `pnpm env:push`                 | Apply the manifest to Vercel (plan only; `--apply`, `--offline`, `--prune`)                                         |
 
 Only through a package filter:
 
@@ -253,6 +285,8 @@ Only through a package filter:
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `pnpm --filter @catalog/web start`              | Serve a production build                                                                        |
 | `pnpm --filter @catalog/web test:e2e:ui`        | Playwright's UI mode                                                                            |
+| `pnpm --filter @catalog/web catalog:reslug`     | Plan moving stored products to the shop's own slugs (`--tsv <file>`, `--apply`); idempotent     |
+| `pnpm --filter @catalog/web catalog:pack-size`  | Plan applying the pack-size rule to stored rows, without contacting the source (`--apply`)      |
 | `pnpm --filter @catalog/web mail:prune-foreign` | Plan the removal of mailbox threads never addressed to this shop (`--export <file>`, `--apply`) |
 | `pnpm --filter @catalog/web brand:assets`       | Regenerate the favicon, touch and share icons from `public/logo.png`                            |
 | `pnpm --filter @catalog/scraper cli status`     | Print catalog counts                                                                            |
@@ -282,6 +316,14 @@ differently on "we are misconfigured" versus "the source misbehaved".
 
 In Git Bash, prefix `catalog:link` with `MSYS_NO_PATHCONV=1`, or the leading `/`
 of the source key is rewritten into a Windows path.
+
+`catalog:reslug` needs migration `0007_product_previous_slugs`. It appends each
+old slug to `products.previous_slugs`, so the old URL answers 308 from then on,
+and it is followed by `pnpm copy:apply`, because the written copy is keyed by
+slug. A slug is otherwise frozen: read the plan before applying.
+`catalog:pack-size` is optional on a synced catalog, whose next ordinary run
+corrects the rows itself; run it only once the sync job is on the code that
+applies the rule, or an older sync rewrites the columns from the pack field.
 
 ## Environment variables
 
@@ -391,6 +433,22 @@ The sync also stores `servings` and `servings_estimated` (cups per pack) from
 `packServings()` in `@catalog/shared`, the same function the storefront
 displays with, so listings can sort by price per cup in SQL.
 
+**Pack size.** The source states a pack size in the product's name and again
+in a pack field, and the two can disagree. `decidePackSize()` in
+`@catalog/shared` settles it during normalisation: the pack field stands unless
+the name states another size, and then the name's does. The decided size is
+what is stored, hashed and divided into servings; identity is still built from
+the pack field as the source typed it. The source's own field and any conflict
+are kept in `source_data`, and the admin's sync page lists the conflicts.
+
+**Names and slugs.** The sync stores the source's name untouched and, beside
+it, `search_name`: the shop's own heading for the product, for search. A
+product seen for the first time is given its storefront slug from
+`productName()` (`<brand>-<line>-<format>-<qty>`), refused any address already
+taken by a product, a former product slug, a category or a route, and
+disambiguated by a suffix derived from its source key, never by a counter. A
+slug is allocated once and the sync never changes it.
+
 **Request budget.** Every sync makes 3 page requests (robots.txt, the not-found
 probe, `/search/`), plus one per product page read: a day with five new
 products is 8, and no sync can exceed 3 + `SYNC_ENRICH_MAX_PER_RUN` = 23. The
@@ -460,6 +518,11 @@ Three things read the artifacts: `reference:coverage` (parity),
 `check:originality` and `copy:todo` (the source's text, to compare our copy
 against), and `seed:reference` (the offline catalog for tests and CI).
 
+`products.json` records each product as it stood when the snapshot was
+exported, so its slugs and pack sizes may predate the shop's own slugs and the
+pack-size rule. `seed:reference` applies both, with the production code, so a
+seeded catalog matches a synced one whatever the snapshot's age.
+
 ## Testing
 
 ```bash
@@ -488,7 +551,9 @@ four projects from it (`unit`, `integration`, `web-unit`, `web-integration`):
   private database on the server (`TEST_DATABASE_URL`, named after
   `TEST_DATABASE_NAME`, so several checkouts can share one server), and
   `*.db.test.ts`, which read the catalog in `DATABASE_URL` — seed it with
-  `pnpm seed:reference` first. Only the network is faked; the diff engine,
+  `pnpm seed:reference` first. A `*.db.test.ts` file only reads: that database
+  is the development catalog, and a test that has to write belongs in the
+  other group, with a private database. Only the network is faked; the diff engine,
   repository, circuit breaker, enrichment and image mirror run their production
   code paths. With no database reachable they skip, under a banner that says so;
   with `CI` set, an unreachable database fails the run instead.
@@ -496,7 +561,27 @@ four projects from it (`unit`, `integration`, `web-unit`, `web-integration`):
   Pixel 7, against `next start` on port 8765 over a real production build. They
   open with a canary that the server under test is this app, assert at the
   browser level that nothing is loaded from the source, and drive the wizard with
-  JavaScript disabled.
+  JavaScript disabled. The URLs they visit are written out literally in
+  `e2e/support/paths.ts`, not computed by the code under test, so a slug change
+  fails there until the list is updated in the same commit.
+
+To run the browser suite locally, the way CI does:
+
+```bash
+set -a && . ./.env && set +a         # DATABASE_URL, for the build and the server
+pnpm db:migrate && pnpm seed:reference
+pnpm build
+pnpm --filter @catalog/web exec playwright install chromium   # once
+pnpm test:e2e                        # or: pnpm --filter @catalog/web test:e2e e2e/names.spec.ts
+```
+
+The suite is written against the `seed:reference` catalog and a production
+build made against it; `next dev` and the six `seed:dev` products will not pass
+it. Playwright starts the server itself and refuses to reuse one already
+listening. `E2E_PORT` moves it off 8765, `E2E_BASE_URL` points the suite at a server that is already
+running instead, and `CI=true` adds two retries and limits it to two workers.
+CI builds with `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:8765`, so the absolute
+URLs in the pages point at the server under test.
 
 **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every
 pull request and on pushes to `main` and `completion`. The `verify` job runs
