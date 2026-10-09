@@ -20,6 +20,7 @@
     "seed:dev": "tsx scripts/seed-dev.ts",
     "seed:reference": "tsx scripts/seed-reference.ts",
     "reference:coverage": "tsx scripts/reference-coverage.ts",
+    "measure:budgets": "tsx scripts/measure-budgets.ts",
     "reference:coverage:write": "tsx scripts/reference-coverage.ts --write",
     "check:originality": "tsx scripts/check-originality.ts",
     "check:launch": "tsx scripts/check-launch.ts",

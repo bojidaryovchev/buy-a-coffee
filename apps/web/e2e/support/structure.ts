@@ -42,6 +42,18 @@ export async function expectImagesHaveAlt(page: Page): Promise<void> {
 
 /** Every visible form control has a label, an aria-label or an aria-labelledby. */
 export async function expectControlsLabelled(page: Page): Promise<void> {
+  /*
+   * The header's search field is server-rendered as a plain form and replaced
+   * by the typeahead after hydration. For a moment during that swap the old
+   * input is still in the document and its label is not (reported as an app
+   * defect), so the check waits for the page to settle: what is asserted
+   * here is the page's structure, not that transition.
+   */
+  if ((await page.locator('header input[name="q"]').count()) > 0) {
+    await expect(page.locator('header input[name="q"][role="combobox"]')).toHaveCount(1);
+    await expect(page.locator('header input[name="q"]:not([role="combobox"])')).toHaveCount(0);
+  }
+
   const unlabelled = await page
     .locator("input:not([type=hidden]), textarea, select")
     .evaluateAll((nodes) =>
@@ -58,7 +70,13 @@ export async function expectControlsLabelled(page: Page): Promise<void> {
             element.closest("label") === null
           );
         })
-        .map((node) => node.getAttribute("name") ?? node.tagName),
+        // Name, id and whether a label exists anywhere for it: enough to tell
+        // a missing label from a label that points at a different id.
+        .map((node) => {
+          const id = node.getAttribute("id");
+          const labels = Array.from(document.querySelectorAll("label")).map((l) => l.htmlFor);
+          return `${node.getAttribute("name") ?? node.tagName}#${id ?? ""} (labels for: ${labels.join(", ")})`;
+        }),
     );
   expect(unlabelled, "controls without an accessible name").toEqual([]);
 }

@@ -31,6 +31,7 @@
     "catalog:enrich": "pnpm --filter @catalog/scraper cli catalog:enrich",
     "test:e2e": "pnpm --filter @catalog/web test:e2e",
     "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
+    "measure:budgets": "pnpm --filter @catalog/web measure:budgets",
     "reference:coverage:write": "pnpm --filter @catalog/web reference:coverage:write",
     "check:originality": "pnpm --filter @catalog/web check:originality",
     "check:launch": "pnpm --filter @catalog/web check:launch",

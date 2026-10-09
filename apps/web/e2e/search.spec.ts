@@ -11,6 +11,19 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const searchInput = (page: Page) => page.locator('input[name="q"]').first();
 
+/**
+ * The header field once the interactive one has replaced the fallback.
+ *
+ * The swap replaces the `<input>` element, so text typed into the fallback
+ * before it happens is lost (reported as an app defect). A spec that types
+ * into the field to test the typeahead waits for the typeahead first.
+ */
+async function interactiveSearchInput(page: Page) {
+  const field = searchInput(page);
+  await expect(field).toHaveAttribute("role", "combobox");
+  return field;
+}
+
 test("search page loads with no query", async ({ page }) => {
   await page.goto("/search");
   await expect(page.getByRole("heading", { name: "Търсене", exact: true })).toBeVisible();
@@ -28,7 +41,7 @@ test("searching a known brand returns matching products", async ({ page }) => {
 
 test("search works from the header field", async ({ page }) => {
   await page.goto("/");
-  const field = searchInput(page);
+  const field = await interactiveSearchInput(page);
   await field.fill("lavazza");
   await field.press("Enter");
 
@@ -135,8 +148,13 @@ test("a phonetic spelling of a brewing system finds its capsules", async ({ page
 
 test("a nonsense query shows a helpful no-results state", async ({ page }) => {
   await page.goto("/search?q=zzzzqqqqxxxx");
-  await expect(page.getByText(/няма съвпадения за/i)).toBeVisible();
-  await expect(page.getByRole("link", { name: /разгледай категориите/i })).toBeVisible();
+  // It names the term, so a typo is visible, and offers a way forward.
+  await expect(page.getByRole("heading", { name: "Не намерихме „zzzzqqqqxxxx“" })).toBeVisible();
+  await expect(page.locator('main a[href^="/products/"]')).toHaveCount(0);
+  // In <main>: the header rail has a link of the same name.
+  await expect(
+    page.locator("main").getByRole("link", { name: "Намери по машина" }),
+  ).toHaveAttribute("href", "/wizard/machines");
 });
 
 test("search results are not indexable", async ({ page }) => {
@@ -165,7 +183,7 @@ test("a query containing SQL syntax is treated as text", async ({ page }) => {
 test.describe("typeahead", () => {
   test("suggests products with images as you type", async ({ page }) => {
     await page.goto("/");
-    await searchInput(page).fill("lavazza");
+    await (await interactiveSearchInput(page)).fill("lavazza");
 
     const listbox = page.getByRole("listbox", { name: /предложения/i });
     await expect(listbox).toBeVisible();
@@ -180,7 +198,7 @@ test.describe("typeahead", () => {
 
   test("suggests across scripts, like the results page", async ({ page }) => {
     await page.goto("/");
-    await searchInput(page).fill("крема");
+    await (await interactiveSearchInput(page)).fill("крема");
 
     const listbox = page.getByRole("listbox", { name: /предложения/i });
     await expect(listbox).toBeVisible();
@@ -189,7 +207,7 @@ test.describe("typeahead", () => {
 
   test("suggests for a phonetic spelling, like the results page", async ({ page }) => {
     await page.goto("/");
-    await searchInput(page).fill("лаваца");
+    await (await interactiveSearchInput(page)).fill("лаваца");
 
     const listbox = page.getByRole("listbox", { name: /предложения/i });
     await expect(listbox).toBeVisible();
@@ -211,7 +229,7 @@ test.describe("typeahead", () => {
 
   test("the keyboard alone can reach a product", async ({ page }) => {
     await page.goto("/");
-    const field = searchInput(page);
+    const field = await interactiveSearchInput(page);
     await field.fill("lavazza");
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
 
@@ -226,7 +244,7 @@ test.describe("typeahead", () => {
 
   test("Escape closes the dropdown without running the search", async ({ page }) => {
     await page.goto("/");
-    const field = searchInput(page);
+    const field = await interactiveSearchInput(page);
     await field.fill("lavazza");
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
 
@@ -237,7 +255,7 @@ test.describe("typeahead", () => {
 
   test("Enter with nothing highlighted runs the full search", async ({ page }) => {
     await page.goto("/");
-    const field = searchInput(page);
+    const field = await interactiveSearchInput(page);
     await field.fill("lavazza");
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
 

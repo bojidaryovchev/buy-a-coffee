@@ -5,7 +5,11 @@ import { promisify } from "node:util";
 import { sha256Hex, type Logger, silentLogger } from "@catalog/shared";
 import { findWorkspaceRoot, resolveFromWorkspaceRoot } from "./paths.ts";
 import type { ScraperConfig } from "../config.ts";
-import type { CatalogDiscoveryResult } from "../catalog/discover.ts";
+import type {
+  CatalogDiscoveryResult,
+  DiscoveredBrand,
+  DiscoveredCategory,
+} from "../catalog/discover.ts";
 import type { NormalizedProduct } from "../catalog/normalize.ts";
 import type { DiscoveryCrawlResult } from "../discovery/crawler.ts";
 import {
@@ -47,6 +51,19 @@ export interface ArtifactExportInput {
    * truth for one that has been discovered but not synced yet.
    */
   readonly productSlugs?: ReadonlyMap<string, string>;
+  /**
+   * Storefront slug per category and per brand, keyed by `sourceKey`, read
+   * from the database for the same reason as `productSlugs`.
+   *
+   * These matter because the source renames its taxonomy and we do not: when
+   * it turned `kapsuli` into `kafe-kapsuli` the sync followed the rename and
+   * kept our `/categories/kapsuli`. Anything that rebuilds the storefront from
+   * the snapshot alone (the reference seed) can only get that right if the
+   * snapshot says so. A key missing from its map is exported with
+   * `slug: null`.
+   */
+  readonly categorySlugs?: ReadonlyMap<string, string>;
+  readonly brandSlugs?: ReadonlyMap<string, string>;
   readonly logger?: Logger;
   /** Injected in tests so the manifest is reproducible. */
   readonly now?: () => Date;
@@ -133,6 +150,60 @@ export function exportedSlug(
   productSlugs: ReadonlyMap<string, string> | undefined,
 ): string | null {
   return productSlugs?.get(product.sourceKey) ?? product.slug ?? null;
+}
+
+export const CATEGORIES_ARTIFACT_DESCRIPTION =
+  "Category taxonomy, including parent/child relationships. `slug` is the storefront's own identifier for the category, allocated at first sync and kept when the source renames it; it is null for a category that has not been synced yet.";
+
+export const BRANDS_ARTIFACT_DESCRIPTION =
+  "Brands that carry products. `rawSlug` preserves the source slug verbatim, including a leading space on one real brand. `slug` is the storefront's own identifier for the brand, allocated at first sync and frozen; it is null for a brand that has not been synced yet.";
+
+/**
+ * One category as it appears in `categories.json`. As with products, `slug`
+ * is the one field that is ours rather than observed.
+ */
+export function referenceCategoryRecord(
+  category: DiscoveredCategory,
+  slug: string | null,
+): Record<string, unknown> {
+  return {
+    sourceKey: category.sourceKey,
+    slug,
+    rawSlug: category.rawSlug,
+    sourceId: category.sourceId,
+    name: category.name,
+    url: category.url,
+    parentKey: category.parentKey,
+    position: category.position,
+    productCount: category.productCount,
+  };
+}
+
+/** One brand as it appears in `brands.json`; `slug` is ours, the rest observed. */
+export function referenceBrandRecord(
+  brand: DiscoveredBrand,
+  slug: string | null,
+): Record<string, unknown> {
+  return {
+    sourceKey: brand.sourceKey,
+    slug,
+    rawSlug: brand.rawSlug,
+    sourceId: brand.sourceId,
+    name: brand.name,
+    url: brand.url,
+    productCount: brand.productCount,
+  };
+}
+
+/**
+ * The slug to export for a category or brand: the stored one, or null. Never
+ * derived from the source's key or name, for the reason `exportedSlug` gives.
+ */
+export function exportedTaxonomySlug(
+  sourceKey: string,
+  slugs: ReadonlyMap<string, string> | undefined,
+): string | null {
+  return slugs?.get(sourceKey) ?? null;
 }
 
 async function readGitCommit(cwd: string): Promise<string | null> {
@@ -297,20 +368,16 @@ export async function exportReferenceArtifacts(
     name: "categories.json",
     content: serialise({
       schemaVersion: ARTIFACT_SCHEMA_VERSION,
-      description: "Category taxonomy, including parent/child relationships.",
+      description: CATEGORIES_ARTIFACT_DESCRIPTION,
       count: catalog.categories.length,
       categories: [...catalog.categories]
         .sort((a, b) => (a.sourceKey < b.sourceKey ? -1 : 1))
-        .map((category) => ({
-          sourceKey: category.sourceKey,
-          rawSlug: category.rawSlug,
-          sourceId: category.sourceId,
-          name: category.name,
-          url: category.url,
-          parentKey: category.parentKey,
-          position: category.position,
-          productCount: category.productCount,
-        })),
+        .map((category) =>
+          referenceCategoryRecord(
+            category,
+            exportedTaxonomySlug(category.sourceKey, input.categorySlugs),
+          ),
+        ),
     }),
   });
 
@@ -318,19 +385,13 @@ export async function exportReferenceArtifacts(
     name: "brands.json",
     content: serialise({
       schemaVersion: ARTIFACT_SCHEMA_VERSION,
-      description:
-        "Brands that carry products. `rawSlug` preserves the source slug verbatim, including a leading space on one real brand.",
+      description: BRANDS_ARTIFACT_DESCRIPTION,
       count: catalog.brands.length,
       brands: [...catalog.brands]
         .sort((a, b) => (a.sourceKey < b.sourceKey ? -1 : 1))
-        .map((brand) => ({
-          sourceKey: brand.sourceKey,
-          rawSlug: brand.rawSlug,
-          sourceId: brand.sourceId,
-          name: brand.name,
-          url: brand.url,
-          productCount: brand.productCount,
-        })),
+        .map((brand) =>
+          referenceBrandRecord(brand, exportedTaxonomySlug(brand.sourceKey, input.brandSlugs)),
+        ),
     }),
   });
 

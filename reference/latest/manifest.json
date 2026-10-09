@@ -17,14 +17,14 @@
   "crawlerVersion": "0.1.0",
   "files": [
     {
-      "bytes": 4127,
+      "bytes": 4777,
       "name": "brands.json",
-      "sha256": "3f333a642e14b3b59bbd12d8956f9e1e0107474d53e1811759b7219da8fe3c95"
+      "sha256": "6049107af11de88cb78b7851efc1ce9dd1376d0a1c010dce29b8b7191bc66a18"
     },
     {
-      "bytes": 2273,
+      "bytes": 2674,
       "name": "categories.json",
-      "sha256": "3a171fd86defdbd1277a6edb6466a429d4fc50ab3f8ca24c7e857af950e3e3e7"
+      "sha256": "2fdcf38e13511d0a054b1eea6076675c883663a9c10329617c289d51e5eef9a1"
     },
     {
       "bytes": 1071,

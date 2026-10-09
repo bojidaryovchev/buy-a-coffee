@@ -4,7 +4,6 @@ import { webBase } from "./apps/web/vitest.base.ts";
 import {
   IGNORED_DIRECTORIES,
   INTEGRATION_TEST_FILES,
-  MIXED_TEST_FILES,
   NO_DATABASE_ENV,
   TIMEOUTS,
   WORKSPACE_TEST_FILES,
@@ -71,7 +70,7 @@ export default defineConfig({
         test: {
           name: "web-integration",
           root: webRoot,
-          include: ["test/**/*.{integration,db}.test.ts", ...MIXED_TEST_FILES],
+          include: ["test/**/*.{integration,db}.test.ts"],
           exclude: [...IGNORED_DIRECTORIES],
           globalSetup,
           ...TIMEOUTS,

@@ -1,6 +1,8 @@
 import path from "node:path";
 import { eq, sql } from "drizzle-orm";
 import {
+  brands,
+  categories,
   crawlRuns,
   discoveredPages,
   observedFeatures,
@@ -145,6 +147,9 @@ export async function commandDiscovery(
         // Without these every product is exported with `slug: null`, and the
         // storefront's originality check can no longer tell whose copy is whose.
         productSlugs: await loadTakenProductSlugs(db, site.id),
+        // And without these the reference seed has to guess category and brand
+        // slugs from the source's keys, which the source renames and we do not.
+        ...(await loadTaxonomySlugs(runtime, site.id)),
         logger: runLogger,
       });
       artifactDir = exported.outputDir;
@@ -159,6 +164,28 @@ export async function commandDiscovery(
       .where(eq(crawlRuns.id, crawlRunId));
     throw error;
   }
+}
+
+/** Our stored slug for every category and brand of the site, keyed by source key. */
+async function loadTaxonomySlugs(
+  runtime: Runtime,
+  sourceSiteId: string,
+): Promise<{ categorySlugs: Map<string, string>; brandSlugs: Map<string, string> }> {
+  const { db } = runtime;
+  const [categoryRows, brandRows] = await Promise.all([
+    db
+      .select({ sourceKey: categories.sourceKey, slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.sourceSiteId, sourceSiteId)),
+    db
+      .select({ sourceKey: brands.sourceKey, slug: brands.slug })
+      .from(brands)
+      .where(eq(brands.sourceSiteId, sourceSiteId)),
+  ]);
+  return {
+    categorySlugs: new Map(categoryRows.map((row) => [row.sourceKey, row.slug])),
+    brandSlugs: new Map(brandRows.map((row) => [row.sourceKey, row.slug])),
+  };
 }
 
 async function persistCrawl(
@@ -448,7 +475,9 @@ export async function commandImagesGc(
     .from(productImages);
 
   const referenced = new Set(
-    rows.filter((row) => row.status === "active" && row.objectKey).map((row) => row.objectKey as string),
+    rows
+      .filter((row) => row.status === "active" && row.objectKey)
+      .map((row) => row.objectKey as string),
   );
   const orphanRows = await db
     .select({ objectKey: productImages.objectKey })

@@ -6,6 +6,7 @@
       "position": 0,
       "productCount": 3,
       "rawSlug": "a-modo-mio",
+      "slug": "a-modo-mio",
       "sourceId": "625",
       "sourceKey": "a-modo-mio",
       "url": "https://www.kafezona.com/a-modo-mio/"
@@ -16,6 +17,7 @@
       "position": 1,
       "productCount": 9,
       "rawSlug": "caffitaly",
+      "slug": "caffitaly",
       "sourceId": "624",
       "sourceKey": "caffitaly",
       "url": "https://www.kafezona.com/caffitaly/"
@@ -26,6 +28,7 @@
       "position": 3,
       "productCount": 33,
       "rawSlug": "dolce-gusto",
+      "slug": "dolce-gusto",
       "sourceId": "615",
       "sourceKey": "dolce-gusto",
       "url": "https://www.kafezona.com/dolce-gusto/"
@@ -36,6 +39,7 @@
       "position": 0,
       "productCount": 41,
       "rawSlug": "kafe-dozi",
+      "slug": "kafe-dozi",
       "sourceId": "612",
       "sourceKey": "kafe-dozi",
       "url": "https://www.kafezona.com/kafe-dozi/"
@@ -46,6 +50,7 @@
       "position": 1,
       "productCount": 88,
       "rawSlug": "kafe-kapsuli",
+      "slug": "kapsuli",
       "sourceId": "611",
       "sourceKey": "kafe-kapsuli",
       "url": "https://www.kafezona.com/kafe-kapsuli/"
@@ -56,6 +61,7 @@
       "position": 2,
       "productCount": 58,
       "rawSlug": "kafe-na-zyrna",
+      "slug": "kafe-na-zarna",
       "sourceId": "608",
       "sourceKey": "kafe-na-zyrna",
       "url": "https://www.kafezona.com/kafe-na-zyrna/"
@@ -66,6 +72,7 @@
       "position": 2,
       "productCount": 7,
       "rawSlug": "lavazza-blue",
+      "slug": "lavazza-blue",
       "sourceId": "618",
       "sourceKey": "lavazza-blue",
       "url": "https://www.kafezona.com/lavazza-blue/"
@@ -76,12 +83,13 @@
       "position": 4,
       "productCount": 36,
       "rawSlug": "nespresso",
+      "slug": "nespresso",
       "sourceId": "614",
       "sourceKey": "nespresso",
       "url": "https://www.kafezona.com/nespresso/"
     }
   ],
   "count": 8,
-  "description": "Category taxonomy, including parent/child relationships.",
+  "description": "Category taxonomy, including parent/child relationships. `slug` is the storefront's own identifier for the category, allocated at first sync and kept when the source renames it; it is null for a category that has not been synced yet.",
   "schemaVersion": "1.0.0"
 }

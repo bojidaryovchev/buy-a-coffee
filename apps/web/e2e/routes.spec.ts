@@ -44,8 +44,14 @@ test("404 page is a real 404 with a way forward", async ({ page }) => {
   // The source site answers unknown routes with 200 and its home page; ours
   // must not repeat that mistake.
   expect(response?.status()).toBe(404);
-  await expect(page.getByText(/не намерихме тази страница/i)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Тази страница я няма" })).toBeVisible();
   await expect(page.getByRole("link", { name: /началната страница/i })).toBeVisible();
+  // The other ways forward: the machine finder and a search that needs no script.
+  await expect(page.getByRole("link", { name: "Намери по машина" })).toHaveAttribute(
+    "href",
+    "/wizard/machines",
+  );
+  await expect(page.locator('main form[action="/search"] input[name="q"]')).toBeVisible();
 });
 
 test("sitemap lists real product URLs", async ({ request }) => {
@@ -71,7 +77,9 @@ test("robots.txt points at our sitemap", async ({ request }) => {
   expectNoSourceReference(text, "robots.txt");
 });
 
-test("legal pages state that they are drafts rather than pretending otherwise", async ({ page }) => {
+test("legal pages state that they are drafts rather than pretending otherwise", async ({
+  page,
+}) => {
   await page.goto("/privacy");
   await expect(page.getByText(/този документ е чернова/i)).toBeVisible();
 });
@@ -93,10 +101,7 @@ test("security headers are present", async ({ request }) => {
 
 test("the media route refuses to escape its storage root", async ({ request }) => {
   // Path traversal must be rejected, however it is encoded.
-  for (const attempt of [
-    "/media/..%2F..%2F..%2Fpackage.json",
-    "/media/../../package.json",
-  ]) {
+  for (const attempt of ["/media/..%2F..%2F..%2Fpackage.json", "/media/../../package.json"]) {
     const response = await request.get(attempt, { maxRedirects: 0 });
     expect([400, 403, 404]).toContain(response.status());
   }

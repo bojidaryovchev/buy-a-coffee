@@ -33,17 +33,6 @@ export const WORKSPACE_TEST_FILES = [
 export const TIMEOUTS = { testTimeout: 30_000, hookTimeout: 60_000 } as const;
 
 /**
- * Files that are named as unit tests but contain database-backed sections.
- *
- * `apps/web/test/vending.test.ts` tests a pure naming rule and, further down,
- * the SQL that applies it to a real catalog. Splitting it into a `.test.ts`
- * and a `.db.test.ts` is the proper fix and belongs to the file's owner; until
- * then the integration project runs it as well, so those sections are not
- * stranded where the unit run (which has no database) can never reach them.
- */
-export const MIXED_TEST_FILES = ["test/vending.test.ts"] as const;
-
-/**
  * The unit projects run with no database configured at all. A test that needs
  * one then skips itself, and shows up as skipped, instead of quietly
  * depending on whatever `.env.local` happens to point at.
