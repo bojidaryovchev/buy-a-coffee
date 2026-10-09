@@ -11,7 +11,9 @@ import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
 import { brandJsonLd, breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import { BrandLogo } from "@/components/catalog/brand-logo";
-import { RelatedLandings } from "@/components/catalog/related-landings";
+import { RelatedLandingsList } from "@/components/catalog/related-landings";
+import { getLandingAvailability } from "@/lib/catalog/landing-queries";
+import { relatedLandingLinks } from "@/lib/catalog/related-landings";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import {
@@ -87,14 +89,25 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
    * listings do not link back here. Someone who came for „Lavazza“ and wants
    * to compare it with the rest of what fits their machine is one tap away.
    */
-  const shelves = systems.map((system) => {
-    const keys = systemCategory(system);
-    return {
-      id: system.id,
-      name: categoryNameFor({ ...keys, name: system.name }),
-      href: categoryHref(locale, keys),
-    };
-  });
+  /*
+   * One brand has neighbours of its own: Lavazza's page says what the Lavazza
+   * capsules page and its two systems' shelves are, each on a line with a
+   * note (`docs/seo.md` §13.5). A shelf named there is not offered again in
+   * the row of chips above it: one destination, one link in the header.
+   */
+  const related = relatedLandingLinks(locale, { brand }, await getLandingAvailability());
+  const alreadyLinked = new Set(related.map((link) => link.href));
+
+  const shelves = systems
+    .map((system) => {
+      const keys = systemCategory(system);
+      return {
+        id: system.id,
+        name: categoryNameFor({ ...keys, name: system.name }),
+        href: categoryHref(locale, keys),
+      };
+    })
+    .filter((shelf) => !alreadyLinked.has(shelf.href));
 
   return (
     <div className="shell pb-16">
@@ -156,7 +169,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
             </ul>
           </nav>
         )}
-        {await RelatedLandings({ locale, subject: { brand } })}
+        <RelatedLandingsList links={related} />
       </header>
 
       <CatalogListing

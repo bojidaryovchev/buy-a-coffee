@@ -6,6 +6,8 @@ import {
   type CupPrice,
   type LandingId,
 } from "@/lib/catalog/landings";
+import { systemCategory } from "@/lib/routes";
+import { categoryNameFor } from "./category-copy";
 import {
   getBrewingSystem,
   type BrewMethod,
@@ -96,9 +98,20 @@ const METHOD_WORDS: Readonly<Record<BrewMethod, string>> = {
   beans: "зърна",
 };
 
-/** "Всички капсули за Dolce Gusto", "Всички дози ESE", "Цялото кафе на зърна". */
+/**
+ * "Всички капсули за Dolce Gusto", "Всички капсули Caffitaly", "Всички дози
+ * ESE", "Цялото кафе на зърна".
+ *
+ * A capsule shelf is named as it names itself (`categoryNameFor`), with
+ * „Всички“ in front: „за Nespresso“, not „за Nespresso Original“, and
+ * „капсули Caffitaly“, not „капсули за Caffitaly“ — the same words every
+ * other link to that shelf uses (`docs/seo.md` §13.1).
+ */
 export function systemShelfLabel(system: BrewingSystem): string {
-  if (system.method === "capsule") return `Всички капсули за ${system.name}`;
+  if (system.method === "capsule") {
+    const name = categoryNameFor({ ...systemCategory(system), name: `Капсули за ${system.name}` });
+    return `Всички ${name.charAt(0).toLocaleLowerCase("bg")}${name.slice(1)}`;
+  }
   return system.method === "pod" ? "Всички дози ESE" : "Цялото кафе на зърна";
 }
 
@@ -252,7 +265,6 @@ export const landingLabels = {
   /** Accessible name of the row of in-page links to the groups. */
   jumpLabel: "Системи на тази страница",
   findMachine: "Намерете машината си по марка и модел",
-  cupCostArticle: "Как смятаме цената на чаша",
   orderHeading: "Поръчка по телефона",
   orderBody:
     "Няма количка и плащане онлайн. Оставяте телефон на страницата на продукта и ние ви се обаждаме, за да потвърдим поръчката. Можете и направо да ни позвъните:",

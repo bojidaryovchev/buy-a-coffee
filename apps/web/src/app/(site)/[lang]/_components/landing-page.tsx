@@ -140,7 +140,8 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
           {cupCost && (
             <p>
               <Link href={href(locale, routes.article(cupCost.slug))} className={TEXT_LINK}>
-                {landingLabels.cupCostArticle}
+                {/* By its title, as every other page links an article. */}
+                {cupCost.title}
               </Link>
             </p>
           )}

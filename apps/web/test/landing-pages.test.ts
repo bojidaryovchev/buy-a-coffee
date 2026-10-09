@@ -61,6 +61,7 @@ import MachineBrandPage, {
   generateMetadata as machineMetadata,
 } from "@/app/(site)/[lang]/za-kafemashina/[brand]/page";
 import { absoluteUrl } from "@/config/site";
+import { systemShelfLabel } from "../content/landing-copy";
 import { MACHINE_BRANDS } from "@/content/machines";
 import type { LandingView } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS } from "@/lib/catalog/landings";
@@ -209,7 +210,10 @@ describe("a landing listing with products", () => {
     expect(markup).toContain("2 продукта с най-ниска цена на чаша от общо 7 в тази система.");
     expect(markup).toContain("1 продукт с най-ниска цена на чаша от общо 36 в тази система.");
     expect(markup).toContain('href="/bg/blog/');
-    expect(markup).toContain("Как смятаме цената на чаша");
+    // The one article this listing links (§13.4), under the article's own title.
+    expect(markup).toMatch(
+      /href="\/bg\/blog\/kolko-struva-edna-chasha-kafe"[^>]*>Колко струва една чаша кафе всъщност</,
+    );
   });
 
   it("gives a one-group page no second heading, and its cards the h2", async () => {
@@ -241,6 +245,22 @@ describe("a landing listing with products", () => {
       expect(markup).toMatch(/href="tel:/);
       expect(markup).not.toMatch(/!<|оригиналн|най-добр|безплатна доставка/i);
     }
+  });
+});
+
+describe("a landing's link to a system's whole shelf", () => {
+  it("names the shelf as the shelf names itself", () => {
+    // One anchor per listing (`docs/seo.md` §13.1): „Всички“ and the name the
+    // breadcrumbs, chips and footer give that listing.
+    expect(BREWING_SYSTEMS.map((entry) => [entry.id, systemShelfLabel(entry)])).toEqual([
+      ["nespresso-original", "Всички капсули за Nespresso"],
+      ["dolce-gusto", "Всички капсули за Dolce Gusto"],
+      ["a-modo-mio", "Всички капсули за Lavazza A Modo Mio"],
+      ["caffitaly", "Всички капсули Caffitaly"],
+      ["lavazza-blue", "Всички капсули за Lavazza Blue"],
+      ["ese-pod", "Всички дози ESE"],
+      ["beans", "Цялото кафе на зърна"],
+    ]);
   });
 });
 

@@ -12,6 +12,7 @@ import { sectionListsProducts } from "@/lib/catalog/vending";
 import { listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";
+import { categoryNameFor } from "../../../content/category-copy";
 import { landingCopy } from "../../../content/landing-copy";
 import { consumablesCopy, vendingCopy } from "../../../content/vending";
 import { llmsText } from "./body";
@@ -95,7 +96,11 @@ export async function GET() {
        category behind a business section is named by that section's page. */
     categories: tree
       .filter((category) => !isSectionCategory(category, BUSINESS_SECTIONS))
-      .map((category) => ({ name: category.name, href: categoryHref(locale, category) })),
+      // Under the name the listing gives itself, as every link on the site does.
+      .map((category) => ({
+        name: categoryNameFor(category),
+        href: categoryHref(locale, category),
+      })),
     brands: brands.map((brand) => ({
       name: brand.name,
       href: href(locale, routes.brand(brand.slug)),
