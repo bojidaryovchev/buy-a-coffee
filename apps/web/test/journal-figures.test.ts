@@ -236,3 +236,134 @@ describe("journal figures: intensity", () => {
     expect(intensity.strengths.map((step) => step.key)).toEqual(["weak", "medium", "strong"]);
   });
 });
+
+describe("journal figures: composition", () => {
+  const composition = FIXTURE_FIGURES.composition!;
+
+  it("counts declarations, not products, and only among coffee", () => {
+    // Six products belong to a system; the syrup is not a coffee that "does
+    // not state" its composition.
+    expect(composition.products).toBe(6);
+    expect(composition.declared).toBe(4);
+    expect(composition.pure).toBe(2);
+    expect(composition.blends).toBe(2);
+    expect([composition.blendMin, composition.blendMax]).toEqual([50, 70]);
+  });
+
+  it("splits the same counts by format, with no range where nothing is a blend", () => {
+    expect(composition.byMethod.beans).toEqual({
+      products: 2,
+      declared: 2,
+      pure: 1,
+      blends: 1,
+      blendMin: 70,
+      blendMax: 70,
+    });
+    expect(composition.byMethod.capsule).toMatchObject({ products: 3, declared: 2, pure: 1 });
+    expect(composition.byMethod.pod).toEqual({
+      products: 1,
+      declared: 0,
+      pure: 0,
+      blends: 0,
+      blendMin: null,
+      blendMax: null,
+    });
+  });
+
+  it("lists every declared share, lowest first", () => {
+    expect(composition.shares).toEqual([
+      { percent: 50, products: 1 },
+      { percent: 70, products: 1 },
+      { percent: 100, products: 2 },
+    ]);
+  });
+
+  it("places pure arabica on the shop's strength steps, weak to strong", () => {
+    expect(composition.pureByStrength).toEqual([
+      { key: "medium", products: 1 },
+      { key: "strong", products: 1 },
+    ]);
+  });
+
+  it("reads a missing or impossible share as not stated, never as robusta", () => {
+    const figures = computeJournalFigures(
+      [
+        row({ category: "nespresso" }),
+        row({ category: "nespresso", arabicaPercent: 140 }),
+        row({ category: "nespresso", arabicaPercent: 0 }),
+      ],
+      "EUR",
+    );
+    expect(figures.composition).toMatchObject({ products: 3, declared: 1, pure: 0, blends: 1 });
+  });
+});
+
+describe("journal figures: beans", () => {
+  const beans = FIXTURE_FIGURES.beans!;
+
+  it("prices a kilogram exactly, whatever the size of the bag", () => {
+    expect(beans.products).toBe(2);
+    expect(beans.perKilogram?.count).toBe(2);
+    expect(beans.perKilogram?.cheapest.slug).toBe("beans-kilo");
+    expect(plain(beans.perKilogram!.cheapest.perKilogram)).toBe("14,00 €");
+    // 5.00 for 250 g is the dearer coffee, though the cheaper bag.
+    expect(beans.perKilogram?.dearest.slug).toBe("beans-quarter");
+    expect(beans.perKilogram?.dearest.perKilogramAmount).toBe("20.0000");
+    expect(beans.perKilogram?.dearest.perKilogram.startsWith("≈")).toBe(false);
+  });
+
+  it("counts the beans that state a composition", () => {
+    expect(beans.composition).toMatchObject({ declared: 2, pure: 1, blends: 1 });
+  });
+
+  it("counts roast levels lightest first, however the page worded them", () => {
+    expect(beans.roast).toEqual({
+      declared: 2,
+      levels: [
+        { label: "средно", products: 1 },
+        { label: "тъмно", products: 1 },
+      ],
+    });
+  });
+
+  it("does not count free text as a roast level, and merges the two words for light", () => {
+    const figures = computeJournalFigures(
+      [
+        row({ category: "kafe-na-zarna", weightUnit: "g", roast: "бавна средно-печена програма" }),
+        row({ category: "kafe-na-zarna", weightUnit: "g", roast: "леко" }),
+        row({ category: "kafe-na-zarna", weightUnit: "g", roast: "светло" }),
+      ],
+      "EUR",
+    );
+    expect(figures.beans?.roast).toEqual({
+      declared: 2,
+      levels: [{ label: "светло", products: 2 }],
+    });
+  });
+
+  it("counts decaffeinated beans, and leaves capsules out of every bean figure", () => {
+    const figures = computeJournalFigures(
+      [
+        row({ category: "kafe-na-zarna", weightValue: "500.0000", weightUnit: "g", decaf: "yes" }),
+        row({ category: "nespresso", decaf: "yes", arabicaPercent: 100, roast: "тъмно" }),
+      ],
+      "EUR",
+    );
+    expect(figures.beans).toMatchObject({ products: 1, decaf: 1 });
+    expect(figures.beans?.composition.declared).toBe(0);
+    expect(figures.beans?.roast.declared).toBe(0);
+  });
+
+  it("has no price range when no bag has both a price and a weight", () => {
+    const figures = computeJournalFigures(
+      [row({ category: "kafe-na-zarna", price: null, weightUnit: "g" })],
+      "EUR",
+    );
+    expect(figures.beans?.products).toBe(1);
+    expect(figures.beans?.perKilogram).toBeNull();
+  });
+
+  it("is absent when the catalog holds no beans", () => {
+    expect(computeJournalFigures([row({ category: "nespresso" })], "EUR").beans).toBeNull();
+  });
+});

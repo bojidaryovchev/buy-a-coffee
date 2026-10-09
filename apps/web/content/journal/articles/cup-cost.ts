@@ -1,8 +1,19 @@
 import { GRAMS_PER_SERVING, packServings } from "@catalog/shared";
 import type { CupRange, PricedPack } from "@/lib/catalog/journal-figures";
 import { pluralize } from "@/lib/catalog/format";
-import { action, h2, link, p, table, ul, type Article, type Block, type Inline } from "../blocks";
-import { WIZARD_HREF, productHref } from "../links";
+import {
+  action,
+  h2,
+  link,
+  p,
+  sentenceList,
+  table,
+  ul,
+  type Article,
+  type Block,
+  type Inline,
+} from "../blocks";
+import { CAPSULES_HREF, WIZARD_HREF, productHref, systemCategoryHref } from "../links";
 
 /**
  * What a cup really costs.
@@ -83,8 +94,10 @@ export const cupCost: Article = {
         table({
           caption: "Цена на чаша по системи",
           columns: ["Система", "Продукти с цена", "На чаша"],
+          // Each system's name is the way into its listing: the article
+          // explains the number, the listing is where it is compared.
           rows: figures.bySystem.map(({ system, range }) => [
-            system.name,
+            link(systemCategoryHref(system.id), system.name),
             String(range.count),
             rangeText(range),
           ]),
@@ -123,6 +136,16 @@ export const cupCost: Article = {
           ? [` По нея килограм зърна е около ${pluralize(cupsPerKilogram, "чаша", "чаши")}.`]
           : []),
         " Колко точно ще отиде във вашата чаша зависи от машината и от това как пиете кафето, не от пакета. Затова при зърната пишем знака ≈ пред цената на чаша и не я представяме за точно число.",
+      ),
+
+      p(
+        "Не се налага да я смятате сами: цената на чаша стои до цената на опаковката при всеки продукт — в ",
+        ...sentenceList([
+          [link(CAPSULES_HREF, "кафе капсули")],
+          [link(systemCategoryHref("beans"), "кафе на зърна")],
+          [link(systemCategoryHref("ese-pod"), "кафе дози")],
+        ]),
+        ".",
       ),
 
       h2("Какво излиза в момента"),

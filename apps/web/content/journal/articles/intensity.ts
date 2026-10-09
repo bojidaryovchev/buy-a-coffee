@@ -13,7 +13,7 @@ import {
   type Block,
   type Inline,
 } from "../blocks";
-import { WIZARD_HREF, productHref } from "../links";
+import { CAPSULES_HREF, WIZARD_HREF, productHref, systemCategoryHref } from "../links";
 
 /**
  * How to read an intensity number.
@@ -150,6 +150,12 @@ export const intensity: Article = {
       p(
         "В каталога продуктите са отнесени и към три степени, по които може да се филтрира независимо от скалата на производителя",
         ...(strengthList ? [`: ${strengthList}`] : []),
+        ". Филтърът „Интензивност“ стои във всяка категория — ",
+        ...sentenceList([
+          [link(CAPSULES_HREF, "кафе капсули")],
+          [link(systemCategoryHref("beans"), "кафе на зърна")],
+          [link(systemCategoryHref("ese-pod"), "кафе дози")],
+        ]),
         ".",
       ),
       p(

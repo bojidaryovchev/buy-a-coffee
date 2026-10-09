@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs, ButtonLink, EmptyState } from "@/components/ui/primitives";
 import { JsonLd } from "@/components/seo/json-ld";
 import { absoluteUrl, siteConfig } from "@/config/site";
-import { JOURNAL_PATH, formatArticleDate, listArticles } from "@/lib/journal";
+import { JOURNAL_NAME, JOURNAL_PATH, formatArticleDate, listArticles } from "@/lib/journal";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
 import { OG_LOCALE } from "@/i18n/config";
@@ -17,16 +17,16 @@ import { href, routes } from "@/lib/routes";
  *
  * The articles are files in the repository (`apps/web/content/journal/`), so
  * this page is static: it reads no database and renders once at build. Newest
- * first, which today means the order they are listed in, since the launch
- * articles went out together.
+ * first, which today means the order they are listed in — the articles with
+ * measured search demand lead — since they all carry the same date.
  *
  * The empty state is kept. A journal with every article unlisted should still
  * say something true rather than render a heading over nothing.
  */
 
-const TITLE = "Дневник";
+const TITLE = JOURNAL_NAME;
 const DESCRIPTION =
-  "Коя капсула за коя машина, колко струва една чаша, как се чете интензивността — кратки отговори на въпросите, които изникват преди поръчка.";
+  "Видове капсули, как се избира кафе на зърна, арабика и робуста, цена на чаша — отговори на въпросите, които изникват преди поръчка.";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -84,7 +84,7 @@ export default async function JournalPage({ params }: PageProps) {
       <header className="mb-8 max-w-prose">
         <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">{TITLE}</h1>
         <p className="mt-2 text-base text-ink-500">
-          Кратки отговори на въпросите, които изникват преди поръчка.
+          Отговори на въпросите, които изникват преди поръчка.
         </p>
       </header>
 

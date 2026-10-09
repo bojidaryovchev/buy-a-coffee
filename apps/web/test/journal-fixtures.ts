@@ -9,7 +9,8 @@ import {
  *
  * Shaped like the real one — beans by weight, capsules and pods by the piece,
  * intensity on several scales, one brand on two of them, a decaf that still
- * declares an intensity — but with invented products, so no assertion here
+ * declares an intensity, an arabica share on some products and none on others,
+ * a roast written two ways — but with invented products, so no assertion here
  * depends on what happens to be on sale.
  */
 
@@ -27,6 +28,8 @@ export function row(overrides: {
   name?: string;
   slug?: string;
   currency?: string | null;
+  arabicaPercent?: number | null;
+  roast?: string | null;
 }): JournalCatalogRow {
   sequence += 1;
   return {
@@ -37,6 +40,8 @@ export function row(overrides: {
     currency: overrides.currency === undefined ? "EUR" : overrides.currency,
     weightValue: overrides.weightValue === undefined ? "10.0000" : overrides.weightValue,
     weightUnit: overrides.weightUnit === undefined ? "pc" : overrides.weightUnit,
+    arabicaPercent: overrides.arabicaPercent ?? null,
+    roast: overrides.roast ?? null,
     attributes: {
       decaf: overrides.decaf ?? "no",
       strength: overrides.strength ?? "medium",
@@ -58,6 +63,8 @@ export const FIXTURE_ROWS: readonly JournalCatalogRow[] = [
     intensity: "8 от 10",
     brandName: "ALFA",
     strength: "strong",
+    arabicaPercent: 100,
+    roast: "средно",
   }),
   row({
     slug: "beans-quarter",
@@ -68,6 +75,9 @@ export const FIXTURE_ROWS: readonly JournalCatalogRow[] = [
     weightUnit: "g",
     intensity: "8 от 13",
     brandName: "BETA",
+    arabicaPercent: 70,
+    // As a product page might write it; the level is still "тъмно".
+    roast: "Тъмно изпичане",
   }),
   // Nespresso: the hundred-box costs more on the shelf and less in the cup.
   row({
@@ -78,6 +88,7 @@ export const FIXTURE_ROWS: readonly JournalCatalogRow[] = [
     weightValue: "100.0000",
     intensity: "8 от 12",
     brandName: "ALFA",
+    arabicaPercent: 100,
   }),
   row({
     slug: "nespresso-ten",
@@ -98,8 +109,9 @@ export const FIXTURE_ROWS: readonly JournalCatalogRow[] = [
     intensity: "7 от 10",
     decaf: "yes",
     brandName: "GAMA",
+    arabicaPercent: 50,
   }),
-  // Pods, with no declared intensity.
+  // Pods, with no declared intensity and no stated composition.
   row({
     slug: "pods-box",
     name: "Дози Кутия",

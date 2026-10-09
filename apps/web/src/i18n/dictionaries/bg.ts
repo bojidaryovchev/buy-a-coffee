@@ -42,7 +42,7 @@ export const bg = {
     brands: "Марки",
     promotions: "Промоции",
     delivery: "Доставка и плащане",
-    journal: "Дневник",
+    journal: "Блог",
     contact: "Контакти",
     allCategories: "Всички категории",
     vending: "Вендинг зона",

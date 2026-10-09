@@ -201,7 +201,7 @@ const TITLES = {
   arrivals: "Ново в асортимента",
   ordering: "Поръчката е на една стъпка",
   brands: "Марките, които предлагаме",
-  journal: "От дневника",
+  journal: "От блога",
   vending: "Вендинг зона",
 } as const;
 

@@ -3,10 +3,12 @@ import {
   packServings,
   parseDecimal,
   pricePerServing,
+  pricePerUnitMeasure,
   stripTrailingZeros,
 } from "@catalog/shared";
 import { parseIntensity, STRENGTH_ORDER } from "./attributes";
 import { toPriceView } from "./format";
+import { readArabicaShare, readRoastLevel, type RoastLevel } from "@/lib/recommend/facts";
 import {
   BREWING_SYSTEMS,
   type BrewMethod,
@@ -17,10 +19,12 @@ import {
 /**
  * Figures the journal quotes, derived from catalog rows.
  *
- * The articles talk about prices per cup and about the intensity scales in
- * use. Both move with every sync, so neither may be typed into prose: an
- * article that said "EUR 0.33 a cup" would be wrong the first time a price
- * changed and nobody would notice. Everything an article states as a number is
+ * The articles talk about prices per cup and per kilogram, about the
+ * intensity scales in use, and about how many products state their arabica
+ * share or their roast. All of it moves with every sync, so none of it may be
+ * typed into prose: an article that said "EUR 0.33 a cup" would be wrong the
+ * first time a price changed and nobody would notice. Everything an article
+ * states as a number is
  * computed here, from the rows, with the same shared helpers the wizard and
  * the product page use — so the journal cannot contradict them.
  *
@@ -44,6 +48,10 @@ export interface JournalCatalogRow {
   readonly currency: string | null;
   readonly weightValue: string | null;
   readonly weightUnit: string | null;
+  /** Arabica share as the product record holds it, 0–100; null when not stated. */
+  readonly arabicaPercent: number | null;
+  /** Roast as the product record holds it: a level, or free text, or null. */
+  readonly roast: string | null;
   readonly attributes: Readonly<Record<string, string>>;
   readonly categories: ReadonlyArray<{
     readonly slug: string;
@@ -157,10 +165,80 @@ export interface IntensityFigures {
   readonly strengths: ReadonlyArray<{ readonly key: string; readonly products: number }>;
 }
 
+/* --- Composition --------------------------------------------------------- */
+
+/**
+ * How many of a set of products state their arabica share, and what they state.
+ *
+ * The record holds the arabica share and nothing else: a figure below 100 does
+ * not say what the rest of the blend is, and a product with no figure is "not
+ * stated", never "robusta". So the counts below are of declarations, and no
+ * article may turn `products - declared` into a claim about those products.
+ */
+export interface ShareCount {
+  /** Products considered. */
+  readonly products: number;
+  /** Products whose record states an arabica share. */
+  readonly declared: number;
+  /** Stated as 100. */
+  readonly pure: number;
+  /** Stated as anything below 100. */
+  readonly blends: number;
+  /** Lowest and highest share among the blends; null when there are none. */
+  readonly blendMin: number | null;
+  readonly blendMax: number | null;
+}
+
+export interface CompositionFigures extends ShareCount {
+  readonly byMethod: Readonly<Record<BrewMethod, ShareCount | null>>;
+  /** Every share that is declared, lowest first, with how many products state it. */
+  readonly shares: ReadonlyArray<{ readonly percent: number; readonly products: number }>;
+  /**
+   * Products stated as 100 % arabica, per step of the shop's own three-step
+   * strength filter — the evidence that "arabica" and "mild" are two things.
+   */
+  readonly pureByStrength: ReadonlyArray<{ readonly key: string; readonly products: number }>;
+}
+
+/* --- Beans --------------------------------------------------------------- */
+
+/** One bag with its exact price for a kilogram. */
+export interface KilogramPrice {
+  readonly slug: string;
+  readonly name: string;
+  /** Price for one kilogram, formatted. Exact: weight and price are both known. */
+  readonly perKilogram: string;
+  /** The same as an exact decimal string, for comparison only. */
+  readonly perKilogramAmount: string;
+}
+
+export interface KilogramRange {
+  readonly count: number;
+  readonly cheapest: KilogramPrice;
+  readonly dearest: KilogramPrice;
+}
+
+export interface BeanFigures {
+  /** Active products in the beans category. */
+  readonly products: number;
+  readonly perKilogram: KilogramRange | null;
+  readonly composition: ShareCount;
+  readonly roast: {
+    /** Beans whose record holds a roast level the shop recognises. */
+    readonly declared: number;
+    /** Levels in use, lightest first. */
+    readonly levels: ReadonlyArray<{ readonly label: string; readonly products: number }>;
+  };
+  /** Beans the catalog marks as decaffeinated. */
+  readonly decaf: number;
+}
+
 export interface JournalFigures {
   readonly cupCost: CupCostFigures | null;
   readonly formats: FormatFigures | null;
   readonly intensity: IntensityFigures | null;
+  readonly composition: CompositionFigures | null;
+  readonly beans: BeanFigures | null;
 }
 
 /** What an empty or unreachable catalog produces. Articles must survive it. */
@@ -168,6 +246,8 @@ export const EMPTY_JOURNAL_FIGURES: JournalFigures = {
   cupCost: null,
   formats: null,
   intensity: null,
+  composition: null,
+  beans: null,
 };
 
 /* --- Derivation ---------------------------------------------------------- */
@@ -409,6 +489,146 @@ function intensityFigures(rows: readonly JournalCatalogRow[]): IntensityFigures 
   };
 }
 
+function shareCount(rows: readonly JournalCatalogRow[]): ShareCount {
+  const shares = rows.flatMap((row) => {
+    const share = readArabicaShare(row.arabicaPercent);
+    return share === null ? [] : [share];
+  });
+  const blends = shares.filter((share) => share < 100);
+  return {
+    products: rows.length,
+    declared: shares.length,
+    pure: shares.length - blends.length,
+    blends: blends.length,
+    blendMin: blends.length > 0 ? Math.min(...blends) : null,
+    blendMax: blends.length > 0 ? Math.max(...blends) : null,
+  };
+}
+
+/** A product together with the brewing system it belongs to. */
+interface PlacedRow {
+  readonly row: JournalCatalogRow;
+  readonly system: BrewingSystem;
+}
+
+/**
+ * Arabica share across everything that belongs to a brewing system.
+ *
+ * Only placed rows, so a syrup or a cup that sits in the catalog beside the
+ * coffee is not counted as a coffee that "does not state" a composition.
+ */
+function compositionFigures(placed: readonly PlacedRow[]): CompositionFigures | null {
+  if (placed.length === 0) return null;
+  const rows = placed.map(({ row }) => row);
+
+  const perShare = new Map<number, number>();
+  const pureStrength = new Map<string, number>();
+  for (const row of rows) {
+    const share = readArabicaShare(row.arabicaPercent);
+    if (share === null) continue;
+    perShare.set(share, (perShare.get(share) ?? 0) + 1);
+    const strength = row.attributes.strength;
+    if (share === 100 && strength) {
+      pureStrength.set(strength, (pureStrength.get(strength) ?? 0) + 1);
+    }
+  }
+
+  return {
+    ...shareCount(rows),
+    byMethod: Object.fromEntries(
+      METHODS.map((method) => {
+        const ofMethod = placed
+          .filter(({ system }) => system.method === method)
+          .map(({ row }) => row);
+        return [method, ofMethod.length > 0 ? shareCount(ofMethod) : null];
+      }),
+    ) as Record<BrewMethod, ShareCount | null>,
+    shares: [...perShare.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([percent, products]) => ({ percent, products })),
+    pureByStrength: STRENGTH_ORDER.filter((key) => pureStrength.has(key)).map((key) => ({
+      key,
+      products: pureStrength.get(key) ?? 0,
+    })),
+  };
+}
+
+/**
+ * How a roast level is printed, and where it sorts. A `Record` over the
+ * wizard's own `RoastLevel`, so a level added there is a compile error here
+ * rather than a roast the article silently leaves out. The source's two words
+ * for a light roast are one level to a reader.
+ */
+const ROAST_DISPLAY: Readonly<
+  Record<RoastLevel, { readonly sort: number; readonly label: string }>
+> = {
+  светло: { sort: 0, label: "светло" },
+  леко: { sort: 0, label: "светло" },
+  средно: { sort: 1, label: "средно" },
+  "средно тъмно": { sort: 2, label: "средно тъмно" },
+  тъмно: { sort: 3, label: "тъмно" },
+};
+
+function kilogramPrice(row: JournalCatalogRow, currency: string): KilogramPrice | null {
+  // As with price per cup: only the shop's own currency can be ranked.
+  if (!row.price || (row.currency ?? currency) !== currency) return null;
+  const perUnit = pricePerUnitMeasure(row.price, row.weightValue, row.weightUnit);
+  if (!perUnit || perUnit.unit !== "kg") return null;
+  const view = toPriceView(perUnit.amount, currency);
+  if (!view) return null;
+  return {
+    slug: row.slug,
+    name: row.name,
+    perKilogram: view.formatted,
+    perKilogramAmount: perUnit.amount,
+  };
+}
+
+/**
+ * What the beans article quotes: the price for a kilogram, which is exact
+ * where price per cup is an estimate, and how many bags state a composition or
+ * a roast. A roast the record holds as free text ("бавна програма…") is not a
+ * level and is not counted as one.
+ */
+function beanFigures(rows: readonly JournalCatalogRow[], currency: string): BeanFigures | null {
+  if (rows.length === 0) return null;
+
+  const priced = rows
+    .flatMap((row) => {
+      const price = kilogramPrice(row, currency);
+      return price ? [price] : [];
+    })
+    .sort(
+      (a, b) =>
+        compareAmounts(a.perKilogramAmount, b.perKilogramAmount) || a.slug.localeCompare(b.slug),
+    );
+
+  const levels = new Map<string, { sort: number; products: number }>();
+  for (const row of rows) {
+    const level = readRoastLevel(row.roast);
+    if (!level) continue;
+    const { sort, label } = ROAST_DISPLAY[level];
+    levels.set(label, { sort, products: (levels.get(label)?.products ?? 0) + 1 });
+  }
+  const roastLevels = [...levels.entries()]
+    .sort((a, b) => a[1].sort - b[1].sort)
+    .map(([label, { products }]) => ({ label, products }));
+
+  return {
+    products: rows.length,
+    perKilogram:
+      priced.length > 0
+        ? { count: priced.length, cheapest: priced[0]!, dearest: priced[priced.length - 1]! }
+        : null,
+    composition: shareCount(rows),
+    roast: {
+      declared: roastLevels.reduce((sum, level) => sum + level.products, 0),
+      levels: roastLevels,
+    },
+    decaf: rows.filter((row) => row.attributes.decaf === "yes").length,
+  };
+}
+
 /**
  * Everything the journal quotes, from one pass over the active catalog.
  *
@@ -420,6 +640,7 @@ export function computeJournalFigures(
   currency: string,
 ): JournalFigures {
   const packs: PricedPack[] = [];
+  const placed: PlacedRow[] = [];
   const productsBySystem = new Map<BrewingSystemId, number>();
   const packSizes = new Map<BrewMethod, Map<string, number>>();
 
@@ -427,6 +648,7 @@ export function computeJournalFigures(
     const system = systemOfRow(row);
     if (!system) continue;
 
+    placed.push({ row, system });
     productsBySystem.set(system.id, (productsBySystem.get(system.id) ?? 0) + 1);
 
     if (row.weightValue && row.weightUnit) {
@@ -493,5 +715,14 @@ export function computeJournalFigures(
             ) < 0,
         };
 
-  return { cupCost, formats, intensity: intensityFigures(rows) };
+  return {
+    cupCost,
+    formats,
+    intensity: intensityFigures(rows),
+    composition: compositionFigures(placed),
+    beans: beanFigures(
+      placed.filter(({ system }) => system.method === "beans").map(({ row }) => row),
+      currency,
+    ),
+  };
 }

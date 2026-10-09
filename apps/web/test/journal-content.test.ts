@@ -2,16 +2,25 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ARTICLES } from "../content/journal";
+import { ARABICA_ROBUSTA_SLUG } from "../content/journal/articles/arabica-robusta";
+import { CHOOSE_BEANS_SLUG } from "../content/journal/articles/choose-beans";
+import { FORMATS_SLUG } from "../content/journal/articles/formats";
+import { WHICH_CAPSULE_SLUG } from "../content/journal/articles/which-capsule";
+import { CAPSULES_HREF } from "../content/journal/links";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { STRENGTH_ORDER } from "@/lib/catalog/attributes";
 import { EMPTY_JOURNAL_FIGURES, type JournalFigures } from "@/lib/catalog/journal-figures";
+import { bg } from "@/i18n/dictionaries/bg";
 import {
+  JOURNAL_NAME,
   articleDate,
   collectLinks,
   formatArticleDate,
   getArticle,
+  getMovedArticle,
   headingLevels,
   listArticles,
+  listPreviousSlugs,
   plainText,
 } from "@/lib/journal";
 import { BREWING_SYSTEMS, systemsForMethod } from "@/lib/recommend/systems";
@@ -86,7 +95,16 @@ const DYNAMIC_VALUES: Readonly<Record<string, () => ReadonlySet<string>>> = {
   "/[slug]": () => new Set(),
 };
 
-const CATEGORY_SLUGS = new Set(BREWING_SYSTEMS.flatMap((system) => system.categorySlugs));
+/* The brewing systems' own categories, and the capsule parent they hang off —
+   the one listing no system names, linked through `CAPSULES_HREF`. */
+const CAPSULE_PARENT_SLUG =
+  typeof CAPSULES_HREF !== "string" && "category" in CAPSULES_HREF
+    ? CAPSULES_HREF.category.slug
+    : "";
+const CATEGORY_SLUGS = new Set([
+  ...BREWING_SYSTEMS.flatMap((system) => system.categorySlugs),
+  CAPSULE_PARENT_SLUG,
+]);
 // Product links only ever come out of the catalog figures.
 const PRODUCT_SLUGS = new Set(FIXTURE_ROWS.map((entry) => entry.slug));
 
@@ -199,11 +217,74 @@ describe("journal: the set of articles", () => {
     expect(getArticle(null)).toBeNull();
   });
 
+  it("leads with the articles that answer a measured query", () => {
+    expect(listArticles({ limit: 3 }).map((article) => article.slug)).toEqual([
+      WHICH_CAPSULE_SLUG,
+      CHOOSE_BEANS_SLUG,
+      ARABICA_ROBUSTA_SLUG,
+    ]);
+  });
+
   it("gives every listing a canonical href under the journal", () => {
     for (const article of listArticles()) {
       expect(article.href).toBe(routes.article(article.slug));
       expect(linkProblem(article.href)).toBeNull();
     }
+  });
+});
+
+/* --- Slugs an article used to have ---------------------------------------- *
+ *
+ * A retitled article moves to the slug of its new title and lists the old one,
+ * which the article route answers with a 308. These tests keep that list from
+ * ever becoming ambiguous: a previous slug that was also a live article would
+ * be unreachable, and one claimed by two articles would redirect at random.
+ */
+describe("journal: slugs an article used to have", () => {
+  const current = new Set(ARTICLES.map((article) => article.slug));
+  const previous = listPreviousSlugs();
+
+  it("are URL-safe, unique, and never a live article's slug", () => {
+    expect(new Set(previous).size).toBe(previous.length);
+    for (const slug of previous) {
+      expect(slug, slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(current.has(slug), `${slug} is both an article and a redirect`).toBe(false);
+      expect(getArticle(slug), slug).toBeNull();
+    }
+  });
+
+  it("each resolve to exactly the article that lists them", () => {
+    for (const article of ARTICLES) {
+      for (const slug of article.previousSlugs ?? []) {
+        expect(getMovedArticle(slug), slug).toBe(article);
+      }
+    }
+    expect(getMovedArticle("not-an-article")).toBeNull();
+    expect(getMovedArticle(null)).toBeNull();
+    // A live slug is an article, not a move.
+    expect(getMovedArticle(ARTICLES[0]!.slug)).toBeNull();
+  });
+
+  it("are left out of every listing: only the current address is advertised", () => {
+    const listed = new Set(listArticles().map((article) => article.slug));
+    for (const slug of previous) expect(listed.has(slug), slug).toBe(false);
+  });
+
+  it("keep the addresses the journal launched at", () => {
+    // The capsule and formats articles were live under these slugs before
+    // they were retitled; removing either from its list would turn an
+    // indexed URL into a 404.
+    expect(WHICH_CAPSULE_SLUG).toBe("vidove-kapsuli-za-kafe");
+    expect(getMovedArticle("koya-kapsula-pasva-na-koya-mashina")?.slug).toBe(WHICH_CAPSULE_SLUG);
+    expect(FORMATS_SLUG).toBe("kafemashina-s-kapsuli-ili-na-zarna");
+    expect(getMovedArticle("zarna-kapsuli-ili-dozi")?.slug).toBe(FORMATS_SLUG);
+  });
+});
+
+describe("journal: what the section is called", () => {
+  it("is „Блог“ on the page and in the navigation alike", () => {
+    expect(JOURNAL_NAME).toBe("Блог");
+    expect(bg.nav.journal).toBe(JOURNAL_NAME);
   });
 });
 
@@ -289,6 +370,14 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
         ).toBe(true);
       });
 
+      it("links to a listing it explains", () => {
+        // Articles feed categories: with or without figures, every article
+        // sends the reader to at least one shelf of the catalog.
+        expect(
+          collectLinks(blocks).some((target) => typeof target !== "string" && "category" in target),
+        ).toBe(true);
+      });
+
       it("does not link to itself", () => {
         expect(collectLinks(blocks)).not.toContain(routes.article(article.slug));
       });
@@ -298,6 +387,17 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
         expect(referencesSource(article.title)).toBe(false);
         expect(referencesSource(article.description)).toBe(false);
         expect(referencesSource(article.slug)).toBe(false);
+      });
+
+      it("ranks nothing and shouts nothing", () => {
+        // PRODUCT.md: no quality ranking, no superlatives, no exclamation
+        // marks. „най-доброто“ may be quoted as the question people ask —
+        // the beans article opens by declining to answer it — but nothing
+        // is ever called that.
+        const said = `${article.title}\n${article.description}\n${text}`;
+        expect(said).not.toMatch(/!/);
+        expect(said).not.toMatch(/оригинал/i);
+        expect(said.replace(/„[^“]*“/g, "")).not.toMatch(/най-добр|най-хубав|най-качествен/i);
       });
 
       it("reads as finished text", () => {
@@ -346,6 +446,14 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
 describe("journal: typed claims still match the data", () => {
   it("there are five capsule systems", () => {
     expect(systemsForMethod("capsule")).toHaveLength(5);
+  });
+
+  it("the capsule article's description names every capsule system", () => {
+    const description = getArticle(WHICH_CAPSULE_SLUG)!.description;
+    for (const system of systemsForMethod("capsule")) {
+      // „Nespresso Original“ is „Nespresso“ to anyone who is not comparing it with Vertuo.
+      expect(description, system.name).toContain(system.name.replace(/ Original$/, ""));
+    }
   });
 
   it("the shop's own strength filter has three steps", () => {
