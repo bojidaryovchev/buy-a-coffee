@@ -1,6 +1,27 @@
 import { moneyFromDecimalString, pricePerUnitMeasure } from "@catalog/shared";
 import { siteConfig } from "@/config/site";
+import { DEFAULT_LOCALE, NUMBER_LOCALE, isLocale, type Locale } from "@/i18n/config";
 import type { PriceView, UnitPriceView } from "./types";
+
+/**
+ * Every formatter here takes the locale it formats for, defaulting to
+ * Bulgarian, so the day a page renders in English its prices switch to
+ * `€9.50` by passing one argument rather than by finding every call.
+ *
+ * A shop locale (`bg`, `en`) is mapped through `NUMBER_LOCALE`; a full BCP 47
+ * tag is used as it is, which is what the tests and `Intl` itself speak.
+ */
+function numberLocale(locale: Locale | string): string {
+  return isLocale(locale) ? NUMBER_LOCALE[locale] : locale;
+}
+
+/** The words the formatted figures carry, per locale. */
+const UNIT_WORDS: Readonly<
+  Record<Locale, { readonly perCup: string; readonly kg: string; readonly l: string }>
+> = {
+  bg: { perCup: "на чаша", kg: "кг", l: "л" },
+  en: { perCup: "per cup", kg: "kg", l: "l" },
+};
 
 /**
  * Money formatting.
@@ -50,7 +71,7 @@ function formatterFor(currency: string, locale: string): Intl.NumberFormat {
 export function toPriceView(
   amount: string | null | undefined,
   currency: string | null | undefined,
-  locale: string = siteConfig.locale,
+  locale: Locale | string = DEFAULT_LOCALE,
 ): PriceView | null {
   if (amount === null || amount === undefined || amount === "") return null;
 
@@ -60,7 +81,7 @@ export function toPriceView(
   const resolvedCurrency = money.currency ?? siteConfig.currency;
   const asNumber = Number(money.amount);
   const formatted = Number.isFinite(asNumber)
-    ? formatterFor(resolvedCurrency, locale).format(asNumber)
+    ? formatterFor(resolvedCurrency, numberLocale(locale)).format(asNumber)
     : `${money.amount} ${resolvedCurrency}`;
 
   return { amount: money.amount, currency: resolvedCurrency, formatted };
@@ -125,14 +146,15 @@ export function availabilitySchemaUrl(availability: string): string {
 export function toPerServingView(
   pricePerServing: string | null | undefined,
   currency: string | null | undefined,
-  options: { readonly estimated?: boolean } = {},
+  options: { readonly estimated?: boolean; readonly locale?: Locale } = {},
 ): { readonly formatted: string; readonly estimated: boolean } | null {
-  const price = toPriceView(pricePerServing, currency);
+  const locale = options.locale ?? DEFAULT_LOCALE;
+  const price = toPriceView(pricePerServing, currency, locale);
   if (!price) return null;
 
   const estimated = options.estimated === true;
   return {
-    formatted: `${estimated ? "≈ " : ""}${price.formatted} на чаша`,
+    formatted: `${estimated ? "≈ " : ""}${price.formatted} ${UNIT_WORDS[locale].perCup}`,
     estimated,
   };
 }
@@ -154,14 +176,15 @@ export function unitPriceView(
   weightValue: string | null | undefined,
   weightUnit: string | null | undefined,
   currency: string | null | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ): UnitPriceView | null {
   const perUnit = pricePerUnitMeasure(price, weightValue, weightUnit);
   if (!perUnit) return null;
 
-  const money = toPriceView(perUnit.amount, currency);
+  const money = toPriceView(perUnit.amount, currency, locale);
   if (!money) return null;
 
-  const label = perUnit.unit === "kg" ? "кг" : "л";
+  const label = perUnit.unit === "kg" ? UNIT_WORDS[locale].kg : UNIT_WORDS[locale].l;
   return {
     amount: perUnit.amount,
     currency: money.currency,

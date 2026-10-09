@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { BG } from "./support/paths";
 import { waitForHydration } from "./support/hydration";
 
 /**
@@ -10,7 +11,7 @@ import { waitForHydration } from "./support/hydration";
  * any catalog in which the capsule category spans more than one system.
  */
 
-const LISTING = "/categories/kapsuli";
+const LISTING = BG.capsules;
 
 /** The product cards of the listing, in the order they are shown. */
 const cards = (page: Page) => page.locator("main ul > li > article");

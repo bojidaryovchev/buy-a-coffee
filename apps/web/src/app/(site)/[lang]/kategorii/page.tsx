@@ -1,0 +1,95 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Breadcrumbs, EmptyState, SectionHeading } from "@/components/ui/primitives";
+import { getCategoryTree } from "@/lib/catalog/queries";
+import { siteConfig } from "@/config/site";
+import { localeFrom, type LangParams } from "@/i18n/params";
+import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
+import { isSectionCategory } from "@/components/layout/navigation";
+import { pageAlternates } from "@/lib/seo/alternates";
+import { categoryHref, href, routes } from "@/lib/routes";
+
+export const revalidate = 300;
+
+interface PageProps {
+  params: Promise<LangParams>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = await localeFrom(params);
+  return {
+    title: "Всички категории",
+    description: `Разгледайте целия асортимент на ${siteConfig.name}: кафе на зърна, капсули, дози и още.`,
+    alternates: pageAlternates(locale, routes.categories),
+  };
+}
+
+export default async function CategoriesPage({ params }: PageProps) {
+  const locale = await localeFrom(params);
+  const tree = await getCategoryTree();
+  /*
+   * A category that backs a business section is reached through that page,
+   * and its own slug redirects there. A link to it here would be a link to a
+   * redirect, under a second name.
+   */
+  const outside = (category: (typeof tree)[number]) =>
+    !isSectionCategory(category, BUSINESS_SECTIONS);
+  const categories = tree.filter(outside).map((category) => ({
+    ...category,
+    children: category.children.filter(outside),
+  }));
+
+  return (
+    <div className="shell pb-16">
+      <Breadcrumbs
+        items={[
+          { name: "Начало", href: href(locale, routes.home) },
+          { name: "Категории", href: href(locale, routes.categories) },
+        ]}
+      />
+      <SectionHeading
+        as="h1"
+        title="Разгледайте по вид"
+        description="Целият асортимент, подреден според начина на приготвяне."
+      />
+
+      {categories.length === 0 ? (
+        <EmptyState title="Асортиментът се обновява" description="Моля, проверете отново скоро." />
+      ) : (
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map((category) => (
+            <li key={category.slug} className="rounded-md border border-line bg-paper-raised p-6">
+              <h2 className="font-display text-xl font-semibold">
+                <Link
+                  href={categoryHref(locale, category)}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {category.name}
+                </Link>
+              </h2>
+              <p className="mt-1 text-sm text-ink-500">
+                {category.productCount} {category.productCount === 1 ? "продукт" : "продукта"}
+              </p>
+
+              {category.children.length > 0 && (
+                <ul className="mt-4 space-y-1.5 border-t border-line pt-4">
+                  {category.children.map((child) => (
+                    <li key={child.slug}>
+                      <Link
+                        href={categoryHref(locale, child)}
+                        className="flex items-center justify-between text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
+                      >
+                        {child.name}
+                        <span className="text-2xs text-ink-300">{child.productCount}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

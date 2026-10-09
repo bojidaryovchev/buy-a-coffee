@@ -20,11 +20,13 @@ vi.mock("@/components/analytics-provider", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => undefined }),
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({ lang: "bg" }),
 }));
 
 import { ProductGallery } from "@/components/catalog/product-gallery";
 import { SearchField } from "@/components/catalog/search-field";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
+import { bg } from "@/i18n/dictionaries/bg";
 import { AnswerSummary } from "@/components/wizard/wizard-ui";
 import { WizardAnalytics } from "@/components/wizard/wizard-analytics";
 import type { ProductImageView } from "@/lib/catalog/types";
@@ -119,8 +121,14 @@ describe("product gallery", () => {
 });
 
 describe("search field", () => {
-  const fallback = renderToStaticMarkup(createElement(SearchFieldFallback));
-  const live = renderToStaticMarkup(createElement(SearchField));
+  const props = { locale: "bg" as const, copy: bg.search };
+  const fallback = renderToStaticMarkup(createElement(SearchFieldFallback, props));
+  const live = renderToStaticMarkup(createElement(SearchField, props));
+
+  it("submits to the locale's search page, with no script", () => {
+    expect(fallback).toContain('action="/bg/tarsene"');
+    expect(live).toContain('action="/bg/tarsene"');
+  });
 
   it("is the same control before and after hydration", () => {
     const shape = (markup: string) =>
@@ -159,7 +167,7 @@ describe("search field", () => {
     expect(input).toContain('aria-autocomplete="list"');
     expect(input).toContain('aria-expanded="false"');
     expect(input).toMatch(/aria-controls="[^"]+"/);
-    expect(live).toMatch(/<form role="search"[^>]*action="\/search" method="get"/);
+    expect(live).toMatch(/<form role="search"[^>]*action="\/bg\/tarsene" method="get"/);
   });
 });
 

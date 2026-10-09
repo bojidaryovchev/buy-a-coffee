@@ -12,6 +12,8 @@ import {
   returnWindowDays,
 } from "@/components/commerce/terms";
 import type { PriceView } from "@/lib/catalog/types";
+import type { Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Delivery and payment, inside the order panel.
@@ -150,10 +152,12 @@ function RowIcon({ name }: { name: RowKey }) {
 }
 
 export function DeliveryPaymentBlock({
+  locale,
   price,
   commerce = siteConfig.commerce,
   className,
 }: {
+  locale: Locale;
   price: PriceView | null;
   commerce?: CommerceConfig;
   /** Placement inside the order panel: which edge carries the divider. */
@@ -181,7 +185,7 @@ export function DeliveryPaymentBlock({
       </dl>
       <p className="mt-4 text-sm">
         <Link
-          href="/delivery"
+          href={href(locale, routes.delivery)}
           className="inline-flex min-h-6 items-center text-pine-700 underline underline-offset-2 hover:no-underline"
         >
           Доставка и плащане

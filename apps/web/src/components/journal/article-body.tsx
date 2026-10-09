@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { ButtonLink, cx } from "@/components/ui/primitives";
 import { siteConfig } from "@/config/site";
 import type { Block, InlineContent } from "@/lib/journal";
+import type { Locale } from "@/i18n/config";
+import { targetHref } from "@/lib/routes";
 
 /**
  * Renders an article body.
@@ -19,18 +21,21 @@ import type { Block, InlineContent } from "@/lib/journal";
  * The `switch` statements have no default on purpose. Adding a block type
  * without teaching this component to draw it is a type error here, not a
  * paragraph that quietly disappears from a published article.
+ *
+ * Links in the content are route keys; each is resolved here, in the locale
+ * the page is rendered in (`targetHref`).
  */
 
 const LINK_CLASS = "text-pine-700 underline underline-offset-2 hover:text-pine-900";
 
-function InlineRun({ content }: { content: InlineContent }): ReactNode {
+function InlineRun({ content, locale }: { content: InlineContent; locale: Locale }): ReactNode {
   return content.map((node, index) => {
     if (typeof node === "string") return node;
 
     switch (node.type) {
       case "link":
         return (
-          <Link key={index} href={node.href} className={LINK_CLASS}>
+          <Link key={index} href={targetHref(locale, node.href)} className={LINK_CLASS}>
             {node.text}
           </Link>
         );
@@ -55,12 +60,12 @@ function InlineRun({ content }: { content: InlineContent }): ReactNode {
   });
 }
 
-function BlockView({ block }: { block: Block }): ReactNode {
+function BlockView({ block, locale }: { block: Block; locale: Locale }): ReactNode {
   switch (block.type) {
     case "paragraph":
       return (
         <p>
-          <InlineRun content={block.content} />
+          <InlineRun content={block.content} locale={locale} />
         </p>
       );
 
@@ -77,7 +82,7 @@ function BlockView({ block }: { block: Block }): ReactNode {
         <Tag className={cx("space-y-2 pl-5", block.ordered ? "list-decimal" : "list-disc")}>
           {block.items.map((item, index) => (
             <li key={index} className="pl-1">
-              <InlineRun content={item} />
+              <InlineRun content={item} locale={locale} />
             </li>
           ))}
         </Tag>
@@ -96,7 +101,7 @@ function BlockView({ block }: { block: Block }): ReactNode {
         >
           {block.title && <p className="font-semibold text-ink-900">{block.title}</p>}
           <p className={cx(block.title && "mt-1")}>
-            <InlineRun content={block.content} />
+            <InlineRun content={block.content} locale={locale} />
           </p>
         </aside>
       );
@@ -140,11 +145,11 @@ function BlockView({ block }: { block: Block }): ReactNode {
                           scope="row"
                           className="px-4 py-2 font-medium text-ink-900"
                         >
-                          <InlineRun content={cell} />
+                          <InlineRun content={cell} locale={locale} />
                         </th>
                       ) : (
                         <td key={cellIndex} className="px-4 py-2 text-ink-700">
-                          <InlineRun content={cell} />
+                          <InlineRun content={cell} locale={locale} />
                         </td>
                       ),
                     )}
@@ -164,8 +169,8 @@ function BlockView({ block }: { block: Block }): ReactNode {
         <p className="flex flex-wrap gap-3 pt-2">
           {block.links.map((entry, index) => (
             <ButtonLink
-              key={entry.href}
-              href={entry.href}
+              key={entry.label}
+              href={targetHref(locale, entry.href)}
               variant={index === 0 ? "primary" : "secondary"}
             >
               {entry.label}
@@ -176,11 +181,11 @@ function BlockView({ block }: { block: Block }): ReactNode {
   }
 }
 
-export function ArticleBody({ blocks }: { blocks: readonly Block[] }) {
+export function ArticleBody({ blocks, locale }: { blocks: readonly Block[]; locale: Locale }) {
   return (
     <div className="max-w-prose space-y-4 text-base leading-relaxed text-ink-700">
       {blocks.map((block, index) => (
-        <BlockView key={index} block={block} />
+        <BlockView key={index} block={block} locale={locale} />
       ))}
     </div>
   );

@@ -15,6 +15,8 @@ import {
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
 import { useAnalytics } from "@/components/analytics-provider";
+import { useLocale } from "@/i18n/use-locale";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Quick order.
@@ -58,6 +60,7 @@ export function QuickOrderForm({
   disabled?: boolean;
 }) {
   const [state, formAction] = useActionState(submitOrderInquiry, IDLE_FORM_STATE);
+  const locale = useLocale();
   const phoneId = useId();
   const nameId = useId();
   const emailId = useId();
@@ -231,7 +234,7 @@ export function QuickOrderForm({
 
       <p className="mt-1 text-xs text-ink-500">
         Използваме номера ви само за да се свържем с вас за тази поръчка. Вижте нашата{" "}
-        <a href="/privacy" className="underline underline-offset-2">
+        <a href={href(locale, routes.privacy)} className="underline underline-offset-2">
           политика за поверителност
         </a>
         .

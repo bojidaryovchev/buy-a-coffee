@@ -1,0 +1,57 @@
+import type { Metadata } from "next";
+import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
+import { BUSINESS_SECTIONS, getSectionListing, listVendingBlends } from "@/lib/catalog/vending";
+import { localeFrom, type LangParams } from "@/i18n/params";
+import { pageAlternates } from "@/lib/seo/alternates";
+import { vendingCopy } from "../../../../../content/vending";
+import { BusinessSectionView } from "../_components/business-section";
+
+/**
+ * Vending zone: coffee for people who fill machines.
+ *
+ * Everything listed comes from the catalog — the blends the roaster names
+ * "Vending", and, once the source files products under its own vending
+ * section, that category's listing as well. The prose around them is ours and
+ * promises nothing the catalog does not show.
+ */
+export const revalidate = 300;
+
+const section = BUSINESS_SECTIONS.vending;
+
+interface PageProps {
+  params: Promise<LangParams>;
+  searchParams: Promise<RawSearchParams>;
+}
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const locale = await localeFrom(params);
+  const query = parseCatalogQuery(await searchParams);
+
+  return {
+    title: vendingCopy.metaTitle,
+    description: vendingCopy.metaDescription,
+    // Filtered and paginated views of the listing consolidate on the clean page.
+    alternates: pageAlternates(locale, section.path),
+    robots: shouldIndexListing(query) ? undefined : { index: false, follow: true },
+  };
+}
+
+export default async function VendingPage({ params, searchParams }: PageProps) {
+  const locale = await localeFrom(params);
+  const query = parseCatalogQuery(await searchParams);
+  const [listing, blends] = await Promise.all([
+    getSectionListing(section.id, query),
+    listVendingBlends(),
+  ]);
+
+  return (
+    <BusinessSectionView
+      locale={locale}
+      copy={vendingCopy}
+      path={section.path}
+      query={query}
+      listing={listing}
+      blends={blends}
+    />
+  );
+}

@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/primitives";
+import { useLocale } from "@/i18n/use-locale";
+import { productHref } from "@/lib/routes";
 
 /*
  * The dialog, and the order form inside it, are fetched the first time any
@@ -40,6 +42,7 @@ export function QuickOrderControl({
 }) {
   const [open, setOpen] = useState(false);
   const linkRef = useRef<HTMLAnchorElement>(null);
+  const locale = useLocale();
 
   const close = useCallback(() => {
     setOpen(false);
@@ -51,7 +54,7 @@ export function QuickOrderControl({
     <>
       <Link
         ref={linkRef}
-        href={`/products/${slug}#order`}
+        href={productHref(locale, { slug }, "#order")}
         // The name link above already prefetches this product's page.
         prefetch={false}
         onClick={(event) => {

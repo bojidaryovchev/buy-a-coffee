@@ -8,19 +8,22 @@ import { ProductImage } from "@/components/catalog/product-image";
 import {
   SEARCH_BOX_CLASS,
   SEARCH_INPUT_CLASS,
-  SEARCH_PLACEHOLDER,
   SearchSubmit,
+  type SearchCopy,
 } from "@/components/catalog/search-field-fallback";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import type { SearchSuggestions } from "@/lib/catalog/types";
 import { useAnalytics } from "@/components/analytics-provider";
+import type { Locale } from "@/i18n/config";
+import { fill, plural } from "@/i18n/fill";
+import { categoryHref, href, productHref, routes } from "@/lib/routes";
 
 /**
  * Header search with typeahead.
  *
  * The foundation is still a real `<form>` with a `GET` action, so search works
- * before hydration and with JavaScript disabled — the browser submits to
- * `/search?q=...` on its own. Everything below is an upgrade layered on top of
+ * before hydration and with JavaScript disabled — the browser submits to the
+ * locale's search page (`/bg/tarsene?q=...`) on its own. Everything below is an upgrade layered on top of
  * that, and nothing below is required for search to function.
  *
  * The suggestions come from `/api/search/suggest`, which matches with the same
@@ -61,8 +64,28 @@ export function typedBeforeHydration(): {
   return { value: fallback.value, focused: document.activeElement === fallback };
 }
 
-export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
+/** Where each kind of row leads, in the locale the field is drawn in. */
+function suggestionLinks(locale: Locale) {
+  return {
+    product: (slug: string) => productHref(locale, { slug }),
+    brand: (slug: string) => href(locale, routes.brand(slug)),
+    category: (category: SearchSuggestions["categories"][number]) => categoryHref(locale, category),
+    results: (term: string) => href(locale, `${routes.search}?q=${encodeURIComponent(term)}`),
+  };
+}
+
+export function SearchField({
+  locale,
+  copy,
+  autoFocus = false,
+}: {
+  locale: Locale;
+  copy: SearchCopy;
+  autoFocus?: boolean;
+}) {
   const router = useRouter();
+  const links = useMemo(() => suggestionLinks(locale), [locale]);
+  const searchPath = href(locale, routes.search);
   const searchParams = useSearchParams();
   const inputId = useId();
   const listboxId = useId();
@@ -153,13 +176,13 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
     // Results for a term the visitor has already typed past are not navigable.
     if (suggestions.term !== term) return [];
     const rows = [
-      ...suggestions.products.map((product) => `/products/${product.slug}`),
-      ...suggestions.brands.map((brand) => `/brands/${brand.slug}`),
-      ...suggestions.categories.map((category) => `/categories/${category.slug}`),
+      ...suggestions.products.map((product) => links.product(product.slug)),
+      ...suggestions.brands.map((brand) => links.brand(brand.slug)),
+      ...suggestions.categories.map((category) => links.category(category)),
     ];
-    if (suggestions.total > 0) rows.push(`/search?q=${encodeURIComponent(term)}`);
+    if (suggestions.total > 0) rows.push(links.results(term));
     return rows;
-  }, [suggestions, term]);
+  }, [suggestions, term, links]);
 
   // A changed result set invalidates whatever row was highlighted.
   useEffect(() => setActiveIndex(-1), [options]);
@@ -185,7 +208,7 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
     const query = term.slice(0, MAX_QUERY_LENGTH);
     close();
     if (!query) {
-      router.push("/search");
+      router.push(searchPath);
       return;
     }
     /*
@@ -195,7 +218,7 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
      */
     const resultCount = suggestions.term === query ? suggestions.total : -1;
     analytics.track({ name: "search", query, resultCount });
-    router.push(`/search?q=${encodeURIComponent(query)}`);
+    router.push(links.results(query));
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -234,9 +257,9 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
         if (!containerRef.current?.contains(event.relatedTarget as Node | null)) close();
       }}
     >
-      <form role="search" action="/search" method="get" onSubmit={submit} className="w-full">
+      <form role="search" action={searchPath} method="get" onSubmit={submit} className="w-full">
         <label htmlFor={inputId} className="sr-only">
-          Търсене на продукти
+          {copy.label}
         </label>
         <div className={SEARCH_BOX_CLASS}>
           <input
@@ -260,11 +283,11 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder={SEARCH_PLACEHOLDER}
+            placeholder={copy.placeholder}
             className={SEARCH_INPUT_CLASS}
             autoComplete="off"
           />
-          <SearchSubmit />
+          <SearchSubmit label={copy.submit} />
         </div>
       </form>
 
@@ -276,6 +299,8 @@ export function SearchField({ autoFocus = false }: { autoFocus?: boolean }) {
         activeIndex={activeIndex}
         onHover={setActiveIndex}
         onSelect={goTo}
+        links={links}
+        copy={copy}
       />
     </div>
   );
@@ -299,6 +324,8 @@ function SuggestionPanel({
   activeIndex,
   onHover,
   onSelect,
+  links,
+  copy,
 }: {
   id: string;
   expanded: boolean;
@@ -307,6 +334,8 @@ function SuggestionPanel({
   activeIndex: number;
   onHover: (index: number) => void;
   onSelect: (href: string) => void;
+  links: ReturnType<typeof suggestionLinks>;
+  copy: SearchCopy;
 }) {
   let index = -1;
   const next = () => (index += 1);
@@ -325,19 +354,19 @@ function SuggestionPanel({
         matched — the two differ, and the list is what the arrow keys traverse.
       */}
       <p role="status" className="sr-only">
-        {expanded ? `${rowCount} предложения за „${term}“` : ""}
+        {expanded ? fill(copy.suggestionCount, { count: rowCount, term }) : ""}
       </p>
 
       {expanded && (
         <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-[70vh] overflow-y-auto overscroll-contain rounded-md border border-line bg-paper-raised py-1.5 shadow-float">
-          <ul id={id} role="listbox" aria-label="Предложения при търсене">
+          <ul id={id} role="listbox" aria-label={copy.suggestions}>
             {suggestions.products.map((product) => (
               <SuggestionRow
                 key={product.slug}
                 id={id}
                 index={next()}
                 activeIndex={activeIndex}
-                href={`/products/${product.slug}`}
+                href={links.product(product.slug)}
                 onHover={onHover}
                 onSelect={onSelect}
               >
@@ -374,14 +403,14 @@ function SuggestionPanel({
               </SuggestionRow>
             ))}
 
-            {suggestions.brands.length > 0 && <GroupLabel>Марки</GroupLabel>}
+            {suggestions.brands.length > 0 && <GroupLabel>{copy.brands}</GroupLabel>}
             {suggestions.brands.map((brand) => (
               <SuggestionRow
                 key={brand.slug}
                 id={id}
                 index={next()}
                 activeIndex={activeIndex}
-                href={`/brands/${brand.slug}`}
+                href={links.brand(brand.slug)}
                 onHover={onHover}
                 onSelect={onSelect}
               >
@@ -390,14 +419,14 @@ function SuggestionPanel({
               </SuggestionRow>
             ))}
 
-            {suggestions.categories.length > 0 && <GroupLabel>Категории</GroupLabel>}
+            {suggestions.categories.length > 0 && <GroupLabel>{copy.categories}</GroupLabel>}
             {suggestions.categories.map((category) => (
               <SuggestionRow
                 key={category.slug}
                 id={id}
                 index={next()}
                 activeIndex={activeIndex}
-                href={`/categories/${category.slug}`}
+                href={links.category(category)}
                 onHover={onHover}
                 onSelect={onSelect}
               >
@@ -413,13 +442,12 @@ function SuggestionPanel({
                 id={id}
                 index={next()}
                 activeIndex={activeIndex}
-                href={`/search?q=${encodeURIComponent(term)}`}
+                href={links.results(term)}
                 onHover={onHover}
                 onSelect={onSelect}
               >
                 <span className="flex-1 text-sm font-medium text-pine-700">
-                  Виж всички {suggestions.total}{" "}
-                  {suggestions.total === 1 ? "резултат" : "резултата"}
+                  {fill(plural(copy.seeAll, suggestions.total), { count: suggestions.total })}
                 </span>
                 <span aria-hidden className="text-pine-700">
                   →

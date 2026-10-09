@@ -22,6 +22,7 @@ import { EMPTY_JOURNAL_FIGURES } from "@/lib/catalog/journal-figures";
 import { articleJsonLd } from "@/lib/seo/article-json-ld";
 import { summariseArticle } from "@/lib/journal";
 import { FIXTURE_FIGURES } from "./journal-fixtures";
+import { routes } from "@/lib/routes";
 
 /**
  * Rendering test for the block component.
@@ -32,15 +33,18 @@ import { FIXTURE_FIGURES } from "./journal-fixtures";
  */
 
 const render = (blocks: readonly Block[]): string =>
-  renderToStaticMarkup(createElement(ArticleBody, { blocks }));
+  renderToStaticMarkup(createElement(ArticleBody, { blocks, locale: "bg" }));
 
 const count = (html: string, pattern: RegExp): number => html.match(pattern)?.length ?? 0;
 
 describe("ArticleBody: each block", () => {
   it("renders a paragraph with inline links and emphasis", () => {
-    const html = render([p("Преди ", link("/wizard", "въпросника"), " и ", strong("важно"), ".")]);
+    const html = render([
+      p("Преди ", link(routes.wizard, "въпросника"), " и ", strong("важно"), "."),
+    ]);
     expect(html).toContain("<p>Преди ");
-    expect(html).toMatch(/<a [^>]*href="\/wizard"[^>]*>въпросника<\/a>/);
+    // A route key, resolved in the page's locale.
+    expect(html).toMatch(/<a [^>]*href="\/bg\/izbor-na-kafe"[^>]*>въпросника<\/a>/);
     expect(html).toMatch(/<strong[^>]*>важно<\/strong>/);
   });
 
@@ -52,11 +56,14 @@ describe("ArticleBody: each block", () => {
   });
 
   it("renders ordered and unordered lists as lists", () => {
-    const html = render([ul("едно", ["две ", link("/journal", "връзка")]), ol("първо", "второ")]);
+    const html = render([
+      ul("едно", ["две ", link(routes.journal, "връзка")]),
+      ol("първо", "второ"),
+    ]);
     expect(html).toMatch(/<ul[^>]*>.*<\/ul>/s);
     expect(html).toMatch(/<ol[^>]*>.*<\/ol>/s);
     expect(count(html, /<li/g)).toBe(4);
-    expect(html).toMatch(/<a [^>]*href="\/journal"/);
+    expect(html).toMatch(/<a [^>]*href="\/bg\/blog"/);
   });
 
   it("renders a callout as an aside with its title", () => {
@@ -73,7 +80,7 @@ describe("ArticleBody: each block", () => {
         columns: ["Система", "На чаша"],
         rows: [
           ["Nespresso", "0,33 €"],
-          [[link("/categories/nespresso", "Още")], "—"],
+          [[link({ category: { slug: "nespresso", sourceKey: "nespresso" } }, "Още")], "—"],
         ],
         note: "Приблизително.",
       }),
@@ -98,11 +105,12 @@ describe("ArticleBody: each block", () => {
   it("renders actions as plain links, not buttons", () => {
     const html = render([
       action(
-        { href: "/wizard", label: "Към въпросника" },
-        { href: "/categories", label: "Каталог" },
+        { href: routes.wizard, label: "Към въпросника" },
+        { href: routes.categories, label: "Каталог" },
       ),
     ]);
     expect(count(html, /<a /g)).toBe(2);
+    expect(html).toContain('href="/bg/kategorii"');
     expect(html).not.toMatch(/<button/);
   });
 
@@ -134,7 +142,8 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
       // Every link is a real anchor with an internal or tel: target.
       const hrefs = [...html.matchAll(/<a [^>]*href="([^"]*)"/g)].map((match) => match[1]!);
       expect(hrefs.length).toBeGreaterThan(0);
-      for (const href of hrefs) expect(href).toMatch(/^(\/|tel:\+)/);
+      // In the page's locale, never a bare path.
+      for (const href of hrefs) expect(href).toMatch(/^(\/bg\/|tel:\+)/);
       expect(count(html, /<a /g)).toBe(hrefs.length);
 
       expect(html).not.toMatch(/undefined|\[object/);
@@ -144,7 +153,7 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
 
 describe("articleJsonLd", () => {
   const article = ARTICLES[0]!;
-  const data = articleJsonLd(summariseArticle(article));
+  const data = articleJsonLd(summariseArticle(article), "bg");
 
   it("describes an Article with real dates and an absolute URL", () => {
     expect(data["@context"]).toBe("https://schema.org");
@@ -153,9 +162,9 @@ describe("articleJsonLd", () => {
     expect(data.description).toBe(article.description);
     expect(data.datePublished).toBe(article.publishedAt);
     expect(data.dateModified).toBe(article.updatedAt ?? article.publishedAt);
-    expect(data.url).toBe(`${siteConfig.url.replace(/\/+$/, "")}/journal/${article.slug}`);
+    expect(data.url).toBe(`${siteConfig.url.replace(/\/+$/, "")}/bg/blog/${article.slug}`);
     expect(data.mainEntityOfPage).toEqual({ "@type": "WebPage", "@id": data.url });
-    expect(data.inLanguage).toBe(siteConfig.locale);
+    expect(data.inLanguage).toBe("bg");
   });
 
   it("names the shop, an organisation, as author and publisher — never a person", () => {

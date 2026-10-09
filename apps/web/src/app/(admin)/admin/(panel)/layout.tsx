@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 import { redirect } from "next/navigation";
 import { AdminDisabled } from "@/components/admin/admin-disabled";
 import { adminGate, isAdminConfigured, isSignedIn } from "@/lib/auth";
@@ -73,7 +75,10 @@ export default async function AdminPanelLayout({ children }: { children: React.R
               between our own pages, and the back button is a better answer than
               a window nobody asked for. The session is a cookie, so coming back
               costs one press. */}
-          <Link href="/" className="ml-auto text-sm text-ink-500 hover:text-ink-900">
+          <Link
+            href={href(DEFAULT_LOCALE, routes.home)}
+            className="ml-auto text-sm text-ink-500 hover:text-ink-900"
+          >
             Към сайта
           </Link>
           <form action={signOut}>

@@ -16,6 +16,8 @@ import { JOURNAL_PATH, formatArticleDate, type ArticleSummary } from "@/lib/jour
 import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 import { countPhrase } from "./plural";
+import type { Locale } from "@/i18n/config";
+import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
 
 /**
  * The home page's sections below the hero, in DESIGN.md order ("Home page",
@@ -159,7 +161,13 @@ export function stockedSystems(counts: SystemCounts) {
 
 const TILE_SHAPE = "group flex h-full flex-col rounded-md border border-t-4 p-4 transition-colors";
 
-export function ShopBySystem({ counts }: { readonly counts: SystemCounts }) {
+export function ShopBySystem({
+  counts,
+  locale,
+}: {
+  readonly counts: SystemCounts;
+  readonly locale: Locale;
+}) {
   const systems = stockedSystems(counts);
   // The finder tile closes a row of systems; alone under this heading it
   // would be a heading over nothing. The hero still links to the finder.
@@ -175,7 +183,7 @@ export function ShopBySystem({ counts }: { readonly counts: SystemCounts }) {
         {systems.map(({ system, count }) => (
           <li key={system.id}>
             <Link
-              href={`/categories/${system.categorySlugs[0]}`}
+              href={categoryHref(locale, systemCategory(system))}
               data-system={system.id}
               className={`${TILE_SHAPE} border-line border-t-(--system) bg-(--system-wash) hover:border-(--system)`}
             >
@@ -196,7 +204,7 @@ export function ShopBySystem({ counts }: { readonly counts: SystemCounts }) {
         ))}
         <li className="on-pine">
           <Link
-            href="/wizard/machines"
+            href={href(locale, routes.machines)}
             className={`${TILE_SHAPE} border-pine-900 bg-pine-900 text-paper hover:border-pine-700 hover:bg-pine-700`}
           >
             <h3 className="font-display text-lg font-semibold md:text-xl">Не знаете системата?</h3>
@@ -213,7 +221,7 @@ export function ShopBySystem({ counts }: { readonly counts: SystemCounts }) {
 
 /* --- 4. Wizard entry ----------------------------------------------------- */
 
-export function WizardEntry() {
+export function WizardEntry({ locale }: { readonly locale: Locale }) {
   return (
     <section className="bg-paper-sunken py-12 md:py-16">
       <div className="shell">
@@ -225,7 +233,7 @@ export function WizardEntry() {
             <p className="mt-2 max-w-[60ch] text-base text-ink-700">
               Няколко въпроса и три предложения — с причините за всяко.
             </p>
-            <ButtonLink href="/wizard" className="mt-5 w-full md:w-auto">
+            <ButtonLink href={href(locale, routes.wizard)} className="mt-5 w-full md:w-auto">
               Започнете
             </ButtonLink>
           </div>
@@ -250,7 +258,13 @@ export function WizardEntry() {
 
 /* --- 5. Promotions ------------------------------------------------------- */
 
-export function HomePromotions({ products }: { readonly products: readonly ProductCardView[] }) {
+export function HomePromotions({
+  products,
+  locale,
+}: {
+  readonly products: readonly ProductCardView[];
+  readonly locale: Locale;
+}) {
   /*
    * A reduction is real or absent. The query already asks for an old price
    * above the current one; the card view carries `discountPercent` only when
@@ -267,12 +281,12 @@ export function HomePromotions({ products }: { readonly products: readonly Produ
         <SectionHeading
           title="Намалени в момента"
           action={
-            <ButtonLink href="/promotions" variant="secondary" size="sm">
+            <ButtonLink href={href(locale, routes.promotions)} variant="secondary" size="sm">
               Всички промоции
             </ButtonLink>
           }
         />
-        <ProductGrid products={reduced} priorityCount={0} />
+        <ProductGrid locale={locale} products={reduced} priorityCount={0} />
       </div>
     </section>
   );
@@ -280,7 +294,13 @@ export function HomePromotions({ products }: { readonly products: readonly Produ
 
 /* --- 6. New arrivals ----------------------------------------------------- */
 
-export function NewArrivals({ products }: { readonly products: readonly ProductCardView[] }) {
+export function NewArrivals({
+  products,
+  locale,
+}: {
+  readonly products: readonly ProductCardView[];
+  readonly locale: Locale;
+}) {
   if (products.length === 0) return null;
 
   return (
@@ -288,7 +308,7 @@ export function NewArrivals({ products }: { readonly products: readonly ProductC
       <SectionHeading
         title="Ново в асортимента"
         action={
-          <ButtonLink href="/categories" variant="secondary" size="sm">
+          <ButtonLink href={href(locale, routes.categories)} variant="secondary" size="sm">
             Всичко
           </ButtonLink>
         }
@@ -297,7 +317,7 @@ export function NewArrivals({ products }: { readonly products: readonly ProductC
           second four are hidden from here rather than by a prop it lacks. */}
       <div className="max-md:[&>ul>li:nth-child(n+5)]:hidden">
         {/* None is a priority image: the hero holds the page's LCP element. */}
-        <ProductGrid products={products} priorityCount={0} />
+        <ProductGrid locale={locale} products={products} priorityCount={0} />
       </div>
     </section>
   );
@@ -348,7 +368,13 @@ export function HowOrderingWorks() {
 
 /* --- 8. Brands ----------------------------------------------------------- */
 
-export function HomeBrands({ brands }: { readonly brands: readonly BrandView[] }) {
+export function HomeBrands({
+  brands,
+  locale,
+}: {
+  readonly brands: readonly BrandView[];
+  readonly locale: Locale;
+}) {
   const stocked = brands.filter((brand) => brand.productCount > 0);
   if (stocked.length === 0) return null;
 
@@ -358,7 +384,7 @@ export function HomeBrands({ brands }: { readonly brands: readonly BrandView[] }
         <SectionHeading
           title="Марките, които предлагаме"
           action={
-            <ButtonLink href="/brands" variant="secondary" size="sm">
+            <ButtonLink href={href(locale, routes.brands)} variant="secondary" size="sm">
               Всички марки
             </ButtonLink>
           }
@@ -371,7 +397,7 @@ export function HomeBrands({ brands }: { readonly brands: readonly BrandView[] }
           {stocked.map((brand) => (
             <li key={brand.slug} className="shrink-0 snap-start scroll-ml-4">
               <Link
-                href={`/brands/${brand.slug}`}
+                href={href(locale, routes.brand(brand.slug))}
                 // `relative` keeps the visually hidden unit inside the chip;
                 // unanchored, it would sit outside the scroller's clip and
                 // widen the whole page on a phone.
@@ -396,7 +422,13 @@ export function HomeBrands({ brands }: { readonly brands: readonly BrandView[] }
 
 /* --- 9. Journal ---------------------------------------------------------- */
 
-export function JournalTeaser({ articles }: { readonly articles: readonly ArticleSummary[] }) {
+export function JournalTeaser({
+  articles,
+  locale,
+}: {
+  readonly articles: readonly ArticleSummary[];
+  readonly locale: Locale;
+}) {
   const latest = articles.slice(0, 3);
   if (latest.length === 0) return null;
 
@@ -407,7 +439,7 @@ export function JournalTeaser({ articles }: { readonly articles: readonly Articl
           title="От дневника"
           description="Кратки отговори на въпросите, които изникват преди поръчка."
           action={
-            <ButtonLink href={JOURNAL_PATH} variant="secondary" size="sm">
+            <ButtonLink href={href(locale, JOURNAL_PATH)} variant="secondary" size="sm">
               Всички статии
             </ButtonLink>
           }
@@ -418,12 +450,12 @@ export function JournalTeaser({ articles }: { readonly articles: readonly Articl
               <article className="relative flex h-full flex-col rounded-md border border-line bg-paper-raised p-5 transition-colors hover:border-line-strong">
                 <p className="text-xs text-ink-500">
                   <time dateTime={article.publishedAt}>
-                    {formatArticleDate(article.publishedAt)}
+                    {formatArticleDate(article.publishedAt, locale)}
                   </time>
                 </p>
                 <h3 className="mt-1.5 font-display text-lg font-semibold text-ink-900 md:text-xl">
                   <Link
-                    href={article.href}
+                    href={href(locale, article.href)}
                     className="underline-offset-4 after:absolute after:inset-0 hover:underline"
                   >
                     {article.title}
@@ -441,7 +473,7 @@ export function JournalTeaser({ articles }: { readonly articles: readonly Articl
 
 /* --- 10. Vending Zone ---------------------------------------------------- */
 
-export function VendingBand() {
+export function VendingBand({ locale }: { readonly locale: Locale }) {
   return (
     <section className="on-pine bg-pine-900 text-paper">
       <div className="shell flex flex-col gap-5 py-12 md:flex-row md:items-center md:justify-between md:gap-10 md:py-16">
@@ -453,7 +485,7 @@ export function VendingBand() {
           </p>
         </div>
         <ButtonLink
-          href={BUSINESS_SECTIONS.vending.path}
+          href={href(locale, BUSINESS_SECTIONS.vending.path)}
           variant="on-pine"
           size="lg"
           className="w-full shrink-0 md:w-auto"

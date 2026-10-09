@@ -128,8 +128,9 @@ describe("parseWizardAnswers", () => {
 
 describe("wizardHref", () => {
   it("omits everything unanswered", () => {
-    expect(wizardHref({})).toBe("/wizard");
-    expect(wizardHref({ system: "beans" })).toBe("/wizard?system=beans");
+    // Canonical, like every route constant; a page gives it a locale.
+    expect(wizardHref({})).toBe("/izbor-na-kafe");
+    expect(wizardHref({ system: "beans" })).toBe("/izbor-na-kafe?system=beans");
   });
 
   it("round-trips through the parser", () => {

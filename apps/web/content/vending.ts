@@ -1,5 +1,7 @@
+import { routes, type RouteTarget } from "@/lib/routes";
+
 /**
- * Copy for the two business sections, `/vending` and `/consumables`.
+ * Copy for the two business sections, `/bg/kafe-za-vending-mashini` and `/bg/konsumativi`.
  *
  * Written by us, for one reader: someone who runs one or several vending or
  * office coffee machines and buys for the machine rather than for the cup.
@@ -59,7 +61,8 @@ export interface BusinessSectionCopy {
   };
 
   /** A pointer to the sibling section. */
-  readonly related: { readonly text: string; readonly label: string; readonly href: string };
+  /** `href` is a route key (`routes.*`), resolved in the page's locale. */
+  readonly related: { readonly text: string; readonly label: string; readonly href: RouteTarget };
 }
 
 export const vendingCopy: BusinessSectionCopy = {
@@ -103,7 +106,7 @@ export const vendingCopy: BusinessSectionCopy = {
   related: {
     text: "Какво се разбира под консумативи и как да попитате за тях:",
     label: "Консумативи",
-    href: "/consumables",
+    href: routes.consumables,
   },
 };
 
@@ -160,6 +163,6 @@ export const consumablesCopy: BusinessSectionCopy = {
   related: {
     text: "Кафето за вендинг автомати и автоматични машини е във",
     label: "Вендинг зона",
-    href: "/vending",
+    href: routes.vending,
   },
 };

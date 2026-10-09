@@ -200,6 +200,15 @@ export async function getSectionCategory(id: BusinessSectionId): Promise<Section
   return { slug: category.slug, name: category.name, productCount: count?.value ?? 0 };
 }
 
+/**
+ * Whether a section's own category has anything on sale. The consumables page
+ * is `noindex` and out of the sitemap until it does: a page that can only say
+ * "we list nothing here yet" is thin content to a crawler.
+ */
+export async function sectionListsProducts(id: BusinessSectionId): Promise<boolean> {
+  return ((await getSectionCategory(id))?.productCount ?? 0) > 0;
+}
+
 export interface SectionListing {
   readonly category: SectionCategory;
   readonly result: ProductListResult;

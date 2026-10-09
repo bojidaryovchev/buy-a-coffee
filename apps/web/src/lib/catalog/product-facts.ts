@@ -1,5 +1,7 @@
 import { MACHINE_BRANDS } from "@/content/machines";
 import { getBrewingSystem, type BrewingSystem } from "@/lib/recommend/systems";
+import type { Locale } from "@/i18n/config";
+import { categoryHref, routes, type CategoryKeys } from "@/lib/routes";
 
 /**
  * What the product page may say about one product beyond its name and price.
@@ -75,8 +77,11 @@ export function packLabel(
  * then shown unlinked rather than pointed at a guessed URL.
  */
 export function systemListingHref(
+  locale: Locale,
   systemId: string | null | undefined,
-  categories: ReadonlyArray<{ readonly slug: string; readonly sourceKey?: string | null }>,
+  categories: ReadonlyArray<
+    Pick<CategoryKeys, "slug" | "previousSourceKeys"> & { readonly sourceKey?: string | null }
+  >,
 ): string | null {
   const system = getBrewingSystem(systemId);
   if (!system) return null;
@@ -86,7 +91,7 @@ export function systemListingHref(
       system.categorySlugs.includes(category.slug) ||
       (category.sourceKey ? system.categorySourceKeys.includes(category.sourceKey) : false),
   );
-  return match ? `/categories/${match.slug}` : null;
+  return match ? categoryHref(locale, { ...match, sourceKey: match.sourceKey ?? null }) : null;
 }
 
 /**
@@ -106,7 +111,10 @@ export function compatibilityLine(system: BrewingSystem | null | undefined): str
 export interface CompatibleMachine {
   /** Brand and model together: "Krups Dolce Gusto Piccolo". */
   readonly name: string;
-  /** The machine brand's page, where the model is listed with its system. */
+  /**
+   * The machine brand's page, where the model is listed with its system — a
+   * canonical route (`routes.machineBrand`); the component localises it.
+   */
   readonly href: string;
   readonly crossFormat: boolean;
 }
@@ -161,7 +169,7 @@ export function compatibleMachines(
       .map((model) => ({
         // Some models already carry their maker's name ("Smeg for Lavazza…").
         name: model.name.startsWith(brand.name) ? model.name : `${brand.name} ${model.name}`,
-        href: `/wizard/machines/${brand.slug}`,
+        href: routes.machineBrand(brand.slug),
         crossFormat: model.crossFormat === true,
         brandName: brand.name,
       })),

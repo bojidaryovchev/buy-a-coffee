@@ -1,5 +1,7 @@
 import { useId } from "react";
 import Link from "next/link";
+import { useLocale } from "@/i18n/use-locale";
+import { href, routes } from "@/lib/routes";
 
 /**
  * The newsletter consent box on the order and contact forms.
@@ -24,6 +26,7 @@ export function ConsentCheckbox({
 }) {
   const id = useId();
   const helperId = `${id}-helper`;
+  const locale = useLocale();
 
   return (
     <div>
@@ -45,7 +48,7 @@ export function ConsentCheckbox({
       <p id={helperId} className="text-xs text-ink-500">
         Не е задължително и не влияе на {affects}.
         {needsEmail ? " Важи, ако сте написали имейл." : ""} Вижте{" "}
-        <Link href="/privacy" className="underline underline-offset-2">
+        <Link href={href(locale, routes.privacy)} className="underline underline-offset-2">
           политиката за поверителност
         </Link>
         .

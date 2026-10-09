@@ -2,18 +2,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteConfig, usingPlaceholderBrand } from "@/config/site";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
-import {
-  BRANDS,
-  CONTACT,
-  DELIVERY,
-  FIND_BY_MACHINE,
-  JOURNAL,
-  PROMOTIONS,
-  WIZARD,
-  type SiteNavigation,
-} from "@/components/layout/navigation";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import type { SiteNavigation } from "@/components/layout/navigation";
 import { Wordmark } from "@/components/layout/wordmark";
 import { paymentMethods } from "@/components/commerce/terms";
+import type { Dictionary } from "@/i18n/dictionaries/bg";
+import { fill } from "@/i18n/fill";
+import { openingHoursLabel } from "@/i18n/hours";
 
 const COLUMN_HEAD = "text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
 const LINK = "text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline";
@@ -36,24 +31,27 @@ function FooterLink({ href, children }: { href: string; children: ReactNode }) {
  * The same shelves as the header, in the same order — systems first — so the
  * bottom of a long page offers the way on that the top did. Then the help a
  * first-time customer looks for down here: how to find the right capsule, what
- * delivery costs, how to reach a person.
+ * delivery costs, how to reach a person. Every link in the page's locale, every
+ * word from its dictionary.
  */
-export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
+export function SiteFooter({ navigation, dict }: { navigation: SiteNavigation; dict: Dictionary }) {
   const year = new Date().getFullYear();
+  const { footer } = dict;
   // Empty until the business has said how an order is paid for; the line below
   // is then left out rather than filled with a guess.
   const payment = paymentMethods();
-  const { capsules, pods, beans } = navigation;
+  const { capsules, pods, beans, links, locale } = navigation;
+  const hours = openingHoursLabel(dict.hours.days);
 
   return (
     <footer className="mt-20 border-t border-line bg-paper-sunken">
       <div className="shell grid grid-cols-1 gap-x-8 gap-y-10 py-12 sm:grid-cols-2 lg:grid-cols-12">
         <div className="sm:col-span-2 lg:col-span-3">
           <Wordmark />
-          <p className="mt-3 max-w-xs text-sm text-ink-500">{siteConfig.description}</p>
+          <p className="mt-3 max-w-xs text-sm text-ink-500">{dict.site.description}</p>
           <dl className="mt-5 space-y-1.5 text-sm">
             <div className="flex gap-2">
-              <dt className="text-ink-500">Телефон</dt>
+              <dt className="text-ink-500">{footer.phone}</dt>
               <dd>
                 <a
                   href={`tel:${siteConfig.contact.phoneHref}`}
@@ -64,7 +62,7 @@ export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
               </dd>
             </div>
             <div className="flex gap-2">
-              <dt className="text-ink-500">Имейл</dt>
+              <dt className="text-ink-500">{footer.email}</dt>
               <dd className="min-w-0">
                 <a
                   href={`mailto:${siteConfig.contact.email}`}
@@ -74,23 +72,24 @@ export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
                 </a>
               </dd>
             </div>
-            {siteConfig.contact.hours && (
+            {hours && (
               <div className="flex gap-2">
-                <dt className="text-ink-500">Работно време</dt>
-                <dd className="text-ink-700">{siteConfig.contact.hours}</dd>
+                <dt className="text-ink-500">{footer.hours}</dt>
+                <dd className="text-ink-700">{hours}</dd>
               </div>
             )}
           </dl>
+          <LanguageSwitcher locale={locale} label={dict.language.label} className="mt-5" />
         </div>
 
-        <nav aria-label="Магазин" className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>Магазин</h2>
+        <nav aria-label={footer.shop} className="lg:col-span-2">
+          <h2 className={COLUMN_HEAD}>{footer.shop}</h2>
           <ul className="mt-3 space-y-1">
             {capsules?.systems.map((system) => (
               <FooterLink key={system.id} href={system.href}>
                 {/* The rail calls the group "Капсули" and names the systems
                     under it; out of that context the word has to come along. */}
-                Капсули {system.name}
+                {fill(footer.systemCapsules, { system: system.name })}
               </FooterLink>
             ))}
             {pods && <FooterLink href={pods.href}>{pods.name}</FooterLink>}
@@ -104,39 +103,39 @@ export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
             <FooterLink href={navigation.consumables.href}>
               {navigation.consumables.label}
             </FooterLink>
-            <FooterLink href={BRANDS.href}>{BRANDS.label}</FooterLink>
+            <FooterLink href={links.brands.href}>{links.brands.label}</FooterLink>
             {navigation.hasPromotions && (
-              <FooterLink href={PROMOTIONS.href}>{PROMOTIONS.label}</FooterLink>
+              <FooterLink href={links.promotions.href}>{links.promotions.label}</FooterLink>
             )}
           </ul>
         </nav>
 
-        <nav aria-label="Помощ" className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>Помощ</h2>
+        <nav aria-label={footer.help} className="lg:col-span-2">
+          <h2 className={COLUMN_HEAD}>{footer.help}</h2>
           <ul className="mt-3 space-y-1">
-            <FooterLink href={FIND_BY_MACHINE.href}>{FIND_BY_MACHINE.label}</FooterLink>
-            <FooterLink href={WIZARD.href}>{WIZARD.label}</FooterLink>
-            <FooterLink href={DELIVERY.href}>{DELIVERY.label}</FooterLink>
-            <FooterLink href={CONTACT.href}>{CONTACT.label}</FooterLink>
-            {navigation.hasJournal && <FooterLink href={JOURNAL.href}>{JOURNAL.label}</FooterLink>}
+            <FooterLink href={links.findByMachine.href}>{links.findByMachine.label}</FooterLink>
+            <FooterLink href={links.wizard.href}>{links.wizard.label}</FooterLink>
+            <FooterLink href={links.delivery.href}>{links.delivery.label}</FooterLink>
+            <FooterLink href={links.contact.href}>{links.contact.label}</FooterLink>
+            {navigation.hasJournal && (
+              <FooterLink href={links.journal.href}>{links.journal.label}</FooterLink>
+            )}
           </ul>
         </nav>
 
-        <nav aria-label="Правна информация" className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>Правна информация</h2>
+        <nav aria-label={footer.legal} className="lg:col-span-2">
+          <h2 className={COLUMN_HEAD}>{footer.legal}</h2>
           <ul className="mt-3 space-y-1">
-            <FooterLink href="/terms">Общи условия</FooterLink>
-            <FooterLink href="/privacy">Поверителност</FooterLink>
-            <FooterLink href="/cookies">Бисквитки</FooterLink>
+            <FooterLink href={links.terms}>{footer.terms}</FooterLink>
+            <FooterLink href={links.privacy}>{footer.privacy}</FooterLink>
+            <FooterLink href={links.cookies}>{footer.cookies}</FooterLink>
           </ul>
         </nav>
 
         {siteConfig.features.newsletter && (
           <div className="sm:col-span-2 lg:col-span-3">
-            <h2 className={COLUMN_HEAD}>Бъдете в течение</h2>
-            <p className="mt-3 text-sm text-ink-500">
-              Кратки съобщения за новите попълнения. Не повече от веднъж месечно.
-            </p>
+            <h2 className={COLUMN_HEAD}>{footer.newsletterHeading}</h2>
+            <p className="mt-3 text-sm text-ink-500">{footer.newsletterBody}</p>
             <div className="mt-3">
               <NewsletterForm source="footer" />
             </div>
@@ -147,14 +146,22 @@ export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
       <div className="border-t border-line">
         <div className="shell flex flex-col gap-x-8 gap-y-2 py-5 text-xs text-ink-500 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <p>
-            © {year} {siteConfig.legal.isComplete ? siteConfig.legal.companyName : siteConfig.name}.
-            Всички права запазени.
+            {fill(footer.copyright, {
+              year,
+              owner: siteConfig.legal.isComplete ? siteConfig.legal.companyName : siteConfig.name,
+            })}
           </p>
-          {payment.length > 0 && <p>Плащане: {payment.map((method) => method.label).join(", ")}</p>}
+          {payment.length > 0 && (
+            <p>
+              {fill(footer.payment, {
+                methods: payment.map((method) => footer.paymentMethods[method.id]).join(", "),
+              })}
+            </p>
+          )}
           {siteConfig.legal.isComplete ? (
             <p>
-              {siteConfig.legal.companyName} · ЕИК {siteConfig.legal.companyId}
-              {siteConfig.legal.vatId ? ` · ДДС № ${siteConfig.legal.vatId}` : ""} ·{" "}
+              {siteConfig.legal.companyName} · {footer.companyId} {siteConfig.legal.companyId}
+              {siteConfig.legal.vatId ? ` · ${footer.vatId} ${siteConfig.legal.vatId}` : ""} ·{" "}
               {siteConfig.legal.address}
             </p>
           ) : (
@@ -165,7 +172,7 @@ export function SiteFooter({ navigation }: { navigation: SiteNavigation }) {
              * caution, which is what it is. Clay means a reduced price.
              */
             <p className="self-start rounded-xs bg-caution-100 px-2 py-1 font-medium text-caution md:self-auto">
-              Фирмените данни още не са попълнени
+              {footer.companyPending}
             </p>
           )}
         </div>

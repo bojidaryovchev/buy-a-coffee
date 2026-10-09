@@ -6,18 +6,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { CloseIcon, MachineIcon, MenuIcon, WizardIcon } from "@/components/layout/icons";
-import {
-  ALL_CATEGORIES,
-  BRANDS,
-  CONTACT,
-  DELIVERY,
-  FIND_BY_MACHINE,
-  JOURNAL,
-  PROMOTIONS,
-  WIZARD,
-  type SiteNavigation,
-} from "@/components/layout/navigation";
+import type { SiteNavigation } from "@/components/layout/navigation";
 import { Wordmark } from "@/components/layout/wordmark";
+import type { Dictionary } from "@/i18n/dictionaries/bg";
+import { plural } from "@/i18n/fill";
+
+/** The drawer's words: its own, and the navigation's. */
+export interface MobileNavCopy {
+  readonly drawer: Dictionary["drawer"];
+  readonly nav: Dictionary["nav"];
+}
 
 /**
  * Mobile navigation drawer.
@@ -37,7 +35,7 @@ import { Wordmark } from "@/components/layout/wordmark";
  * These are the details that decide whether the menu is usable with a keyboard
  * or a screen reader at all.
  *
- * The trigger is a link to `/categories`. Without JavaScript nothing can open
+ * The trigger is a link to the category index. Without JavaScript nothing can open
  * a drawer, and a menu button that does nothing is the worst control on a
  * phone; a link to the page that lists the same shelves always works. Once the
  * page has hydrated the same element is announced as a button, because from
@@ -53,7 +51,18 @@ const ROW_CURRENT =
 const GROUP_LABEL =
   "px-3 pt-4 pb-1 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
 
-export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
+export function MobileNav({
+  navigation,
+  copy,
+  hours,
+}: {
+  navigation: SiteNavigation;
+  copy: MobileNavCopy;
+  /** When the phone is answered, already in the page's language. */
+  hours: string;
+}) {
+  const { links } = navigation;
+  const { drawer, nav } = copy;
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const triggerRef = useRef<HTMLAnchorElement>(null);
@@ -133,7 +142,7 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
   const count = (value: number) => (
     <span className="text-2xs text-ink-300 tabular-nums">
       {value}
-      <span className="sr-only"> продукта</span>
+      <span className="sr-only"> {plural(nav.products, value)}</span>
     </span>
   );
 
@@ -162,9 +171,9 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
     <>
       <a
         ref={triggerRef}
-        href={ALL_CATEGORIES.href}
+        href={links.allCategories.href}
         role={hydrated ? "button" : undefined}
-        aria-label="Меню"
+        aria-label={drawer.open}
         aria-expanded={hydrated ? open : undefined}
         aria-controls={hydrated && open ? panelId : undefined}
         onClick={(event) => {
@@ -205,7 +214,7 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
               id={panelId}
               role="dialog"
               aria-modal="true"
-              aria-label="Меню на сайта"
+              aria-label={drawer.dialog}
               // A link to the page already open changes no path, so the effect
               // above would never hear of it.
               onClick={(event) => {
@@ -219,36 +228,36 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
                   ref={closeRef}
                   type="button"
                   onClick={() => setOpen(false)}
-                  aria-label="Затвори менюто"
+                  aria-label={drawer.close}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-ink-700 transition-colors hover:bg-paper-sunken hover:text-ink-900"
                 >
                   <CloseIcon />
                 </button>
               </div>
 
-              <nav aria-label="Основна навигация" className="flex-1 px-2 py-3">
+              <nav aria-label={nav.label} className="flex-1 px-2 py-3">
                 <ul className="space-y-2 px-1">
                   <li>
                     {entry(
-                      FIND_BY_MACHINE.href,
+                      links.findByMachine.href,
                       <MachineIcon className="h-5 w-5 text-pine-700" />,
-                      FIND_BY_MACHINE.label,
-                      "По марка и модел",
+                      links.findByMachine.label,
+                      drawer.findByMachineHint,
                     )}
                   </li>
                   <li>
                     {entry(
-                      WIZARD.href,
+                      links.wizard.href,
                       <WizardIcon className="h-5 w-5 text-pine-700" />,
-                      WIZARD.label,
-                      "Няколко въпроса, три предложения",
+                      links.wizard.label,
+                      drawer.wizardHint,
                     )}
                   </li>
                 </ul>
 
                 {capsules && (
                   <>
-                    <p className={GROUP_LABEL}>Капсули по система</p>
+                    <p className={GROUP_LABEL}>{nav.capsulesBySystem}</p>
                     <ul>
                       {capsules.systems.map((system) => (
                         <li key={system.id} data-system={system.id}>
@@ -265,7 +274,7 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
                       <li>
                         {row(
                           capsules.href,
-                          "Всички капсули",
+                          nav.allCapsules,
                           pathname === capsules.href ? "" : "font-medium !text-pine-700",
                         )}
                       </li>
@@ -315,19 +324,19 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
                 <hr className="my-2 border-line" />
 
                 <ul>
-                  <li>{row(BRANDS.href, BRANDS.label)}</li>
+                  <li>{row(links.brands.href, links.brands.label)}</li>
                   {navigation.hasPromotions && (
                     <li>
                       {row(
-                        PROMOTIONS.href,
-                        PROMOTIONS.label,
-                        pathname === PROMOTIONS.href ? "" : "!text-clay-600",
+                        links.promotions.href,
+                        links.promotions.label,
+                        pathname === links.promotions.href ? "" : "!text-clay-600",
                       )}
                     </li>
                   )}
-                  {navigation.hasJournal && <li>{row(JOURNAL.href, JOURNAL.label)}</li>}
-                  <li>{row(DELIVERY.href, DELIVERY.label)}</li>
-                  <li>{row(CONTACT.href, CONTACT.label)}</li>
+                  {navigation.hasJournal && <li>{row(links.journal.href, links.journal.label)}</li>}
+                  <li>{row(links.delivery.href, links.delivery.label)}</li>
+                  <li>{row(links.contact.href, links.contact.label)}</li>
                 </ul>
               </nav>
 
@@ -338,9 +347,7 @@ export function MobileNav({ navigation }: { navigation: SiteNavigation }) {
                 >
                   {siteConfig.contact.phone}
                 </a>
-                {siteConfig.contact.hours && (
-                  <p className="text-sm text-ink-500">{siteConfig.contact.hours}</p>
-                )}
+                {hours && <p className="text-sm text-ink-500">{hours}</p>}
               </div>
             </div>
           </div>,

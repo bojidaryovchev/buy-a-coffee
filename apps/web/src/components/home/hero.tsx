@@ -4,6 +4,8 @@ import { ButtonLink, buttonClasses } from "@/components/ui/primitives";
 import { siteConfig } from "@/config/site";
 import type { HeroShelfItem } from "@/lib/catalog/home-shelf";
 import { countPhrase } from "./plural";
+import type { Locale } from "@/i18n/config";
+import { href, productHref, routes } from "@/lib/routes";
 
 /**
  * The hero: what the shop is, and a start from the customer's machine.
@@ -20,11 +22,13 @@ export const HERO_SHELF_SIZES = "(min-width: 1180px) 180px, (min-width: 768px) 1
 const PHONE_WELLS = 3;
 
 export function HomeHero({
+  locale,
   brandCount,
   productCount,
   shelf,
   systemsHref,
 }: {
+  readonly locale: Locale;
   /** Brands with at least one product, counted from the database. */
   readonly brandCount: number;
   /** Active products, counted from the database. */
@@ -78,7 +82,12 @@ export function HomeHero({
             buttons of one width rather than a long one over a short one.
           */}
           <div className="mt-6 flex flex-wrap gap-3">
-            <ButtonLink href="/wizard" variant="accent" size="lg" className="grow">
+            <ButtonLink
+              href={href(locale, routes.wizard)}
+              variant="accent"
+              size="lg"
+              className="grow"
+            >
               Намерете кафе за вашата машина
             </ButtonLink>
             {systemsHref && (
@@ -98,7 +107,7 @@ export function HomeHero({
           <p className="mt-4 text-sm text-pine-200">
             Не знаете каква система е машината ви?{" "}
             <Link
-              href="/wizard/machines"
+              href={href(locale, routes.machines)}
               className="text-gold-300 underline underline-offset-2 hover:no-underline"
             >
               Намерете я по марка и модел
@@ -111,7 +120,7 @@ export function HomeHero({
             {shelf.map((item, index) => (
               <li key={item.id} className={index >= PHONE_WELLS ? "hidden md:block" : undefined}>
                 <Link
-                  href={`/products/${item.slug}`}
+                  href={productHref(locale, item)}
                   className="relative block aspect-square overflow-hidden rounded-md bg-well"
                 >
                   <ProductImage

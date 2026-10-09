@@ -8,6 +8,9 @@ import {
 import { availabilitySchemaUrl } from "@/lib/catalog/format";
 import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import { HTML_LANG, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
+import { href, productHref, routes } from "@/lib/routes";
 
 /**
  * Structured data builders.
@@ -15,6 +18,11 @@ import type { ProductDetailView } from "@/lib/catalog/types";
  * Only claims we can actually support are emitted. In particular there is no
  * `aggregateRating` and no `review` anywhere: the storefront has no reviews,
  * and inventing them would be both a policy violation and a lie to customers.
+ *
+ * Every builder that writes a URL takes the locale first and builds the URL
+ * through `lib/routes.ts`, so structured data can never point at an unprefixed
+ * path — buy-a-vend's breadcrumbs once did, and pointed at 404s while the
+ * visible page was fine.
  */
 
 const SCHEMA_DAY = {
@@ -41,6 +49,7 @@ function hoursAvailable(commerce: CommerceConfig): Array<Record<string, unknown>
 }
 
 export function organizationJsonLd(
+  locale: Locale,
   commerce: CommerceConfig = siteConfig.commerce,
 ): Record<string, unknown> {
   const hours = hoursAvailable(commerce);
@@ -48,8 +57,8 @@ export function organizationJsonLd(
     "@context": "https://schema.org",
     "@type": "Organization",
     name: siteConfig.name,
-    url: absoluteUrl("/"),
-    description: siteConfig.description,
+    url: absoluteUrl(href(locale, routes.home)),
+    description: getDictionary(locale).site.description,
     contactPoint: [
       {
         "@type": "ContactPoint",
@@ -102,17 +111,18 @@ export function organizationJsonLd(
  * route that accepts `q`. Declaring one without it is a common way to make
  * structured data actively wrong.
  */
-export function webSiteJsonLd(): Record<string, unknown> {
+export function webSiteJsonLd(locale: Locale): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteConfig.name,
-    url: absoluteUrl("/"),
+    url: absoluteUrl(href(locale, routes.home)),
+    inLanguage: HTML_LANG[locale],
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${absoluteUrl("/search")}?q={search_term_string}`,
+        urlTemplate: `${absoluteUrl(href(locale, routes.search))}?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -174,7 +184,10 @@ function shippingDetails(
  * — when it has not. A fixed return-shipping fee is not something the config
  * can express, so `ReturnShippingFees` is never emitted.
  */
-function merchantReturnPolicy(commerce: CommerceConfig): Record<string, unknown> | null {
+function merchantReturnPolicy(
+  commerce: CommerceConfig,
+  locale: Locale,
+): Record<string, unknown> | null {
   const days = returnWindowDays(commerce);
   if (days === null) return null;
 
@@ -191,16 +204,17 @@ function merchantReturnPolicy(commerce: CommerceConfig): Record<string, unknown>
     returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
     merchantReturnDays: days,
     ...(fees ? { returnFees: fees } : {}),
-    merchantReturnLink: absoluteUrl("/delivery"),
+    merchantReturnLink: absoluteUrl(href(locale, routes.delivery)),
   };
 }
 
 function offerPolicies(
   price: { readonly amount: string; readonly currency: string },
   commerce: CommerceConfig,
+  locale: Locale,
 ): Record<string, unknown> {
   const shipping = shippingDetails(price, commerce);
-  const returns = merchantReturnPolicy(commerce);
+  const returns = merchantReturnPolicy(commerce, locale);
   return {
     ...(shipping ? { shippingDetails: shipping } : {}),
     ...(returns ? { hasMerchantReturnPolicy: returns } : {}),
@@ -224,17 +238,19 @@ export function productImageUrls(product: Pick<ProductDetailView, "images">): re
 
 export function productJsonLd(
   product: ProductDetailView,
+  locale: Locale,
   commerce: CommerceConfig = siteConfig.commerce,
 ): Record<string, unknown> {
   const images = productImageUrls(product);
   // The product code, when the record holds one. Blank is not a code.
   const sku = product.sku?.trim();
+  const url = absoluteUrl(productHref(locale, product));
 
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    url: absoluteUrl(`/products/${product.slug}`),
+    url,
     ...(product.descriptionText ? { description: product.descriptionText } : {}),
     ...(images.length > 0 ? { image: images } : {}),
     ...(product.brand ? { brand: { "@type": "Brand", name: product.brand.name } } : {}),
@@ -251,7 +267,7 @@ export function productJsonLd(
       price: product.price.amount,
       priceCurrency: product.price.currency,
       availability: availabilitySchemaUrl(product.availability),
-      url: absoluteUrl(`/products/${product.slug}`),
+      url,
       seller: { "@type": "Organization", name: siteConfig.name },
       /*
        * Shipping and returns leave the site here as machine-readable claims
@@ -259,13 +275,14 @@ export function productJsonLd(
        * thing from a sentence on our own page, so they wait for the business
        * to confirm its terms — proposed values are never published this way.
        */
-      ...(commerce.confirmedByOwner ? offerPolicies(product.price, commerce) : {}),
+      ...(commerce.confirmedByOwner ? offerPolicies(product.price, commerce, locale) : {}),
     };
   }
 
   return data;
 }
 
+/** `items[].href` are public URLs from `lib/routes.ts`, as the visible breadcrumb uses. */
 export function breadcrumbJsonLd(
   items: ReadonlyArray<{ name: string; href: string }>,
 ): Record<string, unknown> {

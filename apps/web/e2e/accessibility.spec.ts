@@ -10,7 +10,7 @@ import { expectControlsLabelled } from "./support/structure";
  * management — rather than colour-picking.
  */
 
-const PAGES = ["/", "/categories/kapsuli", "/brands", "/contact"];
+const PAGES = ["/", "/bg/kafe-kapsuli", "/bg/marki", "/bg/kontakti"];
 
 for (const route of PAGES) {
   test(`${route} has exactly one h1 and proper landmarks`, async ({ page }) => {
@@ -39,7 +39,7 @@ for (const route of PAGES) {
 }
 
 test("every image has an alt attribute", async ({ page }) => {
-  await page.goto("/categories/kapsuli");
+  await page.goto("/bg/kafe-kapsuli");
   const missing = await page
     .locator("img")
     .evaluateAll((nodes) => nodes.filter((node) => !node.hasAttribute("alt")).length);
@@ -54,12 +54,12 @@ test("the skip link is the first focusable element", async ({ page }) => {
 });
 
 test("form controls have accessible names", async ({ page }) => {
-  await page.goto("/contact");
+  await page.goto("/bg/kontakti");
   await expectControlsLabelled(page);
 });
 
 test("the honeypot field is hidden from assistive technology", async ({ page }) => {
-  await page.goto("/contact");
+  await page.goto("/bg/kontakti");
   // Two forms on this page carry a honeypot: the contact form and the footer
   // newsletter. Both must be hidden; assert on the first.
   const honeypots = page.locator('input[name="website"]');
@@ -149,8 +149,9 @@ test.describe("mobile", () => {
     await page.goto("/");
     await waitForHydration(page);
     await menuButton(page).click();
-    await drawer(page).locator('a[href^="/categories/"]').first().click();
-    await expect(page).toHaveURL(/\/categories\//);
+    // A capsule system's shelf: categories live at the first level under `/bg`.
+    await drawer(page).locator('li[data-system] a[href^="/bg/"]').first().click();
+    await expect(page).toHaveURL(/\/bg\/[a-z0-9-]+$/);
     await expect(drawer(page)).toBeHidden();
   });
 
@@ -165,17 +166,18 @@ test.describe("mobile", () => {
     // No drawer can open without a script, so the control must not claim to be a button.
     const link = page.getByRole("link", { name: "Меню", exact: true });
     await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute("href", "/categories");
+    await expect(link).toHaveAttribute("href", "/bg/kategorii");
     await expect(page.getByRole("button", { name: "Меню", exact: true })).toHaveCount(0);
 
     await link.click();
-    await expect(page).toHaveURL(/\/categories$/);
-    await expect(page.locator('main a[href^="/categories/"]').first()).toBeVisible();
+    await expect(page).toHaveURL(/\/bg\/kategorii$/);
+    // Each category card's heading is its link.
+    await expect(page.locator('main h2 a[href^="/bg/"]').first()).toBeVisible();
     await context.close();
   });
 
   test("the filter sheet opens on small screens", async ({ page }) => {
-    await page.goto("/categories/kapsuli");
+    await page.goto("/bg/kafe-kapsuli");
     await waitForHydration(page);
     const trigger = page.getByRole("button", { name: /^филтри/i });
     await expect(trigger).toBeVisible();
@@ -189,7 +191,7 @@ test.describe("mobile", () => {
   });
 
   test("the filter trigger says how many filters are active", async ({ page }) => {
-    await page.goto("/categories/kapsuli?brand=lavazza&strength=strong");
+    await page.goto("/bg/kafe-kapsuli?brand=lavazza&strength=strong");
     await waitForHydration(page);
     await expect(page.getByRole("button", { name: /^филтри\s*активни: 2$/i })).toBeVisible();
   });
@@ -200,7 +202,7 @@ test.describe("mobile", () => {
       viewport: { width: 390, height: 844 },
     });
     const page = await context.newPage();
-    await page.goto("/categories/kapsuli");
+    await page.goto("/bg/kafe-kapsuli");
 
     // The toolbar's disclosure, not the rail's filter groups (also `<details>`,
     // and hidden at this width).
@@ -221,7 +223,7 @@ test.describe("mobile", () => {
   });
 
   test("the layout does not scroll horizontally", async ({ page }) => {
-    for (const route of ["/", "/categories/kapsuli", "/contact"]) {
+    for (const route of ["/", "/bg/kafe-kapsuli", "/bg/kontakti"]) {
       await page.goto(route);
       const overflows = await page.evaluate(
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,

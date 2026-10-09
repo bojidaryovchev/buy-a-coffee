@@ -1,4 +1,5 @@
 import type { JournalFigures } from "@/lib/catalog/journal-figures";
+import type { RouteTarget } from "@/lib/routes";
 
 /**
  * The journal's block format.
@@ -26,7 +27,8 @@ import type { JournalFigures } from "@/lib/catalog/journal-figures";
 /** A link to a route on this site. External links are not part of the format. */
 export interface InlineLink {
   readonly type: "link";
-  readonly href: `/${string}`;
+  /** A route key, not a URL: the renderer resolves it in the page's locale. */
+  readonly href: RouteTarget;
   readonly text: string;
 }
 
@@ -95,7 +97,7 @@ export interface TableBlock {
 /** A button-styled link out of the article — into the wizard, mostly. */
 export interface ActionBlock {
   readonly type: "action";
-  readonly links: ReadonlyArray<{ readonly href: `/${string}`; readonly label: string }>;
+  readonly links: ReadonlyArray<{ readonly href: RouteTarget; readonly label: string }>;
 }
 
 export type Block =
@@ -104,7 +106,7 @@ export type Block =
 /* --- Article ------------------------------------------------------------- */
 
 export interface Article {
-  /** URL segment under `/journal/`. Latin, lower case, hyphenated. */
+  /** URL segment under the journal (`/bg/blog/<slug>`). Latin, lower case, hyphenated. */
   readonly slug: string;
   /** The page's single `h1`, and the `headline` of its structured data. */
   readonly title: string;
@@ -137,7 +139,7 @@ export interface Article {
  * rather than like a tree of object literals.
  */
 
-export const link = (href: `/${string}`, text: string): InlineLink => ({
+export const link = (href: RouteTarget, text: string): InlineLink => ({
   type: "link",
   href,
   text,
@@ -195,7 +197,7 @@ export const table = (options: {
 });
 
 export const action = (
-  ...links: Array<{ readonly href: `/${string}`; readonly label: string }>
+  ...links: Array<{ readonly href: RouteTarget; readonly label: string }>
 ): ActionBlock => ({ type: "action", links });
 
 /**

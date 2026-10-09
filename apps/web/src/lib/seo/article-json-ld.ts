@@ -1,4 +1,6 @@
 import { absoluteUrl, siteConfig } from "@/config/site";
+import { HTML_LANG, type Locale } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 import { SHARE_CARD } from "./share-card";
 
 /**
@@ -20,7 +22,7 @@ import { SHARE_CARD } from "./share-card";
  */
 
 export interface ArticleJsonLdInput {
-  /** Site-relative path of the article. */
+  /** The article's canonical path (`routes.article`), localised here. */
   readonly href: string;
   readonly title: string;
   readonly description: string;
@@ -30,12 +32,15 @@ export interface ArticleJsonLdInput {
   readonly modifiedAt: string;
 }
 
-export function articleJsonLd(article: ArticleJsonLdInput): Record<string, unknown> {
-  const url = absoluteUrl(article.href);
+export function articleJsonLd(
+  article: ArticleJsonLdInput,
+  locale: Locale,
+): Record<string, unknown> {
+  const url = absoluteUrl(href(locale, article.href));
   const shop = {
     "@type": "Organization",
     name: siteConfig.name,
-    url: absoluteUrl("/"),
+    url: absoluteUrl(href(locale, routes.home)),
   };
 
   return {
@@ -45,7 +50,7 @@ export function articleJsonLd(article: ArticleJsonLdInput): Record<string, unkno
     description: article.description,
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    inLanguage: siteConfig.locale,
+    inLanguage: HTML_LANG[locale],
     datePublished: article.publishedAt,
     dateModified: article.modifiedAt,
     author: shop,

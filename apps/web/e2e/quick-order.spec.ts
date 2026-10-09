@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { BG, PRODUCT_LINK, expectProductPage } from "./support/paths";
 import { asDistinctVisitor, waitForHydration } from "./support/hydration";
 
 /**
@@ -11,9 +12,9 @@ import { asDistinctVisitor, waitForHydration } from "./support/hydration";
  */
 
 async function openProduct(page: Page) {
-  await page.goto("/categories/kapsuli");
-  await page.locator('a[href^="/products/"]').first().click();
-  await expect(page).toHaveURL(/\/products\//);
+  await page.goto("/bg/kafe-kapsuli");
+  await page.locator(PRODUCT_LINK).first().click();
+  await expectProductPage(page);
 }
 
 test("the quick-order form is present with a phone field", async ({ page }) => {
@@ -86,7 +87,7 @@ test("the form explains what happens to the phone number", async ({ page }) => {
  * product page. Both are the same form posting to the same action.
  */
 test.describe("from a product card", () => {
-  const LISTING = "/categories/kapsuli";
+  const LISTING = BG.capsules;
 
   /** The first card's control; its accessible name carries the product's name. */
   const cardControl = (page: Page) =>
@@ -176,7 +177,7 @@ test.describe("from a product card", () => {
     await page.goto(LISTING);
 
     const control = cardControl(page);
-    await expect(control).toHaveAttribute("href", /^\/products\/[^/#]+#order$/);
+    await expect(control).toHaveAttribute("href", /^\/bg\/[^/#]+#order$/);
     const href = (await control.getAttribute("href"))!;
     await control.click();
 

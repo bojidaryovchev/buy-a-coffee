@@ -67,7 +67,7 @@ const link = () => linkFor(NAME);
 describe("QuickOrderControl", () => {
   it("is a labelled link to the order form, with nothing mounted behind it", () => {
     control();
-    expect(link().getAttribute("href")).toBe(`/products/${SLUG}#order`);
+    expect(link().getAttribute("href")).toBe(`/bg/${SLUG}#order`);
     expect(document.querySelector("dialog")).toBeNull();
     expect(screen.queryByTestId("order-form")).toBeNull();
   });

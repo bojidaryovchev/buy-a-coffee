@@ -13,8 +13,8 @@ import type { Notification } from "@/lib/notifications";
 // database has been chosen.
 import type * as Actions from "@/lib/forms/actions";
 import type * as Admin from "@/lib/admin-actions";
-import type * as Unsubscribe from "@/app/(site)/newsletter/unsubscribe/actions";
-import type * as Page from "@/app/(site)/newsletter/unsubscribe/page";
+import type * as Unsubscribe from "@/app/(site)/[lang]/byuletin/otpisvane/actions";
+import type * as Page from "@/app/(site)/[lang]/byuletin/otpisvane/page";
 import { isDatabaseAvailable, runMigrationFile, useTestDatabase } from "./helpers/test-db";
 
 /**
@@ -87,8 +87,8 @@ suite("newsletter consent (integration)", () => {
     });
     actions = await import("@/lib/forms/actions");
     admin = await import("@/lib/admin-actions");
-    unsubscribeModule = await import("@/app/(site)/newsletter/unsubscribe/actions");
-    page = await import("@/app/(site)/newsletter/unsubscribe/page");
+    unsubscribeModule = await import("@/app/(site)/[lang]/byuletin/otpisvane/actions");
+    page = await import("@/app/(site)/[lang]/byuletin/otpisvane/page");
 
     await db.execute(sql`truncate table source_sites restart identity cascade`);
     const [site] = await db
@@ -483,7 +483,10 @@ suite("newsletter consent (integration)", () => {
 
     const render = async (params: Record<string, string>) => {
       const { renderToStaticMarkup } = await import("react-dom/server");
-      const element = await page.default({ searchParams: Promise.resolve(params) });
+      const element = await page.default({
+        params: Promise.resolve({ lang: "bg" }),
+        searchParams: Promise.resolve(params),
+      });
       return renderToStaticMarkup(element);
     };
 
@@ -502,7 +505,7 @@ suite("newsletter consent (integration)", () => {
 
     it("the POST from that page unsubscribes, and keeps the consent record", async () => {
       const row = await subscribe();
-      expect(await press(row.unsubscribeToken)).toBe("/newsletter/unsubscribe?status=done");
+      expect(await press(row.unsubscribeToken)).toBe("/bg/byuletin/otpisvane?status=done");
       const [after] = await subscribers();
       expect(after!.unsubscribedAt).toBeInstanceOf(Date);
       expect(after!.consentSource).toBe("footer");
@@ -534,8 +537,8 @@ suite("newsletter consent (integration)", () => {
 
     it("an unknown token changes nothing and reveals nothing", async () => {
       await subscribe();
-      expect(await press("f".repeat(64))).toBe("/newsletter/unsubscribe?status=invalid");
-      expect(await press("short")).toBe("/newsletter/unsubscribe?status=invalid");
+      expect(await press("f".repeat(64))).toBe("/bg/byuletin/otpisvane?status=invalid");
+      expect(await press("short")).toBe("/bg/byuletin/otpisvane?status=invalid");
       expect((await subscribers())[0]!.unsubscribedAt).toBeNull();
     });
 

@@ -7,6 +7,8 @@ import { STRENGTH_LABELS, attributeValueLabel } from "@/lib/catalog/attributes";
 import { compositionLabel, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import type { Locale } from "@/i18n/config";
+import { categoryHref } from "@/lib/routes";
 
 /**
  * The facts table on a product page ("Характеристики").
@@ -54,7 +56,7 @@ const text = (value: string | null | undefined): string | null => value?.trim() 
  * The rows that have something to say, in the table's order. Exported for the
  * page, which leaves the whole section out when there are none.
  */
-export function factRows(product: FactsTableProduct): readonly FactRow[] {
+export function factRows(product: FactsTableProduct, locale: Locale): readonly FactRow[] {
   const rows: Array<FactRow | null> = [];
   const attributes = product.attributes ?? {};
 
@@ -68,7 +70,7 @@ export function factRows(product: FactsTableProduct): readonly FactRow[] {
             <SystemBadge
               systemId={system.id}
               size="md"
-              href={systemListingHref(system.id, product.categories) ?? undefined}
+              href={systemListingHref(locale, system.id, product.categories) ?? undefined}
             />
           ),
         }
@@ -190,7 +192,7 @@ export function factRows(product: FactsTableProduct): readonly FactRow[] {
             <span key={category.slug}>
               {index > 0 && ", "}
               <Link
-                href={`/categories/${category.slug}`}
+                href={categoryHref(locale, category)}
                 className="text-pine-700 underline underline-offset-2 hover:no-underline"
               >
                 {category.name}
@@ -204,8 +206,8 @@ export function factRows(product: FactsTableProduct): readonly FactRow[] {
   return rows.filter((row): row is FactRow => row !== null);
 }
 
-export function FactsTable({ product }: { product: FactsTableProduct }) {
-  const rows = factRows(product);
+export function FactsTable({ product, locale }: { product: FactsTableProduct; locale: Locale }) {
+  const rows = factRows(product, locale);
   if (rows.length === 0) return null;
 
   return (

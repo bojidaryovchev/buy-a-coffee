@@ -4,17 +4,14 @@ import { siteConfig } from "@/config/site";
 import { SearchField } from "@/components/catalog/search-field";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
 import { MachineIcon } from "@/components/layout/icons";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import {
-  BRANDS,
-  FIND_BY_MACHINE,
-  PROMOTIONS,
-  WIZARD,
-  type NavSystem,
-  type SiteNavigation,
-} from "@/components/layout/navigation";
+import type { NavSystem, SiteNavigation } from "@/components/layout/navigation";
 import { RailLink } from "@/components/layout/rail-link";
 import { Wordmark } from "@/components/layout/wordmark";
+import type { Dictionary } from "@/i18n/dictionaries/bg";
+import { fill, plural } from "@/i18n/fill";
+import { openingHoursLabel } from "@/i18n/hours";
 
 /**
  * Site header.
@@ -29,15 +26,18 @@ import { Wordmark } from "@/components/layout/wordmark";
  * away, while this stays.
  *
  * Rendered on the server, from the navigation the layout built out of the one
- * category read it already makes. The client components are the ones that
- * must be: the drawer, the search field, and the rail links, which mark the
+ * category read it already makes, in the page's locale and with that locale's
+ * dictionary. The client components are the ones that must be: the drawer, the
+ * search field, the language switcher and the rail links, which mark the
  * current section.
  */
 export function SiteHeader({
   navigation,
+  dict,
   showPhone = false,
 }: {
   navigation: SiteNavigation;
+  dict: Dictionary;
   /**
    * Print the phone number in the masthead on a wide screen too. Set when
    * there is no announcement bar to carry it — a shop that takes its orders by
@@ -45,7 +45,8 @@ export function SiteHeader({
    */
   showPhone?: boolean;
 }) {
-  const { capsules, pods, beans } = navigation;
+  const { capsules, pods, beans, links, locale } = navigation;
+  const { nav } = dict;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
@@ -60,12 +61,16 @@ export function SiteHeader({
           around them must stay within 116 px.
         */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2 md:gap-y-3 md:py-4">
-          <MobileNav navigation={navigation} />
+          <MobileNav
+            navigation={navigation}
+            copy={{ drawer: dict.drawer, nav }}
+            hours={openingHoursLabel(dict.hours.days)}
+          />
 
           <Link
-            href="/"
+            href={links.home}
             className="flex shrink-0 items-center gap-2.5"
-            aria-label={`${siteConfig.name} — начало`}
+            aria-label={fill(nav.home, { name: siteConfig.name })}
           >
             <Wordmark />
           </Link>
@@ -76,7 +81,7 @@ export function SiteHeader({
               showPhone ? "md:order-last md:ml-0" : "md:hidden"
             }`}
           >
-            <span className={showPhone ? "md:hidden" : undefined}>Обадете се</span>
+            <span className={showPhone ? "md:hidden" : undefined}>{dict.header.call}</span>
             {showPhone && (
               <span className="hidden tabular-nums md:inline">{siteConfig.contact.phone}</span>
             )}
@@ -88,10 +93,13 @@ export function SiteHeader({
               page out of static rendering. The boundary keeps that cost local
               to the field itself.
             */}
-            <Suspense fallback={<SearchFieldFallback />}>
-              <SearchField />
+            <Suspense fallback={<SearchFieldFallback locale={locale} copy={dict.search} />}>
+              <SearchField locale={locale} copy={dict.search} />
             </Suspense>
           </div>
+
+          {/* Nothing at all while one locale ships. */}
+          <LanguageSwitcher locale={locale} label={dict.language.label} />
         </div>
 
         {/*
@@ -99,12 +107,12 @@ export function SiteHeader({
           and the vending link — the one item that is not about a home
           machine — steps out first. It stays in the drawer and the footer.
         */}
-        <nav aria-label="Основна навигация" className="hidden md:block">
+        <nav aria-label={nav.label} className="hidden md:block">
           <ul className="-mb-px flex items-center gap-x-4 lg:gap-x-6">
             {capsules && (
               <li className="group relative">
                 <RailLink href={capsules.href} sections={capsules.systems.map((s) => s.href)}>
-                  Капсули
+                  {nav.capsules}
                   <svg
                     aria-hidden
                     viewBox="0 0 12 12"
@@ -118,7 +126,12 @@ export function SiteHeader({
                     <path d="M2.5 4.5 6 8l3.5-3.5" />
                   </svg>
                 </RailLink>
-                <SystemsPanel href={capsules.href} systems={capsules.systems} />
+                <SystemsPanel
+                  href={capsules.href}
+                  systems={capsules.systems}
+                  findByMachine={links.findByMachine}
+                  nav={nav}
+                />
               </li>
             )}
             {pods && (
@@ -132,9 +145,9 @@ export function SiteHeader({
               </li>
             )}
             <li>
-              <RailLink href={FIND_BY_MACHINE.href}>
+              <RailLink href={links.findByMachine.href}>
                 <MachineIcon />
-                {FIND_BY_MACHINE.label}
+                {links.findByMachine.label}
               </RailLink>
             </li>
             <li className="hidden lg:block">
@@ -142,19 +155,17 @@ export function SiteHeader({
             </li>
 
             <li className="ml-auto">
-              <RailLink href={WIZARD.href} except={[FIND_BY_MACHINE.href]}>
-                {WIZARD.label}
-              </RailLink>
+              <RailLink href={links.wizard.href}>{links.wizard.label}</RailLink>
             </li>
             <li>
-              <RailLink href={BRANDS.href}>{BRANDS.label}</RailLink>
+              <RailLink href={links.brands.href}>{links.brands.label}</RailLink>
             </li>
             {navigation.hasPromotions && (
               <li>
                 {/* Clay, because this is where the reduced prices are — the
                     one thing clay is allowed to mean. */}
-                <RailLink href={PROMOTIONS.href} tone="clay">
-                  {PROMOTIONS.label}
+                <RailLink href={links.promotions.href} tone="clay">
+                  {links.promotions.label}
                 </RailLink>
               </li>
             )}
@@ -176,12 +187,22 @@ export function SiteHeader({
  * their system and wants its shelf, and the one who knows only the machine.
  * The second must not be left reading five names that mean nothing to them.
  */
-function SystemsPanel({ href, systems }: { href: string; systems: readonly NavSystem[] }) {
+function SystemsPanel({
+  href,
+  systems,
+  findByMachine,
+  nav,
+}: {
+  href: string;
+  systems: readonly NavSystem[];
+  findByMachine: { readonly href: string; readonly label: string };
+  nav: Dictionary["nav"];
+}) {
   return (
     <div className="invisible absolute top-full left-0 z-50 grid w-[34rem] max-w-[calc(100vw-4rem)] grid-cols-2 gap-2 rounded-md border border-line bg-paper-raised p-2 opacity-0 shadow-float transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
       <div>
         <p className="px-3 pt-2 pb-1 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
-          Капсули по система
+          {nav.capsulesBySystem}
         </p>
         <ul>
           {systems.map((system) => (
@@ -195,7 +216,7 @@ function SystemsPanel({ href, systems }: { href: string; systems: readonly NavSy
                 <span className="min-w-0 flex-1">{system.name}</span>
                 <span className="text-2xs text-ink-300 tabular-nums">
                   {system.count}
-                  <span className="sr-only"> продукта</span>
+                  <span className="sr-only"> {plural(nav.products, system.count)}</span>
                 </span>
               </Link>
             </li>
@@ -205,22 +226,20 @@ function SystemsPanel({ href, systems }: { href: string; systems: readonly NavSy
               href={href}
               className="flex min-h-11 items-center rounded-sm px-3 text-sm font-medium text-pine-700 hover:bg-paper-sunken"
             >
-              Всички капсули
+              {nav.allCapsules}
             </Link>
           </li>
         </ul>
       </div>
 
       <div className="self-start rounded-sm bg-pine-100 p-4">
-        <p className="text-sm font-semibold text-pine-900">Не знаете коя е вашата система?</p>
-        <p className="mt-1.5 text-sm text-ink-700">
-          Намерете машината си по марка и модел и ще ви кажем какво пасва.
-        </p>
+        <p className="text-sm font-semibold text-pine-900">{nav.unsureHeading}</p>
+        <p className="mt-1.5 text-sm text-ink-700">{nav.unsureBody}</p>
         <Link
-          href={FIND_BY_MACHINE.href}
+          href={findByMachine.href}
           className="mt-3 inline-flex min-h-6 items-center gap-1 text-sm font-medium text-pine-700 underline underline-offset-4"
         >
-          {FIND_BY_MACHINE.label} <span aria-hidden>→</span>
+          {findByMachine.label} <span aria-hidden>→</span>
         </Link>
       </div>
     </div>

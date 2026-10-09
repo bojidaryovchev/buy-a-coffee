@@ -6,6 +6,8 @@ import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { consumablesCopy, vendingCopy } from "../../../content/vending";
 import { llmsText } from "./body";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { categoryHref, href, routes } from "@/lib/routes";
 
 /**
  * `/llms.txt` — a plain-language map of the shop for AI search.
@@ -35,6 +37,9 @@ import { llmsText } from "./body";
  * `usingPlaceholderBrand()` is true. `organizationJsonLd` guards it the same
  * way, for the same reason: a fabricated company number must not reach a format
  * built to be repeated.
+ *
+ * Every link is a public URL in the default locale, built through
+ * `lib/routes.ts` like every other link on the site.
  */
 
 export const revalidate = 3600;
@@ -62,24 +67,29 @@ export async function GET() {
     listBrands({ withProductsOnly: true }),
   ]);
 
+  const locale = DEFAULT_LOCALE;
   const body = llmsText({
+    locale,
     summary,
     /* Top-level categories only. The tree runs three deep in places, and a flat
        list of every leaf would be a sitemap in prose rather than a map. The
        category behind a business section is named by that section's page. */
     categories: tree
       .filter((category) => !isSectionCategory(category, BUSINESS_SECTIONS))
-      .map((category) => ({ name: category.name, href: `/categories/${category.slug}` })),
-    brands: brands.map((brand) => ({ name: brand.name, href: `/brands/${brand.slug}` })),
+      .map((category) => ({ name: category.name, href: categoryHref(locale, category) })),
+    brands: brands.map((brand) => ({
+      name: brand.name,
+      href: href(locale, routes.brand(brand.slug)),
+    })),
     machineBrandCount: MACHINE_BRANDS.length,
     sections: [
-      { ...vendingCopy, href: BUSINESS_SECTIONS.vending.path },
-      { ...consumablesCopy, href: BUSINESS_SECTIONS.consumables.path },
+      { ...vendingCopy, href: href(locale, BUSINESS_SECTIONS.vending.path) },
+      { ...consumablesCopy, href: href(locale, BUSINESS_SECTIONS.consumables.path) },
     ].map((copy) => ({ name: copy.title, href: copy.href, description: copy.metaDescription })),
     articles: siteConfig.features.blog
       ? listArticles().map((article) => ({
           name: article.title,
-          href: article.href,
+          href: href(locale, article.href),
           description: article.description,
         }))
       : [],

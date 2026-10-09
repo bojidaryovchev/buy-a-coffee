@@ -77,14 +77,14 @@ function product(patch: Partial<ProductDetailView> = {}): ProductDetailView {
 
 describe("Product JSON-LD: product code", () => {
   it("carries `sku` only when the record holds a code", () => {
-    expect(productJsonLd(product({ sku: "AB-1234" })).sku).toBe("AB-1234");
-    expect(productJsonLd(product({ sku: null }))).not.toHaveProperty("sku");
-    expect(productJsonLd(product({ sku: "" }))).not.toHaveProperty("sku");
-    expect(productJsonLd(product({ sku: "   " }))).not.toHaveProperty("sku");
+    expect(productJsonLd(product({ sku: "AB-1234" }), "bg").sku).toBe("AB-1234");
+    expect(productJsonLd(product({ sku: null }), "bg")).not.toHaveProperty("sku");
+    expect(productJsonLd(product({ sku: "" }), "bg")).not.toHaveProperty("sku");
+    expect(productJsonLd(product({ sku: "   " }), "bg")).not.toHaveProperty("sku");
   });
 
   it("trims a padded code", () => {
-    expect(productJsonLd(product({ sku: " AB-1234 " })).sku).toBe("AB-1234");
+    expect(productJsonLd(product({ sku: " AB-1234 " }), "bg").sku).toBe("AB-1234");
   });
 });
 
@@ -92,6 +92,7 @@ describe("Product JSON-LD: image", () => {
   it("lists real photographs as absolute URLs", () => {
     const data = productJsonLd(
       product({ images: [image("/media/catalog/a.jpg"), image("/media/catalog/b.jpg")] }),
+      "bg",
     );
     expect(data.image).toHaveLength(2);
     for (const url of data.image as string[])
@@ -99,13 +100,13 @@ describe("Product JSON-LD: image", () => {
   });
 
   it("omits `image` when the only image resolved to the placeholder", () => {
-    const data = productJsonLd(product({ images: [image(PLACEHOLDER_IMAGE)] }));
+    const data = productJsonLd(product({ images: [image(PLACEHOLDER_IMAGE)] }), "bg");
     expect(data).not.toHaveProperty("image");
     expect(JSON.stringify(data)).not.toContain("placeholder");
   });
 
   it("omits `image` when there is no image at all", () => {
-    expect(productJsonLd(product({ images: [] }))).not.toHaveProperty("image");
+    expect(productJsonLd(product({ images: [] }), "bg")).not.toHaveProperty("image");
   });
 
   it("keeps the real photographs and drops only the placeholder among them", () => {
@@ -120,6 +121,7 @@ describe("Product JSON-LD: image", () => {
 describe("Product JSON-LD: a product with no price", () => {
   const data = productJsonLd(
     product({ price: null, sku: "AB-1", images: [image(PLACEHOLDER_IMAGE)] }),
+    "bg",
     COMPLETE,
   );
 
@@ -133,7 +135,7 @@ describe("Product JSON-LD: a product with no price", () => {
     expect(parsed["@context"]).toBe("https://schema.org");
     expect(parsed["@type"]).toBe("Product");
     expect(parsed.name).toBe("Тестово кафе");
-    expect(parsed.url).toMatch(/\/products\/testovo-kafe$/);
+    expect(parsed.url).toMatch(/\/bg\/testovo-kafe$/);
     expect(parsed.sku).toBe("AB-1");
     expect(parsed).not.toHaveProperty("image");
     // Nothing undefined or null slipped in as a value.
@@ -141,7 +143,7 @@ describe("Product JSON-LD: a product with no price", () => {
   });
 
   it("emits the offer again once there is a price", () => {
-    const offers = productJsonLd(product(), COMPLETE).offers as Record<string, unknown>;
+    const offers = productJsonLd(product(), "bg", COMPLETE).offers as Record<string, unknown>;
     expect(offers.price).toBe("12.80");
     expect(offers.priceCurrency).toBe("EUR");
   });
@@ -185,7 +187,13 @@ describe("delivery-and-payment block", () => {
   it("renders nothing when no term is set, so the form can take the full width", () => {
     expect(deliveryPaymentRows(price("12.80"), UNSET)).toEqual([]);
     expect(
-      html(createElement(DeliveryPaymentBlock, { price: price("12.80"), commerce: UNSET })),
+      html(
+        createElement(DeliveryPaymentBlock, {
+          locale: "bg",
+          price: price("12.80"),
+          commerce: UNSET,
+        }),
+      ),
     ).toBe("");
   });
 
@@ -198,6 +206,7 @@ describe("delivery-and-payment block", () => {
   it("is a description list with decorative icons and a link to the terms page", () => {
     const markup = html(
       createElement(DeliveryPaymentBlock, {
+        locale: "bg",
         price: price("12.80"),
         commerce: COMPLETE,
         className: "border-b",
@@ -207,7 +216,7 @@ describe("delivery-and-payment block", () => {
     expect((markup.match(/<dt/g) ?? []).length).toBe(4);
     expect((markup.match(/<dd/g) ?? []).length).toBe(4);
     expect((markup.match(/<svg aria-hidden="true"/g) ?? []).length).toBe(4);
-    expect(markup).toContain('href="/delivery"');
+    expect(markup).toContain('href="/bg/dostavka-i-plashtane"');
     expect(stripTags(markup)).toContain("Наложен платеж или банков превод.");
     expect(stripTags(markup)).toContain("14 дни за отказ след получаването.");
     expect(stripTags(markup)).toContain("за ваша сметка");

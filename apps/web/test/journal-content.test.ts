@@ -15,6 +15,7 @@ import {
   plainText,
 } from "@/lib/journal";
 import { BREWING_SYSTEMS, systemsForMethod } from "@/lib/recommend/systems";
+import { routes, type RouteTarget } from "@/lib/routes";
 import { referencesSource } from "../e2e/support/source-guard";
 import { FIXTURE_FIGURES, FIXTURE_ROWS } from "./journal-fixtures";
 
@@ -53,9 +54,11 @@ function shopCalendarDate(now: Date): string {
  *
  * Read from the `app` directory rather than listed here, so a route that is
  * renamed or removed fails this test instead of leaving a dead link behind.
+ * Under `[lang]`, whose folder names are the canonical paths an article's
+ * links are written in; `href` gives them a locale at render time.
  */
 
-const SITE_ROOT = path.resolve(import.meta.dirname, "../src/app/(site)");
+const SITE_ROOT = path.resolve(import.meta.dirname, "../src/app/(site)/[lang]");
 
 function discoverRoutes(directory: string, segments: readonly string[] = []): string[][] {
   const routes: string[][] = [];
@@ -75,15 +78,29 @@ const routeKey = (segments: readonly string[]): string => `/${segments.join("/")
 
 /** What may fill each dynamic segment, keyed by the route it belongs to. */
 const DYNAMIC_VALUES: Readonly<Record<string, () => ReadonlySet<string>>> = {
-  "/journal/[slug]": () => new Set(ARTICLES.map((article) => article.slug)),
-  "/wizard/machines/[brand]": () => new Set(MACHINE_BRANDS.map((brand) => brand.slug)),
-  "/categories/[slug]": () => new Set(BREWING_SYSTEMS.flatMap((system) => system.categorySlugs)),
-  // Product links only ever come out of the catalog figures.
-  "/products/[slug]": () => new Set(FIXTURE_ROWS.map((entry) => entry.slug)),
+  "/blog/[slug]": () => new Set(ARTICLES.map((article) => article.slug)),
+  "/za-kafemashina/[brand]": () => new Set(MACHINE_BRANDS.map((brand) => brand.slug)),
+  /* Categories and products share the first level, and are linked by key —
+     `{ category }`, `{ product }` — never by a path, which would carry one
+     locale's slug into every locale. */
+  "/[slug]": () => new Set(),
 };
 
+const CATEGORY_SLUGS = new Set(BREWING_SYSTEMS.flatMap((system) => system.categorySlugs));
+// Product links only ever come out of the catalog figures.
+const PRODUCT_SLUGS = new Set(FIXTURE_ROWS.map((entry) => entry.slug));
+
 /** Null when the link resolves; otherwise the reason it does not. */
-function linkProblem(href: string): string | null {
+function linkProblem(target: RouteTarget | string): string | null {
+  if (typeof target !== "string") {
+    if ("category" in target) {
+      return CATEGORY_SLUGS.has(target.category.slug)
+        ? null
+        : `unknown category "${target.category.slug}"`;
+    }
+    return PRODUCT_SLUGS.has(target.product) ? null : `unknown product "${target.product}"`;
+  }
+  const href = target;
   if (!href.startsWith("/")) return "not a site-relative path";
   if (/[?#]/.test(href)) return "carries a query or fragment";
   if (href !== "/" && href.endsWith("/")) return "has a trailing slash";
@@ -118,23 +135,26 @@ function linkProblem(href: string): string | null {
 describe("journal: the link checker itself", () => {
   it("discovers the routes it is about to rely on", () => {
     const keys = ROUTES.map(routeKey);
-    expect(keys).toContain("/wizard");
-    expect(keys).toContain("/wizard/machines");
-    expect(keys).toContain("/wizard/machines/[brand]");
-    expect(keys).toContain("/categories/[slug]");
-    expect(keys).toContain("/journal/[slug]");
+    expect(keys).toContain(routes.wizard);
+    expect(keys).toContain(routes.machines);
+    expect(keys).toContain("/za-kafemashina/[brand]");
+    expect(keys).toContain("/[slug]");
+    expect(keys).toContain("/blog/[slug]");
   });
 
   it("accepts real targets and rejects invented ones", () => {
-    expect(linkProblem("/wizard")).toBeNull();
-    expect(linkProblem("/wizard/machines/krups")).toBeNull();
-    expect(linkProblem("/categories/nespresso")).toBeNull();
-    expect(linkProblem("/wizard/machines/not-a-brand")).not.toBeNull();
-    expect(linkProblem("/categories/not-a-category")).not.toBeNull();
-    expect(linkProblem("/journal/not-an-article")).not.toBeNull();
-    expect(linkProblem("/no-such-page")).not.toBeNull();
+    expect(linkProblem(routes.wizard)).toBeNull();
+    expect(linkProblem(routes.machineBrand("krups"))).toBeNull();
+    expect(linkProblem({ category: { slug: "nespresso", sourceKey: "nespresso" } })).toBeNull();
+    expect(linkProblem(routes.machineBrand("not-a-brand"))).not.toBeNull();
+    expect(linkProblem({ category: { slug: "not-a-category", sourceKey: null } })).not.toBeNull();
+    expect(linkProblem({ product: "not-a-product" })).not.toBeNull();
+    expect(linkProblem(routes.article("not-an-article"))).not.toBeNull();
+    // A category reached by a bare path would be one locale's slug everywhere.
+    expect(linkProblem("/nespresso")).not.toBeNull();
+    expect(linkProblem("/no-such-page/at-all")).not.toBeNull();
     expect(linkProblem("https://example.com/")).not.toBeNull();
-    expect(linkProblem("/wizard?brew=beans")).not.toBeNull();
+    expect(linkProblem(`${routes.wizard}?brew=beans`)).not.toBeNull();
   });
 });
 
@@ -179,9 +199,9 @@ describe("journal: the set of articles", () => {
     expect(getArticle(null)).toBeNull();
   });
 
-  it("gives every listing an href under /journal", () => {
+  it("gives every listing a canonical href under the journal", () => {
     for (const article of listArticles()) {
-      expect(article.href).toBe(`/journal/${article.slug}`);
+      expect(article.href).toBe(routes.article(article.slug));
       expect(linkProblem(article.href)).toBeNull();
     }
   });
@@ -252,8 +272,8 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
       it("links only to routes and slugs that exist", () => {
         const links = collectLinks(blocks);
         expect(links.length).toBeGreaterThan(0);
-        for (const href of links) {
-          expect(linkProblem(href), `${href}`).toBeNull();
+        for (const target of links) {
+          expect(linkProblem(target), JSON.stringify(target)).toBeNull();
         }
       });
 
@@ -261,16 +281,16 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
         const links = collectLinks(blocks);
         expect(
           links.some(
-            (href) =>
-              href === "/wizard" ||
-              href.startsWith("/wizard/machines") ||
-              href.startsWith("/categories/"),
+            (target) =>
+              target === routes.wizard ||
+              (typeof target === "string" && target.startsWith(routes.machines)) ||
+              (typeof target !== "string" && "category" in target),
           ),
         ).toBe(true);
       });
 
       it("does not link to itself", () => {
-        expect(collectLinks(blocks)).not.toContain(`/journal/${article.slug}`);
+        expect(collectLinks(blocks)).not.toContain(routes.article(article.slug));
       });
 
       it("never names the mirrored shop", () => {

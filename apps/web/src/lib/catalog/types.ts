@@ -108,6 +108,7 @@ export interface ProductDetailView extends ProductCardView {
     readonly slug: string;
     /** Stable across an upstream rename; a brewing system is bound to either. */
     readonly sourceKey: string | null;
+    readonly previousSourceKeys: readonly string[];
     readonly name: string;
     readonly isPrimary: boolean;
     readonly parentSlug: string | null;
@@ -118,6 +119,14 @@ export interface ProductDetailView extends ProductCardView {
 export interface CategoryView {
   readonly id: string;
   readonly slug: string;
+  /**
+   * The source's key for the category, and the keys it used before a rename.
+   * A category's landing slug is keyed by these (`i18n/slugs/<locale>.ts`),
+   * because our stored slug is frozen at whatever the category was first
+   * called.
+   */
+  readonly sourceKey: string | null;
+  readonly previousSourceKeys: readonly string[];
   readonly name: string;
   readonly description: string | null;
   readonly parentSlug: string | null;
@@ -185,12 +194,18 @@ export interface LinkSuggestion {
   readonly productCount: number;
 }
 
+/** A category in the dropdown carries the keys its landing slug is chosen by. */
+export interface CategorySuggestion extends LinkSuggestion {
+  readonly sourceKey: string | null;
+  readonly previousSourceKeys: readonly string[];
+}
+
 export interface SearchSuggestions {
   /** Echoed back so a client can discard a response for a stale term. */
   readonly term: string;
   readonly products: readonly ProductSuggestion[];
   readonly brands: readonly LinkSuggestion[];
-  readonly categories: readonly LinkSuggestion[];
+  readonly categories: readonly CategorySuggestion[];
   /** Total product matches, so the dropdown can offer "see all N". */
   readonly total: number;
 }

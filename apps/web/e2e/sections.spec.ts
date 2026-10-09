@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { PRODUCT_LINK } from "./support/paths";
 import { findSourceUrls } from "./support/source-guard";
 import {
   expectControlsLabelled,
@@ -19,7 +20,12 @@ import {
  * asserted by count and by link target, never by wording.
  */
 
-const SECTIONS = ["/delivery", "/vending", "/consumables", "/journal"] as const;
+const SECTIONS = [
+  "/bg/dostavka-i-plashtane",
+  "/bg/kafe-za-vending-mashini",
+  "/bg/konsumativi",
+  "/bg/blog",
+] as const;
 
 for (const route of SECTIONS) {
   test.describe(route, () => {
@@ -40,19 +46,21 @@ for (const route of SECTIONS) {
       await expectControlsLabelled(page);
     });
 
-    test("can be indexed and describes itself", async ({ page }) => {
+    test("describes itself, and can be indexed unless it lists nothing", async ({ page }) => {
       await page.goto(route);
       await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /\S/);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\S/);
       // A page with no robots meta at all is indexable; only an explicit noindex is wrong.
+      // The consumables page is the exception while it lists nothing: it is
+      // `noindex` until the catalog files a product under it (see i18n.spec.ts).
       const robots = page.locator('meta[name="robots"]');
-      if ((await robots.count()) > 0) {
+      if (route !== "/bg/konsumativi" && (await robots.count()) > 0) {
         expect(await robots.first().getAttribute("content")).not.toMatch(/noindex/);
       }
     });
 
     // The journal is reading, not an offer; it promises no phone line of its own.
-    if (route !== "/journal") {
+    if (route !== "/bg/blog") {
       test("offers a way to ask by phone", async ({ page }) => {
         await page.goto(route);
         // Scoped to <main>: the header's phone link is hidden on small screens.
@@ -79,8 +87,8 @@ for (const route of SECTIONS) {
   });
 }
 
-test.describe("/vending and /consumables", () => {
-  for (const route of ["/vending", "/consumables"]) {
+test.describe("the two business sections", () => {
+  for (const route of ["/bg/kafe-za-vending-mashini", "/bg/konsumativi"]) {
     test(`${route} has an enquiry form that posts to our own server`, async ({ page }) => {
       await page.goto(route);
       const forms = page.locator("main form");
@@ -94,11 +102,11 @@ test.describe("/vending and /consumables", () => {
     });
   }
 
-  test("/vending lists vending blends from the catalog, each a link to a product", async ({
+  test("the vending section lists vending blends from the catalog, each a link to a product", async ({
     page,
   }) => {
-    await page.goto("/vending");
-    const links = page.locator('main a[href^="/products/"]');
+    await page.goto("/bg/kafe-za-vending-mashini");
+    const links = page.locator(`main ${PRODUCT_LINK}`);
     expect(await links.count()).toBeGreaterThan(0);
 
     const first = await links.first().getAttribute("href");
@@ -109,14 +117,14 @@ test.describe("/vending and /consumables", () => {
 
 /** The article paths the journal index links to. */
 async function articleLinks(page: Page): Promise<string[]> {
-  await page.goto("/journal");
+  await page.goto("/bg/blog");
   const hrefs = await page
-    .locator('main a[href^="/journal/"]')
+    .locator('main a[href^="/bg/blog/"]')
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href") ?? ""));
-  return [...new Set(hrefs)].filter((href) => /^\/journal\/[^/]+$/.test(href));
+  return [...new Set(hrefs)].filter((href) => /^\/bg\/blog\/[^/]+$/.test(href));
 }
 
-test.describe("/journal", () => {
+test.describe("/bg/blog", () => {
   test("the index links to its articles", async ({ page }) => {
     expect((await articleLinks(page)).length).toBeGreaterThan(0);
   });
@@ -146,7 +154,7 @@ test.describe("/journal", () => {
     expect(structured).toContain('"Article"');
     expect(structured).toContain("BreadcrumbList");
 
-    await expect(page.locator('a[href="/journal"]').first()).toBeAttached();
+    await expect(page.locator('a[href="/bg/blog"]').first()).toBeAttached();
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       new RegExp(`${first}$`),
@@ -164,7 +172,7 @@ test.describe("/journal", () => {
   });
 
   test("an unknown article is a real 404", async ({ page }) => {
-    const response = await page.goto("/journal/this-article-does-not-exist");
+    const response = await page.goto("/bg/blog/this-article-does-not-exist");
     expect(response?.status()).toBe(404);
   });
 

@@ -133,6 +133,16 @@ const nextConfig: NextConfig = {
 
   transpilePackages: ["@catalog/db", "@catalog/shared"],
 
+  experimental: {
+    /*
+     * `app/global-not-found.tsx` draws the 404 for a URL that matches no route.
+     * It is needed because there is no `app/layout.tsx`: the shop's root layout
+     * sits under `[lang]`, so `<html lang>` can follow the locale, and a plain
+     * `not-found.tsx` has no root layout above it to render inside.
+     */
+    globalNotFound: true,
+  },
+
   images: {
     remotePatterns: remotePatternFor(imageHost),
     formats: ["image/avif", "image/webp"],

@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
+import { DEFAULT_LOCALE, HTML_LANG } from "@/i18n/config";
+import { href, routes } from "@/lib/routes";
 
 /**
  * The web app manifest.
@@ -25,9 +27,11 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: siteConfig.shortName,
     description: siteConfig.description,
 
-    lang: siteConfig.locale,
+    lang: HTML_LANG[DEFAULT_LOCALE],
     dir: "ltr",
-    start_url: "/",
+    /* The shop's home, not the bare `/`: that only redirects to it. `id` and
+       `scope` stay at the root, so the installed app keeps its identity. */
+    start_url: href(DEFAULT_LOCALE, routes.home),
     scope: "/",
     display: "standalone",
 
@@ -59,8 +63,16 @@ export default function manifest(): MetadataRoute.Manifest {
 
     /* The two things someone who installed this would open it for. */
     shortcuts: [
-      { name: "Категории", short_name: "Категории", url: "/categories" },
-      { name: "Кое кафе е за мен", short_name: "Помощник", url: "/wizard" },
+      {
+        name: "Категории",
+        short_name: "Категории",
+        url: href(DEFAULT_LOCALE, routes.categories),
+      },
+      {
+        name: "Кое кафе е за мен",
+        short_name: "Помощник",
+        url: href(DEFAULT_LOCALE, routes.wizard),
+      },
     ],
   };
 }
