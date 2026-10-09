@@ -7,7 +7,7 @@ import { MACHINE_BRANDS } from "@/content/machines";
 import { consumablesCopy, vendingCopy } from "../../../content/vending";
 import { llmsText } from "./body";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { brandHref, categoryHref, href, routes } from "@/lib/routes";
+import { brandHref, categoryHref, href } from "@/lib/routes";
 
 /**
  * `/llms.txt` — a plain-language map of the shop for AI search.

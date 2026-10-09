@@ -77,7 +77,12 @@ test("a Latin query finds Cyrillic product names", async ({ page }) => {
   await page.goto("/bg/tarsene?q=kapsuli");
 
   await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/капсули/i);
+  // A card is headed by brand and line; that the result is a capsule is in
+  // its address, which carries the format.
+  await expect(page.getByRole("heading", { level: 3 }).first().getByRole("link")).toHaveAttribute(
+    "href",
+    /-kapsuli-/,
+  );
 });
 
 test("both scripts return the same result count", async ({ page }) => {
@@ -140,11 +145,15 @@ test("a synonym inside a longer query still works", async ({ page }) => {
 });
 
 test("a phonetic spelling of a brewing system finds its capsules", async ({ page }) => {
-  // Dolce Gusto capsules are named "DG" in the catalog; the spelled-out
-  // Cyrillic name has to reach them.
+  // The supplier names Dolce Gusto capsules "DG"; the spelled-out Cyrillic
+  // name has to reach them. The card shows our name, so the system is read
+  // from the product's address.
   await page.goto("/bg/tarsene?q=" + encodeURIComponent("долче густо"));
   await expect(page.locator(PRODUCT_LINK).first()).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3 }).first()).toContainText(/DG/);
+  await expect(page.getByRole("heading", { level: 3 }).first().getByRole("link")).toHaveAttribute(
+    "href",
+    /-kapsuli-dolce-gusto-/,
+  );
 });
 
 test("a nonsense query shows a helpful no-results state", async ({ page }) => {
