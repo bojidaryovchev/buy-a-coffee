@@ -9,9 +9,10 @@ import { availabilitySchemaUrl } from "@/lib/catalog/format";
 import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { brandLogoFor } from "../../../content/brand-logos";
+import { categoryNameFor } from "../../../content/category-copy";
 import { HTML_LANG, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
-import { href, productHref, routes } from "@/lib/routes";
+import { categoryHref, href, productHref, routes, type CategoryKeys } from "@/lib/routes";
 
 /**
  * Structured data builders.
@@ -299,6 +300,45 @@ export function productJsonLd(
   }
 
   return data;
+}
+
+/** One step of a breadcrumb trail: what it is called and its public URL. */
+export interface Crumb {
+  readonly name: string;
+  readonly href: string;
+}
+
+/**
+ * A listing's trail: „Начало“, then the steps given.
+ *
+ * The visible breadcrumb and the `BreadcrumbList` are both built from what
+ * this returns, so the two cannot disagree about a name or a URL.
+ */
+export function listingBreadcrumbs(locale: Locale, crumbs: readonly Crumb[]): readonly Crumb[] {
+  return [{ name: "Начало", href: href(locale, routes.home) }, ...crumbs];
+}
+
+/**
+ * The steps that lead to a category: its parent listing, when it has one, and
+ * the category itself — „Кафе капсули › Капсули за Dolce Gusto“.
+ *
+ * **By format, never by brand, and with no index page in between**
+ * (`docs/seo.md` §13.2): the trail is the path a customer would walk from the
+ * kind of coffee to the system. Each step is named as the page that owns it is
+ * named everywhere else (`categoryNameFor`), not as the catalog stores it.
+ *
+ * A product page puts its own name after these, which is why they are returned
+ * without „Начало“ and without a last step of their own.
+ */
+export function categoryCrumbs(
+  locale: Locale,
+  category: CategoryKeys & { readonly name: string },
+  parent: (CategoryKeys & { readonly name: string }) | null = null,
+): readonly Crumb[] {
+  return [...(parent ? [parent] : []), category].map((step) => ({
+    name: categoryNameFor(step),
+    href: categoryHref(locale, step),
+  }));
 }
 
 /** `items[].href` are public URLs from `lib/routes.ts`, as the visible breadcrumb uses. */

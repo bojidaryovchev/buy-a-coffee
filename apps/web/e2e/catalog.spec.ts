@@ -22,7 +22,7 @@ test("home page loads and shows catalog-driven sections", async ({ page }) => {
 
 test("category navigation reaches a listing with products", async ({ page }) => {
   await page.goto("/bg/kategorii");
-  await expect(page.getByRole("heading", { name: /разгледайте по вид/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /категории кафе/i })).toBeVisible();
 
   // Scope to <main>: the header's category rail is hidden on small screens,
   // so the first match in DOM order is not the one a visitor can click.
@@ -118,7 +118,7 @@ test("an impossible filter combination shows a helpful empty state", async ({ pa
 
 test("brand index and brand pages work", async ({ page }) => {
   await page.goto("/bg/marki");
-  await expect(page.getByRole("heading", { name: /марките, които предлагаме/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /марки кафе/i })).toBeVisible();
 
   await page.locator('a[href^="/bg/marki/"]').first().click();
   await expect(page).toHaveURL(/\/bg\/marki\//);
@@ -130,7 +130,7 @@ test("promotions route renders even with no active offers", async ({ page }) => 
   // would be a broken link rather than an honest empty state.
   const response = await page.goto("/bg/promotsii");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { name: /актуални промоции/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /кафе на промоция/i })).toBeVisible();
 });
 
 test("malformed filter parameters do not break the page", async ({ page }) => {

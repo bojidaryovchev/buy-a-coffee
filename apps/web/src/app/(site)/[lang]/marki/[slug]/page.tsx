@@ -7,13 +7,21 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
 import { getBrandBySlug, listProducts } from "@/lib/catalog/queries";
 import { composeBrandSummary, systemsForCategories } from "@/lib/catalog/brand-summary";
+import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
-import { brandJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { brandJsonLd, breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import { BrandLogo } from "@/components/catalog/brand-logo";
-import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
-import { href, routes } from "@/lib/routes";
+import {
+  BRANDS_INDEX_META,
+  brandDescriptionLead,
+  brandTitle,
+  metaDescription,
+  pageTitle,
+} from "@/lib/seo/listing-meta";
+import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import { categoryNameFor } from "../../../../../../content/category-copy";
 
 export const revalidate = 300;
 
@@ -28,20 +36,18 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const brand = await getBrandBySlug(slug);
   if (!brand) return { title: "Марката не е намерена", robots: { index: false, follow: true } };
 
-  const summary = composeBrandSummary(
-    brand.name,
-    systemsForCategories(await listBrandCategoryKeys(brand.slug)),
-  );
+  const [categoryKeys, facts] = await Promise.all([
+    listBrandCategoryKeys(brand.slug),
+    getListingFacts({ kind: "brand", slug: brand.slug }),
+  ]);
+  const systems = systemsForCategories(categoryKeys);
 
   return {
-    title: brand.name,
-    description:
-      brand.description ??
-      // Says what is actually on the page; the generic line is for a brand
-      // with nothing in stock, where there are no formats to name.
-      (summary
-        ? `${summary.sentence} Поръчайте от ${siteConfig.name}.`
-        : `Кафе ${brand.name} в ${siteConfig.name}.`),
+    /* „Кафе Bianchi (Бианчи): капсули и дози“ — the brand the way people
+       search for it, then the formats that are actually on the page. */
+    title: pageTitle(brandTitle(brand, systems)),
+    // What a cup of this brand costs here, and that ordering is a phone call.
+    description: metaDescription(brandDescriptionLead(brand, systems), facts.cupRange),
     alternates: pageAlternates(locale, routes.brand(brand.slug)),
     robots: shouldIndexListing(parseCatalogQuery(rawParams))
       ? undefined
@@ -65,14 +71,29 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
    * the summary describes the brand, so it must not change when a visitor
    * narrows the list below it.
    */
-  const summary = composeBrandSummary(brand.name, systemsForCategories(categoryKeys));
+  const systems = systemsForCategories(categoryKeys);
+  const summary = composeBrandSummary(brand.name, systems);
 
   const path = href(locale, routes.brand(brand.slug));
-  const breadcrumbs = [
-    { name: "Начало", href: href(locale, routes.home) },
-    { name: "Марки", href: href(locale, routes.brands) },
+  const breadcrumbs = listingBreadcrumbs(locale, [
+    { name: BRANDS_INDEX_META.name, href: href(locale, routes.brands) },
     { name: brand.name, href: path },
-  ];
+  ]);
+
+  /*
+   * Up, never round in circles: the brand page links to the listing of each
+   * system and format it is stocked in, by that listing's own name, and those
+   * listings do not link back here. Someone who came for „Lavazza“ and wants
+   * to compare it with the rest of what fits their machine is one tap away.
+   */
+  const shelves = systems.map((system) => {
+    const keys = systemCategory(system);
+    return {
+      id: system.id,
+      name: categoryNameFor({ ...keys, name: system.name }),
+      href: categoryHref(locale, keys),
+    };
+  });
 
   return (
     <div className="shell pb-16">
@@ -114,6 +135,25 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
               </>
             )}
           </p>
+        )}
+        {shelves.length > 0 && (
+          <nav aria-label={`${brand.name} и останалите марки по вид кафе`} className="mt-4">
+            <p className="text-sm text-ink-500">Сравнете с останалите марки:</p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {shelves.map((shelf) => (
+                <li key={shelf.id}>
+                  <Link
+                    href={shelf.href}
+                    data-system={shelf.id}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
+                  >
+                    <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                    {shelf.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         )}
       </header>
 

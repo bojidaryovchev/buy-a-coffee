@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
-import { BUSINESS_SECTIONS, getSectionListing, listVendingBlends } from "@/lib/catalog/vending";
+import { getListingFacts, type ListingFacts } from "@/lib/catalog/listing-facts";
+import {
+  BUSINESS_SECTIONS,
+  getSectionCategory,
+  getSectionListing,
+  listVendingBlends,
+} from "@/lib/catalog/vending";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
+import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { vendingCopy } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
 
@@ -27,9 +35,26 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
 
+  /*
+   * What the page lists: the section's own category, once the catalog has
+   * one, and the blends the roaster names "Vending". The description quotes
+   * the price per cup across both, so it is read from both.
+   */
+  const [category, blends] = await Promise.all([
+    getSectionCategory(section.id),
+    listVendingBlends(),
+  ]);
+  const listed: ListingFacts[] = await Promise.all([
+    ...(category && category.productCount > 0
+      ? [getListingFacts({ kind: "category", slug: category.slug })]
+      : []),
+    getListingFacts({ kind: "products", slugs: blends.map((blend) => blend.slug) }),
+  ]);
+  const cupRange = cupRangeOfRanges(listed.map((facts) => facts.cupRange));
+
   return {
-    title: vendingCopy.metaTitle,
-    description: vendingCopy.metaDescription,
+    title: pageTitle(vendingCopy.metaTitle),
+    description: metaDescription(vendingCopy.metaDescription, cupRange),
     // Filtered and paginated views of the listing consolidate on the clean page.
     alternates: pageAlternates(locale, section.path),
     robots: shouldIndexListing(query) ? undefined : { index: false, follow: true },

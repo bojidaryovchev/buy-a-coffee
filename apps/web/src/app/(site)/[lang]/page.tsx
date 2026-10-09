@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listHeroShelfCandidates } from "@/lib/catalog/home-queries";
 import { selectHeroShelf } from "@/lib/catalog/home-shelf";
+import { getListingFacts } from "@/lib/catalog/listing-facts";
 import {
   getCatalogSummary,
   getSystemAvailability,
@@ -12,9 +13,9 @@ import {
   listProducts,
 } from "@/lib/catalog/queries";
 import { listArticles } from "@/lib/journal";
-import { getDictionary } from "@/i18n/dictionaries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { HOME_META, metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { routes } from "@/lib/routes";
 
 /**
@@ -41,10 +42,14 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
-  const { site } = getDictionary(locale);
+  // Across the whole catalog: the cheapest cup in the shop to the dearest.
+  const facts = await getListingFacts({ kind: "all" });
   return {
-    title: { absolute: `${siteConfig.name} — ${site.tagline}` },
-    description: site.description,
+    /* The title carries the query the home page owns, „онлайн магазин за
+       кафе“ (`docs/seo.md` §1), which leaves the `h1` free to be the shop's
+       own line. */
+    title: pageTitle(HOME_META.title),
+    description: metaDescription(HOME_META.description, facts.cupRange),
     alternates: pageAlternates(locale, routes.home),
   };
 }
