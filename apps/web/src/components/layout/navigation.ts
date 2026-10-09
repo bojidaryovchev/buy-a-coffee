@@ -115,7 +115,7 @@ export type NavSections = Readonly<Record<"vending" | "consumables", NavSection>
  * True for a category that backs a business section, by its stored slug or the
  * source key behind it.
  *
- * Such a category has a page of its own (`/kafe-za-vending`, `/konsumativi`)
+ * Such a category has a page of its own (`/kafe-za-vending-mashini`, `/konsumativi`)
  * with copy and an enquiry form around the listing. Linking the bare category
  * as well would put the same products in the menu twice under two names.
  */

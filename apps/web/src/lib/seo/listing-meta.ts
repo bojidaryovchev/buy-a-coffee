@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { brandFactsFor } from "../../../content/brand-facts";
 import { categoryCopyFor } from "../../../content/category-copy";
+import { CALLBACK_SENTENCE } from "../../../content/order-callback";
 import { fill } from "@/i18n/fill";
 import { cupRangePhrase, type CupRange } from "@/lib/catalog/cup-range";
 import type { BrewMethod, BrewingSystem } from "@/lib/recommend/systems";
@@ -37,12 +38,8 @@ export function pageTitle(text: string): NonNullable<Metadata["title"]> {
 
 export { fullTitle };
 
-/**
- * How ordering works, in the one sentence a search snippet has room for.
- * There is no cart: the customer leaves a number and a person calls back
- * (`PRODUCT.md`, "Operating context").
- */
-export const CALLBACK_SENTENCE = "Оставяте телефон и ви се обаждаме, за да потвърдим.";
+/** How ordering works; one wording for every page (`content/order-callback.ts`). */
+export { CALLBACK_SENTENCE };
 
 /**
  * A meta description: what the page lists, what a cup of it costs, and how to

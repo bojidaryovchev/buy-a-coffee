@@ -8,7 +8,7 @@ import {
 /**
  * The reserved set is read from the storefront's slug tables, so these are
  * spot checks that the reading works, not a second list to keep in step.
- * `apps/web/test/routes.test.ts` checks that it equals the web app's own.
+ * `apps/web/test/product-identity.test.ts` checks that it equals the web app's own.
  */
 describe("reserved first-level slugs", () => {
   it("holds every route in both languages, and the locale codes", () => {

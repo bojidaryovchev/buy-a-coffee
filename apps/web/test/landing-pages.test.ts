@@ -62,6 +62,7 @@ import MachineBrandPage, {
 } from "@/app/(site)/[lang]/za-kafemashina/[brand]/page";
 import { absoluteUrl } from "@/config/site";
 import { systemShelfLabel } from "../content/landing-copy";
+import { CALLBACK_SENTENCE } from "../content/order-callback";
 import { MACHINE_BRANDS } from "@/content/machines";
 import type { LandingView } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS } from "@/lib/catalog/landings";
@@ -158,7 +159,8 @@ describe("a landing listing with products", () => {
     const metadata = await landingMetadata("bg", "lavazzaCapsules");
     expect(metadata.title).toBe("Капсули Lavazza (Лаваца): Blue и за Nespresso");
     expect(metadata.description).toMatch(/От 0,33\s€ до 0,48\s€ на чаша\./);
-    expect(metadata.description).toContain("Оставете телефон");
+    // The one sentence every page uses for how ordering works.
+    expect(metadata.description).toContain(CALLBACK_SENTENCE);
     expect(metadata.robots).toBeUndefined();
     expect(metadata.alternates).toEqual({
       canonical: absoluteUrl("/bg/lavazza-kapsuli"),

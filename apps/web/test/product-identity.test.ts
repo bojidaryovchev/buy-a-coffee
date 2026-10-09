@@ -153,7 +153,7 @@ describe("the product page's title and description", () => {
   it("says what it is, what it costs, what a cup costs and how to order", () => {
     expect(productMetaDescription(product())).toBe(
       "Borbone Crema Classica: капсули за Dolce Gusto, 16 бр. Цена 5,60 €, 0,35 € на чаша. " +
-        "Оставете номер и ще ви се обадим, за да потвърдим поръчката.",
+        "Оставяте телефон и ви се обаждаме, за да потвърдим.",
     );
     expect(
       productMetaDescription(
@@ -166,18 +166,18 @@ describe("the product page's title and description", () => {
       ),
     ).toBe(
       "Lavazza Super Crema: кафе на зърна, 1 кг. Цена 21,50 €, ≈ 0,15 € на чаша. " +
-        "Оставете номер и ще ви се обадим, за да потвърдим поръчката.",
+        "Оставяте телефон и ви се обаждаме, за да потвърдим.",
     );
   });
 
   it("leaves out whatever it has no figure for", () => {
     expect(productMetaDescription(product({ servingPrice: null }))).toBe(
       "Borbone Crema Classica: капсули за Dolce Gusto, 16 бр. Цена 5,60 €. " +
-        "Оставете номер и ще ви се обадим, за да потвърдим поръчката.",
+        "Оставяте телефон и ви се обаждаме, за да потвърдим.",
     );
     expect(productMetaDescription(product({ price: null, servingPrice: null }))).toBe(
       "Borbone Crema Classica: капсули за Dolce Gusto, 16 бр. " +
-        "Оставете номер и ще ви се обадим, за да потвърдим поръчката.",
+        "Оставяте телефон и ви се обаждаме, за да потвърдим.",
     );
     expect(productMetaDescription(product({ detail: null, title: undefined }))).toMatch(
       /^Borbone Crema Classica — капсули за Dolce Gusto, 16 бр\. Цена /u,

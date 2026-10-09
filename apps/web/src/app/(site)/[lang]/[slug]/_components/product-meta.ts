@@ -1,5 +1,6 @@
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { fullTitle } from "@/lib/seo/title";
+import { CALLBACK_SENTENCE } from "../../../../../../content/order-callback";
 
 /*
  * The product page's title and meta description, apart from the page so they
@@ -38,7 +39,7 @@ export function productMetaDescription(product: ProductDetailView): string {
     ? `Цена ${[product.price.formatted, product.servingPrice?.formatted].filter(Boolean).join(", ")}.`
     : null;
   const orderable = product.status === "active" && product.availability !== "out_of_stock";
-  const order = orderable ? "Оставете номер и ще ви се обадим, за да потвърдим поръчката." : null;
+  const order = orderable ? CALLBACK_SENTENCE : null;
   // "16 бр." already ends the sentence; any other ending needs its full stop.
   return [what.endsWith(".") ? what : `${what}.`, price, order].filter(Boolean).join(" ");
 }

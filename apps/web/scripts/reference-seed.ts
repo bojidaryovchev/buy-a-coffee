@@ -14,7 +14,8 @@
  * what it would see after a sync — including our own slugs, which the
  * snapshot carries for products, categories and brands alike. They are not
  * the source's keys: the source renamed its capsule category to
- * `kafe-kapsuli`, and the storefront still calls it `/categories/kapsuli`.
+ * `kafe-kapsuli`, and our stored slug for it is still `kapsuli` (the page is
+ * published at `/bg/kafe-kapsuli`, through the slug table).
  *
  * What it must never do is damage a real catalog, and it makes that impossible
  * in two independent ways:

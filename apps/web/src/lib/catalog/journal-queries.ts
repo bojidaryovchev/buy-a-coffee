@@ -22,7 +22,7 @@ import { LANDING_IDS, type LandingId } from "./landings";
  * else does. It follows that file's rules all the same: only `active` products,
  * and the price the customer sees is `retail_price_override ?? current_price`.
  *
- * Two round trips, bounded by the catalog (about 110 rows), and the arithmetic
+ * Two round trips, bounded by the catalog (under two hundred rows), and the arithmetic
  * happens in TypeScript through the shared exact-decimal helpers, for the same
  * reason the wizard does it there: one copy of the grams-per-serving
  * assumption, so the journal can never quote a per-cup price the wizard would

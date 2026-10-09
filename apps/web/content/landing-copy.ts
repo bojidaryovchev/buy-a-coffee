@@ -1,4 +1,5 @@
 import { GRAMS_PER_SERVING } from "@catalog/shared";
+import { CALLBACK_SENTENCE } from "./order-callback";
 import { pluralize, toPriceView } from "@/lib/catalog/format";
 import {
   CHEAPEST_PER_SYSTEM,
@@ -73,7 +74,7 @@ export function cupRangeText(facts: Pick<LandingFacts, "cupRange" | "currency">)
 const sentence = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 
 /** The order is by phone callback; every meta description ends on it. */
-export const CALLBACK_SENTENCE = "Оставете телефон и ще ви се обадим, за да потвърдим поръчката.";
+export { CALLBACK_SENTENCE };
 
 /** Range and callback: the two things a search snippet of ours can say. */
 function closing(facts: LandingFacts): string {
