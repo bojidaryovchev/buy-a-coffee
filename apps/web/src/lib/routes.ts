@@ -262,6 +262,55 @@ export function productHref(
   return href(locale, `/${productSlug(locale, product)}${suffix}`);
 }
 
+/* --- Brands ------------------------------------------------------------ */
+
+/** What a brand link needs: the stored slug and the key behind it. */
+export interface BrandKeys {
+  readonly slug: string;
+  readonly sourceKey?: string | null;
+}
+
+/**
+ * The slug a brand's page is published at in a locale.
+ *
+ * The curated one when the slug table has one for the brand's source key,
+ * otherwise the stored slug — so a brand the sync adds tomorrow has a page the
+ * moment it exists. The stored slug stays what everything else keys a brand
+ * by: the `brand` filter, the logo table, the listing query.
+ */
+export function brandSlug(locale: Locale, brand: BrandKeys): string {
+  const table = SLUGS[locale].brands;
+  const key = brand.sourceKey;
+  return key && Object.hasOwn(table, key) ? (table[key] ?? brand.slug) : brand.slug;
+}
+
+/** The URL of a brand's page. Every brand link is built here. */
+export function brandHref(locale: Locale, brand: BrandKeys, query = ""): string {
+  return href(locale, `${routes.brand(brandSlug(locale, brand))}${query}`);
+}
+
+/**
+ * Which of `brands` a public slug names in a locale, and whether that slug is
+ * the one the locale publishes.
+ *
+ * A brand at its published slug is the page. A brand at any other slug it has
+ * — its stored slug when a curated one exists, or its curated slug in another
+ * locale — is a redirect, so one brand is never indexable at two URLs. When
+ * two brands could answer, the one published at the slug wins.
+ */
+export function matchBrandSlug<Brand extends BrandKeys>(
+  locale: Locale,
+  brands: readonly Brand[],
+  slug: string,
+): { readonly brand: Brand; readonly published: boolean } | null {
+  const published = brands.find((brand) => brandSlug(locale, brand) === slug);
+  if (published) return { brand: published, published: true };
+  const elsewhere = brands.find(
+    (brand) => brand.slug === slug || LOCALES.some((other) => brandSlug(other, brand) === slug),
+  );
+  return elsewhere ? { brand: elsewhere, published: false } : null;
+}
+
 /* --- Route targets ----------------------------------------------------- */
 
 /**
@@ -354,3 +403,26 @@ export function assertSlugTables(): void {
 }
 
 assertSlugTables();
+
+/**
+ * The same for the brand table: a curated brand slug is one URL segment, and
+ * no two brands share one within a locale.
+ */
+export function assertBrandSlugTables(): void {
+  for (const locale of LOCALES) {
+    const seen = new Set<string>();
+    for (const [key, slug] of Object.entries(SLUGS[locale].brands)) {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+        throw new Error(
+          `i18n/slugs/${locale}: brand "${key}" is published as "${slug}", not a slug`,
+        );
+      }
+      if (seen.has(slug)) {
+        throw new Error(`i18n/slugs/${locale}: two brands share the slug "${slug}"`);
+      }
+      seen.add(slug);
+    }
+  }
+}
+
+assertBrandSlugTables();

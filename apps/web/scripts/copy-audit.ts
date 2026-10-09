@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseWeight } from "@catalog/shared";
 import type { ProductCopy } from "../content/product-copy.ts";
+import { currentSlugsOfSnapshot } from "./catalog-reslug-lib.ts";
 import { brandDisplayName } from "../src/lib/catalog/brand-display.ts";
 import { type FallbackCopyFacts, composeFallbackCopy } from "../src/lib/catalog/fallback-copy.ts";
 
@@ -261,12 +262,13 @@ export async function loadReferenceSnapshot(
   } catch {
     return null;
   }
-  const products = (JSON.parse(rawProducts) as { products?: ReferenceProduct[] }).products ?? [];
+  const exported = (JSON.parse(rawProducts) as { products?: ReferenceProduct[] }).products ?? [];
 
   const brandNames = new Map<string, string>();
+  let brands: Array<{ sourceKey: string; name: string }> = [];
   try {
     const rawBrands = await readFile(path.join(directory, "brands.json"), "utf8");
-    const brands =
+    brands =
       (JSON.parse(rawBrands) as { brands?: Array<{ sourceKey: string; name: string }> }).brands ??
       [];
     for (const brand of brands) {
@@ -278,6 +280,18 @@ export async function loadReferenceSnapshot(
   } catch {
     // Brands are optional here: without them the sentence simply names none.
   }
+
+  /*
+   * Each product at the slug it has on the storefront today. The snapshot
+   * records the slug a product had when it was exported, and our copy is keyed
+   * by where the product is now; `currentSlugsOfSnapshot` is the plan the
+   * catalog was moved by, so the join below is to the right entry whether the
+   * snapshot was exported before the move or after it.
+   */
+  const current = currentSlugsOfSnapshot(exported, brands);
+  const products = exported.map((product) =>
+    product.slug ? { ...product, slug: current.get(product.slug) ?? product.slug } : product,
+  );
 
   return { products, brandNames };
 }

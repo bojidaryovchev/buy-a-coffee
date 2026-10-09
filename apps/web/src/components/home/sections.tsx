@@ -18,7 +18,7 @@ import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 import { countPhrase } from "./plural";
 import type { Locale } from "@/i18n/config";
-import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import { brandHref, categoryHref, href, routes, systemCategory } from "@/lib/routes";
 
 /**
  * The home page's sections below the hero, in DESIGN.md order ("Home page",
@@ -399,7 +399,7 @@ export function HomeBrands({
           {stocked.map((brand) => (
             <li key={brand.slug} className="shrink-0 snap-start scroll-ml-4">
               <Link
-                href={href(locale, routes.brand(brand.slug))}
+                href={brandHref(locale, brand)}
                 // `relative` keeps the visually hidden count inside the tile;
                 // unanchored, it would sit outside the scroller's clip and
                 // widen the whole page on a phone.

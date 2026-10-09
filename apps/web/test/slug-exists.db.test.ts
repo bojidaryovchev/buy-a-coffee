@@ -13,6 +13,7 @@ vi.mock("@/lib/db", async (importOriginal) =>
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
 import { slugExists } from "@/lib/catalog/slug-exists";
+import { brandSlug } from "@/lib/routes";
 
 /**
  * What the proxy is told about the catalog, against a real one, read-only.
@@ -27,7 +28,10 @@ const databaseUrl = process.env.DATABASE_URL;
 
 interface Sample {
   readonly product: string | null;
+  /** A slug some product used to have, when any has moved. */
+  readonly formerProduct: string | null;
   readonly brand: string | null;
+  readonly brands: ReadonlyArray<{ readonly slug: string; readonly sourceKey: string }>;
   readonly category: string | null;
 }
 
@@ -37,11 +41,20 @@ async function sample(): Promise<Sample | null> {
     const { sql, close } = createDatabase({ url: databaseUrl, max: 1, connectTimeoutSeconds: 3 });
     try {
       const [product] = await sql`select slug from products where status = 'active' limit 1`;
-      const [brand] = await sql`select slug from brands where status = 'active' limit 1`;
+      const [former] =
+        await sql`select previous_slugs[1] as slug from products where cardinality(previous_slugs) > 0 limit 1`;
+      const brandRows =
+        await sql`select slug, source_key from brands where status = 'active' order by slug`;
+      const [brand] = brandRows;
       const [category] = await sql`select slug from categories where status = 'active' limit 1`;
       return {
         product: (product?.slug as string | undefined) ?? null,
+        formerProduct: (former?.slug as string | undefined) ?? null,
         brand: (brand?.slug as string | undefined) ?? null,
+        brands: brandRows.map((row) => ({
+          slug: row.slug as string,
+          sourceKey: row.source_key as string,
+        })),
         category: (category?.slug as string | undefined) ?? null,
       };
     } finally {
@@ -59,6 +72,19 @@ describe.skipIf(!rows?.product)("what the proxy is told the catalog holds", () =
     expect(await slugExists("first-level", rows!.product!)).toBe(true);
     if (rows!.category) expect(await slugExists("first-level", rows!.category)).toBe(true);
     if (rows!.brand) expect(await slugExists("brand", rows!.brand)).toBe(true);
+  });
+
+  it("knows a product by a slug it used to have: that address must reach the page that redirects it", async () => {
+    // Nothing has moved in a catalog that predates the shop's own slugs.
+    if (!rows!.formerProduct) return;
+    expect(await slugExists("first-level", rows!.formerProduct)).toBe(true);
+  });
+
+  it("knows every brand by the slug it is stored under and the one it is published at", async () => {
+    for (const brand of rows!.brands) {
+      expect(await slugExists("brand", brand.slug), brand.slug).toBe(true);
+      expect(await slugExists("brand", brandSlug("bg", brand)), brand.slug).toBe(true);
+    }
   });
 
   it("says no to a slug that names nothing, of each kind", async () => {

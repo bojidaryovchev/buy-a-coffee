@@ -65,4 +65,13 @@ export const bg: LocaleSlugs = {
     "kafe-na-zyrna": "kafe-na-zarna",
     "kafe-dozi": "kafe-dozi",
   },
+  /*
+   * A brand's name is not translated, so these are the same in every locale.
+   * Only the two whose stored slug differs from the brand's own spelling
+   * (`content/brand-names.ts`): the other eighteen are already right.
+   */
+  brands: {
+    lollocafe: "lollo-caffe",
+    "3-bourbons": "3-bourbons",
+  },
 };

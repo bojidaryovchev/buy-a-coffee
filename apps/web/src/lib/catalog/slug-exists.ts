@@ -1,9 +1,10 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { brands, categories, products } from "@catalog/db/schema";
+import { categories } from "@catalog/db/schema";
 import { LOCALES } from "@/i18n/config";
 import { categorySlug } from "@/lib/routes";
 import { LANDING_IDS, LANDING_PATHS } from "./landings";
+import { loadRoutableSlugs } from "./routable-slugs";
 
 /**
  * Does the catalog hold anything at this slug? Asked by the proxy, before the
@@ -33,12 +34,13 @@ import { LANDING_IDS, LANDING_PATHS } from "./landings";
  * the proxy lets the request through to the page, whose own `notFound()` is
  * still there. Never a wrong 404 because a lookup failed.
  *
- * It knows exactly what the pages accept: a product by its stored slug,
- * whatever its status (a removed product keeps its URL); an active category
- * by its stored slug or its landing slug in any locale (the page redirects the
- * ones it does not publish); an active brand; a landing listing while its
- * selection (`landings.ts`) is not empty, which is the same count its page
- * 404s on.
+ * It knows exactly what the pages accept: a product by its current slug or
+ * any slug it used to have (the page redirects those), whatever its status (a
+ * removed product keeps its URL); an active category by its stored slug or its
+ * landing slug in any locale (the page redirects the ones it does not
+ * publish); an active brand by its stored slug or the one it is published at
+ * (`routable-slugs.ts`); a landing listing while its selection (`landings.ts`)
+ * is not empty, which is the same count its page 404s on.
  */
 
 export type SlugKind = "first-level" | "brand" | "landing";
@@ -60,8 +62,9 @@ async function load(): Promise<Snapshot> {
      every page down with it; a lookup that fails only answers "cannot tell". */
   const { db } = await import("@/lib/db");
   const { getLandingAvailability } = await import("./landing-queries");
-  const [productRows, categoryRows, brandRows, landings] = await Promise.all([
-    db.select({ slug: products.slug }).from(products),
+  const [routable, categoryRows, landings] = await Promise.all([
+    // Current and previous product slugs; stored and published brand slugs.
+    loadRoutableSlugs(db),
     db
       .select({
         slug: categories.slug,
@@ -70,7 +73,6 @@ async function load(): Promise<Snapshot> {
       })
       .from(categories)
       .where(eq(categories.status, "active")),
-    db.select({ slug: brands.slug }).from(brands).where(eq(brands.status, "active")),
     getLandingAvailability(),
   ]);
 
@@ -78,13 +80,13 @@ async function load(): Promise<Snapshot> {
     at: Date.now(),
     slugs: {
       "first-level": new Set([
-        ...productRows.map((row) => row.slug),
+        ...routable.products,
         ...categoryRows.flatMap((row) => [
           row.slug,
           ...LOCALES.map((locale) => categorySlug(locale, row)),
         ]),
       ]),
-      brand: new Set(brandRows.map((row) => row.slug)),
+      brand: routable.brands,
       // By canonical segment, which is what the proxy holds when it asks.
       landing: new Set(
         LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) => LANDING_PATHS[id].slice(1)),

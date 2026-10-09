@@ -1,7 +1,15 @@
 import { eq, sql } from "drizzle-orm";
 import type { Database } from "@catalog/db";
-import { productImages, products, syncRuns } from "@catalog/db/schema";
-import { type Logger, packServings, silentLogger } from "@catalog/shared";
+import { brands, categories, productImages, products, syncRuns } from "@catalog/db/schema";
+import {
+  type Logger,
+  type ProductNameInput,
+  packServings,
+  productName,
+  productSearchName,
+  silentLogger,
+} from "@catalog/shared";
+import { RESERVED_PRODUCT_SLUGS } from "@catalog/shared/storefront-data";
 import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { ImageMirror } from "../storage/images.ts";
@@ -22,7 +30,7 @@ import {
   lookupDiscoveredSkus,
   recordReadFailures,
 } from "./enrich.ts";
-import { assignUniqueSlug } from "./identity.ts";
+import { assignProductSlug } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 import type { TaxonomyChanges } from "./taxonomy.ts";
 import {
@@ -307,7 +315,18 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       const brandMap = brandResult.ids;
       const categoryMap = categoryResult.ids;
       const existingSlugs = await loadTakenProductSlugs(db, site.id);
-      const takenSlugs = new Set(existingSlugs.values());
+      const takenSlugs = await loadSpokenForSlugs(db, site.id, existingSlugs.values());
+      // The brand's name as the catalog stores it, read back rather than
+      // taken from the listing: it is what `catalog:reslug` reads, and a new
+      // product's slug must come out the same whichever of the two computes it.
+      const brandNames = new Map(
+        (
+          await db
+            .select({ sourceKey: brands.sourceKey, name: brands.name })
+            .from(brands)
+            .where(eq(brands.sourceSiteId, site.id))
+        ).map((brand) => [brand.sourceKey, brand.name]),
+      );
 
       const productIdByKey = new Map<string, string>();
 
@@ -337,6 +356,28 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         const product = change.product;
         if (!product) continue;
 
+        /*
+         * What the shop's own name for this product is built from: exactly
+         * what the row will be linked to. A brand or a category the listing
+         * names but the catalog does not hold leaves the product without one,
+         * and its name, its slug and `catalog:reslug` must all agree on that.
+         */
+        const naming: ProductNameInput = {
+          sourceName: product.name,
+          sourceKey: product.sourceKey,
+          brand:
+            product.brandKey && brandMap.has(product.brandKey)
+              ? {
+                  sourceKey: product.brandKey,
+                  name: brandNames.get(product.brandKey) ?? product.brandKey,
+                }
+              : null,
+          categoryKeys: product.categoryKeys.filter((key) => categoryMap.has(key)),
+          packValue: product.weight?.value ?? null,
+          packUnit: product.weight?.unit ?? null,
+        };
+        const searchName = productSearchName(productName(naming));
+
         if (change.changeType === "moved") {
           // The existing row is re-pointed by id. It is never upserted — the
           // new key matches no row, so an upsert would insert the twin this
@@ -356,6 +397,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
               ...productColumns({
                 product,
                 syncRunId,
+                searchName,
                 brandId: product.brandKey ? (brandMap.get(product.brandKey) ?? null) : null,
               }),
               removedAt: null,
@@ -383,18 +425,14 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
 
         // Slug is allocated once and then never changed, so storefront URLs
         // and any external links to them stay stable across syncs.
-        const slug =
-          existingSlugs.get(product.sourceKey) ??
-          assignUniqueSlug(product.name, takenSlugs, {
-            variantKey: product.sourceVariantKey,
-            fallback: product.sourcePath,
-          });
+        const slug = existingSlugs.get(product.sourceKey) ?? assignProductSlug(naming, takenSlugs);
 
         const productId = await upsertProduct(db, {
           sourceSiteId: site.id,
           syncRunId,
           product,
           slug,
+          searchName,
           brandId: product.brandKey ? (brandMap.get(product.brandKey) ?? null) : null,
           isUnchanged: change.changeType === "unchanged",
         });
@@ -609,6 +647,39 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
   }
 }
 
+/**
+ * Every first-level address a new product may not take.
+ *
+ * Products share the first level of the storefront with its categories and
+ * its routes (`/bg/<slug>`), so "taken" is more than the other products'
+ * slugs: it is also every slug a product used to have, which still redirects
+ * to it; every category's stored slug; and every route and curated landing
+ * slug in every language, read from the storefront's own tables. Until this
+ * existed a colliding product slug was only tested for, never refused.
+ */
+async function loadSpokenForSlugs(
+  db: Database,
+  sourceSiteId: string,
+  productSlugs: Iterable<string>,
+): Promise<Set<string>> {
+  const [former, categoryRows] = await Promise.all([
+    db
+      .select({ previousSlugs: products.previousSlugs })
+      .from(products)
+      .where(eq(products.sourceSiteId, sourceSiteId)),
+    db
+      .select({ slug: categories.slug })
+      .from(categories)
+      .where(eq(categories.sourceSiteId, sourceSiteId)),
+  ]);
+  return new Set([
+    ...RESERVED_PRODUCT_SLUGS,
+    ...categoryRows.map((row) => row.slug),
+    ...former.flatMap((row) => row.previousSlugs),
+    ...productSlugs,
+  ]);
+}
+
 async function upsertProduct(
   db: Database,
   input: {
@@ -616,6 +687,7 @@ async function upsertProduct(
     syncRunId: string;
     product: NormalizedProduct;
     slug: string;
+    searchName: string;
     brandId: string | null;
     isUnchanged: boolean;
   },
@@ -670,6 +742,8 @@ async function upsertProduct(
 function productColumns(input: {
   product: NormalizedProduct;
   syncRunId: string;
+  /** The shop's own name, for search; see `products.search_name`. */
+  searchName: string;
   brandId: string | null;
 }) {
   const { product } = input;
@@ -678,6 +752,7 @@ function productColumns(input: {
   return {
     hasUrlCollision: product.hasUrlCollision,
     name: product.name,
+    searchName: input.searchName,
     currentPrice: product.currentPrice?.amount ?? null,
     oldPrice: product.oldPrice?.amount ?? null,
     currency: product.currency,

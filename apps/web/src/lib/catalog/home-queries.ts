@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "drizzle-orm";
+import { productName } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { BREWING_SYSTEMS, getBrewingSystem } from "@/lib/recommend/systems";
 import { isPlaceholderImage, resolveImageUrl } from "./images";
@@ -43,13 +44,28 @@ export async function listHeroShelfCandidates(
   );
 
   const rows = await db.execute(sql`
-    select system_id, id, slug, name, object_key, public_url, alt, width, height, rank
+    select system_id, id, slug, name, source_key, previous_source_keys, weight_value,
+           weight_unit, brand_key, brand_name, category_keys,
+           object_key, public_url, alt, width, height, rank
     from (
       select
         s.system_id,
         p.id,
         p.slug,
         p.name,
+        p.source_key,
+        p.previous_source_keys,
+        p.weight_value,
+        p.weight_unit,
+        b.source_key as brand_key,
+        b.name as brand_name,
+        array(
+          select c.source_key
+          from product_categories pc
+          join categories c on c.id = pc.category_id
+          where pc.product_id = p.id and c.source_key is not null
+          order by c.source_key
+        ) as category_keys,
         img.object_key,
         img.public_url,
         img.alt,
@@ -69,6 +85,7 @@ export async function listHeroShelfCandidates(
          where pc.product_id = p.id
            and (c.slug = any(s.slugs) or c.source_key = any(s.source_keys))
        )
+      left join brands b on b.id = p.brand_id
       join lateral (
         select pi.object_key, pi.public_url, pi.alt, pi.width, pi.height
         from product_images pi
@@ -95,7 +112,22 @@ export async function listHeroShelfCandidates(
     const url = resolveImageUrl(key);
     if (isPlaceholderImage(url)) continue;
 
-    const name = String(row.name);
+    /*
+     * The shop's own name for the product, by the same function every other
+     * view uses (`toCard` in `queries.ts`). It is the photograph's `alt`, and
+     * replaces the stored one, which is the supplier's wording.
+     */
+    const brandKey = row.brand_key as string | null;
+    const brandName = row.brand_name as string | null;
+    const name = productName({
+      sourceName: String(row.name),
+      sourceKey: String(row.source_key),
+      previousSourceKeys: row.previous_source_keys as string[] | null,
+      brand: brandKey || brandName ? { sourceKey: brandKey, name: brandName } : null,
+      categoryKeys: row.category_keys as string[] | null,
+      packValue: row.weight_value as string | null,
+      packUnit: row.weight_unit as string | null,
+    }).full;
     candidates.push({
       id: String(row.id),
       slug: String(row.slug),
@@ -104,7 +136,7 @@ export async function listHeroShelfCandidates(
       rank: Number(row.rank),
       image: {
         url,
-        alt: (row.alt as string | null) ?? name,
+        alt: name,
         width: row.width === null ? null : Number(row.width),
         height: row.height === null ? null : Number(row.height),
       },

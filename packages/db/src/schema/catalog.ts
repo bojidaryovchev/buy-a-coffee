@@ -135,6 +135,25 @@ export const products = pgTable(
 
     name: text("name").notNull(),
     slug: text("slug").notNull(),
+    /**
+     * Every slug this product has had before its current one, oldest first.
+     * A slug is allocated once and frozen; the one deliberate exception is
+     * `catalog:reslug`, which moves a product to the shop's own name for it
+     * and records the slug it left. Each of these answers 308 to `slug`, and
+     * the sync never gives one to another product.
+     */
+    previousSlugs: text("previous_slugs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /**
+     * The shop's own name for the product, stored for search and for nothing
+     * else: `productSearchName` in `@catalog/shared`. Pages compute the name
+     * they show; this exists so a search for the words on the page finds the
+     * product, where `name` holds the supplier's wording. Written by the sync
+     * and by `catalog:reslug`.
+     */
+    searchName: text("search_name"),
 
     /**
      * Source prices, exactly as published by the reference site. Money is
@@ -272,6 +291,8 @@ export const products = pgTable(
     index("products_old_price_idx").on(table.oldPrice),
     // Move detection looks a product code up; the code is not unique by decree.
     index("products_sku_idx").on(table.sourceSiteId, table.sku),
+    // Looks up the product a retired slug redirects to.
+    index("products_previous_slugs_idx").using("gin", table.previousSlugs),
   ],
 );
 

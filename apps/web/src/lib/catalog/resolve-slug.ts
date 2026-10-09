@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { LOCALES, type Locale } from "@/i18n/config";
-import { getCategoryTree, getProductBySlug } from "@/lib/catalog/queries";
+import { getCategoryTree, getCurrentSlugOfFormer, getProductBySlug } from "@/lib/catalog/queries";
 import type { CategoryView, ProductDetailView } from "@/lib/catalog/types";
 import {
   categoryHref,
@@ -24,7 +24,10 @@ import {
  *      locale. A redirect, so one category is never indexable at two URLs.
  *   3. **A product**, by its slug in this locale; one reached at a different
  *      spelling (its slug in another locale, once there is one) redirects.
- *   4. Nothing: the 404.
+ *   4. **A product at a slug it used to have** (`products.previous_slugs`):
+ *      a redirect to where it is now. Every product was moved once, from the
+ *      supplier's wording to the shop's own, and the old addresses are indexed.
+ *   5. Nothing: the 404.
  *
  * Categories go first, so a product can never shadow a category. Static
  * segments (`marki`, `tarsene`, …) go before both, by construction: Next
@@ -67,10 +70,16 @@ export const resolveSlug = cache(
       return { kind: "redirect", to: categoryHref(locale, elsewhere), category: elsewhere };
     }
 
-    const product = await getProductBySlug(storedProductSlug(locale, slug));
-    if (!product) return null;
-    return productSlug(locale, product) === slug
-      ? { kind: "product", product }
-      : { kind: "redirect", to: productHref(locale, product) };
+    const stored = storedProductSlug(locale, slug);
+    const product = await getProductBySlug(stored);
+    if (product) {
+      return productSlug(locale, product) === slug
+        ? { kind: "product", product }
+        : { kind: "redirect", to: productHref(locale, product) };
+    }
+
+    // A slug the product had before `catalog:reslug` moved it.
+    const current = await getCurrentSlugOfFormer(stored);
+    return current ? { kind: "redirect", to: productHref(locale, { slug: current }) } : null;
   },
 );

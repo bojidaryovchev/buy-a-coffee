@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { JsonLd } from "@/components/seo/json-ld";
-import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
-import { getBrandBySlug, listProducts } from "@/lib/catalog/queries";
+import {
+  buildSearchParams,
+  parseCatalogQuery,
+  shouldIndexListing,
+  type RawSearchParams,
+} from "@/lib/catalog/filters";
+import { listBrands, listProducts } from "@/lib/catalog/queries";
 import { composeBrandSummary, systemsForCategories } from "@/lib/catalog/brand-summary";
 import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
 import { brandJsonLd, breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import { BrandLogo } from "@/components/catalog/brand-logo";
 import { RelatedLandings } from "@/components/catalog/related-landings";
+import type { Locale } from "@/i18n/config";
 import { shippingLocale, type LangParams } from "@/i18n/params";
-import { pageAlternates } from "@/lib/seo/alternates";
+import { localeAlternates } from "@/lib/seo/alternates";
 import {
   BRANDS_INDEX_META,
   brandDescriptionLead,
@@ -21,10 +27,28 @@ import {
   metaDescription,
   pageTitle,
 } from "@/lib/seo/listing-meta";
-import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import {
+  brandHref,
+  categoryHref,
+  href,
+  matchBrandSlug,
+  routes,
+  systemCategory,
+} from "@/lib/routes";
 import { categoryNameFor } from "../../../../../../content/category-copy";
 
 export const revalidate = 300;
+
+/**
+ * The brand a public slug names, and whether this is the slug its page is
+ * published at. A brand is published at the slug it writes itself with
+ * (`lollo-caffe`), which for two brands is not the stored one (`lollocafe`);
+ * the stored one still finds the brand and answers a redirect. See
+ * `brandSlug` in `lib/routes.ts`.
+ */
+async function findBrand(locale: Locale, slug: string) {
+  return matchBrandSlug(locale, await listBrands(), slug);
+}
 
 interface PageProps {
   params: Promise<LangParams & { slug: string }>;
@@ -34,8 +58,11 @@ interface PageProps {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const [{ lang, slug }, rawParams] = await Promise.all([params, searchParams]);
   const locale = shippingLocale(lang);
-  const brand = await getBrandBySlug(slug);
-  if (!brand) return { title: "Марката не е намерена", robots: { index: false, follow: true } };
+  const found = await findBrand(locale, slug);
+  if (!found?.published) {
+    return { title: "Марката не е намерена", robots: { index: false, follow: true } };
+  }
+  const { brand } = found;
 
   const [categoryKeys, facts] = await Promise.all([
     listBrandCategoryKeys(brand.slug),
@@ -49,7 +76,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     title: pageTitle(brandTitle(brand, systems)),
     // What a cup of this brand costs here, and that ordering is a phone call.
     description: metaDescription(brandDescriptionLead(brand, systems), facts.cupRange),
-    alternates: pageAlternates(locale, routes.brand(brand.slug)),
+    // At the slug the brand is published at, which is not always the stored one.
+    alternates: localeAlternates(locale, (each) => brandHref(each, brand)),
     robots: shouldIndexListing(parseCatalogQuery(rawParams))
       ? undefined
       : { index: false, follow: true },
@@ -59,10 +87,13 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 export default async function BrandPage({ params, searchParams }: PageProps) {
   const [{ lang, slug }, rawParams] = await Promise.all([params, searchParams]);
   const locale = shippingLocale(lang);
-  const brand = await getBrandBySlug(slug);
-  if (!brand) notFound();
+  const found = await findBrand(locale, slug);
+  if (!found) notFound();
+  const { brand } = found;
 
   const query = parseCatalogQuery(rawParams);
+  // One brand, one address: any other slug of it goes there, filters and all.
+  if (!found.published) permanentRedirect(brandHref(locale, brand, buildSearchParams(query)));
   const [result, categoryKeys] = await Promise.all([
     listProducts({ query, brandSlug: brand.slug }),
     listBrandCategoryKeys(brand.slug),
@@ -75,7 +106,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
   const systems = systemsForCategories(categoryKeys);
   const summary = composeBrandSummary(brand.name, systems);
 
-  const path = href(locale, routes.brand(brand.slug));
+  const path = brandHref(locale, brand);
   const breadcrumbs = listingBreadcrumbs(locale, [
     { name: BRANDS_INDEX_META.name, href: href(locale, routes.brands) },
     { name: brand.name, href: path },

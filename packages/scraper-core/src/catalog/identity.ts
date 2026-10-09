@@ -1,4 +1,10 @@
-import { type NormalizedWeight, parseWeight, slugify } from "@catalog/shared";
+import {
+  type NormalizedWeight,
+  type ProductNameInput,
+  allocateProductSlug,
+  parseWeight,
+  productName,
+} from "@catalog/shared";
 
 /**
  * Product identity.
@@ -103,40 +109,31 @@ function normalizePathKey(path: string): string {
 }
 
 /**
- * Build a storefront slug that is unique across the catalog.
+ * The storefront slug for a product the sync has not stored before.
  *
- * Two products can legitimately produce the same base slug (the Borbone pair
- * differs only by pack size), so the pack size is appended when needed and a
- * numeric suffix is the final tie-breaker. Deterministic for a given input
- * order, which keeps slugs stable between syncs.
+ * `<brand>-<line>-<format>-<qty>`, from the shop's own name for the product
+ * (`productName` in `@catalog/shared`), so the URL leads with what people
+ * search for and shares nothing with the supplier's address for the same
+ * product.
+ *
+ * `taken` holds every address already spoken for: each product's slug and
+ * every slug a product used to have, each category's, and every route. A
+ * newcomer whose slug is taken gets a suffix derived from its own source key
+ * (`allocateProductSlug`), never a counter: a counter would make the slug
+ * depend on which of two products the sync happened to meet first, and two
+ * databases holding the same catalog would then publish different URLs.
+ *
+ * The slug is registered in `taken` before it is returned, so two newcomers in
+ * one run cannot be given the same one.
  */
-export function assignUniqueSlug(
-  name: string,
-  taken: Set<string>,
-  options: { readonly variantKey?: string | null; readonly fallback?: string } = {},
-): string {
-  const base = slugify(name) || slugify(options.fallback ?? "") || "product";
-  if (!taken.has(base)) {
-    taken.add(base);
-    return base;
-  }
-
-  if (options.variantKey) {
-    const withVariant = `${base}-${slugify(options.variantKey)}`;
-    if (!taken.has(withVariant)) {
-      taken.add(withVariant);
-      return withVariant;
-    }
-  }
-
-  for (let suffix = 2; suffix < 1000; suffix += 1) {
-    const candidate = `${base}-${suffix}`;
-    if (!taken.has(candidate)) {
-      taken.add(candidate);
-      return candidate;
-    }
-  }
-  throw new Error(`Unable to allocate a unique slug for ${JSON.stringify(name)}`);
+export function assignProductSlug(product: ProductNameInput, taken: Set<string>): string {
+  const slug = allocateProductSlug(
+    productName(product).slugBase,
+    product.sourceKey ?? product.sourceName,
+    (candidate) => taken.has(candidate),
+  );
+  taken.add(slug);
+  return slug;
 }
 
 /**

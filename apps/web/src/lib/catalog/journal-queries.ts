@@ -1,6 +1,7 @@
 import "server-only";
 import { eq, inArray, sql } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
+import { productName } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { siteConfig } from "@/config/site";
 import {
@@ -30,6 +31,9 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
       id: products.id,
       slug: products.slug,
       name: products.name,
+      sourceKey: products.sourceKey,
+      previousSourceKeys: products.previousSourceKeys,
+      brandKey: brands.sourceKey,
       brandName: brands.name,
       price: sql<
         string | null
@@ -74,7 +78,20 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
 
   return rows.map((row) => ({
     slug: row.slug,
-    name: row.name,
+    // The shop's own name, as everywhere a customer reads one (`productName`
+    // in `@catalog/shared`); an article links a product by it.
+    name: productName({
+      sourceName: row.name,
+      sourceKey: row.sourceKey,
+      previousSourceKeys: row.previousSourceKeys,
+      brand:
+        row.brandKey || row.brandName ? { sourceKey: row.brandKey, name: row.brandName } : null,
+      categoryKeys: (byProduct.get(row.id) ?? []).flatMap((category) =>
+        category.sourceKey ? [category.sourceKey] : [],
+      ),
+      packValue: row.weightValue,
+      packUnit: row.weightUnit,
+    }).title,
     brandName: row.brandName,
     price: row.price,
     currency: row.currency,

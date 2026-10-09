@@ -21,15 +21,16 @@ import { SystemBadge } from "@/components/catalog/system-badge";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { getRelatedProducts } from "@/lib/catalog/queries";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import { productMetaDescription, productPageTitle } from "./product-meta";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import { breadcrumbJsonLd, productImageUrls, productJsonLd } from "@/lib/seo/json-ld";
 import { SHARE_CARD } from "@/lib/seo/share-card";
-import { sanitizeHtml, htmlToPlainText } from "@/lib/sanitize";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import { localeAlternates } from "@/lib/seo/alternates";
-import { categoryHref, href, productHref, routes } from "@/lib/routes";
+import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
 
 /**
  * A product page, at `/<locale>/<product slug>`.
@@ -38,25 +39,11 @@ import { categoryHref, href, productHref, routes } from "@/lib/routes";
  * — after checking it is not a category — before this renders.
  */
 export function productMetadata(locale: Locale, product: ProductDetailView): Metadata {
-  /*
-   * `descriptionText` is our own summary or, until one is written, a sentence
-   * generated from the product's attributes — the same string the lead
-   * paragraph and the JSON-LD use, never the source's text (see the copy layer
-   * in `lib/catalog/queries.ts`).
-   *
-   * `||` rather than `??`: `htmlToPlainText` answers a missing body with an
-   * empty string, which `??` let through as an empty meta description. The
-   * last arm is for a product we hold no describable fact about at all.
-   */
-  const description =
-    product.descriptionText ||
-    htmlToPlainText(product.descriptionHtml, 160) ||
-    `${product.name} — предлага се от ${siteConfig.name}.`;
-
+  const description = productMetaDescription(product);
   const photographs = productImageUrls(product);
 
   return {
-    title: product.name,
+    title: { absolute: productPageTitle(product) },
     description: description.slice(0, 300),
     /* A removed product keeps its URL and its canonical (below, `noindex`). */
     alternates: localeAlternates(locale, (each) => productHref(each, product)),
@@ -108,12 +95,28 @@ export async function ProductPage({
 
   const primaryCategory =
     product.categories.find((category) => category.isPrimary) ?? product.categories[0];
+  const title = product.title ?? product.name;
+  /*
+   * The breadcrumb follows the format, not the brand (docs/seo.md §13.2):
+   * Начало › Кафе капсули › Капсули за Dolce Gusto › the product. The system's
+   * crumb is named as its listing is, so it says "за" where the capsules are
+   * made by others to fit the system. The brand is linked above the heading
+   * and in the facts table instead.
+   */
   const breadcrumbs = [
     { name: "Начало", href: href(locale, routes.home) },
-    ...(primaryCategory
-      ? [{ name: primaryCategory.name, href: categoryHref(locale, primaryCategory) }]
+    ...(primaryCategory?.parent
+      ? [{ name: primaryCategory.parent.name, href: categoryHref(locale, primaryCategory.parent) }]
       : []),
-    { name: product.name, href: productHref(locale, product) },
+    ...(primaryCategory
+      ? [
+          {
+            name: product.formatListingLabel ?? primaryCategory.name,
+            href: categoryHref(locale, primaryCategory),
+          },
+        ]
+      : []),
+    { name: title, href: productHref(locale, product) },
   ];
 
   /*
@@ -158,14 +161,14 @@ export async function ProductPage({
                   // brand's name, which is also the link's name. A brand with
                   // no logo, or one unreadable this small, keeps the name.
                   <Link
-                    href={href(locale, routes.brand(product.brand.slug))}
+                    href={brandHref(locale, product.brand)}
                     className="inline-flex min-h-6 items-center rounded-xs"
                   >
                     <BrandLogo brand={product.brand} size="line" inline />
                   </Link>
                 ) : (
                   <Link
-                    href={href(locale, routes.brand(product.brand.slug))}
+                    href={brandHref(locale, product.brand)}
                     className="inline-flex min-h-6 items-center text-2xs font-semibold tracking-[0.06em] text-pine-700 uppercase underline-offset-4 hover:underline"
                   >
                     {product.brand.name}
@@ -175,12 +178,19 @@ export async function ProductPage({
           )}
 
           <h1 className="mt-2 font-display text-2xl font-semibold wrap-break-word text-ink-900 md:text-4xl">
-            {product.name}
+            {title}
           </h1>
+          {/* What it is and how much of it, in the words people search by:
+              "Капсули за Dolce Gusto, 16 бр.". Text, not a badge: it is the
+              second half of the product's name. */}
+          {product.detail && (
+            <p className="mt-1 text-base text-ink-700 tabular-nums md:text-lg">{product.detail}</p>
+          )}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <AvailabilityBadge availability={unavailable ? "unknown" : product.availability} />
-            {pack && <Badge className="tabular-nums">{pack}</Badge>}
+            {/* Only when the line above could not say the size. */}
+            {!product.detail && pack && <Badge className="tabular-nums">{pack}</Badge>}
           </div>
 
           {/*

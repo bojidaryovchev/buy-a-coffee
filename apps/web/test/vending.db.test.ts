@@ -101,9 +101,9 @@ describe.skipIf(!reachable || !hasCatalog)("vending blends in the catalog", () =
     const names = (await listVendingBlends()).map((blend) => blend.name);
 
     expect(names).toEqual([
-      "Кафе на зърна Elia Vending Aroma 1кг.",
-      "Кафе на зърна Elia Vending Crema 1кг.",
-      "Кафе на зърна Elia Vending Intenso 1кг.",
+      "Elia Vending Aroma — кафе на зърна, 1 кг",
+      "Elia Vending Crema — кафе на зърна, 1 кг",
+      "Elia Vending Intenso — кафе на зърна, 1 кг",
     ]);
   });
 
@@ -114,7 +114,7 @@ describe.skipIf(!reachable || !hasCatalog)("vending blends in the catalog", () =
     const [vandino] = await db
       .select({ slug: products.slug })
       .from(products)
-      .where(eq(products.slug, "kafe-na-zarna-vandino-espresso-aroma-1kg"));
+      .where(eq(products.slug, "vandino-espresso-aroma-kafe-na-zarna-1-kg"));
     expect(vandino, "the catalog copy should hold this product").toBeDefined();
 
     const slugs = (await listVendingBlends()).map((blend) => blend.slug);

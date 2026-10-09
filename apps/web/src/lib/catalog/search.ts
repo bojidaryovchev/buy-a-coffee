@@ -30,6 +30,15 @@ import { expandSearchTerm } from "./search-synonyms";
  * expression indexes and every search becomes a sequential scan.
  */
 const foldedName = sql`catalog_translit(${products.name})`;
+/**
+ * The shop's own name for the product, folded the same way. A customer who
+ * has just read "Bianchi Adore Espresso Bar" or "капсули за Dolce Gusto" on a
+ * page types those words, and the stored name says "Adore" and "DG". Matched
+ * as well as the supplier's name, never instead of it: the owner, and every
+ * old habit, still searches by that. Null until the sync or `catalog:reslug`
+ * has written it, and a null simply does not match.
+ */
+const foldedSearchName = sql`catalog_translit(${products.searchName})`;
 const foldedBrandName = sql`catalog_translit(${brands.name})`;
 const foldedCategoryName = sql`catalog_translit(${categories.name})`;
 
@@ -100,6 +109,8 @@ export function searchMatchProductsOnly(term: string): SQL {
         sql`${searchVector} @@ plainto_tsquery('simple', ${folded(variant)})`,
         contains(foldedName, variant),
         sql`${foldedName} %> ${folded(variant)}`,
+        contains(foldedSearchName, variant),
+        sql`${foldedSearchName} %> ${folded(variant)}`,
       ) as SQL,
   );
 }
@@ -133,7 +144,7 @@ export function categoryNameMatch(term: string): SQL {
 export function searchRank(term: string): SQL[] {
   return [
     sql`${bestVariant(term, (variant) => sql`ts_rank(${searchVector}, plainto_tsquery('simple', ${folded(variant)}))`)} desc`,
-    sql`${bestVariant(term, (variant) => sql`word_similarity(${folded(variant)}, ${foldedName})`)} desc`,
+    sql`${bestVariant(term, (variant) => sql`greatest(word_similarity(${folded(variant)}, ${foldedName}), coalesce(word_similarity(${folded(variant)}, ${foldedSearchName}), 0))`)} desc`,
   ];
 }
 
@@ -145,13 +156,16 @@ export function searchRank(term: string): SQL[] {
  * only then the ranked signals.
  */
 export function suggestionRank(term: string): SQL[] {
+  // Either name: ours opens with the brand, the supplier's with the format.
   const startsWith = anyVariant(
     term,
-    (variant) => sql`${foldedName} like ${foldedPattern(variant)} || '%' escape '\\'`,
+    (variant) =>
+      sql`(${foldedName} like ${foldedPattern(variant)} || '%' escape '\\' or ${foldedSearchName} like ${foldedPattern(variant)} || '%' escape '\\')`,
   );
   const containsTerm = anyVariant(
     term,
-    (variant) => sql`${foldedName} like '%' || ${foldedPattern(variant)} || '%' escape '\\'`,
+    (variant) =>
+      sql`(${foldedName} like '%' || ${foldedPattern(variant)} || '%' escape '\\' or ${foldedSearchName} like '%' || ${foldedPattern(variant)} || '%' escape '\\')`,
   );
   return [
     sql`case when ${startsWith} then 0 when ${containsTerm} then 1 else 2 end asc`,

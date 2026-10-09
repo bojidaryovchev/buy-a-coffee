@@ -13,6 +13,7 @@ import {
   syncChanges,
   syncRuns,
 } from "@catalog/db/schema";
+import { RESERVED_ROUTE_SLUGS } from "@catalog/shared/storefront-data";
 import type { ExistingProduct } from "./diff.ts";
 import type { DiscoveredBrand, DiscoveredCategory } from "./discover.ts";
 import { type TaxonomyChanges, planEntities, summarisePlan } from "./taxonomy.ts";
@@ -306,7 +307,9 @@ export async function upsertCategories(
     .where(eq(categories.sourceSiteId, sourceSiteId))
     .orderBy(categories.firstSeenAt, categories.id);
 
-  const plan = planEntities(existing, discovered);
+  // A category is published beside the storefront's routes, so a new one is
+  // never given a route's name.
+  const plan = planEntities(existing, discovered, { reservedSlugs: RESERVED_ROUTE_SLUGS });
   const markAbsent = (options.markAbsent ?? false) && discovered.length > 0;
   const changes = summarisePlan(plan, { markAbsent });
   const ids = new Map<string, string>();

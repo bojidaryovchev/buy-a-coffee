@@ -1,5 +1,3 @@
-import { brandDisplayNames } from "../../../content/brand-names";
-
 /**
  * How a brand's name is written on the storefront.
  *
@@ -8,8 +6,8 @@ import { brandDisplayNames } from "../../../content/brand-names";
  * a filter, the brand index and the search dropdown cannot disagree about how
  * a brand is spelled.
  *
- * Display only: the stored name is still what listings sort by and what search
- * matches, and the URL slug is not derived from anything here.
+ * The stored name is still what listings sort by and what search matches. A
+ * brand's published slug is curated separately (`brandSlug` in `lib/routes.ts`).
  */
 
 /**
@@ -25,46 +23,10 @@ export function brandLookupKey(value: string): string {
   return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
-const DISPLAY_NAMES = new Map(
-  Object.entries(brandDisplayNames).map(([key, name]) => [brandLookupKey(key), name]),
-);
-
-/** Trim, and collapse the runs of whitespace the source leaves inside names. */
-function tidy(value: string): string {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function capitalise(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-}
-
-/**
- * The name for a brand nobody has written an entry for.
- *
- * A name typed in one case throughout ("NEW BRAND", "newbrand") carries no
- * information in its casing, so it is title-cased, word by word and across
- * hyphens. A name in mixed case ("FoodNess") is kept as typed: someone chose
- * those capitals, and re-casing it would be our guess replacing theirs.
+/*
+ * The lookup itself lives in `@catalog/shared`, beside the product name model
+ * that needs the same answer when the sync derives a product's URL. One
+ * implementation, so a brand cannot be spelled one way on a page and another
+ * way in a slug.
  */
-export function fallbackBrandName(sourceName: string): string {
-  const name = tidy(sourceName);
-  const singleCase = name === name.toUpperCase() || name === name.toLowerCase();
-  if (!singleCase) return name;
-  return name.replace(/[\p{L}\p{N}]+/gu, capitalise);
-}
-
-/**
- * The display name for a synced brand.
- *
- * Looked up by source key first, because that is the identity the sync holds
- * stable; then by the name itself, which catches a brand whose key differs
- * from ours by a typo upstream. Anything unknown falls through to
- * `fallbackBrandName` — this never throws and never returns the raw value.
- */
-export function brandDisplayName(brand: {
-  readonly name: string;
-  readonly sourceKey?: string | null;
-}): string {
-  const byKey = brand.sourceKey ? DISPLAY_NAMES.get(brandLookupKey(brand.sourceKey)) : undefined;
-  return byKey ?? DISPLAY_NAMES.get(brandLookupKey(brand.name)) ?? fallbackBrandName(brand.name);
-}
+export { brandDisplayName, fallbackBrandName } from "@catalog/shared";

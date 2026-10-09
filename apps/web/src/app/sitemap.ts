@@ -10,7 +10,7 @@ import { JOURNAL_PATH, listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { languageAlternates, type LocalePath } from "@/lib/seo/alternates";
-import { categoryHref, href, productHref, routes } from "@/lib/routes";
+import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
 
 /**
  * Sitemap.
@@ -119,7 +119,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...flattenCategories(categories)
       .filter((category) => !isSectionCategory(category, BUSINESS_SECTIONS))
       .map((category) => page((locale) => categoryHref(locale, category), "daily", 0.8)),
-    ...brands.map((brand) => page(at(routes.brand(brand.slug)), "weekly", 0.6)),
+    ...brands.map((brand) => page((locale) => brandHref(locale, brand), "weekly", 0.6)),
     ...productSlugs.map((product) =>
       // The catalog sync only moves `updatedAt` when the product genuinely changed.
       page((locale) => productHref(locale, product), "weekly", 0.9, product.updatedAt ?? now),

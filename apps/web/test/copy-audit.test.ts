@@ -7,6 +7,7 @@ import {
   MAX_SOURCE_OVERLAP,
   type ReferenceProduct,
   auditProductCopy,
+  loadReferenceSnapshot,
   overlapRatio,
 } from "../scripts/copy-audit";
 
@@ -136,7 +137,14 @@ describe("auditProductCopy", () => {
 
 const SNAPSHOT_DIR = path.resolve(import.meta.dirname, "../../../reference/latest");
 const read = (name: string) => readFileSync(path.join(SNAPSHOT_DIR, name), "utf8");
-const snapshot = JSON.parse(read("products.json")) as { products: ReferenceProduct[] };
+/*
+ * Through the loader the check itself uses, which places each product at the
+ * slug it has on the storefront today: the snapshot was exported before the
+ * products moved to the shop's own slugs, and the copy is keyed by the new ones.
+ */
+const snapshot = (await loadReferenceSnapshot(SNAPSHOT_DIR)) as {
+  products: readonly ReferenceProduct[];
+};
 
 describe("content/product-copy.ts against the reference snapshot", () => {
   it("is keyed by slug: every entry is a product in the snapshot", () => {
