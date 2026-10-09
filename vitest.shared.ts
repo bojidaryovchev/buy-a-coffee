@@ -11,6 +11,15 @@
  *   *.integration.test.ts  needs PostgreSQL, builds its own private database
  *   *.db.test.ts           reads the development catalog in DATABASE_URL
  *
+ * **`*.db.test.ts` is read-only, by rule.** Those files all share one catalog
+ * and run in parallel workers, so a row one of them writes — even one it
+ * deletes again in `afterAll` — is in every other file's catalog for as long
+ * as it exists, and makes a neighbour fail once in a while. A test that has to
+ * write is an integration test: it builds a private database
+ * (`apps/web/test/helpers/test-db.ts`, or `setupTestDatabase` in scraper-core)
+ * and puts the few rows it needs there. `apps/web/test/db-tests-read-only.test.ts`
+ * reads every `*.db.test.ts` in the repository and fails on a write.
+ *
  * Both skip, with a warning, when no database answers; see
  * `vitest.integration-setup.ts`. Everything else is a unit test and must pass
  * with no server of any kind.
