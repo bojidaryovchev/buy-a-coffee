@@ -25,9 +25,9 @@ import { productMetaDescription, productPageTitle } from "./product-meta";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import { breadcrumbJsonLd, productImageUrls, productJsonLd } from "@/lib/seo/json-ld";
-import { SHARE_CARD } from "@/lib/seo/share-card";
+import { shareMetadata } from "@/lib/seo/share";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { absoluteUrl, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import { localeAlternates } from "@/lib/seo/alternates";
 import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
@@ -39,35 +39,31 @@ import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes
  * — after checking it is not a category — before this renders.
  */
 export function productMetadata(locale: Locale, product: ProductDetailView): Metadata {
-  const description = productMetaDescription(product);
+  const description = productMetaDescription(product).slice(0, 300);
   const photographs = productImageUrls(product);
 
   return {
     title: { absolute: productPageTitle(product) },
-    description: description.slice(0, 300),
+    description,
     /* A removed product keeps its URL and its canonical (below, `noindex`). */
     alternates: localeAlternates(locale, (each) => productHref(each, product)),
-    openGraph: {
-      type: "website",
+    ...shareMetadata({
+      locale,
       title: product.name,
-      description: description.slice(0, 300),
-      url: absoluteUrl(productHref(locale, product)),
+      description,
+      path: productHref(locale, product),
       /**
        * The product's own photograph when there is one — a picture of the bag
        * earns more clicks than the shop's mark — and the generated card when
-       * there is not.
+       * there is not, which `shareMetadata` falls back to: an unphotographed
+       * product once shared with no image of any kind.
        *
        * "When there is one" means a real photograph. A stored image whose URL
        * is not ours resolves to the placeholder drawing, and that must never
        * be offered as the picture of a product; `productImageUrls` drops it.
-       *
-       * `undefined` was once the fallback and it is the one value that must
-       * never appear here: setting `openGraph` at all drops the image inherited
-       * from `app/opengraph-image.tsx`, so an unphotographed product shared
-       * with no image of any kind. See `lib/seo/share-card.ts`.
        */
-      images: [{ url: photographs[0] ?? absoluteUrl(SHARE_CARD) }],
-    },
+      image: photographs[0],
+    }),
     // A product we no longer sell should not keep attracting search traffic.
     robots: product.status === "active" ? undefined : { index: false, follow: true },
   };

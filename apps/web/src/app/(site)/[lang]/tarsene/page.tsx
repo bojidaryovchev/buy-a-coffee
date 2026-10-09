@@ -10,6 +10,7 @@ import { siteConfig } from "@/config/site";
 import { getDictionary } from "@/i18n/dictionaries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 
 /**
@@ -33,10 +34,13 @@ interface PageProps {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
+  const title = query.q ? `Търсене: ${query.q}` : "Търсене";
+  const description = `Търсене в асортимента на ${siteConfig.name}.`;
   return {
-    title: query.q ? `Търсене: ${query.q}` : "Търсене",
-    description: `Търсене в асортимента на ${siteConfig.name}.`,
+    title,
+    description,
     alternates: pageAlternates(locale, routes.search),
+    ...shareMetadata({ locale, title, description, path: href(locale, routes.search) }),
     robots: { index: false, follow: true },
   };
 }

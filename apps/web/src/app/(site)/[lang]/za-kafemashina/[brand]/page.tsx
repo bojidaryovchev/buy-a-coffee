@@ -16,6 +16,7 @@ import { pluralize } from "@/lib/catalog/format";
 import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { categoryHref, href, productHref, routes, systemCategory } from "@/lib/routes";
 import { categoryNameFor } from "../../../../../../content/category-copy";
 import {
@@ -81,12 +82,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const feature = machineBrandFeatures[brand.slug];
 
+  const { title } = machineBrandNames(brand);
+  const description = feature
+    ? feature.description(factsOf(await getSystemListing(feature.system)))
+    : machineBrandDescription(brand);
+
   return {
-    title: machineBrandNames(brand).title,
-    description: feature
-      ? feature.description(factsOf(await getSystemListing(feature.system)))
-      : machineBrandDescription(brand),
+    title,
+    description,
     alternates: pageAlternates(locale, routes.machineBrand(brand.slug)),
+    ...shareMetadata({
+      locale,
+      title,
+      description,
+      path: href(locale, routes.machineBrand(brand.slug)),
+    }),
   };
 }
 

@@ -3,6 +3,8 @@ import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/l
 import { BUSINESS_SECTIONS, getSectionListing, sectionListsProducts } from "@/lib/catalog/vending";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
+import { href } from "@/lib/routes";
 import { consumablesCopy } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
 
@@ -41,6 +43,12 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     description: consumablesCopy.metaDescription,
     // Filtered and paginated views of the listing consolidate on the clean page.
     alternates: pageAlternates(locale, section.path),
+    ...shareMetadata({
+      locale,
+      title: consumablesCopy.metaTitle,
+      description: consumablesCopy.metaDescription,
+      path: href(locale, section.path),
+    }),
     robots: indexable ? undefined : { index: false, follow: true },
   };
 }

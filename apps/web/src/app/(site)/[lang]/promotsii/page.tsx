@@ -12,6 +12,7 @@ import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listProducts } from "@/lib/catalog/queries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import {
   CALLBACK_SENTENCE,
@@ -47,14 +48,21 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const query = parseCatalogQuery(await searchParams);
   const facts = await getListingFacts({ kind: "promotions" });
   const hasPromotions = facts.productCount > 0;
+  const description = hasPromotions
+    ? metaDescription(PROMOTIONS_META.description, facts.cupRange)
+    : `${PROMOTIONS_META.descriptionWhenEmpty} ${CALLBACK_SENTENCE}`;
   return {
     /* Searchers type the singular as a modifier — „кафе на зърна промоция“,
        „капсули долче густо промоция“ — so the title carries „промоция“. */
     title: pageTitle(PROMOTIONS_META.title),
-    description: hasPromotions
-      ? metaDescription(PROMOTIONS_META.description, facts.cupRange)
-      : `${PROMOTIONS_META.descriptionWhenEmpty} ${CALLBACK_SENTENCE}`,
+    description,
     alternates: pageAlternates(locale, routes.promotions),
+    ...shareMetadata({
+      locale,
+      title: PROMOTIONS_META.title,
+      description,
+      path: href(locale, routes.promotions),
+    }),
     /*
      * The page exists for search only while a reduction does (`docs/seo.md`
      * §1). With nothing reduced it still answers 200, so no link to it breaks,

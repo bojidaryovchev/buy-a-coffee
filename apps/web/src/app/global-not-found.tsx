@@ -44,6 +44,10 @@ import "./globals.css";
  * which was asked for. An honest generic `lang` beats a guessed one.
  */
 export const metadata: Metadata = {
+  /* This route has no layout above it, so nothing else gives it a base. Next
+     attaches the share card (`app/opengraph-image.tsx`) to it all the same,
+     and without a base resolves that image against `localhost`. */
+  metadataBase: new URL(siteConfig.url),
   title: fullTitle("404"),
   robots: { index: false, follow: true },
 };

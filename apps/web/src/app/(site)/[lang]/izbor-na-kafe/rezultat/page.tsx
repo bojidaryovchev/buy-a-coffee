@@ -20,6 +20,7 @@ import { pluralize } from "@/lib/catalog/format";
 import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
 
 export const revalidate = 300;
@@ -48,10 +49,13 @@ export async function generateMetadata({
   params: Promise<LangParams>;
 }): Promise<Metadata> {
   const locale = shippingLocale((await params).lang);
+  const title = "Вашата препоръка";
   return {
-    title: "Вашата препоръка",
+    title,
     // Every answered permutation consolidates on the unanswered wizard.
     alternates: pageAlternates(locale, routes.wizard),
+    // Shared, it is attributed to the same address the canonical names.
+    ...shareMetadata({ locale, title, path: href(locale, routes.wizard) }),
     robots: { index: false, follow: true },
   };
 }

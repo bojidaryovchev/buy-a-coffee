@@ -8,6 +8,7 @@ import { getListingFacts, listCategoryKeysByBrand } from "@/lib/catalog/listing-
 import { listBrands } from "@/lib/catalog/queries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import {
   BRANDS_INDEX_META,
@@ -30,16 +31,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     listBrands({ withProductsOnly: true }),
     getListingFacts({ kind: "all" }),
   ]);
+  // The count is the brands in stock today, never a number typed here.
+  const description = metaDescription(
+    brands.length > 0
+      ? `${brands.length} ${brands.length === 1 ? "марка" : "марки"} кафе, италиански и други`
+      : BRANDS_INDEX_META.name,
+    facts.cupRange,
+  );
   return {
     title: pageTitle(BRANDS_INDEX_META.title),
-    // The count is the brands in stock today, never a number typed here.
-    description: metaDescription(
-      brands.length > 0
-        ? `${brands.length} ${brands.length === 1 ? "марка" : "марки"} кафе, италиански и други`
-        : BRANDS_INDEX_META.name,
-      facts.cupRange,
-    ),
+    description,
     alternates: pageAlternates(locale, routes.brands),
+    ...shareMetadata({
+      locale,
+      title: BRANDS_INDEX_META.title,
+      description,
+      path: href(locale, routes.brands),
+    }),
   };
 }
 

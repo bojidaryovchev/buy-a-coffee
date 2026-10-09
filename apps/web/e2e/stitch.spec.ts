@@ -57,12 +57,14 @@ test.describe("one title format", () => {
     }
   });
 
-  test("the journal's share title ends the same way", async ({ page }) => {
+  /* A share preview prints `og:site_name` beside the title, so the title
+     itself is the page's own words on every page (`lib/seo/share.ts`). */
+  test("the journal's share title is its own words, the shop's name beside it", async ({
+    page,
+  }) => {
     await page.goto(BG.journal);
-    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
-      "content",
-      `Блог | ${SHOP}`,
-    );
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Блог");
+    await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", SHOP);
   });
 });
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { JsonLd } from "@/components/seo/json-ld";
 import { deliveryFaq, orderingSteps } from "@/components/commerce/delivery-content";
-import { absoluteUrl, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import {
   deliverySection,
   paymentSection,
@@ -11,10 +11,9 @@ import {
   withdrawalSection,
 } from "@/content/legal";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
-import { SHARE_CARD } from "@/lib/seo/share-card";
-import { OG_LOCALE } from "@/i18n/config";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 
 /**
@@ -43,25 +42,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: TITLE,
     description: DESCRIPTION,
     alternates: pageAlternates(locale, routes.delivery),
-    /* Without this the page would share under the home page's title and
-     address, which is what the layout's `openGraph` describes. A page-level
-     `openGraph` replaces the layout's rather than merging with it, so the
-     image has to be restated too — see `lib/seo/share-card.ts`. */
-    openGraph: {
-      type: "website",
-      siteName: siteConfig.name,
+    ...shareMetadata({
+      locale,
       title: TITLE,
       description: DESCRIPTION,
-      url: absoluteUrl(href(locale, routes.delivery)),
-      locale: OG_LOCALE[locale],
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: TITLE,
-      description: DESCRIPTION,
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
+      path: href(locale, routes.delivery),
+    }),
   };
 }
 

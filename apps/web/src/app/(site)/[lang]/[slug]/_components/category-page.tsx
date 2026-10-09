@@ -27,6 +27,7 @@ import {
   listingBreadcrumbs,
 } from "@/lib/seo/json-ld";
 import { localeAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import {
   categoryDescriptionLead,
   categoryHeading,
@@ -88,12 +89,17 @@ export async function categoryMetadata(
     children: stockedChildren(category),
   };
 
+  const title = categoryTitle(category, metaFacts);
+  const description = metaDescription(categoryDescriptionLead(category, metaFacts), facts.cupRange);
+
   return {
-    title: pageTitle(categoryTitle(category, metaFacts)),
-    description: metaDescription(categoryDescriptionLead(category, metaFacts), facts.cupRange),
+    title: pageTitle(title),
+    description,
     // The canonical always points at the unfiltered first page, so filtered
     // permutations consolidate rather than compete.
     alternates: localeAlternates(locale, (each) => categoryHref(each, category)),
+    // And a filtered view, shared, is attributed to that same clean page.
+    ...shareMetadata({ locale, title, description, path: categoryHref(locale, category) }),
     robots: indexable ? undefined : { index: false, follow: true },
   };
 }

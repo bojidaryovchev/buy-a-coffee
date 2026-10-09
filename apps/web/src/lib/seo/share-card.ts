@@ -7,10 +7,10 @@
  * `url` or `title` replaces the parent's whole object, and the image inherited
  * from the file convention goes with it.
  *
- * Two routes here do exactly that — `(site)/layout.tsx` and the product page —
- * which between them is every public page on the shop. Naming the card in both
- * is what makes the automatic behaviour survive contact with a page that wants
- * a canonical URL of its own.
+ * Every storefront page does exactly that, because every page names its own
+ * address and title for sharing. They all do it through `shareMetadata` in
+ * `share.ts`, which is the one place the card is named; the layout's default
+ * (`shareDefaults`, same file) names it for a page that declares nothing.
  *
  * The unhashed path is deliberate and stable. Next also serves the card at
  * `/opengraph-image?<hash>` for cache-busting, but that hash is not reachable

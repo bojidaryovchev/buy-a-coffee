@@ -3,7 +3,8 @@ import { LegalDocumentView } from "@/components/legal-document";
 import { termsOfService } from "@/content/legal";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
-import { routes } from "@/lib/routes";
+import { shareMetadata } from "@/lib/seo/share";
+import { href, routes } from "@/lib/routes";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -15,6 +16,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: termsOfService.title,
     description: termsOfService.summary,
     alternates: pageAlternates(locale, routes.terms),
+    ...shareMetadata({
+      locale,
+      title: termsOfService.title,
+      description: termsOfService.summary,
+      path: href(locale, routes.terms),
+    }),
   };
 }
 

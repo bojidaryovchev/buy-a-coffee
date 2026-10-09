@@ -8,6 +8,7 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { shareMetadata } from "@/lib/seo/share";
 import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import { CATEGORIES_INDEX_META, metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { categoryHref, href, routes } from "@/lib/routes";
@@ -22,12 +23,19 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   const facts = await getListingFacts({ kind: "all" });
+  const description = metaDescription(CATEGORIES_INDEX_META.description, facts.cupRange);
   return {
     /* No search term is this page's own (`docs/seo.md` §1 gives it none), so
        the title describes the page without borrowing a listing's term. */
     title: pageTitle(CATEGORIES_INDEX_META.title),
-    description: metaDescription(CATEGORIES_INDEX_META.description, facts.cupRange),
+    description,
     alternates: pageAlternates(locale, routes.categories),
+    ...shareMetadata({
+      locale,
+      title: CATEGORIES_INDEX_META.title,
+      description,
+      path: href(locale, routes.categories),
+    }),
   };
 }
 

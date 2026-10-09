@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { SiteFrame, loadNavigation } from "@/components/layout/site-frame";
 import { Measurement } from "@/components/measurement";
-import { siteConfig, absoluteUrl } from "@/config/site";
+import { siteConfig } from "@/config/site";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
-import { SHARE_CARD } from "@/lib/seo/share-card";
+import { shareDefaults } from "@/lib/seo/share";
 import { TITLE_TEMPLATE } from "@/lib/seo/title";
 import { JsonLd } from "@/components/seo/json-ld";
-import { HTML_LANG, OG_LOCALE, SHIPPING_LOCALES } from "@/i18n/config";
+import { HTML_LANG, SHIPPING_LOCALES } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { localeFrom, type LangParams } from "@/i18n/params";
-import { href, routes } from "@/lib/routes";
 import { BODY_CLASS, fontVariables } from "../../fonts";
 import "../../globals.css";
 
@@ -59,30 +58,19 @@ export async function generateMetadata({
     description: site.description,
     applicationName: siteConfig.name,
     formatDetection: { telephone: true },
-    openGraph: {
-      type: "website",
-      siteName: siteConfig.name,
-      title,
-      description: site.description,
-      url: absoluteUrl(href(locale, routes.home)),
-      locale: OG_LOCALE[locale],
-      alternateLocale: SHIPPING_LOCALES.filter((other) => other !== locale).map(
-        (other) => OG_LOCALE[other],
-      ),
-      /* Explicit, because setting `openGraph` at all drops the image inherited
-         from `app/opengraph-image.tsx`. See the note in `lib/seo/share-card.ts`;
-         without this line every page on the shop shares as a grey box. */
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description: site.description,
-      /* X reads `og:image` when there is no `twitter:image`, but the card type
-         above promises a full-width image and it is cheaper to be explicit than
-         to rely on that fallback holding. */
-      images: [{ url: absoluteUrl(SHARE_CARD) }],
-    },
+    /*
+     * For sharing, the layout says only what is true of every page: that it is
+     * a website, the shop's name, the locale and the card. It names no address,
+     * title or description. Next hands this whole object to any page that sets
+     * no `openGraph` of its own (the merge is shallow), so a `url` or a
+     * `title` here would be the home page's, announced by every such page;
+     * that is how a shared category link used to be presented as the home
+     * page. Every page, the home page included, declares its own through
+     * `shareMetadata`. One that forgets shares with no `og:url` and with its
+     * own `<title>` as `og:title` (Next fills a missing one from the title),
+     * and `e2e/i18n.spec.ts` fails on it. See `lib/seo/share.ts`.
+     */
+    ...shareDefaults(locale),
     robots: {
       index: true,
       follow: true,
