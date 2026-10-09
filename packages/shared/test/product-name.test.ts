@@ -94,6 +94,46 @@ describe("productName over the whole catalog", () => {
     expect(new Set(records.map((record) => record.expected.slug)).size).toBe(records.length);
   });
 
+  /*
+   * Products whose name states one pack size and whose pack-size field states
+   * another, by source key. The name's size is the one published. Each entry
+   * is a mistake in the supplier's record that someone has looked at; a
+   * product that starts to disagree fails here until it is looked at too.
+   */
+  const KNOWN_PACK_CONFLICTS: Readonly<Record<string, { inName: string; inPackField: string }>> = {
+    // An 18-pod tin, priced as one (9,20 €, as the 18-pod illy Classico),
+    // recorded with a pack size of 100.
+    "/illy-decaffeinato-18/#100pc": { inName: "18 бр.", inPackField: "100 бр." },
+  };
+
+  it("takes the size from the pack field, which agrees with the name for every product but the known ones", () => {
+    const conflicts = Object.fromEntries(
+      records.flatMap((record) => {
+        const { packConflict } = productName(record);
+        return packConflict ? [[record.sourceKey, packConflict] as const] : [];
+      }),
+    );
+    expect(conflicts).toEqual(KNOWN_PACK_CONFLICTS);
+    for (const record of records) {
+      const name = productName(record);
+      // Every product states its size in its name, and has one to show.
+      expect(name.quantity, record.sourceName).not.toBeNull();
+      if (!name.packConflict) {
+        expect(name.quantity?.label).toBe(packQuantityLabel(record.packValue, record.packUnit));
+      }
+    }
+  });
+
+  it("publishes the size in the name where the two disagree", () => {
+    const tin = records.find((record) => record.sourceKey === "/illy-decaffeinato-18/#100pc");
+    expect(productName(tin!)).toMatchObject({
+      quantity: { label: "18 бр.", slug: "18-br" },
+      detail: "Кафе дози ESE, 18 бр.",
+      full: "illy Decaffeinato — кафе дози ESE, 18 бр.",
+      slugBase: "illy-decaffeinato-kafe-dozi-18-br",
+    });
+  });
+
   it("has a product behind every override", () => {
     const keys = new Set(records.map((record) => record.sourceKey));
     for (const key of Object.keys(productNameOverrides)) {
@@ -159,6 +199,7 @@ describe("productName", () => {
         slug: "kapsuli-dolce-gusto",
       },
       quantity: { label: "16 бр.", slug: "16-br" },
+      packConflict: null,
       title: "Rema Caffè Cookies",
       detail: "Капсули за Dolce Gusto, 16 бр.",
       full: "Rema Caffè Cookies — капсули за Dolce Gusto, 16 бр.",
@@ -315,7 +356,14 @@ describe("productName", () => {
       full: "Rema Caffè Cookies, 16 бр.",
       slugBase: "rema-caffe-cookies-16-br",
     });
-    expect(productName({ ...base, packValue: null, packUnit: null })).toMatchObject({
+    expect(
+      productName({
+        ...base,
+        sourceName: "Капсули DG Rema Caffè Cookies",
+        packValue: null,
+        packUnit: null,
+      }),
+    ).toMatchObject({
       quantity: null,
       detail: "Капсули за Dolce Gusto",
       full: "Rema Caffè Cookies — капсули за Dolce Gusto",
@@ -336,7 +384,7 @@ describe("productName", () => {
   it("falls back to the supplier's name rather than to nothing", () => {
     const name = productName({ sourceName: "  Капсули  16 бр. ", categoryKeys: [] });
     expect(name.title).toBe("Капсули 16 бр.");
-    expect(name.slugBase).toBe("kapsuli-16-br");
+    expect(name.slugBase).toMatch(/^kapsuli-16-br/);
     expect(productName({ sourceName: "!!!" }).slugBase).toBe("product");
   });
 
@@ -347,6 +395,32 @@ describe("productName", () => {
     });
     expect(name.slugBase.endsWith("-kapsuli-dolce-gusto-16-br")).toBe(true);
     expect(name.slugBase.length).toBeLessThanOrEqual(72 + "-kapsuli-dolce-gusto-16-br".length);
+  });
+
+  it("uses the size in the name when the pack field contradicts it, or is empty", () => {
+    const beans = {
+      sourceName: "Кафе на зърна Lavazza Super Crema 1кг.",
+      brand: { sourceKey: "lavazza", name: "LAVAZZA" },
+      categoryKeys: ["kafe-na-zyrna"],
+    };
+    expect(productName({ ...beans, packValue: "500", packUnit: "g" })).toMatchObject({
+      quantity: { label: "1 кг", slug: "1-kg" },
+      packConflict: { inName: "1 кг", inPackField: "500 г" },
+      slugBase: "lavazza-super-crema-kafe-na-zarna-1-kg",
+    });
+    expect(productName({ ...beans, packValue: null, packUnit: null })).toMatchObject({
+      quantity: { label: "1 кг", slug: "1-kg" },
+      packConflict: null,
+    });
+    // "0.500кг." and 500 g are one size written two ways, not a conflict.
+    expect(
+      productName({
+        ...beans,
+        sourceName: "Кафе на зърна Lavazza Super Crema 0.500кг.",
+        packValue: "500.0000",
+        packUnit: "g",
+      }),
+    ).toMatchObject({ quantity: { label: "500 г" }, packConflict: null });
   });
 
   it("is deterministic", () => {

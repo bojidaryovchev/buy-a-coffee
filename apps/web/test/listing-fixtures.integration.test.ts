@@ -449,7 +449,10 @@ suite("listing rules on seeded data (integration)", () => {
   describe("price per cup", () => {
     it("orders by the displayed price over the stored cups, exactly", async () => {
       const result = await list({ sort: "price-per-cup", pageSize: "96" });
-      expect(result.items.map((card) => card.name)).toEqual(PER_CUP_ORDER_BY_NAME);
+      // A card is headed by the brand and the line; the fixtures share one brand.
+      expect(result.items.map((card) => card.title)).toEqual(
+        PER_CUP_ORDER_BY_NAME.map((name) => `Acme ${name}`),
+      );
     });
 
     it("uses the pinned price, not the source's, when one is set", async () => {

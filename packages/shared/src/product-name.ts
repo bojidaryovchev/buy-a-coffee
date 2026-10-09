@@ -1,5 +1,6 @@
 import { brandDisplayNames, productNameOverrides } from "./storefront-data.ts";
 import { normalizeLabel, slugify } from "./text.ts";
+import { parseWeight } from "./weight.ts";
 
 /**
  * A product's name, as this shop writes it.
@@ -19,7 +20,10 @@ import { normalizeLabel, slugify } from "./text.ts";
  *     "Oro", "Crema e Aroma";
  *   - **format**: the phrase people search for the product's kind, chosen by
  *     the category the product is filed under, never by its name;
- *   - **quantity**: the parsed pack size, never re-read from the name.
+ *   - **quantity**: the parsed pack size. The name is read for a size only
+ *     to catch the supplier contradicting itself: where the name states one
+ *     size and the pack field another, the name's is the product's (see
+ *     `packConflict`).
  *
  * The supplier's name is still stored untouched (`products.name`). It is what
  * the owner orders by, so the admin pages and the order mail keep it, and
@@ -86,6 +90,13 @@ export interface ProductName {
   readonly line: string;
   readonly format: ProductFormat | null;
   readonly quantity: ProductQuantity | null;
+  /**
+   * Set when the supplier's name states one pack size and its pack-size field
+   * another: both, as the shop would write them. `quantity` is then the
+   * name's. Null for every product whose two sizes agree, and for one that
+   * states only one of them.
+   */
+  readonly packConflict: { readonly inName: string; readonly inPackField: string } | null;
   /** The heading: "Lavazza Super Crema". */
   readonly title: string;
   /** The line under the heading: "Кафе на зърна, 1 кг". Null when neither part is known. */
@@ -429,6 +440,24 @@ export function packQuantityLabel(
   }
 }
 
+/**
+ * The pack size the supplier's name ends with, as the shop writes it, or null
+ * when the name states none.
+ *
+ * Read only to be compared with the parsed pack field. The two are typed
+ * separately at the source, and one tin of 18 pods is recorded there as
+ * "100 бр." at the price of 18. A name is what the supplier's customers see
+ * and complain about, so when the two disagree the name is the one that has
+ * been checked; and a name and a URL are frozen once published, so they must
+ * not carry the wrong one. The price per cup still follows the stored pack
+ * size: correcting that is the catalog's job, not the name's.
+ */
+function quantityInName(sourceName: string): string | null {
+  const stated = normalizeLabel(sourceName).match(TRAILING_QUANTITY)?.[0];
+  const parsed = stated ? parseWeight(stated) : null;
+  return parsed ? packQuantityLabel(parsed.value, parsed.unit) : null;
+}
+
 /* --- The name ----------------------------------------------------------- */
 
 function lowerFirst(text: string): string {
@@ -470,9 +499,15 @@ export function productName(input: ProductNameInput): ProductName {
       }
     : null;
 
-  const quantityLabel = override?.pack
-    ? packQuantityLabel(override.pack.value, override.pack.unit)
-    : packQuantityLabel(input.packValue, input.packUnit);
+  const inPackField = packQuantityLabel(input.packValue, input.packUnit);
+  const inName = quantityInName(input.sourceName);
+  const packConflict =
+    inName !== null && inPackField !== null && inName !== inPackField
+      ? { inName, inPackField }
+      : null;
+  // The parsed pack size, unless the name contradicts it; the name's own when
+  // nothing was parsed at all.
+  const quantityLabel = packConflict ? packConflict.inName : (inPackField ?? inName);
   const quantity: ProductQuantity | null = quantityLabel
     ? { label: quantityLabel, slug: slugify(quantityLabel) }
     : null;
@@ -491,20 +526,24 @@ export function productName(input: ProductNameInput): ProductName {
   const head = slugify(title, { maxLength: SLUG_HEAD_MAX });
   const slugBase = [head, format?.slug, quantity?.slug].filter(Boolean).join("-") || "product";
 
-  return { brand, line, format, quantity, title, detail, full, slugBase };
+  return { brand, line, format, quantity, packConflict, title, detail, full, slugBase };
 }
 
 /**
  * What search matches a product by, beside the supplier's name.
  *
- * The whole name as the page prints it, and — where the brand or the line
- * carries an accent — the heading once more without it, because nobody types
- * "Caffè" into a search box and substring matching does not fold accents.
- * Never displayed.
+ * The heading as the page prints it — brand and line — and, where either
+ * carries an accent, once more without it, because nobody types "Caffè" into
+ * a search box and substring matching does not fold accents.
+ *
+ * Not the format or the system: "капсули за Lavazza Blue" in every compatible
+ * capsule's search name would put another maker's capsules first in a search
+ * for Lavazza. A system is found through its category and the synonym table,
+ * as it always has been. Never displayed.
  */
 export function productSearchName(name: ProductName): string {
-  const plain = name.title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
-  return plain === name.title ? name.full : `${name.full} ${plain}`;
+  const plain = name.title.normalize("NFKD").replace(/[̀-ͯ]/g, "");
+  return plain === name.title ? name.title : `${name.title} ${plain}`;
 }
 
 /** The format's listing label for a set of category keys, or null. For breadcrumbs. */

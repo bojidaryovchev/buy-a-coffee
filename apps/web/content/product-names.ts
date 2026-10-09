@@ -28,11 +28,6 @@
 export interface ProductNameOverride {
   /** The line as the brand writes it, replacing the parsed one. */
   readonly line?: string;
-  /**
-   * The pack size, replacing the parsed one. Only for a product whose stored
-   * pack size is known to be wrong at the source.
-   */
-  readonly pack?: { readonly value: number; readonly unit: "g" | "ml" | "pc" };
 }
 
 export const productNameOverrides: Readonly<Record<string, ProductNameOverride>> = {
@@ -48,12 +43,4 @@ export const productNameOverrides: Readonly<Record<string, ProductNameOverride>>
    * opens with the line people search for.
    */
   "/lavazza-crema-aroma-expert-1/#1000g": { line: "Crema e Aroma Expert" },
-
-  /*
-   * The supplier's pack-size field says "100 бр." for this tin; its name
-   * ("…Decaffeinato 18бр."), its address (`/illy-decaffeinato-18/`) and its
-   * price (the same 9,20 € as the 18-pod illy Classico tin) all say 18. The
-   * name and the URL are frozen once published, so they carry the true count.
-   */
-  "/illy-decaffeinato-18/#100pc": { pack: { value: 18, unit: "pc" } },
 };

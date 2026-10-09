@@ -82,6 +82,26 @@ describe("planProductSlugs", () => {
     expect(plan.get("/c/")).toBe(discriminatedSlug("kimbo-capri", "/c/"));
   });
 
+  it("leaves an address another product is at now, even one it is about to leave", () => {
+    // `/a/` sits on the slug `/c/` would be planned into, and is itself moving.
+    const products = [{ sourceKey: "/a/", base: "lavazza-oro", slug: "kimbo-capri" }, c];
+    const plan = planProductSlugs(products);
+    expect(plan.get("/a/")).toBe("lavazza-oro");
+    expect(plan.get("/c/")).toBe(discriminatedSlug("kimbo-capri", "/c/"));
+    // And the same once it has left, so the second run changes nothing.
+    expect(
+      planProductSlugs([
+        {
+          sourceKey: "/a/",
+          base: "lavazza-oro",
+          slug: "lavazza-oro",
+          previousSlugs: ["kimbo-capri"],
+        },
+        { ...c, slug: plan.get("/c/") },
+      ]),
+    ).toEqual(plan);
+  });
+
   it("lets a product return to an address only it has had", () => {
     expect(planProductSlugs([{ ...a, previousSlugs: ["lavazza-oro"] }]).get("/a/")).toBe(
       "lavazza-oro",

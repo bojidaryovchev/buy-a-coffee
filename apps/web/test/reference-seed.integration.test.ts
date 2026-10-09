@@ -160,7 +160,7 @@ describeIntegration("seed:reference (integration)", () => {
     const [row] = await db
       .select()
       .from(products)
-      .where(eq(products.slug, "kafe-na-zarna-amann-la-cascada-0-500kg"));
+      .where(eq(products.slug, "amann-la-cascada-kafe-na-zarna-500-g"));
     expect(row).toMatchObject({
       currentPrice: "16.00",
       currency: "EUR",
@@ -186,13 +186,13 @@ describeIntegration("seed:reference (integration)", () => {
     const [row] = await db
       .select()
       .from(products)
-      .where(eq(products.slug, "kafe-na-zarna-amann-la-cascada-0-500kg"));
+      .where(eq(products.slug, "amann-la-cascada-kafe-na-zarna-500-g"));
     expect(row?.descriptionTextOverride).toBe(
-      productCopy["kafe-na-zarna-amann-la-cascada-0-500kg"]?.summary,
+      productCopy["amann-la-cascada-kafe-na-zarna-500-g"]?.summary,
     );
     // `description_text` is the sync's record of what the source said.
     expect(row?.descriptionText).toBe(
-      snapshot.products.find((p) => p.slug === row?.slug)?.descriptionText,
+      snapshot.products.find((p) => p.sourceKey === row?.sourceKey)?.descriptionText,
     );
   });
 
@@ -250,12 +250,12 @@ describeIntegration("seed:reference (integration)", () => {
     await db
       .update(products)
       .set({ currentPrice: "99.99" })
-      .where(eq(products.slug, "kafe-na-zarna-amann-la-cascada-0-500kg"));
+      .where(eq(products.slug, "amann-la-cascada-kafe-na-zarna-500-g"));
     await seedReference(db, { snapshot, copy: productCopy, storageDir: storage });
     const [row] = await db
       .select()
       .from(products)
-      .where(eq(products.slug, "kafe-na-zarna-amann-la-cascada-0-500kg"));
+      .where(eq(products.slug, "amann-la-cascada-kafe-na-zarna-500-g"));
     expect(row?.currentPrice).toBe("16.00");
     expect((await counts()).products).toBe(SNAPSHOT.products);
   });

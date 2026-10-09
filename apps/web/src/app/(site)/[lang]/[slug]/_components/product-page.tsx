@@ -21,6 +21,7 @@ import { SystemBadge } from "@/components/catalog/system-badge";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { getRelatedProducts } from "@/lib/catalog/queries";
 import type { ProductDetailView } from "@/lib/catalog/types";
+import { productMetaDescription, productPageTitle } from "./product-meta";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import { breadcrumbJsonLd, productImageUrls, productJsonLd } from "@/lib/seo/json-ld";
@@ -37,43 +38,12 @@ import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes
  * Reached through `[slug]/page.tsx`, which decides that the slug is a product
  * — after checking it is not a category — before this renders.
  */
-/**
- * The meta description: what it is, what it costs, what a cup costs, and how
- * it is ordered.
- *
- * The price per cup and the callback are the two things this shop's snippet
- * can say that nobody else's can (docs/seo.md §12), so they go where a search
- * result shows them, ahead of prose. Every figure is the one the page prints,
- * taken from the same view: nothing here is typed in.
- *
- * A clause with nothing behind it is left out, never defaulted: no price, no
- * price clause; a pack with no known number of cups, no per-cup clause; a
- * product that cannot be ordered today, no invitation to order it.
- */
-export function productMetaDescription(product: ProductDetailView): string {
-  const title = product.title ?? product.name;
-  const lowerFirst = (text: string) => text.charAt(0).toLocaleLowerCase("bg") + text.slice(1);
-  const what = product.detail ? `${title}: ${lowerFirst(product.detail)}` : title;
-  const price = product.price
-    ? `Цена ${[product.price.formatted, product.servingPrice?.formatted].filter(Boolean).join(", ")}.`
-    : null;
-  const orderable = product.status === "active" && product.availability !== "out_of_stock";
-  const order = orderable ? "Оставете номер и ще ви се обадим, за да потвърдим поръчката." : null;
-  // "16 бр." already ends the sentence; any other ending needs its full stop.
-  return [what.endsWith(".") ? what : `${what}.`, price, order].filter(Boolean).join(" ");
-}
-
 export function productMetadata(locale: Locale, product: ProductDetailView): Metadata {
   const description = productMetaDescription(product);
   const photographs = productImageUrls(product);
 
   return {
-    /*
-     * `<Brand> <Line> — <format>, <qty> | Buy-a-Coffee` (docs/seo.md §12).
-     * Absolute, so the separator before the shop's name is the one the page
-     * plan gives product pages whatever the layout's template is.
-     */
-    title: { absolute: `${product.name} | ${siteConfig.name}` },
+    title: { absolute: productPageTitle(product) },
     description: description.slice(0, 300),
     /* A removed product keeps its URL and its canonical (below, `noindex`). */
     alternates: localeAlternates(locale, (each) => productHref(each, product)),

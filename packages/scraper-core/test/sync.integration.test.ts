@@ -566,7 +566,7 @@ describeIntegration("catalog sync (integration)", () => {
     expect(first?.after).toMatchObject({
       sourceKey: "/coffee-1-1/#1000g",
       move: { matchedBy: "fingerprint", decidedBy: null },
-      preserved: { slug: "coffee-number-1-1kg", descriptionTextOverride: false },
+      preserved: { slug: "test-brand-coffee-number-1-1-kg", descriptionTextOverride: false },
     });
     const [row] = await db
       .select({ id: products.id })
@@ -1017,8 +1017,8 @@ describeIntegration("catalog sync (integration)", () => {
       pack: "1000g",
     });
     expect(report.violations.duplicates[0]?.products.map((product) => product.slug)).toEqual([
-      "coffee-number-1-1kg",
       "coffee-number-1-1kg-2",
+      "test-brand-coffee-number-1-1-kg",
     ]);
     const text = formatCatalogVerifyReport(report);
     expect(text).toContain("catalog:verify FAILED: 1 violation(s)");
@@ -1091,10 +1091,12 @@ describeIntegration("catalog sync (integration)", () => {
       ["/coffee-3-1/#1000g", "row_deleted"],
     ]);
     expect(report.violations.moved.find((v) => v.problem === "slug_changed")).toMatchObject({
-      expectedSlug: "coffee-number-1-1kg",
+      expectedSlug: "test-brand-coffee-number-1-1-kg",
       actualSlug: "a-new-slug",
     });
-    expect(formatCatalogVerifyReport(report)).toContain("was coffee-number-1-1kg, is a-new-slug");
+    expect(formatCatalogVerifyReport(report)).toContain(
+      "was test-brand-coffee-number-1-1-kg, is a-new-slug",
+    );
   });
 
   it("counts price-on-request products and fails a price of zero", async () => {
@@ -1107,7 +1109,9 @@ describeIntegration("catalog sync (integration)", () => {
     );
     let report = await verifyCatalog(db);
     expect(report.ok).toBe(true);
-    expect(report.notices.priceOnRequest.map((product) => product.slug)).toEqual(["priceless-1kg"]);
+    expect(report.notices.priceOnRequest.map((product) => product.slug)).toEqual([
+      "test-brand-priceless-1-kg",
+    ]);
     expect(formatCatalogVerifyReport(report)).toContain("1 active product(s) are price-on-request");
 
     await db
@@ -1122,8 +1126,8 @@ describeIntegration("catalog sync (integration)", () => {
     expect(report.ok).toBe(false);
     expect(report.violations.invalidPrices.map((product) => [product.slug, product.price])).toEqual(
       [
-        ["coffee-number-1-1kg", "0.00"],
-        ["coffee-number-2-1kg", "-1.00"],
+        ["otherbrand-coffee-number-2-1-kg", "-1.00"],
+        ["test-brand-coffee-number-1-1-kg", "0.00"],
       ],
     );
   });
@@ -1141,7 +1145,7 @@ describeIntegration("catalog sync (integration)", () => {
 
     const report = await verifyCatalog(db);
     expect(report.violations.withoutActiveImage.map((product) => product.slug)).toEqual([
-      "coffee-number-1-1kg",
+      "test-brand-coffee-number-1-1-kg",
     ]);
 
     // A product that is not listed is not held to this.
@@ -1233,7 +1237,7 @@ describeIntegration("catalog sync (integration)", () => {
     h1: "Julius Meinl Espresso Classico 1кг.",
     url: "/julius-meinl-classico-1/",
   };
-  const OLD_SLUG = "julius-meinl-clasico-1kg";
+  const OLD_SLUG = "test-brand-julius-meinl-clasico-1-kg";
   const NEW_KEY = "/julius-meinl-classico-1/#1000g";
 
   it("plans a link without writing anything", async () => {
@@ -1356,19 +1360,21 @@ describeIntegration("catalog sync (integration)", () => {
     // The twin holds the key, so a plain link is refused, and says why.
     const refused = await planProductLink(db, linkInput(OLD_SLUG, NEW_KEY));
     expect(refused.outcome).toBe("blocked");
-    expect(refused.twin?.slug).toBe("julius-meinl-espresso-classico-1kg");
+    expect(refused.twin?.slug).toBe("test-brand-julius-meinl-espresso-classico-1-kg");
     expect(refused.blockers[0]).toContain("--absorb-twin");
     await expect(applyProductLink(db, refused)).rejects.toThrow("blocked");
 
     const plan = await planProductLink(db, linkInput(OLD_SLUG, NEW_KEY, true));
     expect(plan).toMatchObject({ outcome: "ready", absorbTwin: true });
     const linked = await applyProductLink(db, plan);
-    expect(linked.absorbedTwinSlug).toBe("julius-meinl-espresso-classico-1kg");
+    expect(linked.absorbedTwinSlug).toBe("test-brand-julius-meinl-espresso-classico-1-kg");
 
     expect(await countProducts()).toBe(13);
     const rows = await productRows();
     expect(rows.filter((row) => row.sourceKey === NEW_KEY).map((row) => row.id)).toEqual([old?.id]);
-    expect(rows.some((row) => row.slug === "julius-meinl-espresso-classico-1kg")).toBe(false);
+    expect(rows.some((row) => row.slug === "test-brand-julius-meinl-espresso-classico-1-kg")).toBe(
+      false,
+    );
     expect((await latestRun())?.productsAfter).toBe(13);
 
     const result = await sync([...baseCatalog(), NEW_LISTING]);
@@ -1409,13 +1415,16 @@ describeIntegration("catalog sync (integration)", () => {
     });
 
     for (const key of ["sku:123", "julius", "/", "/a b/#1000 g", "/x/#"]) {
-      const plan = await planProductLink(db, linkInput("coffee-number-1-1kg", key));
+      const plan = await planProductLink(db, linkInput("test-brand-coffee-number-1-1-kg", key));
       expect(plan.outcome).toBe("blocked");
       expect(plan.blockers[0]).toContain("not a path-shaped source key");
     }
 
     // Linking a product the last sync saw is allowed, but not silently.
-    const live = await planProductLink(db, linkInput("coffee-number-1-1kg", "/coffee-one/#1000g"));
+    const live = await planProductLink(
+      db,
+      linkInput("test-brand-coffee-number-1-1-kg", "/coffee-one/#1000g"),
+    );
     expect(live.outcome).toBe("ready");
     expect(live.warnings[0]).toContain("was present at /coffee-1/#1000g in the last sync");
   });
@@ -2049,7 +2058,7 @@ describeIntegration("catalog sync (integration)", () => {
       after: { active: 12, withCode: 0, withoutCode: 12 },
     });
     expect(plan.sample[0]).toEqual({
-      slug: "coffee-number-1-1kg",
+      slug: "test-brand-coffee-number-1-1-kg",
       sourceUrl: "https://fake.test/coffee-1/",
     });
     expect(requests).toEqual([]);
@@ -2154,7 +2163,10 @@ describeIntegration("catalog sync (integration)", () => {
 
     expect(result.enriched).toBe(6);
     expect(result.sharedCodes).toEqual([
-      { sku: "00001", slugs: ["coffee-number-1-1kg", "coffee-number-2-1kg"] },
+      {
+        sku: "00001",
+        slugs: ["otherbrand-coffee-number-2-1-kg", "test-brand-coffee-number-1-1-kg"],
+      },
     ]);
   });
 });

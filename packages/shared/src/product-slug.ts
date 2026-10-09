@@ -83,19 +83,27 @@ export interface SlugPlanProduct {
   readonly base: string;
   /** Slugs this product has had before. They keep redirecting to it. */
   readonly previousSlugs?: readonly string[];
+  /**
+   * The slug the product has now, when it has one. Counted with its history:
+   * if the plan moves the product, this is the next slug it will have had.
+   */
+  readonly slug?: string;
 }
 
 /**
  * The slug every product should have, keyed by source key.
  *
- * A function of the set of products and of `reserved`, and of nothing else:
- * not of the order they are given in, and not of the slugs they have now.
- * That is what makes it safe to run twice, and what makes two databases with
- * the same products agree.
+ * A function of the set of products, the addresses each has held, and
+ * `reserved` — never of the order they are given in. That is what makes two
+ * databases with the same products agree.
  *
  * A base is contested, and so nobody gets it bare, when it is reserved, when
- * two products share it, or when it is an address another product used to
- * have: that address must keep leading to that product.
+ * two products share it, or when it is an address another product has or used
+ * to have: that address must keep leading to that product. "Has" matters as
+ * much as "used to have". A product about to leave a slug will have had it the
+ * moment the plan is applied, and a plan that ignored that would hand the slug
+ * to someone else on the first run and take it back on the second. Counting
+ * both is what makes a second run find nothing to do.
  */
 export function planProductSlugs(
   products: readonly SlugPlanProduct[],
@@ -105,7 +113,10 @@ export function planProductSlugs(
   const formerOwners = new Map<string, Set<string>>();
   for (const product of products) {
     sharing.set(product.base, (sharing.get(product.base) ?? 0) + 1);
-    for (const slug of product.previousSlugs ?? []) {
+    for (const slug of [
+      ...(product.previousSlugs ?? []),
+      ...(product.slug ? [product.slug] : []),
+    ]) {
       const owners = formerOwners.get(slug) ?? new Set<string>();
       owners.add(product.sourceKey);
       formerOwners.set(slug, owners);
