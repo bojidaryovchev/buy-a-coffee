@@ -1008,7 +1008,8 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
   `underline underline-offset-2`. The image does not move.
 - _Focus:_ the ring is drawn on the name link and, separately, on the
   quick-order control. Two tab stops per card, in that order.
-- _Loading:_ see "Loading" — a skeleton with the same boxes.
+- _Loading:_ none. A card arrives with its page, rendered on the server; see
+  "Loading".
 
 **Equal heights.** Every row above has a fixed or minimum height and the price
 block is pinned with `mt-auto`, so all cards in a grid row are the same height
@@ -1278,7 +1279,8 @@ buttons or icons-in-circles for categories.
 ### Mobile drawer
 
 `components/layout/mobile-nav.tsx`. The same structure as the rail, in the same
-order, with nothing left out.
+order, with nothing left out, and with the destinations the rail has no room
+for: Консумативи, Доставка и плащане, Блог, Контакти.
 
 **Trigger.** In the masthead, left of the wordmark: a 44 by 44 px `ghost` icon
 button, `aria-label="Меню"`, `aria-expanded`, `aria-controls`. Rendered as a
@@ -1300,10 +1302,14 @@ text-ink-500`: "По марка и модел") and "Кое кафе е за в�
 3. **"Капсули по система"** — a Label-style heading, then one row per system,
    always expanded (no accordion): 8 px system square, name, count. Then
    "Всички капсули".
-4. **Дози ESE, Кафе на зърна, Вендинг зона** — plain rows.
+4. A hairline, then plain rows: **Дози ESE** and **Кафе на зърна**, each with
+   its count and only while it has products; any top-level category that
+   belongs to no system, with its count; then **Вендинг зона** and
+   **Консумативи**. The category rows are empty today and are there so that a
+   category the sync adds is reachable the day it appears.
 5. A hairline, then **Марки, Промоции** (clay, only when one exists),
-   **Блог, Контакти**. The journal is called „Блог“ wherever a customer reads
-   its name; „Дневник“ is not used.
+   **Блог, Доставка и плащане, Контакти**. The journal is called „Блог“
+   wherever a customer reads its name; „Дневник“ is not used.
 6. **Foot,** `border-t border-line bg-paper-sunken p-4`: the phone number as a
    `tel:` link in `text-base font-medium text-pine-700`, and the opening hours
    in `text-sm text-ink-500`.
@@ -1570,7 +1576,8 @@ rounded-t-lg bg-paper p-5 shadow-float`, over the scrim. Head: "Филтри"
 - _Search with no results:_ title "Не намерихме „{term}“", description
   "Проверете изписването или опитайте с марка или система.", actions: the
   search field, and "Намери по машина".
-- _Loading:_ skeleton grid (see "Loading").
+- _Loading:_ none. A listing renders whole on the server, and a filter or a
+  sort is a navigation to another such page; see "Loading".
 
 **Never.** Filtering in the browser by hiding nodes. A filter that needs
 JavaScript. An intensity filter by numeral. A price slider. Infinite scroll. A
@@ -1784,25 +1791,38 @@ an empty state with no way out.
 
 ### Loading
 
-A `loading.tsx` per route segment that fetches. Skeletons, not spinners.
+**There is no route-level loading state.** No `loading.tsx` exists under
+`app/`, and no Suspense boundary sits above a page. A boundary above the page
+lets Next send the shell before the page has decided what it is, and from then
+on the page can no longer answer with a status. These pages answer 308 for a
+product's previous slug, a brand's stored slug and a category's stored slug,
+and 404 for what does not exist; streamed after a shell, each of those becomes
+a 200 that JavaScript corrects. The pages are cached (`revalidate`) and render
+whole, so there is little to wait for.
 
-- `.skeleton` (from `globals.css`): `paper-sunken`, `rounded-sm`, a 1.6 s opacity
-  pulse that stops under reduced motion.
-- A skeleton reproduces the boxes of what it replaces, so nothing moves when
-  the content arrives:
-  - _Product card:_ the card container with a square `.skeleton` well, then
-    bars of 20 px × 45%, 16 px × 35%, 20 px × 95%, 20 px × 70%, 26 px × 30%, and
-    a 40 px full-width bar.
-  - _Listing:_ the real page head, a toolbar bar, eight card skeletons.
-  - _Product page:_ a square well, then bars for badge, title (two lines),
-    price, and a 220 px panel.
-- The region carries `aria-busy="true"` and one `<span class="sr-only"
-role="status">Зарежда се…</span>`.
-- A submitting form does not get a skeleton; its button goes to the pending
-  state.
+What a visitor sees while something is pending:
 
-**Never.** A full-page spinner. A skeleton whose boxes differ in size from the
-content. Shimmer gradients sweeping across the page.
+- _The search field._ The interactive field sits in a Suspense boundary of
+  its own, inside the header and the search page, never above a page. Its
+  fallback is `SearchFieldFallback`: the same box, at the same size, as a real
+  `GET` form that already works. Not a skeleton.
+- _A submitting form._ The button goes to the pending state: `disabled`,
+  `aria-busy`, and a label that says what is happening ("Изпраща се…"). It
+  keeps its width. The result arrives in the form's `aria-live` line.
+- _The quick-order dialog._ Its code is fetched the first time a card's control
+  is used. Until it arrives the control is still the link to the product
+  page's order form, so there is nothing to draw in between.
+
+**Skeletons.** `.skeleton` (from `globals.css`) is `paper-sunken`,
+`rounded-sm`, with a 1.6 s opacity pulse that stops under reduced motion. No
+component draws one today. If a client-side region ever needs one, it
+reproduces the boxes of what it replaces so nothing moves when the content
+arrives, the region carries `aria-busy="true"` and one `<span class="sr-only"
+role="status">Зарежда се…</span>`, and it never stands in for a whole page.
+
+**Never.** A `loading.tsx`, or a Suspense boundary above a page that can
+redirect or 404. A full-page spinner. A skeleton whose boxes differ in size
+from the content. Shimmer gradients sweeping across the page.
 
 ### Not found
 
@@ -1931,8 +1951,8 @@ What the specification already does to meet them:
   `next/font` and `display: swap`. No client component above the fold except
   the search field and the menu button.
 - **CLS.** Every image well has an aspect ratio. Optional card rows keep their
-  height. The announcement bar cannot be dismissed. Skeletons match the boxes
-  of the content. Buttons keep their width while pending.
+  height. The announcement bar cannot be dismissed. The search field's
+  fallback is the field's own box. Buttons keep their width while pending.
 - **Accessibility.** The contrast table above; one `h1` and ordered headings;
   labelled fields with tied errors; a visible focus ring on every ground;
   targets of at least 24 by 24 px, 40 px or more for card and toolbar controls

@@ -797,7 +797,11 @@ system's listing to the machine finder, one article per listing (`article` in
   true of everything on the page.
 - **Decaf lists more products than §8 counted.** §8 says eight, counted by
   name. The page lists by the record's flag, which eleven products in the
-  reference snapshot carry.
+  reference snapshot carry. As the catalog stood on 9 October 2026, nine of
+  the eleven are coffee and two are caffeine-free drinks that are not coffee
+  (a spirulina latte and a crème brûlée drink, both for Dolce Gusto). The
+  page's own description therefore counts products without caffeine, not
+  coffees. This is data and will drift.
 - **Two new articles, not three.** §9 leaves „Италиански марки кафе“ to either
   an article or the brands index, "one, not both". The brands index carries
   it: its title is "Марки кафе — италиански и други" and its introduction

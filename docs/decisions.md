@@ -488,6 +488,17 @@ failed lookup is worse than a blank one. Rejected: leaving it to `notFound()`,
 which fails the "works without JavaScript" rule on exactly the pages a dead
 link lands on.
 
+**No route-level loading state.** There is no `loading.tsx` and no Suspense
+boundary above a page, and none is to be added. Either lets Next send the shell
+before the page has decided what it is, and after that a page cannot answer
+with a status: the 308 for a product's previous slug, a brand's stored slug or
+a category's stored slug, and the 404 for what does not exist, would each
+become a 200 that JavaScript corrects. That is the defect the proxy's
+existence check removes, arriving by another door. The pages are cached and
+render whole, so a skeleton would cover very little waiting; the standard used
+to ask for one per fetching segment and no longer does. Boundaries below the
+page are fine, and the search field has one, whose fallback is a working form.
+
 **The 404 is always Bulgarian.** It is one page for every URL and is not told
 which was asked for; an honest fixed language beats a guessed one. This has to
 be revisited when a second locale ships.

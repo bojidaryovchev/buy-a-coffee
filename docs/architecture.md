@@ -161,6 +161,10 @@ through to the page, whose own `notFound()` is still there.
 `za-kafemashina/[brand]` and `blog/[slug]` need no lookup: both set
 `dynamicParams = false`, so an unknown brand or article never matches a route.
 
+For the same reason no route has a `loading.tsx` and no Suspense boundary sits
+above a page: a shell streamed before the page has decided what it is turns
+its 308 or 404 into a 200 that JavaScript corrects.
+
 The global 404 draws the shop's frame (below) and is always in the default
 locale, Bulgarian: it is one page for every URL and is not told which was asked
 for. `(site)/[lang]/not-found.tsx` remains for a `notFound()` thrown inside a
@@ -1019,7 +1023,9 @@ it, and where it deviates, is the last section of that file.
   the Cyrillic spelling people were measured typing, and whether the brand is
   Italian, with the evidence beside it.
 - **A meta description quotes the price per cup range and says how ordering
-  works.** `lib/catalog/listing-facts.ts` reads price and pack size for the
+  works**, in one sentence defined once, `CALLBACK_SENTENCE` in
+  `content/order-callback.ts`, shared by listings, landing pages and product
+  pages. `lib/catalog/listing-facts.ts` reads price and pack size for the
   unfiltered listing, and `lib/catalog/cup-range.ts` does the arithmetic with
   the helpers a card uses, so a snippet cannot quote a figure the page does not
   show. A range the catalog cannot support is left out, not replaced.
