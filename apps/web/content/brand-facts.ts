@@ -23,6 +23,14 @@ import type { BrewMethod } from "@/lib/recommend/systems";
  *    not listed — Rema Caffè's own site says its coffee is made in Plovdiv.
  *    Checked on 9 October 2026 against the sites the logo provenance record
  *    names (`brand-logo-provenance.ts`).
+ *
+ * Searched and left out on 9 October 2026, so the next person need not repeat
+ * it: **Eurocaf** — an Italian roaster of that name exists (EUROCAF SRL,
+ * Druento, Turin, eurocafcaffe.it), but its site lists none of the four coffees
+ * we sell and shows a different mark from the one on our packs, so it is not
+ * established that it makes them; **Este**, **Tezzoro**, **3 Bourbons** — no
+ * owner's site found, and the packs (English text only) say nothing about
+ * where the coffee is roasted.
  */
 
 export interface BrandFacts {
@@ -64,6 +72,10 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
     formatPages: ["capsule", "beans"],
   },
   lollocafe: { cyrillic: "Лоло", italian: "lollocaffe.it, the brand's own Italian site." },
+  molini: {
+    italian:
+      "The packs print 'Tostato in Italia' (beans) and 'Arrosto in Italia' (Nespresso capsules) beside an Italian flag: roasted in Italy. No owner's site was found.",
+  },
   "rema-caffe": { cyrillic: "Рема" },
   vandino: {
     italian: "vandinocaffe.com calls it an Italian coffee brand, produced and packed in Italy.",
