@@ -85,7 +85,9 @@ describe("availability helpers", () => {
 
 describe("sanitizeHtml", () => {
   it("keeps ordinary formatting", () => {
-    expect(sanitizeHtml("<p>Rich <strong>coffee</strong></p>")).toContain("<strong>coffee</strong>");
+    expect(sanitizeHtml("<p>Rich <strong>coffee</strong></p>")).toContain(
+      "<strong>coffee</strong>",
+    );
   });
 
   it("strips scripts", () => {
@@ -100,7 +102,6 @@ describe("sanitizeHtml", () => {
   });
 
   it("strips javascript: URLs", () => {
-     
     const result = sanitizeHtml('<a href="javascript:alert(1)">click</a>');
     expect(result).not.toContain("javascript:");
   });
@@ -190,7 +191,9 @@ describe("image URL guard", () => {
 
   it("serves bare object keys through our own media route in development", () => {
     delete process.env.NEXT_PUBLIC_IMAGE_BASE_URL;
-    expect(resolveImageUrl("catalog/kafezona/ab/cd/hash.jpg")).toBe("/media/catalog/kafezona/ab/cd/hash.jpg");
+    expect(resolveImageUrl("catalog/kafezona/ab/cd/hash.jpg")).toBe(
+      "/media/catalog/kafezona/ab/cd/hash.jpg",
+    );
     process.env.NEXT_PUBLIC_IMAGE_BASE_URL = ORIGINAL;
   });
 

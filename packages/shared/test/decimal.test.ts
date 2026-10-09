@@ -58,7 +58,9 @@ describe("multiplyDecimal", () => {
     expect(formatDecimal(multiplyDecimal(parseDecimal("19.99"), parseDecimal("1.2"), 2))).toBe(
       "23.99",
     );
-    expect(formatDecimal(multiplyDecimal(parseDecimal("0.1"), parseDecimal("0.2"), 2))).toBe("0.02");
+    expect(formatDecimal(multiplyDecimal(parseDecimal("0.1"), parseDecimal("0.2"), 2))).toBe(
+      "0.02",
+    );
   });
 
   it("has no float drift for 0.1 * 3", () => {

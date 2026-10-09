@@ -13,7 +13,6 @@ import { createDatabase, type Database } from "@catalog/db";
  */
 
 declare global {
-   
   var __catalogDb: { db: Database; close: () => Promise<void> } | undefined;
 }
 
@@ -33,10 +32,7 @@ const DEFAULT_POOL_MAX = process.env.VERCEL ? "2" : "10";
 
 function create(): { db: Database; close: () => Promise<void> } {
   const { db, close } = createDatabase({
-    max: Number.parseInt(
-      process.env.DATABASE_POOL_MAX ?? DEFAULT_POOL_MAX,
-      10,
-    ),
+    max: Number.parseInt(process.env.DATABASE_POOL_MAX ?? DEFAULT_POOL_MAX, 10),
     idleTimeoutSeconds: 30,
   });
   return { db, close };

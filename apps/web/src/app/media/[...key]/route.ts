@@ -35,7 +35,9 @@ export async function GET(
   const { key } = await context.params;
   // turbopackIgnore keeps this dynamic path out of the build trace; without
   // it the bundler pulls the entire project into the server output.
-  const storageRoot = path.resolve(/* turbopackIgnore: true */ process.env.STORAGE_LOCAL_DIR ?? ".storage");
+  const storageRoot = path.resolve(
+    /* turbopackIgnore: true */ process.env.STORAGE_LOCAL_DIR ?? ".storage",
+  );
 
   /*
    * Path traversal guard. The joined path is resolved and then checked to be

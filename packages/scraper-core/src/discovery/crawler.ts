@@ -140,7 +140,13 @@ export async function runDiscoveryCrawl(
   const externalHosts: Record<string, number> = {};
   const filterAccumulator = new Map<
     string,
-    { urlParam: string | null; multiValue: boolean; values: Set<string>; pageUrls: Set<string>; pageTypes: Set<string> }
+    {
+      urlParam: string | null;
+      multiValue: boolean;
+      values: Set<string>;
+      pageUrls: Set<string>;
+      pageTypes: Set<string>;
+    }
   >();
 
   const visited = new Set<string>();
@@ -247,12 +253,18 @@ export async function runDiscoveryCrawl(
         isSoft404,
         listingFilterKeys: listing.filterKeys,
         filterContractParams: filterContract.map((entry) => entry.urlParam),
-        ...(options.catalogHints?.productPaths ? { knownProductPaths: options.catalogHints.productPaths } : {}),
-        ...(options.catalogHints?.categorySlugs ? { knownCategorySlugs: options.catalogHints.categorySlugs } : {}),
+        ...(options.catalogHints?.productPaths
+          ? { knownProductPaths: options.catalogHints.productPaths }
+          : {}),
+        ...(options.catalogHints?.categorySlugs
+          ? { knownCategorySlugs: options.catalogHints.categorySlugs }
+          : {}),
         ...(options.catalogHints?.subcategorySlugs
           ? { knownSubcategorySlugs: options.catalogHints.subcategorySlugs }
           : {}),
-        ...(options.catalogHints?.brandSlugs ? { knownBrandSlugs: options.catalogHints.brandSlugs } : {}),
+        ...(options.catalogHints?.brandSlugs
+          ? { knownBrandSlugs: options.catalogHints.brandSlugs }
+          : {}),
       });
 
       // Filter inventory, recorded only from pages that actually render one.
@@ -267,7 +279,10 @@ export async function runDiscoveryCrawl(
             pageTypes: new Set<string>(),
           };
           const contractEntry = contract.find((c) => c.urlParam === key);
-          entry.urlParam = contractEntry?.urlParam ?? entry.urlParam ?? (listing.filterKeys.includes(key) ? key : null);
+          entry.urlParam =
+            contractEntry?.urlParam ??
+            entry.urlParam ??
+            (listing.filterKeys.includes(key) ? key : null);
           entry.multiValue = entry.multiValue || (contractEntry?.multiValue ?? false);
           for (const value of listing.filterValues[key] ?? []) entry.values.add(value);
           entry.pageUrls.add(item.canonicalUrl);

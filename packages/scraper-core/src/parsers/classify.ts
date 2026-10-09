@@ -71,7 +71,11 @@ const KNOWN_ROUTES: ReadonlyArray<readonly [RegExp, PageType, string]> = [
   [/^\/brands?\/?$/i, "brand_index", "path is the brand index route"],
   [/^\/blog\/?$/i, "blog_index", "path is the blog index route"],
   [/^\/blog\/.+/i, "blog_article", "path is under the blog index"],
-  [/^\/(privacy|terms|cookie-settings|gdpr|obshti-usloviya)\/?$/i, "legal", "path is a legal route"],
+  [
+    /^\/(privacy|terms|cookie-settings|gdpr|obshti-usloviya)\/?$/i,
+    "legal",
+    "path is a legal route",
+  ],
   [/^\/(contact|kontakti|contacts)\/?$/i, "contact", "path is a contact route"],
 ];
 

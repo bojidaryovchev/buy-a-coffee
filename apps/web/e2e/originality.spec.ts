@@ -35,9 +35,11 @@ test("no request during a full browse touches the source domain", async ({ page 
 test("every rendered image points at our own infrastructure", async ({ page }) => {
   await page.goto("/categories/kapsuli");
 
-  const sources = await page.locator("img").evaluateAll((nodes) =>
-    nodes.map((node) => (node as HTMLImageElement).getAttribute("src") ?? ""),
-  );
+  const sources = await page
+    .locator("img")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLImageElement).getAttribute("src") ?? ""),
+    );
 
   expect(sources.length).toBeGreaterThan(0);
   expect(findSourceUrls(sources)).toEqual([]);

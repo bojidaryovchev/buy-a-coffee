@@ -16,13 +16,7 @@
  */
 import { eq, sql } from "drizzle-orm";
 import { createDatabase } from "@catalog/db";
-import {
-  brands,
-  categories,
-  productCategories,
-  products,
-  sourceSites,
-} from "@catalog/db/schema";
+import { brands, categories, productCategories, products, sourceSites } from "@catalog/db/schema";
 
 const SOURCE_KEY = "seed-dev";
 
@@ -38,14 +32,80 @@ const SEED_CATEGORIES = [
 ];
 
 const SEED_PRODUCTS = [
-  { slug: "northlight-house-blend-1kg", name: "Кафе на зърна Northlight House Blend 1 кг", price: "24.00", old: null, brand: "northlight", category: "beans", weight: "1 кг", strength: "medium", decaf: "no", aromas: "no" },
-  { slug: "northlight-decaf-500g", name: "Кафе на зърна Northlight Decaf 500 г", price: "18.50", old: null, brand: "northlight", category: "beans", weight: "500 г", strength: "weak", decaf: "yes", aromas: "no" },
-  { slug: "harborside-dark-1kg", name: "Кафе на зърна Harborside Dark Roast 1 кг", price: "21.00", old: "26.00", brand: "harborside", category: "beans", weight: "1 кг", strength: "strong", decaf: "no", aromas: "no" },
-  { slug: "harborside-espresso-caps-10", name: "Капсули Harborside Espresso 10 бр.", price: "4.20", old: null, brand: "harborside", category: "capsules-espresso", weight: "10 бр.", strength: "strong", decaf: "no", aromas: "no" },
-  { slug: "northlight-hazelnut-caps-10", name: "Капсули Northlight Hazelnut 10 бр.", price: "4.60", old: null, brand: "northlight", category: "capsules-espresso", weight: "10 бр.", strength: "medium", decaf: "no", aromas: "yes" },
+  {
+    slug: "northlight-house-blend-1kg",
+    name: "Кафе на зърна Northlight House Blend 1 кг",
+    price: "24.00",
+    old: null,
+    brand: "northlight",
+    category: "beans",
+    weight: "1 кг",
+    strength: "medium",
+    decaf: "no",
+    aromas: "no",
+  },
+  {
+    slug: "northlight-decaf-500g",
+    name: "Кафе на зърна Northlight Decaf 500 г",
+    price: "18.50",
+    old: null,
+    brand: "northlight",
+    category: "beans",
+    weight: "500 г",
+    strength: "weak",
+    decaf: "yes",
+    aromas: "no",
+  },
+  {
+    slug: "harborside-dark-1kg",
+    name: "Кафе на зърна Harborside Dark Roast 1 кг",
+    price: "21.00",
+    old: "26.00",
+    brand: "harborside",
+    category: "beans",
+    weight: "1 кг",
+    strength: "strong",
+    decaf: "no",
+    aromas: "no",
+  },
+  {
+    slug: "harborside-espresso-caps-10",
+    name: "Капсули Harborside Espresso 10 бр.",
+    price: "4.20",
+    old: null,
+    brand: "harborside",
+    category: "capsules-espresso",
+    weight: "10 бр.",
+    strength: "strong",
+    decaf: "no",
+    aromas: "no",
+  },
+  {
+    slug: "northlight-hazelnut-caps-10",
+    name: "Капсули Northlight Hazelnut 10 бр.",
+    price: "4.60",
+    old: null,
+    brand: "northlight",
+    category: "capsules-espresso",
+    weight: "10 бр.",
+    strength: "medium",
+    decaf: "no",
+    aromas: "yes",
+  },
   // A product with no price at all: the real catalog has these, and the
   // storefront must render them without inventing a zero.
-  { slug: "harborside-reserve-lot", name: "Кафе на зърна Harborside Reserve Lot", price: null, old: null, brand: "harborside", category: "beans", weight: null, strength: "medium", decaf: "no", aromas: "no" },
+  {
+    slug: "harborside-reserve-lot",
+    name: "Кафе на зърна Harborside Reserve Lot",
+    price: null,
+    old: null,
+    brand: "harborside",
+    category: "beans",
+    weight: null,
+    strength: "medium",
+    decaf: "no",
+    aromas: "no",
+  },
 ];
 
 async function main(): Promise<void> {

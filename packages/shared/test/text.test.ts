@@ -47,8 +47,10 @@ describe("normalizeWhitespace", () => {
 describe("stripVolatileMarkup", () => {
   it("neutralises Cloudflare's per-response email obfuscation", () => {
     // Without this, every page hashes differently on every single crawl.
-    const a = '<a href="/cdn-cgi/l/email-protection#8ce5e2eae3cc"><span data-cfemail="6b02050d042b">x</span></a>';
-    const b = '<a href="/cdn-cgi/l/email-protection#deb7b0b8b19e"><span data-cfemail="adc4c3cbc2ed">x</span></a>';
+    const a =
+      '<a href="/cdn-cgi/l/email-protection#8ce5e2eae3cc"><span data-cfemail="6b02050d042b">x</span></a>';
+    const b =
+      '<a href="/cdn-cgi/l/email-protection#deb7b0b8b19e"><span data-cfemail="adc4c3cbc2ed">x</span></a>';
     expect(stripVolatileMarkup(a)).toBe(stripVolatileMarkup(b));
   });
 
@@ -59,7 +61,9 @@ describe("stripVolatileMarkup", () => {
 
 describe("normalizeHtmlForHash", () => {
   it("is stable across formatting-only differences", () => {
-    expect(normalizeHtmlForHash("<p>a</p>\n  <p>b</p>")).toBe(normalizeHtmlForHash("<p>a</p> <p>b</p>"));
+    expect(normalizeHtmlForHash("<p>a</p>\n  <p>b</p>")).toBe(
+      normalizeHtmlForHash("<p>a</p> <p>b</p>"),
+    );
   });
 
   it("still distinguishes different content", () => {

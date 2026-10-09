@@ -83,12 +83,18 @@ describe("normalizeProduct", () => {
   });
 
   it("de-duplicates image URLs", () => {
-    const product = normalizeProduct({ ...base, imageUrls: ["/a.jpg", "/a.jpg", "/b.jpg"] }, OPTIONS);
+    const product = normalizeProduct(
+      { ...base, imageUrls: ["/a.jpg", "/a.jpg", "/b.jpg"] },
+      OPTIONS,
+    );
     expect(product.sourceImageUrls).toEqual(["/a.jpg", "/b.jpg"]);
   });
 
   it("trims brand and category join keys", () => {
-    const product = normalizeProduct({ ...base, brandKey: " vergnano", categoryKeys: [" Kapsuli "] }, OPTIONS);
+    const product = normalizeProduct(
+      { ...base, brandKey: " vergnano", categoryKeys: [" Kapsuli "] },
+      OPTIONS,
+    );
     expect(product.brandKey).toBe("vergnano");
     expect(product.categoryKeys).toEqual(["kapsuli"]);
   });
@@ -116,7 +122,9 @@ describe("semantic hashing", () => {
   });
 
   it("ignores whitespace-only description differences", () => {
-    expect(hash({ descriptionText: "Fine  blend." })).toBe(hash({ descriptionText: "Fine blend." }));
+    expect(hash({ descriptionText: "Fine  blend." })).toBe(
+      hash({ descriptionText: "Fine blend." }),
+    );
   });
 
   it("ignores category ordering", () => {
@@ -124,7 +132,9 @@ describe("semantic hashing", () => {
   });
 
   it("ignores image ordering", () => {
-    expect(hash({ imageUrls: ["/a.jpg", "/b.jpg"] })).toBe(hash({ imageUrls: ["/b.jpg", "/a.jpg"] }));
+    expect(hash({ imageUrls: ["/a.jpg", "/b.jpg"] })).toBe(
+      hash({ imageUrls: ["/b.jpg", "/a.jpg"] }),
+    );
   });
 
   it("ignores name letter case", () => {
@@ -140,7 +150,9 @@ describe("semantic hashing", () => {
   });
 
   it("changes when availability changes", () => {
-    expect(hash({ availabilityText: "in_stock" })).not.toBe(hash({ availabilityText: "out_of_stock" }));
+    expect(hash({ availabilityText: "in_stock" })).not.toBe(
+      hash({ availabilityText: "out_of_stock" }),
+    );
   });
 
   it("changes when an image is added or replaced", () => {
@@ -156,14 +168,23 @@ describe("semantic hashing", () => {
   it("excludes volatile fields entirely", () => {
     const fields = buildSemanticFields(normalizeProduct(base, OPTIONS));
     const serialised = JSON.stringify(fields);
-    for (const forbidden of ["fetchedAt", "scrapedAt", "syncRunId", "id", "firstSeenAt", "lastSeenAt"]) {
+    for (const forbidden of [
+      "fetchedAt",
+      "scrapedAt",
+      "syncRunId",
+      "id",
+      "firstSeenAt",
+      "lastSeenAt",
+    ]) {
       expect(Object.keys(fields)).not.toContain(forbidden);
     }
     expect(serialised).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
   });
 
   it("does not depend on the source URL, which is not a business field", () => {
-    expect(hash({ url: "https://www.kafezona.com/lavazza-super-crema/?utm_source=x" })).toBe(hash({}));
+    expect(hash({ url: "https://www.kafezona.com/lavazza-super-crema/?utm_source=x" })).toBe(
+      hash({}),
+    );
   });
 });
 
@@ -179,7 +200,9 @@ describe("validateNormalizedProduct", () => {
   });
 
   it("rejects a product whose URL is not absolute", () => {
-    const result = validateNormalizedProduct(normalizeProduct({ ...base, url: "/relative/" }, OPTIONS));
+    const result = validateNormalizedProduct(
+      normalizeProduct({ ...base, url: "/relative/" }, OPTIONS),
+    );
     expect(result.ok).toBe(false);
   });
 });

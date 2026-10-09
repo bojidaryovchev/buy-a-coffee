@@ -10,7 +10,13 @@ import { loadConfig } from "../src/config.ts";
 // The schema enforces a floor on retry delays so nobody can configure a
 // hammering crawler; tests use the smallest values it permits.
 const config = loadConfig(
-  { minDelayMs: 0, maxRetries: 2, retryBaseDelayMs: 50, retryMaxDelayMs: 100, respectRobotsTxt: false },
+  {
+    minDelayMs: 0,
+    maxRetries: 2,
+    retryBaseDelayMs: 50,
+    retryMaxDelayMs: 100,
+    respectRobotsTxt: false,
+  },
   {},
 );
 
@@ -24,12 +30,20 @@ function response(body: string, init: { status?: number; headers?: Record<string
 describe("parseRobotsTxt", () => {
   it("parses the source site's real robots.txt", () => {
     const robots = parseRobotsTxt(
-      ["User-agent: *", "Allow: /", "Disallow: /cdn-cgi/l/email-protection", "", "Sitemap: https://www.kafezona.com/sitemap.xml"].join("\n"),
+      [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /cdn-cgi/l/email-protection",
+        "",
+        "Sitemap: https://www.kafezona.com/sitemap.xml",
+      ].join("\n"),
     );
     expect(robots.sitemaps).toEqual(["https://www.kafezona.com/sitemap.xml"]);
     expect(robots.groups).toHaveLength(1);
     expect(isUrlAllowed(robots, "AnyBot", "https://www.kafezona.com/kapsuli/")).toBe(true);
-    expect(isUrlAllowed(robots, "AnyBot", "https://www.kafezona.com/cdn-cgi/l/email-protection#ab")).toBe(false);
+    expect(
+      isUrlAllowed(robots, "AnyBot", "https://www.kafezona.com/cdn-cgi/l/email-protection#ab"),
+    ).toBe(false);
   });
 
   it("ignores comments and blank lines", () => {
@@ -72,7 +86,9 @@ describe("parseRobotsTxt", () => {
   });
 
   it("reads crawl-delay", () => {
-    expect(parseRobotsTxt("User-agent: *\nCrawl-delay: 2.5").groups[0]?.crawlDelaySeconds).toBe(2.5);
+    expect(parseRobotsTxt("User-agent: *\nCrawl-delay: 2.5").groups[0]?.crawlDelaySeconds).toBe(
+      2.5,
+    );
   });
 
   it("allows everything when robots.txt is empty or unparseable", () => {
@@ -142,7 +158,9 @@ describe("Fetcher", () => {
 
   it("rejects an oversized body declared via content-length without reading it", async () => {
     const small = loadConfig({ maxBodyBytes: 1024, minDelayMs: 0, respectRobotsTxt: false }, {});
-    const fetchImpl = vi.fn(async () => response("ok", { headers: { "content-length": "999999" } }));
+    const fetchImpl = vi.fn(async () =>
+      response("ok", { headers: { "content-length": "999999" } }),
+    );
     const fetcher = new Fetcher({ config: small, fetchImpl: fetchImpl as unknown as typeof fetch });
     expect((await fetcher.get("https://www.kafezona.com/x/")).outcome).toBe("too_large");
   });
@@ -218,7 +236,8 @@ describe("Fetcher", () => {
       );
 
       function recordingLogger() {
-        const lines: Array<{ level: string; message: string; context?: Record<string, unknown> }> = [];
+        const lines: Array<{ level: string; message: string; context?: Record<string, unknown> }> =
+          [];
         const logger: Logger = {
           debug: (message, context) => void lines.push({ level: "debug", message, context }),
           info: (message, context) => void lines.push({ level: "info", message, context }),
@@ -229,7 +248,7 @@ describe("Fetcher", () => {
         return { logger, lines };
       }
 
-      it("logs \"not applicable\", learns no shell, and does not warn", async () => {
+      it('logs "not applicable", learns no shell, and does not warn', async () => {
         const { logger, lines } = recordingLogger();
         const fetchImpl = vi.fn(async () => response(NOT_FOUND, { status: 404 }));
         const fetcher = new Fetcher({
@@ -265,7 +284,9 @@ describe("Fetcher", () => {
         const fetcher = new Fetcher({ config, fetchImpl: fetchImpl as unknown as typeof fetch });
         await fetcher.calibrateSoft404();
         const [url, init] = fetchImpl.mock.calls[0] ?? [];
-        expect(String(url)).toMatch(/^https:\/\/www\.kafezona\.com\/__catalog-sync-probe-[0-9a-f]{12}\/$/);
+        expect(String(url)).toMatch(
+          /^https:\/\/www\.kafezona\.com\/__catalog-sync-probe-[0-9a-f]{12}\/$/,
+        );
         expect((init?.headers as Record<string, string>)["user-agent"]).toBe(config.userAgent);
       });
 
@@ -332,10 +353,14 @@ describe("Fetcher", () => {
 
       const hard = new Fetcher({
         config,
-        fetchImpl: vi.fn(async () => response("not found", { status: 404 })) as unknown as typeof fetch,
+        fetchImpl: vi.fn(async () =>
+          response("not found", { status: 404 }),
+        ) as unknown as typeof fetch,
       });
       await hard.calibrateSoft404();
-      expect((await hard.get("https://www.kafezona.com/amann-cascada/")).outcome).toBe("http_error");
+      expect((await hard.get("https://www.kafezona.com/amann-cascada/")).outcome).toBe(
+        "http_error",
+      );
     });
   });
 
@@ -346,8 +371,13 @@ describe("Fetcher", () => {
       if (url.endsWith("/robots.txt")) return response("User-agent: *\nDisallow: /secret/");
       return response("<html>ok</html>");
     });
-    const fetcher = new Fetcher({ config: strict, fetchImpl: fetchImpl as unknown as typeof fetch });
-    expect((await fetcher.get("https://www.kafezona.com/secret/x/")).outcome).toBe("blocked_by_robots");
+    const fetcher = new Fetcher({
+      config: strict,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect((await fetcher.get("https://www.kafezona.com/secret/x/")).outcome).toBe(
+      "blocked_by_robots",
+    );
     expect((await fetcher.get("https://www.kafezona.com/public/")).outcome).toBe("ok");
   });
 

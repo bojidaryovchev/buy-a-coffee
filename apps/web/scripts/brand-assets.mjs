@@ -180,7 +180,12 @@ function occupancy(img) {
 function crop(img, x0, y0, w, h) {
   const out = Buffer.alloc(w * h * 4);
   for (let y = 0; y < h; y++) {
-    img.data.copy(out, y * w * 4, ((y + y0) * img.width + x0) * 4, ((y + y0) * img.width + x0 + w) * 4);
+    img.data.copy(
+      out,
+      y * w * 4,
+      ((y + y0) * img.width + x0) * 4,
+      ((y + y0) * img.width + x0 + w) * 4,
+    );
   }
   return { width: w, height: h, data: out };
 }
@@ -275,7 +280,11 @@ function resize(img, width, height = width) {
     for (let x = 0; x < width; x++) {
       const x0 = Math.floor(x * sx);
       const x1 = Math.max(x0 + 1, Math.floor((x + 1) * sx));
-      let r = 0, g = 0, b = 0, a = 0, n = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 0,
+        n = 0;
 
       for (let py = y0; py < Math.min(y1, sh); py++) {
         for (let px = x0; px < Math.min(x1, sw); px++) {
@@ -448,11 +457,7 @@ write("src/app/icon.png", encodePng(plate(mark, 192, 0.84, PAPER)), "PNG icon");
 
 /* iOS ignores transparency and applies its own rounded mask, so this one keeps
    well clear of the corners. */
-write(
-  "src/app/apple-icon.png",
-  encodePng(plate(mark, 180, 0.78, PAPER)),
-  "iPhone home screen",
-);
+write("src/app/apple-icon.png", encodePng(plate(mark, 180, 0.78, PAPER)), "iPhone home screen");
 
 /* The manifest cannot point at Next's hashed /icon route, so its icons live in
    public/ under stable names. */

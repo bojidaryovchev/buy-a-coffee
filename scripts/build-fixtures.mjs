@@ -63,7 +63,11 @@ if (OFFLINE && !RAW_DIR) throw new Error("--offline needs --raw-dir <dir>");
 const PAGES = [
   { name: "home.html", url: "/" },
   { name: "search-filter-init.html", url: "/search/" },
-  { name: "category-kapsuli.html", url: "/kafe-kapsuli/", transform: (html) => trimProductItems(html, 6) },
+  {
+    name: "category-kapsuli.html",
+    url: "/kafe-kapsuli/",
+    transform: (html) => trimProductItems(html, 6),
+  },
   // Real navigation categories that currently hold no products.
   { name: "category-empty.html", url: "/vending-zona/" },
   { name: "category-konsumativi.html", url: "/konsumativi/" },
@@ -225,7 +229,9 @@ async function main() {
     const robots = await get("/robots.txt");
     requests += 1;
     if (robots.status === 200) disallowed = disallowedPrefixes(robots.body);
-    console.log(`  robots.txt: ${robots.status}, disallowed prefixes: ${disallowed.join(", ") || "none"}`);
+    console.log(
+      `  robots.txt: ${robots.status}, disallowed prefixes: ${disallowed.join(", ") || "none"}`,
+    );
   }
 
   for (const page of PAGES) {
@@ -238,7 +244,9 @@ async function main() {
     requests += OFFLINE ? 0 : 1;
     const expected = page.expect ?? 200;
     if (status !== expected) {
-      throw new Error(`${page.url}: expected HTTP ${expected}, got ${status}. No fixture was written.`);
+      throw new Error(
+        `${page.url}: expected HTTP ${expected}, got ${status}. No fixture was written.`,
+      );
     }
     let html = body;
     if (page.transform) html = page.transform(html);

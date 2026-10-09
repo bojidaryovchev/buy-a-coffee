@@ -56,19 +56,16 @@ export interface FilterInitCategory {
  * refers to itself, and the input/output types differ (`children` is optional
  * on the way in and always present on the way out).
  */
-export const filterInitCategorySchema: z.ZodType<
-  FilterInitCategory,
-  z.ZodTypeDef,
-  unknown
-> = z.lazy(() =>
-  z.object({
-    id: z.union([z.string(), z.number()]).transform(String).optional(),
-    h1: z.string(),
-    slug: z.string(),
-    count: z.coerce.number().int().nonnegative().optional(),
-    children: z.array(filterInitCategorySchema).default([]),
-  }),
-);
+export const filterInitCategorySchema: z.ZodType<FilterInitCategory, z.ZodTypeDef, unknown> =
+  z.lazy(() =>
+    z.object({
+      id: z.union([z.string(), z.number()]).transform(String).optional(),
+      h1: z.string(),
+      slug: z.string(),
+      count: z.coerce.number().int().nonnegative().optional(),
+      children: z.array(filterInitCategorySchema).default([]),
+    }),
+  );
 
 export type FilterInitProduct = z.infer<typeof filterInitProductSchema>;
 export type FilterInitBrand = z.infer<typeof filterInitBrandSchema>;
@@ -187,7 +184,12 @@ export function flattenCategories(
   categories: readonly FilterInitCategory[],
   parentSlug: string | null = null,
   depth = 0,
-): Array<{ category: FilterInitCategory; parentSlug: string | null; depth: number; position: number }> {
+): Array<{
+  category: FilterInitCategory;
+  parentSlug: string | null;
+  depth: number;
+  position: number;
+}> {
   const out: Array<{
     category: FilterInitCategory;
     parentSlug: string | null;

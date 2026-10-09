@@ -42,7 +42,10 @@ export interface RetryOptions {
   readonly onRetry?: (info: { attempt: number; delayMs: number; error: unknown }) => void;
 }
 
-export async function retry<T>(fn: (attempt: number) => Promise<T>, options: RetryOptions): Promise<T> {
+export async function retry<T>(
+  fn: (attempt: number) => Promise<T>,
+  options: RetryOptions,
+): Promise<T> {
   let lastError: unknown;
   const total = Math.max(1, options.attempts);
   for (let attempt = 0; attempt < total; attempt += 1) {

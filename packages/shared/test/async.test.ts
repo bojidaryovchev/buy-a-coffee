@@ -60,7 +60,9 @@ describe("retry", () => {
     const fn = vi.fn(async () => {
       throw new Error("always");
     });
-    await expect(retry(fn, { attempts: 3, baseDelayMs: 1, maxDelayMs: 2 })).rejects.toThrow("always");
+    await expect(retry(fn, { attempts: 3, baseDelayMs: 1, maxDelayMs: 2 })).rejects.toThrow(
+      "always",
+    );
     expect(fn).toHaveBeenCalledTimes(3);
   });
 
@@ -101,13 +103,17 @@ describe("mapWithConcurrency", () => {
   it("never exceeds the concurrency limit", async () => {
     let active = 0;
     let peak = 0;
-    await mapWithConcurrency(Array.from({ length: 20 }, (_, i) => i), 4, async () => {
-      active += 1;
-      peak = Math.max(peak, active);
-      await sleep(5);
-      active -= 1;
-      return null;
-    });
+    await mapWithConcurrency(
+      Array.from({ length: 20 }, (_, i) => i),
+      4,
+      async () => {
+        active += 1;
+        peak = Math.max(peak, active);
+        await sleep(5);
+        active -= 1;
+        return null;
+      },
+    );
     expect(peak).toBeLessThanOrEqual(4);
     expect(peak).toBeGreaterThan(1);
   });

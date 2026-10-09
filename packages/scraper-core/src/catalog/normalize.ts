@@ -189,9 +189,7 @@ export function normalizeProduct(
 
   const descriptionHtml = raw.descriptionHtml?.trim() ? raw.descriptionHtml : null;
   const descriptionText =
-    raw.descriptionText?.trim() ??
-    (descriptionHtml ? htmlToText(descriptionHtml) : null) ??
-    null;
+    raw.descriptionText?.trim() ?? (descriptionHtml ? htmlToText(descriptionHtml) : null) ?? null;
 
   const product: NormalizedProduct = {
     sourceSite: options.sourceSite,

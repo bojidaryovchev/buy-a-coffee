@@ -3,7 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseMoney, parseWeight, sha256Hex, normalizeHtmlForHash } from "@catalog/shared";
-import { extractJsonArrayAfterKey, flattenCategories, hasFilterInit, parseFilterInit } from "../src/parsers/filterInit.ts";
+import {
+  extractJsonArrayAfterKey,
+  flattenCategories,
+  hasFilterInit,
+  parseFilterInit,
+} from "../src/parsers/filterInit.ts";
 import { parseFilterContract, parseListingPage } from "../src/parsers/listing.ts";
 import { parseProductPage } from "../src/parsers/productPage.ts";
 import { parsePage } from "../src/parsers/page.ts";
@@ -46,9 +51,7 @@ describe("isPriceOnlyText", () => {
 
 describe("findPrices", () => {
   it("prefers the innermost element over its wrapper", () => {
-    const $ = cheerio.load(
-      `<div id="row"><span>1 кг.</span><span>€30.00</span></div>`,
-    );
+    const $ = cheerio.load(`<div id="row"><span>1 кг.</span><span>€30.00</span></div>`);
     expect(findPrices($, $("body")).priceText).toBe("€30.00");
   });
 
@@ -349,7 +352,9 @@ describe("parsePage", () => {
     // Expectation replaced: the home page used to carry none. Every page has a
     // WebSite block; product pages add Product, articles add Article.
     const types = (name: string) =>
-      parsePage(fixture(name)).structuredData.map((block) => (block as { "@type": string })["@type"]);
+      parsePage(fixture(name)).structuredData.map(
+        (block) => (block as { "@type": string })["@type"],
+      );
     expect(types("home")).toEqual(["WebSite", "LocalBusiness"]);
     expect(types("product-lavazza-super-crema")).toEqual(["WebSite", "Product", "BreadcrumbList"]);
     expect(types("blog-article")).toEqual(["WebSite", "Article", "BreadcrumbList"]);
@@ -591,9 +596,11 @@ describe("fixture set", () => {
 
   it.each(files)("%s contains no plain-text e-mail address", (name) => {
     const html = fixture(name.replace(/\.html$/, ""));
-    const addresses = [...html.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|bg|net|org|eu)\b/g)].map(
-      (match) => match[0],
-    );
+    const addresses = [
+      ...html.matchAll(
+        /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|bg|net|org|eu)\b/g,
+      ),
+    ].map((match) => match[0]);
     expect(addresses.filter((address) => address !== "mailbox@example.invalid")).toEqual([]);
   });
 });

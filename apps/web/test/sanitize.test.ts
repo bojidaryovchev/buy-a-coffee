@@ -17,13 +17,19 @@ describe("sanitizeHtml — evasion attempts", () => {
   });
 
   it("blocks a scheme hidden behind leading whitespace or control characters", () => {
-    expect(sanitizeHtml('<a href=" javascript:alert(1)">x</a>').toLowerCase()).not.toContain("javascript:");
-    expect(sanitizeHtml('<a href="java\tscript:alert(1)">x</a>').toLowerCase()).not.toContain("javascript:");
+    expect(sanitizeHtml('<a href=" javascript:alert(1)">x</a>').toLowerCase()).not.toContain(
+      "javascript:",
+    );
+    expect(sanitizeHtml('<a href="java\tscript:alert(1)">x</a>').toLowerCase()).not.toContain(
+      "javascript:",
+    );
   });
 
   it("blocks data: and vbscript: URLs", () => {
     expect(sanitizeHtml('<a href="data:text/html,<h1>x">x</a>')).not.toContain("data:");
-    expect(sanitizeHtml('<a href="vbscript:msgbox(1)">x</a>').toLowerCase()).not.toContain("vbscript:");
+    expect(sanitizeHtml('<a href="vbscript:msgbox(1)">x</a>').toLowerCase()).not.toContain(
+      "vbscript:",
+    );
   });
 
   it("survives a nested-tag smuggling attempt", () => {
@@ -45,7 +51,9 @@ describe("sanitizeHtml — evasion attempts", () => {
   });
 
   it("drops the contents of style and noscript, not just the tags", () => {
-    expect(sanitizeHtml("<style>body{display:none}</style><p>ok</p>")).not.toContain("display:none");
+    expect(sanitizeHtml("<style>body{display:none}</style><p>ok</p>")).not.toContain(
+      "display:none",
+    );
     expect(sanitizeHtml("<noscript><p>hidden</p></noscript><p>ok</p>")).not.toContain("hidden");
   });
 

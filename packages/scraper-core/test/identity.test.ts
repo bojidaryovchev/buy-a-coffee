@@ -19,7 +19,10 @@ describe("resolveProductIdentity", () => {
 
   it("separates the two products that share one URL", () => {
     // The single most important behaviour in the catalog layer.
-    const half = resolveProductIdentity({ path: "/borbone-crema-classica/", weightText: "0.500кг." });
+    const half = resolveProductIdentity({
+      path: "/borbone-crema-classica/",
+      weightText: "0.500кг.",
+    });
     const full = resolveProductIdentity({ path: "/borbone-crema-classica/", weightText: "1 кг." });
     expect(half.sourceKey).toBe("/borbone-crema-classica/#500g");
     expect(full.sourceKey).toBe("/borbone-crema-classica/#1000g");

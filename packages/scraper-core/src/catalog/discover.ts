@@ -359,7 +359,11 @@ async function buildFromListingHtml(
     }
   }
 
-  logger.info("catalog.html_fallback_complete", { pagesParsed, pagesWithCards, records: rawRecords.length });
+  logger.info("catalog.html_fallback_complete", {
+    pagesParsed,
+    pagesWithCards,
+    records: rawRecords.length,
+  });
 
   return finalise(rawRecords, [...brandKeys.values()], categories, {
     ...context,
@@ -380,7 +384,9 @@ async function buildFromListingHtml(
  * dedicated weight field, and pack size is part of product identity.
  */
 export function extractWeightFromName(name: string): string | null {
-  const match = name.match(/(\d+(?:[.,]\d+)?)\s*(кг\.?|г\.?|гр\.?|бр\.?|kg|g|ml|мл|л\.?)(?=\s|$|\.)/iu);
+  const match = name.match(
+    /(\d+(?:[.,]\d+)?)\s*(кг\.?|г\.?|гр\.?|бр\.?|kg|g|ml|мл|л\.?)(?=\s|$|\.)/iu,
+  );
   return match ? `${match[1]} ${match[2]}` : null;
 }
 

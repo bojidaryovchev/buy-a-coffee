@@ -140,12 +140,8 @@
           "name": "crawl_runs_source_site_id_source_sites_id_fk",
           "tableFrom": "crawl_runs",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -415,12 +411,8 @@
           "name": "discovered_pages_source_site_id_source_sites_id_fk",
           "tableFrom": "discovered_pages",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -428,12 +420,8 @@
           "name": "discovered_pages_latest_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "discovered_pages",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "latest_crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["latest_crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -585,12 +573,8 @@
           "name": "page_links_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "page_links",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -598,12 +582,8 @@
           "name": "page_links_from_page_id_discovered_pages_id_fk",
           "tableFrom": "page_links",
           "tableTo": "discovered_pages",
-          "columnsFrom": [
-            "from_page_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["from_page_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -611,12 +591,8 @@
           "name": "page_links_to_page_id_discovered_pages_id_fk",
           "tableFrom": "page_links",
           "tableTo": "discovered_pages",
-          "columnsFrom": [
-            "to_page_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to_page_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -753,12 +729,8 @@
           "name": "page_snapshots_source_site_id_source_sites_id_fk",
           "tableFrom": "page_snapshots",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -766,12 +738,8 @@
           "name": "page_snapshots_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "page_snapshots",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -930,12 +898,8 @@
           "name": "scrape_errors_source_site_id_source_sites_id_fk",
           "tableFrom": "scrape_errors",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -943,12 +907,8 @@
           "name": "scrape_errors_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "scrape_errors",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1192,12 +1152,8 @@
           "name": "brands_source_site_id_source_sites_id_fk",
           "tableFrom": "brands",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1389,12 +1345,8 @@
           "name": "categories_source_site_id_source_sites_id_fk",
           "tableFrom": "categories",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1402,12 +1354,8 @@
           "name": "categories_parent_id_categories_id_fk",
           "tableFrom": "categories",
           "tableTo": "categories",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1492,12 +1440,8 @@
           "name": "product_categories_product_id_products_id_fk",
           "tableFrom": "product_categories",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1505,12 +1449,8 @@
           "name": "product_categories_category_id_categories_id_fk",
           "tableFrom": "product_categories",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1518,10 +1458,7 @@
       "compositePrimaryKeys": {
         "product_categories_product_id_category_id_pk": {
           "name": "product_categories_product_id_category_id_pk",
-          "columns": [
-            "product_id",
-            "category_id"
-          ]
+          "columns": ["product_id", "category_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1728,12 +1665,8 @@
           "name": "product_images_product_id_products_id_fk",
           "tableFrom": "product_images",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2119,12 +2052,8 @@
           "name": "products_source_site_id_source_sites_id_fk",
           "tableFrom": "products",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2132,12 +2061,8 @@
           "name": "products_brand_id_brands_id_fk",
           "tableFrom": "products",
           "tableTo": "brands",
-          "columnsFrom": [
-            "brand_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["brand_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2233,12 +2158,8 @@
           "name": "catalog_baselines_source_site_id_source_sites_id_fk",
           "tableFrom": "catalog_baselines",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2246,12 +2167,8 @@
           "name": "catalog_baselines_sync_run_id_sync_runs_id_fk",
           "tableFrom": "catalog_baselines",
           "tableTo": "sync_runs",
-          "columnsFrom": [
-            "sync_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sync_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2407,12 +2324,8 @@
           "name": "sync_changes_sync_run_id_sync_runs_id_fk",
           "tableFrom": "sync_changes",
           "tableTo": "sync_runs",
-          "columnsFrom": [
-            "sync_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sync_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2420,12 +2333,8 @@
           "name": "sync_changes_product_id_products_id_fk",
           "tableFrom": "sync_changes",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2695,12 +2604,8 @@
           "name": "sync_runs_source_site_id_source_sites_id_fk",
           "tableFrom": "sync_runs",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2830,12 +2735,8 @@
           "name": "observed_features_source_site_id_source_sites_id_fk",
           "tableFrom": "observed_features",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2843,12 +2744,8 @@
           "name": "observed_features_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "observed_features",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2977,12 +2874,8 @@
           "name": "observed_filters_source_site_id_source_sites_id_fk",
           "tableFrom": "observed_filters",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2990,12 +2883,8 @@
           "name": "observed_filters_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "observed_filters",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3136,12 +3025,8 @@
           "name": "observed_forms_source_site_id_source_sites_id_fk",
           "tableFrom": "observed_forms",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3149,12 +3034,8 @@
           "name": "observed_forms_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "observed_forms",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3284,12 +3165,8 @@
           "name": "observed_route_patterns_source_site_id_source_sites_id_fk",
           "tableFrom": "observed_route_patterns",
           "tableTo": "source_sites",
-          "columnsFrom": [
-            "source_site_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_site_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3297,12 +3174,8 @@
           "name": "observed_route_patterns_crawl_run_id_crawl_runs_id_fk",
           "tableFrom": "observed_route_patterns",
           "tableTo": "crawl_runs",
-          "columnsFrom": [
-            "crawl_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["crawl_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3681,12 +3554,8 @@
           "name": "order_inquiries_product_id_products_id_fk",
           "tableFrom": "order_inquiries",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3702,49 +3571,27 @@
     "public.availability": {
       "name": "availability",
       "schema": "public",
-      "values": [
-        "in_stock",
-        "out_of_stock",
-        "preorder",
-        "unknown"
-      ]
+      "values": ["in_stock", "out_of_stock", "preorder", "unknown"]
     },
     "public.change_type": {
       "name": "change_type",
       "schema": "public",
-      "values": [
-        "created",
-        "updated",
-        "marked_missing",
-        "removed",
-        "restored"
-      ]
+      "values": ["created", "updated", "marked_missing", "removed", "restored"]
     },
     "public.crawl_run_type": {
       "name": "crawl_run_type",
       "schema": "public",
-      "values": [
-        "discovery",
-        "catalog"
-      ]
+      "values": ["discovery", "catalog"]
     },
     "public.entity_status": {
       "name": "entity_status",
       "schema": "public",
-      "values": [
-        "active",
-        "missing",
-        "removed"
-      ]
+      "values": ["active", "missing", "removed"]
     },
     "public.image_status": {
       "name": "image_status",
       "schema": "public",
-      "values": [
-        "active",
-        "orphaned",
-        "failed"
-      ]
+      "values": ["active", "orphaned", "failed"]
     },
     "public.page_type": {
       "name": "page_type",
@@ -3770,44 +3617,22 @@
     "public.product_status": {
       "name": "product_status",
       "schema": "public",
-      "values": [
-        "active",
-        "missing",
-        "removed"
-      ]
+      "values": ["active", "missing", "removed"]
     },
     "public.run_status": {
       "name": "run_status",
       "schema": "public",
-      "values": [
-        "running",
-        "succeeded",
-        "partial",
-        "failed",
-        "aborted"
-      ]
+      "values": ["running", "succeeded", "partial", "failed", "aborted"]
     },
     "public.snapshot_reason": {
       "name": "snapshot_reason",
       "schema": "public",
-      "values": [
-        "parser_error",
-        "page_type_change",
-        "circuit_breaker",
-        "new_page_shape",
-        "manual"
-      ]
+      "values": ["parser_error", "page_type_change", "circuit_breaker", "new_page_shape", "manual"]
     },
     "public.inquiry_status": {
       "name": "inquiry_status",
       "schema": "public",
-      "values": [
-        "new",
-        "contacted",
-        "converted",
-        "cancelled",
-        "spam"
-      ]
+      "values": ["new", "contacted", "converted", "cancelled", "spam"]
     }
   },
   "schemas": {},

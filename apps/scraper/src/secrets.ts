@@ -23,9 +23,7 @@ export class SecretResolutionError extends Error {
   }
 }
 
-export async function resolveDatabaseUrl(
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<string> {
+export async function resolveDatabaseUrl(env: NodeJS.ProcessEnv = process.env): Promise<string> {
   const direct = env.DATABASE_URL?.trim();
   if (direct) return direct;
 
@@ -69,7 +67,8 @@ export async function resolveDatabaseUrl(
   if (trimmed.startsWith("{")) {
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-      const candidate = parsed.DATABASE_URL ?? parsed.databaseUrl ?? parsed.url ?? parsed.connectionString;
+      const candidate =
+        parsed.DATABASE_URL ?? parsed.databaseUrl ?? parsed.url ?? parsed.connectionString;
       if (typeof candidate === "string" && candidate.trim()) url = candidate.trim();
     } catch {
       // Not JSON after all; fall through and use the raw string.

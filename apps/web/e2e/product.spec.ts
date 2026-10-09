@@ -14,7 +14,9 @@ test("product detail shows name, price and availability", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText(/\d+[.,]\d{2}\s*€|€\s*\d+[.,]\d{2}/).first()).toBeVisible();
-  await expect(page.getByText(/в наличност|изчерпан|по поръчка|попитайте ни/i).first()).toBeVisible();
+  await expect(
+    page.getByText(/в наличност|изчерпан|по поръчка|попитайте ни/i).first(),
+  ).toBeVisible();
 });
 
 test("product images load from our own storage, never the source domain", async ({ page }) => {
@@ -33,7 +35,9 @@ test("product images load from our own storage, never the source domain", async 
   expect(naturalWidth).toBeGreaterThan(0);
 });
 
-test("no network request during a product page view touches the source domain", async ({ page }) => {
+test("no network request during a product page view touches the source domain", async ({
+  page,
+}) => {
   const requested: string[] = [];
   page.on("request", (request) => requested.push(request.url()));
 
@@ -102,7 +106,10 @@ test("quick-order form validates without submitting anything", async ({ page }) 
 
   // Either the browser's own constraint validation or our server-side message.
   await expect(
-    page.getByText(/валиден телефонен номер|проверете отбелязаните полета/i).first().or(phone),
+    page
+      .getByText(/валиден телефонен номер|проверете отбелязаните полета/i)
+      .first()
+      .or(phone),
   ).toBeVisible();
 
   // Nothing should have been reported as a successful order.

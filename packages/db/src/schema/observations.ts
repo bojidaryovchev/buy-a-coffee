@@ -129,7 +129,11 @@ export const observedRoutePatterns = pgTable(
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().default(now),
   },
   (table) => [
-    uniqueIndex("observed_route_patterns_idx").on(table.sourceSiteId, table.pattern, table.pageType),
+    uniqueIndex("observed_route_patterns_idx").on(
+      table.sourceSiteId,
+      table.pattern,
+      table.pageType,
+    ),
     index("observed_route_patterns_type_idx").on(table.pageType),
   ],
 );

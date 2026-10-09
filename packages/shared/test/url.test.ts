@@ -138,9 +138,7 @@ describe("canonicalizeUrl", () => {
   });
 
   it("strips credentials and default ports", () => {
-    expect(href("https://user:pass@www.kafezona.com:443/x/")).toBe(
-      "https://www.kafezona.com/x/",
-    );
+    expect(href("https://user:pass@www.kafezona.com:443/x/")).toBe("https://www.kafezona.com/x/");
   });
 
   it("keeps external hosts intact so they can be recorded", () => {
@@ -160,9 +158,9 @@ describe("isSameOrigin", () => {
   });
 
   it("treats the apex as same-origin once rewritten", () => {
-    expect(
-      isSameOrigin(canonicalizeUrl("https://kafezona.com/x/", OPTS), "www.kafezona.com"),
-    ).toBe(true);
+    expect(isSameOrigin(canonicalizeUrl("https://kafezona.com/x/", OPTS), "www.kafezona.com")).toBe(
+      true,
+    );
   });
 });
 

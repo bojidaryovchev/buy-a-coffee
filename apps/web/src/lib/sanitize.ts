@@ -34,11 +34,32 @@ import { decodeEntities } from "@catalog/shared";
  */
 
 const ALLOWED_TAGS = [
-  "p", "br", "strong", "b", "em", "i", "u", "s",
-  "ul", "ol", "li",
-  "h3", "h4", "h5", "h6",
-  "blockquote", "span", "small", "sub", "sup",
-  "table", "thead", "tbody", "tr", "th", "td",
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "u",
+  "s",
+  "ul",
+  "ol",
+  "li",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "blockquote",
+  "span",
+  "small",
+  "sub",
+  "sup",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
   "a",
 ];
 
@@ -67,9 +88,7 @@ export function sanitizeHtml(
 ): string {
   if (!html) return "";
 
-  const allowedTags = options.stripLinks
-    ? ALLOWED_TAGS.filter((tag) => tag !== "a")
-    : ALLOWED_TAGS;
+  const allowedTags = options.stripLinks ? ALLOWED_TAGS.filter((tag) => tag !== "a") : ALLOWED_TAGS;
 
   return sanitizeHtmlLib(html, {
     allowedTags,
@@ -113,9 +132,7 @@ export function htmlToPlainText(html: string | null | undefined, maxLength?: num
    * as "Coffee &amp;amp; Cream". The previous implementation had the same
    * latent double-escape; it is fixed rather than carried over.
    */
-  const stripped = decodeEntities(
-    sanitizeHtmlLib(html, { allowedTags: [], allowedAttributes: {} }),
-  )
+  const stripped = decodeEntities(sanitizeHtmlLib(html, { allowedTags: [], allowedAttributes: {} }))
     .replace(/\s+/g, " ")
     .trim();
 

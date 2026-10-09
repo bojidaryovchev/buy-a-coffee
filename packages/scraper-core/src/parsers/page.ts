@@ -71,7 +71,11 @@ export function extractStructuredData($: CheerioAPI): unknown[] {
   return out;
 }
 
-function labelFor($: CheerioAPI, id: string | undefined, placeholder: string | undefined): string | null {
+function labelFor(
+  $: CheerioAPI,
+  id: string | undefined,
+  placeholder: string | undefined,
+): string | null {
   if (id) {
     const label = normalizeWhitespace($(`label[for="${id}"]`).text());
     if (label) return label;
@@ -108,8 +112,14 @@ export function extractForms($: CheerioAPI, html: string): ParsedForm[] {
   // This site submits via fetch() with no <form> element at all. Ignoring that
   // would report "no public forms" on a site that plainly has two.
   const syntheticGroups: Array<{ selector: string; endpointHint: RegExp }> = [
-    { selector: 'input[type="tel"], input[id*="phone"]', endpointHint: /KZ_INTENTS_URL|quick-order/ },
-    { selector: 'input[type="email"], input[id*="email"]', endpointHint: /NL_INTENTS_URL|subscribed/ },
+    {
+      selector: 'input[type="tel"], input[id*="phone"]',
+      endpointHint: /KZ_INTENTS_URL|quick-order/,
+    },
+    {
+      selector: 'input[type="email"], input[id*="email"]',
+      endpointHint: /NL_INTENTS_URL|subscribed/,
+    },
   ];
 
   for (const group of syntheticGroups) {
@@ -130,7 +140,13 @@ export function extractForms($: CheerioAPI, html: string): ParsedForm[] {
       // Desktop and mobile duplicates.
       .filter((field, index, all) => all.findIndex((f) => f.type === field.type) === index);
 
-    forms.push({ action: endpoint, method: "post", fields, synthetic: true, scriptEndpoint: endpoint });
+    forms.push({
+      action: endpoint,
+      method: "post",
+      fields,
+      synthetic: true,
+      scriptEndpoint: endpoint,
+    });
   }
 
   return forms;
@@ -219,8 +235,7 @@ export function parsePage(html: string): ParsedPage {
       hasNewsletterWidget: $('input[type="email"], input[id*="email"]').length > 0,
       hasSearchInput: $("input[data-search-input], input[type=search]").length > 0,
       hasBreadcrumbs: /breadcrumb/i.test(html) || $("main > div a[href='/']").length > 0,
-      hasPagination:
-        $("[class*=pagination], [aria-label*=agination], a[href*='page=']").length > 0,
+      hasPagination: $("[class*=pagination], [aria-label*=agination], a[href*='page=']").length > 0,
       hasSortControl: $("select[name*=sort], [data-sort], [class*=sort-]").length > 0,
       sectionCount: $("main > section").length,
     },

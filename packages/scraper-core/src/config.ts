@@ -211,7 +211,10 @@ function hostOf(contact: string): string {
  * carries no leftover template wording.
  */
 export function crawlerContactProblem(userAgent: string): string | null {
-  const contacts = [...(userAgent.match(EMAIL_PATTERN) ?? []), ...(userAgent.match(URL_PATTERN) ?? [])];
+  const contacts = [
+    ...(userAgent.match(EMAIL_PATTERN) ?? []),
+    ...(userAgent.match(URL_PATTERN) ?? []),
+  ];
   if (contacts.length === 0) return "it names no e-mail address or URL to contact";
   const placeholder = contacts.find((contact) => RESERVED_HOST.test(hostOf(contact)));
   if (placeholder) return `its contact (${placeholder}) is a placeholder on a reserved domain`;
@@ -255,7 +258,13 @@ export function loadConfig(
   for (const [key, envName] of Object.entries(ENV_MAP)) {
     const value = env[envName];
     if (value === undefined || value === "") continue;
-    raw[key] = key === "hostAliases" ? value.split(",").map((v) => v.trim()).filter(Boolean) : value;
+    raw[key] =
+      key === "hostAliases"
+        ? value
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean)
+        : value;
   }
   for (const [key, value] of Object.entries(overrides)) {
     if (value !== undefined) raw[key] = value;

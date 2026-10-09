@@ -56,38 +56,36 @@ export default async function Image() {
   const lockup = await readFile(join(process.cwd(), "public/og-lockup.png"), "base64");
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: PAPER,
+      }}
+    >
+      {/* The pine strip that opens the header, opening the card instead. */}
+      <div style={{ display: "flex", height: 12, backgroundColor: PINE_900 }} />
+
       <div
         style={{
-          width: "100%",
-          height: "100%",
           display: "flex",
-          flexDirection: "column",
-          backgroundColor: PAPER,
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {/* The pine strip that opens the header, opening the card instead. */}
-        <div style={{ display: "flex", height: 12, backgroundColor: PINE_900 }} />
-
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {/* A bare <img> on purpose: next/image does not exist inside
+        {/* A bare <img> on purpose: next/image does not exist inside
               ImageResponse — this renders through satori, not the browser, and
               a data-URI <img> is the documented approach. No eslint-disable for
               `@next/next/no-img-element` because this workspace's flat config
               does not load the Next plugin, and a disable comment for a rule
               that is not defined is itself an eslint error.
               Height follows the lockup's own 1579:402. */}
-          <img src={`data:image/png;base64,${lockup}`} width={780} height={199} alt="" />
-        </div>
+        <img src={`data:image/png;base64,${lockup}`} width={780} height={199} alt="" />
       </div>
-    ),
+    </div>,
     size,
   );
 }

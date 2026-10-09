@@ -3,7 +3,11 @@ import type { Cheerio, CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
 import { decodeEntities, normalizeLabel, normalizeWhitespace } from "@catalog/shared";
 import { findPrices } from "./price.ts";
-import { type ProductCharacteristic, type ProductFacts, deriveProductFacts } from "./productFacts.ts";
+import {
+  type ProductCharacteristic,
+  type ProductFacts,
+  deriveProductFacts,
+} from "./productFacts.ts";
 
 export type { ProductCharacteristic, ProductFacts } from "./productFacts.ts";
 
@@ -22,7 +26,8 @@ export type { ProductCharacteristic, ProductFacts } from "./productFacts.ts";
  *     read.
  */
 
-const CURRENCY_PATTERN = /(?:€|\$|£|лв\.?|EUR|BGN|USD)\s*[\d.,]+|[\d.,]+\s*(?:€|\$|£|лв\.?|EUR|BGN)/i;
+const CURRENCY_PATTERN =
+  /(?:€|\$|£|лв\.?|EUR|BGN|USD)\s*[\d.,]+|[\d.,]+\s*(?:€|\$|£|лв\.?|EUR|BGN)/i;
 
 /** Attribute labels observed on the source, mapped to stable keys. */
 const ATTRIBUTE_LABELS: ReadonlyArray<readonly [RegExp, string]> = [
@@ -54,7 +59,12 @@ export interface ProductPageQuickOrder {
   /** Endpoint the page's own script posts to, when discoverable. */
   readonly endpoint: string | null;
   readonly external: boolean;
-  readonly fields: Array<{ name: string | null; type: string | null; required: boolean; label: string | null }>;
+  readonly fields: Array<{
+    name: string | null;
+    type: string | null;
+    required: boolean;
+    label: string | null;
+  }>;
   readonly submitLabel: string | null;
 }
 
@@ -352,9 +362,19 @@ export function parseProductPage(html: string): ProductPageParseResult {
   const $ = cheerio.load(html);
   const { detail, content, related } = splitProductRegions($);
 
-  const name = uniqueInOrder($("h1").toArray().map((el) => normalizeLabel($(el).text())))[0] ?? null;
+  const name =
+    uniqueInOrder(
+      $("h1")
+        .toArray()
+        .map((el) => normalizeLabel($(el).text())),
+    )[0] ?? null;
 
-  const rawAttributeRows = uniqueInOrder(detail.find("li").toArray().map((el) => textOf($(el))));
+  const rawAttributeRows = uniqueInOrder(
+    detail
+      .find("li")
+      .toArray()
+      .map((el) => textOf($(el))),
+  );
   const { attributes, availability, weight } = parseAttributeRows(rawAttributeRows);
 
   // Prices are read only from the detail region, never from related products,

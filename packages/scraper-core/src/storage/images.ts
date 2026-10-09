@@ -31,8 +31,14 @@ export function sniffImageType(bytes: Uint8Array): string | null {
   if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
   if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
   if (
-    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
-    b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
+    b[0] === 0x52 &&
+    b[1] === 0x49 &&
+    b[2] === 0x46 &&
+    b[3] === 0x46 &&
+    b[8] === 0x57 &&
+    b[9] === 0x45 &&
+    b[10] === 0x42 &&
+    b[11] === 0x50
   ) {
     return "image/webp";
   }
@@ -78,7 +84,8 @@ export interface ImageMirrorRequest {
   readonly knownObjectKey?: string | null;
 }
 
-export type ImageMirrorOutcome = "mirrored" | "skipped_unchanged" | "skipped_deduplicated" | "failed";
+export type ImageMirrorOutcome =
+  "mirrored" | "skipped_unchanged" | "skipped_deduplicated" | "failed";
 
 export interface ImageMirrorResult {
   readonly request: ImageMirrorRequest;
@@ -226,7 +233,8 @@ export class ImageMirror {
     // decide what we store or how it is later served.
     const sniffed = sniffImageType(bytes);
     const declaredType = headerType?.split(";")[0]?.trim().toLowerCase() ?? null;
-    const mimeType = sniffed ?? (declaredType && ALLOWED_MIME_TYPES[declaredType] ? declaredType : null);
+    const mimeType =
+      sniffed ?? (declaredType && ALLOWED_MIME_TYPES[declaredType] ? declaredType : null);
     if (!mimeType) return fail(`unrecognised image content (declared: ${declaredType ?? "none"})`);
     if (!ALLOWED_MIME_TYPES[mimeType]) return fail(`disallowed image type ${mimeType}`);
 

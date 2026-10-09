@@ -59,8 +59,7 @@ export function pricePerUnitMeasure(
 
   /* Grams and millilitres are the base units the scraper normalises to; the
      reference quantity is a thousand of either. Pieces are not sold by measure. */
-  const unit: MeasureUnit | null =
-    weightUnit === "g" ? "kg" : weightUnit === "ml" ? "l" : null;
+  const unit: MeasureUnit | null = weightUnit === "g" ? "kg" : weightUnit === "ml" ? "l" : null;
   if (!unit) return null;
 
   let amount: Decimal;

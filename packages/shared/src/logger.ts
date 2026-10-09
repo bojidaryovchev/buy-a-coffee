@@ -26,11 +26,30 @@ export interface Logger {
 
 /** Keys whose values must never reach the logs. */
 const REDACTED_KEYS = [
-  "password", "passwd", "secret", "token", "apikey", "api_key", "authorization",
-  "auth", "cookie", "sessionid", "session_id", "databaseurl", "database_url",
-  "connectionstring", "connection_string", "accesskey", "access_key",
-  "secretaccesskey", "secret_access_key", "x-tenant-key", "tenantkey",
-  "tenant_key", "phone", "email",
+  "password",
+  "passwd",
+  "secret",
+  "token",
+  "apikey",
+  "api_key",
+  "authorization",
+  "auth",
+  "cookie",
+  "sessionid",
+  "session_id",
+  "databaseurl",
+  "database_url",
+  "connectionstring",
+  "connection_string",
+  "accesskey",
+  "access_key",
+  "secretaccesskey",
+  "secret_access_key",
+  "x-tenant-key",
+  "tenantkey",
+  "tenant_key",
+  "phone",
+  "email",
 ];
 
 function shouldRedact(key: string): boolean {
@@ -93,7 +112,9 @@ export function createLogger(options: LoggerOptions = {}): Logger {
     try {
       write(JSON.stringify(payload));
     } catch {
-      write(JSON.stringify({ level: "error", time: now().toISOString(), msg: "log-serialize-failed" }));
+      write(
+        JSON.stringify({ level: "error", time: now().toISOString(), msg: "log-serialize-failed" }),
+      );
     }
   };
 
