@@ -92,7 +92,20 @@ function discoverRoutes(directory: string, segments: readonly string[] = []): st
   return routes;
 }
 
-const ROUTES = discoverRoutes(SITE_ROOT);
+const isDynamicSegment = (segment: string): boolean => segment.startsWith("[");
+
+/*
+ * Fixed routes before dynamic ones, as Next resolves them: `/izbor-na-kafe` is
+ * the wizard, not a value of `/[slug]`. The order `readdirSync` returns is the
+ * file system's — alphabetical on Windows, arbitrary on Linux — so it is
+ * sorted here rather than trusted, or the first matching route would depend on
+ * the machine running the test.
+ */
+const ROUTES = discoverRoutes(SITE_ROOT).sort(
+  (a, b) =>
+    a.filter(isDynamicSegment).length - b.filter(isDynamicSegment).length ||
+    a.join("/").localeCompare(b.join("/")),
+);
 const routeKey = (segments: readonly string[]): string => `/${segments.join("/")}`;
 
 /** What may fill each dynamic segment, keyed by the route it belongs to. */
