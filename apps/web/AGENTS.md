@@ -27,7 +27,11 @@ short version:
   (`src/i18n/slugs/bg.ts`, `en.ts`), an entry in `routes`, and its folder. That
   also reserves the slug, so no product or category can take it. Declare
   `alternates` with `pageAlternates` or `localeAlternates`
-  (`src/lib/seo/alternates.ts`), canonical and `hreflang` together.
+  (`src/lib/seo/alternates.ts`), canonical and `hreflang` together, and its
+  share tags with `shareMetadata` (`src/lib/seo/share.ts`) from the same path.
+  Never write `openGraph:` or `twitter:` by hand; `test/share.test.ts` fails on
+  it. A new page type also goes in the `pages` list of "the head of every
+  page" in `e2e/i18n.spec.ts`.
 - **Middleware is `src/proxy.ts`**, exporting `proxy`. It decides the 404 for
   catalog slugs; a page that can name something the catalog may not hold
   belongs in `catalogLookup` and `src/lib/catalog/slug-exists.ts`, or sets

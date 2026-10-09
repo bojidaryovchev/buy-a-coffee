@@ -575,6 +575,21 @@ dash and a second one would read as a third clause. The name is written as
 three words everywhere a customer or a search result shows it, as
 `siteConfig.name` has it, not hyphenated as the study's examples were.
 
+**The layout's share tags describe no page.** Next merges `openGraph`
+shallowly: a page that sets none inherits the layout's whole object. While the
+layout's object carried a URL, a title and a description, they were the home
+page's, and every page that declared nothing of its own shared as the home
+page. So the layout declares only what is true of every page — the kind, the
+shop's name, the locale, the card — and each page declares its own address,
+title and description through one helper (`lib/seo/share.ts`). A page that
+forgets now shares with no `og:url` at all, which is honest and which a test
+catches; the alternative, a default that is wrong for every page but one, is
+neither. Three rules follow from the same helper. `og:title` is the page's own
+words without the shop's name, because `og:site_name` carries the name and a
+preview prints both. A `noindex` view shares as its canonical, because a
+filtered listing passed around in a message should open the page that is
+meant to be found. And nothing spells `openGraph` by hand.
+
 **One page owns each search term, and a test holds it.** Three consequences
 that are easy to undo by accident:
 

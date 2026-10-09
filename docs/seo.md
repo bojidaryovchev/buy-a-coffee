@@ -776,6 +776,14 @@ system's listing to the machine finder, one article per listing (`article` in
 `category-copy.ts`), and the links between pages that must not compete
 (`apps/web/src/lib/catalog/related-landings.ts`).
 
+### Found while building, outside the study
+
+The study did not cover share tags. While the titles were being built, most
+kinds of page were found to share under the home page's address, title and
+description, because a page that declares no `openGraph` inherits the
+layout's. Every page now declares its own (`apps/web/src/lib/seo/share.ts`),
+and `og:title` is the page's title without the shop's name.
+
 ### Deliberate deviations
 
 - **The shop's name is printed "Buy a Coffee", not "Buy-a-Coffee".** Every

@@ -551,7 +551,9 @@ four projects from it (`unit`, `integration`, `web-unit`, `web-integration`):
   private database on the server (`TEST_DATABASE_URL`, named after
   `TEST_DATABASE_NAME`, so several checkouts can share one server), and
   `*.db.test.ts`, which read the catalog in `DATABASE_URL` — seed it with
-  `pnpm seed:reference` first. Only the network is faked; the diff engine,
+  `pnpm seed:reference` first. A `*.db.test.ts` file only reads: that database
+  is the development catalog, and a test that has to write belongs in the
+  other group, with a private database. Only the network is faked; the diff engine,
   repository, circuit breaker, enrichment and image mirror run their production
   code paths. With no database reachable they skip, under a banner that says so;
   with `CI` set, an unreachable database fails the run instead.

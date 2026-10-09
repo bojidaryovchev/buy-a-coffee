@@ -972,9 +972,37 @@ is withheld.
 
 ## SEO
 
-- Per-page metadata, canonical URLs and Open Graph via the Next.js metadata API.
-  A product shares its own photograph when it has one and the generated card
-  when it does not.
+- Per-page metadata through the Next.js metadata API. Canonical and `hreflang`
+  are always declared together, on the page (`lib/seo/alternates.ts`), because
+  Next shallow-merges `alternates`.
+- **Every page shares as itself.** Next shallow-merges `openGraph` and
+  `twitter` too: a page takes the layout's whole object or replaces it whole.
+  So both are built in one place,
+  [`lib/seo/share.ts`](../apps/web/src/lib/seo/share.ts). `shareDefaults(locale)`
+  is what the shop's layout declares: the type, the shop's name, the locale and
+  the share card, and never a URL, a title or a description, because those are
+  true of one page only. `shareMetadata({ locale, title, description, path })`
+  is what a page declares: the same constants restated, plus its own address
+  (the path its canonical is built from), its own title without the shop's
+  name (`og:site_name` carries the name) and its own description. Every page
+  under `(site)/[lang]` that declares a canonical calls it, the shared builders
+  `categoryMetadata`, `productMetadata` and `landingMetadata` included. A
+  product passes its photograph as the image when it has a real one, and every
+  other page shares the generated card (`SHARE_CARD` in `lib/seo/share-card.ts`,
+  drawn by `app/opengraph-image.tsx`); an article passes its dates and shares
+  as an `article`. A `noindex` view — a filtered or sorted listing, search, an
+  answered wizard state — shares as its canonical. The unsubscribe page has no
+  canonical and sends no `og:url`. `test/share.test.ts` reads the source and
+  fails on a page that declares alternates without `shareMetadata`, or that
+  spells `openGraph:` or `twitter:` by hand; `e2e/i18n.spec.ts` ("the head of
+  every page") checks the tags a production build sends, and a new page type
+  is added to its `pages` list.
+- `app/global-not-found.tsx` sets its own `metadataBase`, because no layout is
+  above it. One `metadataBase` warning is still printed at build. The likely
+  cause, not a proven one, is that `app/opengraph-image.tsx` sits at the root,
+  above the segment whose layout sets the base, so Next resolves it once
+  without one before the layout's explicit image replaces it. No page sends a
+  `localhost` URL; the browser suite asserts that.
 - `Organization`, `WebSite`, `Product` (with `sku` once enrichment has read the
   code), `BreadcrumbList`, `ItemList` and `Article` JSON-LD. Shipping and return
   policies appear on the offer only once the owner has confirmed the terms. The
@@ -1068,7 +1096,10 @@ Storefront unit tests live in `apps/web/test/`; components are rendered with
 `createElement` and `renderToStaticMarkup`, with no JSX runtime import needed.
 `*.integration.test.ts` files each get a private migrated database
 (`test/helpers/test-db.ts`); `*.db.test.ts` files read the catalog in
-`DATABASE_URL` and are written against the `seed:reference` snapshot. See the
+`DATABASE_URL` and are written against the `seed:reference` snapshot. A
+`*.db.test.ts` file never writes: that database is somebody's development
+catalog. A test that needs to change rows is an integration test and gets a
+private database. See the
 [README](../README.md#testing) for how the groups are defined.
 
 The end-to-end suite runs against a real production build (`next start` on port
