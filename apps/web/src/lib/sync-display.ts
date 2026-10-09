@@ -31,6 +31,9 @@ export function formatDuration(ms: number | null): string {
   return `${minutes} мин ${rest} сек`;
 }
 
+/** "1 продукт", "3 продукта": the counted form Bulgarian uses after a number. */
+export const productCount = (n: number): string => unit(n, "продукт", "продукта");
+
 /** UTC, minute precision, like the other panel screens. */
 export const formatStamp = (at: Date): string => at.toISOString().slice(0, 16).replace("T", " ");
 

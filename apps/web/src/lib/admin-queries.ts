@@ -198,8 +198,9 @@ export async function panelCounts(): Promise<{
    Appended as one block. Its imports sit here, not in the header, so that the
    block can be added or removed without touching what the other screens use. */
 
-import { and, sql } from "drizzle-orm";
+import { and, ne, sql } from "drizzle-orm";
 import { products, syncChanges, syncRuns } from "@catalog/db/schema";
+import { parsePackSizeConflict } from "@catalog/shared";
 import { MANUAL_LINK_RUN_KIND } from "@/lib/sync-health";
 
 export type SyncRunRow = typeof syncRuns.$inferSelect;
@@ -297,4 +298,57 @@ export async function productsWithoutOwnCopy(sampleSize = 30): Promise<WithoutCo
       .limit(sampleSize),
   ]);
   return { total: totals?.n ?? 0, sample };
+}
+
+export interface PackSizeConflictRow {
+  id: string;
+  /** The source's name for the product: what the owner orders by. */
+  name: string;
+  slug: string;
+  status: string;
+  /** The size the source's name states: „18 бр.“. */
+  inName: string;
+  /** The size the source's pack field states: „100 бр.“. */
+  inPackField: string;
+}
+
+/**
+ * Products the source describes with two different pack sizes: one in the
+ * name, another in its pack field.
+ *
+ * The storefront shows the name's and computes the price per cup from it
+ * (`decidePackSize` in `@catalog/shared`), so nothing is wrong on the site;
+ * but the mistake is in the source's record and only the source can correct
+ * it, so the owner is told. The sync writes both sizes on the product on every
+ * run and clears them when the two agree again, which makes this a reading of
+ * how things stand now, not a log: a conflict stays listed for as long as it
+ * exists and leaves by itself.
+ *
+ * Removed products are left out: there is nothing left to ask the source for.
+ */
+export async function listPackSizeConflicts(): Promise<PackSizeConflictRow[]> {
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      slug: products.slug,
+      status: products.status,
+      conflict: sql<unknown>`${products.sourceData}->'packSizeConflict'`,
+    })
+    .from(products)
+    .where(
+      and(
+        ne(products.status, "removed"),
+        sql`jsonb_typeof(${products.sourceData}->'packSizeConflict') = 'object'`,
+      ),
+    )
+    .orderBy(products.name, products.slug)
+    .limit(PAGE);
+
+  return rows.flatMap((row) => {
+    const conflict = parsePackSizeConflict(row.conflict);
+    return conflict
+      ? [{ id: row.id, name: row.name, slug: row.slug, status: row.status, ...conflict }]
+      : [];
+  });
 }

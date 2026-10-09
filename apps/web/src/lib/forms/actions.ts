@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { contactMessages, orderInquiries, products } from "@catalog/db/schema";
 import { siteConfig } from "@/config/site";
+import { getCurrentSlugOfFormer } from "@/lib/catalog/queries";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 import {
@@ -108,6 +109,42 @@ async function requestContext(): Promise<{
   };
 }
 
+/**
+ * The product a quick order is for, by the slug the form posted.
+ *
+ * Almost always the product's current slug. But the form's slug was rendered
+ * into a page, and a page can outlive the address it was rendered at: for some
+ * minutes after products are moved to new slugs (`catalog:reslug`), cached
+ * pages still post the old one. The old address is not gone — it answers 308
+ * to the new one — so an order from it must find its product the same way,
+ * by the same lookup the redirect uses, and not be turned away with "we could
+ * not find this product".
+ *
+ * A live slug always wins over a retired one, as it does for the redirect.
+ */
+async function findOrderedProduct(
+  postedSlug: string,
+): Promise<{ id: string; name: string; status: string; slug: string } | null> {
+  const bySlug = async (slug: string) => {
+    const [product] = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        status: products.status,
+        slug: products.slug,
+      })
+      .from(products)
+      .where(eq(products.slug, slug))
+      .limit(1);
+    return product ?? null;
+  };
+
+  const current = await bySlug(postedSlug);
+  if (current) return current;
+  const movedTo = await getCurrentSlugOfFormer(postedSlug);
+  return movedTo ? bySlug(movedTo) : null;
+}
+
 export async function submitOrderInquiry(
   _previous: FormState,
   formData: FormData,
@@ -141,11 +178,7 @@ export async function submitOrderInquiry(
   const input = parsed.data;
 
   try {
-    const [product] = await db
-      .select({ id: products.id, name: products.name, status: products.status })
-      .from(products)
-      .where(eq(products.slug, input.productSlug))
-      .limit(1);
+    const product = await findOrderedProduct(input.productSlug);
 
     if (!product) {
       return {
@@ -161,14 +194,18 @@ export async function submitOrderInquiry(
       };
     }
 
-    const key = idempotencyKey(["inquiry", input.phone, input.productSlug]);
+    // Everything recorded names the product by the slug it has now, whichever
+    // one the form posted: the operator's link must open, and one customer
+    // pressing the button on an old page and then on the new one has still
+    // ordered once.
+    const key = idempotencyKey(["inquiry", input.phone, product.slug]);
 
     const [row] = await db
       .insert(orderInquiries)
       .values({
         productId: product.id,
         productName: product.name,
-        productSlug: input.productSlug,
+        productSlug: product.slug,
         customerName: input.customerName || null,
         phone: input.phone,
         email: input.email || null,
@@ -177,7 +214,7 @@ export async function submitOrderInquiry(
         /* The page the order came from. A server action is not told its
            page's locale; the order form exists on Bulgarian pages only until
            another locale ships, and this column is a note for the operator. */
-        sourcePage: productHref(DEFAULT_LOCALE, { slug: input.productSlug }),
+        sourcePage: productHref(DEFAULT_LOCALE, { slug: product.slug }),
         idempotencyKey: key,
         requestMetadata: { ...metadata, fingerprint },
       })
