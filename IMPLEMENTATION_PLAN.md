@@ -118,9 +118,21 @@ Tasks that are built but not ticked, and why:
 - **D3** — the code is done; `pnpm check:launch` fails by design until the
   business answers the open questions it lists.
 - **E8** — waits on the business for social links.
-- **A4, B9, F8, F9** — in progress in the third wave: the docs, copy for the 77
-  new products, the remaining design loose ends, and the performance budgets
-  together with the browser suite on the redesign.
+
+**Third wave, same night.** A fresh crawl of the source (228 pages, 19 of 19
+observed capabilities covered); our own copy for the 77 new products, so all
+187 now have it; the documentation rewritten to describe the system as built;
+the remaining design work; the browser suite updated for the redesign; and the
+performance budgets measured. The six staged migrations are folded into
+`0006_completion`, checked against an empty database, a copy in production's
+current state and a copy that already had them. The repository is formatted.
+
+**Where `completion` stands:** 88 commits ahead of `main`, nothing pushed.
+`format:check`, `typecheck` and `lint` are clean; 1,811 unit, 279
+integration and 314 browser tests pass (desktop and mobile, `CI=true`, against
+a production build seeded exactly as CI seeds it); `check:originality` and
+`reference:coverage` pass; `check:launch` fails by design with the business's
+eight open questions. Everything left is in Phase H.
 
 Things the first wave found that this plan did not anticipate are marked
 **Found** where they apply.
@@ -207,7 +219,7 @@ None of these blocks code. Each has a default the plan assumes.
   - Clean the local `.env` files down to one `DATABASE_URL` each.
   - _Done when_ `pnpm env:push` on today's `.env` refuses with a clear message.
 
-- [ ] **A4 · Make the docs true · S**
+- [x] **A4 · Make the docs true · S**
   - [docs/launch.md](docs/launch.md) becomes a pointer to Phase H of this file.
   - Correct the port (`3000` in one doc, `3100` in another), the "no production
     domain yet" comment in `env.schema.mjs`, and the status of the brand and
@@ -339,12 +351,17 @@ This is the phase the project exists for. B1–B3 are the critical path.
     so the originality check still runs without a database.
   - _Done when_ `pnpm copy:apply -- --dry-run` reports 110 matched, 0 orphaned.
 
-- [ ] **B9 · Write copy for the new products · L · `content`**
+- [x] **B9 · Write copy for the new products · L · `content`**
   - About 80 products, under the rules at the top of `product-copy.ts`: every
     claim traceable to the source or a held attribute, no reordered source
     sentences, different text for the same coffee in a different pack.
   - In batches by brand, each batch passing `check:originality`.
   - _Done when_ `pnpm copy:todo` is empty.
+  - **Found.** The source contradicts itself on a few products — a pod pack
+    named 18 but recorded as 100, an intensity out of 9 where its siblings are
+    out of 10, a blend described as 100% robusta whose structured data says
+    50/50. The copy states only what the structured data supports and leaves
+    the rest out; the business may want to tell the source.
 
 - [x] **B10 · Brands and taxonomy · S**
   - The source's brand names carry stray whitespace and inconsistent case. Add
@@ -669,14 +686,24 @@ Three layers that have to agree:
   - Capsules grouped by system, "find by machine" as a first-class entry,
     Vending Zone; the mobile drawer carries the same structure.
 
-- [ ] **F8 · States and edges · S**
+- [x] **F8 · States and edges · S**
   - Placeholders, loading, the not-found and error pages, focus styles,
     reduced motion, the share image.
+  - **Found.** Text typed into the header search before the page hydrated was
+    thrown away when the interactive field replaced the server-rendered one;
+    it is handed over now. And the admin login page was prerendered at build
+    time, so a build made without a password served the "disabled" notice
+    even after one was set; it renders per request now.
 
-- [ ] **F9 · Budgets · S**
+- [x] **F9 · Budgets · S**
   - Mobile LCP under 2.5 s and CLS under 0.1 on the home, a listing and a
     product page; the accessibility suite passing on every new component.
   - _Done when_ measured on a preview and recorded in `DESIGN.md`.
+  - **Found.** Lab medians are within budget (LCP 1.22 s home, 1.32 s listing,
+    1.46 s product; CLS 0). One listing run reached 3.0 s: paint waited on
+    long tasks from a page whose image `srcset` lists offered widths up to
+    3840 px for ~800 px photos. The widths are trimmed; re-measure on a
+    preview with `pnpm measure:budgets` before launch.
 
 ## Phase G — Search, wizard and SEO
 
@@ -745,7 +772,8 @@ passes.
       passphrase of at least 12 characters, corrected targets. Remove the two
       variables nothing reads. **This must precede H5:** with a short password
       or no separate session secret, the deployed panel disables itself.
-- [ ] **H5 · Ship the code** — merge `completion` into `main`. Check the built
+- [ ] **H5 · Ship the code** — push `completion` and let CI run on it first
+      (the two workflows have never run on GitHub). Then merge into `main`. Check the built
       HTML rather than a warm cache: photos load, no draft marker, function
       region is Frankfurt.
 - [ ] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
