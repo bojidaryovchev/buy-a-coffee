@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getArticle, getMovedArticle, listArticles, listPreviousSlugs } from "@/lib/journal";
 import { legacyAnswer } from "@/lib/legacy-routes";
 
 /*
@@ -33,6 +34,36 @@ describe("the pre-locale URLs", () => {
     ["/newsletter/unsubscribe", "/bg/byuletin/otpisvane"],
   ])("%s → %s", (from, target) => {
     expect(legacyAnswer(from)).toEqual(to(target));
+  });
+
+  /*
+   * The slugs come from the journal itself, not from this file: an article
+   * retitled tomorrow is covered the day its old slug is listed.
+   */
+  it("sends an article's old slug straight to where the article is now, in one hop", () => {
+    const moved = listPreviousSlugs();
+    // The journal has retitled articles; without one this would test nothing.
+    expect(moved.length).toBeGreaterThan(0);
+    for (const former of moved) {
+      const current = getMovedArticle(former)?.slug;
+      expect(current, former).toBeTruthy();
+      expect(current).not.toBe(former);
+      expect(legacyAnswer(`/journal/${former}`), former).toEqual(to(`/bg/blog/${current}`));
+      // The target is an article, not another redirect.
+      expect(getArticle(current)).not.toBeNull();
+      expect(getMovedArticle(current)).toBeNull();
+    }
+  });
+
+  it("sends an article's current slug to itself", () => {
+    for (const { slug } of listArticles()) {
+      expect(legacyAnswer(`/journal/${slug}`), slug).toEqual(to(`/bg/blog/${slug}`));
+    }
+  });
+
+  it("passes on a journal slug it has never heard of, for the article route to refuse", () => {
+    expect(legacyAnswer("/journal/no-such-article")).toEqual(to("/bg/blog/no-such-article"));
+    expect(legacyAnswer("/journal/toString")).toEqual(to("/bg/blog/toString"));
   });
 
   it("hands an old category URL to the route handler, which knows the catalog", () => {

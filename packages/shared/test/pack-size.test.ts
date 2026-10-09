@@ -57,13 +57,11 @@ describe("decidePackSize", () => {
   });
 
   it("settles a conflict across units by the name as well", () => {
-    expect(decidePackSize("Кафе на зърна Lavazza Super Crema 1кг.", field("500 г"))).toMatchObject(
-      {
-        from: "name",
-        named: { value: "1000", unit: "g", canonical: "1000g" },
-        conflict: { inName: "1 кг", inPackField: "500 г" },
-      },
-    );
+    expect(decidePackSize("Кафе на зърна Lavazza Super Crema 1кг.", field("500 г"))).toMatchObject({
+      from: "name",
+      named: { value: "1000", unit: "g", canonical: "1000g" },
+      conflict: { inName: "1 кг", inPackField: "500 г" },
+    });
     expect(decidePackSize("Капсули Caffitaly Intenso 10 бр.", field("80 г"))).toMatchObject({
       from: "name",
       named: { value: "10", unit: "pc" },

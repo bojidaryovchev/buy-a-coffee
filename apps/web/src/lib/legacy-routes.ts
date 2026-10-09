@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { getArticle, getMovedArticle } from "@/lib/journal";
 import { href, productHref, routes } from "@/lib/routes";
 
 /**
@@ -11,6 +12,17 @@ import { href, productHref, routes } from "@/lib/routes";
  * equivalent (permanent, and method-preserving, so a stale form post still
  * lands), with its query string intact: a filtered listing or a search keeps
  * its filters and its term. Pure, so every pattern is tested without a server.
+ *
+ * **One hop where the answer is known without asking anyone.** An article
+ * that has been retitled lists the slugs it used to have, in the repository,
+ * as plain data (`previousSlugs`). `/journal/<old slug>` therefore goes
+ * straight to the article's current address, not to `/bg/blog/<old slug>` for
+ * the article route to redirect a second time: a chain of two permanent
+ * redirects is one more than a crawler needs to follow and one more than a
+ * link's weight survives intact.
+ *
+ * Nothing imported here may need a database. The proxy loads this module for
+ * every request it handles, and the journal's registry is files, not rows.
  *
  * Old category slugs need the catalog to answer — `/categories/kapsuli` becomes
  * `/bg/kafe-kapsuli` through the category's source key — so that one pattern
@@ -40,6 +52,19 @@ const withSlug =
     return rest.length === 1 && slug ? item(slug) : null;
   };
 
+/**
+ * The slug an article is published at today, for a slug it has or once had.
+ *
+ * A current slug always wins over a retired one, as it does on the article
+ * route. A slug the journal has never used is passed through unchanged: the
+ * redirect then leads to a 404, as it always did, rather than this module
+ * deciding what exists.
+ */
+function currentArticleSlug(slug: string): string {
+  if (getArticle(slug)) return slug;
+  return getMovedArticle(slug)?.slug ?? slug;
+}
+
 /** First legacy segment → how the rest of the path maps. */
 const LEGACY: Readonly<Record<string, Pattern>> = {
   products: (rest) => {
@@ -47,7 +72,9 @@ const LEGACY: Readonly<Record<string, Pattern>> = {
     return rest.length === 1 && slug ? productHref(DEFAULT_LOCALE, { slug }) : null;
   },
   brands: withSlug(routes.brands, (slug) => href(DEFAULT_LOCALE, routes.brand(slug))),
-  journal: withSlug(routes.journal, (slug) => href(DEFAULT_LOCALE, routes.article(slug))),
+  journal: withSlug(routes.journal, (slug) =>
+    href(DEFAULT_LOCALE, routes.article(currentArticleSlug(slug))),
+  ),
   wizard: (rest) => {
     const [first, slug, ...more] = rest;
     if (first === undefined) return href(DEFAULT_LOCALE, routes.wizard);

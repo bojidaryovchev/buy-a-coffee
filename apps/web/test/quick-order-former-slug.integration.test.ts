@@ -141,8 +141,10 @@ suite("a quick order from a page that still has an old address (integration)", (
     expect((await order(FORMER)).status).toBe("success");
     const again = await order(CURRENT);
 
-    expect(again).toMatchObject({ status: "success" });
-    expect(again.message).toMatch(/^Вече получихме заявката ви\./);
+    expect(again).toMatchObject({
+      status: "success",
+      message: expect.stringMatching(/^Вече получихме заявката ви\./),
+    });
     expect(await db.select().from(orderInquiries)).toHaveLength(1);
     expect(sent).toHaveLength(1);
   });
@@ -163,8 +165,10 @@ suite("a quick order from a page that still has an old address (integration)", (
 
     const result = await order(FORMER);
 
-    expect(result.status).toBe("error");
-    expect(result.message).toMatch(/вече не се предлага/);
+    expect(result).toMatchObject({
+      status: "error",
+      message: expect.stringMatching(/вече не се предлага/),
+    });
     expect(await db.select().from(orderInquiries)).toHaveLength(0);
   });
 
@@ -173,8 +177,10 @@ suite("a quick order from a page that still has an old address (integration)", (
 
     const result = await order("kapsuli-dg-no-such-product-16-br");
 
-    expect(result.status).toBe("error");
-    expect(result.message).toMatch(/^Не намерихме този продукт\./);
+    expect(result).toMatchObject({
+      status: "error",
+      message: expect.stringMatching(/^Не намерихме този продукт\./),
+    });
     expect(await db.select().from(orderInquiries)).toHaveLength(0);
     expect(sent).toEqual([]);
   });

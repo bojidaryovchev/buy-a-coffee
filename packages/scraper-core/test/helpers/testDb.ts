@@ -56,10 +56,31 @@ export async function isDatabaseAvailable(): Promise<boolean> {
   }
 }
 
-/** Create the test database (if needed) and bring its schema up to date. */
+/**
+ * Create the test database (if needed) and bring its schema up to date.
+ *
+ * **One caller at a time.** This database is shared on purpose by more than
+ * one test file (the sync suite here and the storefront's rate-limit suite),
+ * and Vitest runs files in parallel, in separate workers. On a database that
+ * does not exist yet — the first run in a new checkout, or in CI — two workers
+ * used to arrive here together: both found no database and both created it
+ * (`pg_database_datname_index`), or both found no migration journal and both
+ * ran the first migration (`CREATE TYPE availability`, failing on
+ * `pg_type_typname_nsp_index`). Whichever lost skipped its whole file, and
+ * the rerun passed because by then there was nothing left to create.
+ *
+ * So creating and migrating happen under a PostgreSQL advisory lock keyed by
+ * the database's name, held on the admin connection. A lock in the server
+ * rather than in this process, because the callers are different processes.
+ * It is taken in the base database, which every caller of this helper shares
+ * within a run; closing the connection releases it even if a step throws.
+ */
 export async function setupTestDatabase(): Promise<{ db: Database; close: () => Promise<void> }> {
+  // One connection, so the lock, the work and the unlock are one session.
   const admin = createDatabase({ url: baseDatabaseUrl(), max: 1 });
   try {
+    await admin.sql`select pg_advisory_lock(hashtext(${`test-db-setup:${TEST_DATABASE_NAME}`}))`;
+
     const existing = await admin.sql`
       select 1 from pg_database where datname = ${TEST_DATABASE_NAME}
     `;
@@ -67,13 +88,19 @@ export async function setupTestDatabase(): Promise<{ db: Database; close: () => 
       // Identifier cannot be parameterised; the name is a module constant.
       await admin.sql.unsafe(`create database ${TEST_DATABASE_NAME}`);
     }
+
+    const { db, close } = createDatabase({ url: testDatabaseUrl(), max: 1 });
+    try {
+      await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
+    } catch (error) {
+      await close();
+      throw error;
+    }
+    return { db, close };
   } finally {
+    // Ends the session, and with it the lock.
     await admin.close();
   }
-
-  const { db, close } = createDatabase({ url: testDatabaseUrl(), max: 1 });
-  await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
-  return { db, close };
 }
 
 /**
