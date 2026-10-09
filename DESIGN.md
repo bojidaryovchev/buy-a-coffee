@@ -1,5 +1,5 @@
 ---
-name: Buy-a-Coffee
+name: Buy a Coffee
 description: Bulgarian coffee shop for beans, capsules and pods, organised by the machine the customer owns.
 colors:
   ink-900: "#23180f"
@@ -186,7 +186,7 @@ components:
     textColor: "{colors.paper}"
 ---
 
-# Design System: Buy-a-Coffee
+# Design System: Buy a Coffee
 
 This document is the standard that components are reviewed against. Where it
 names a Tailwind class, the class is the specification. Where a component in
@@ -194,6 +194,13 @@ the repository disagrees with it, the component is wrong.
 
 Tokens live in `apps/web/src/app/globals.css`. Token names are an interface used
 across the storefront and the admin panel: a name is never renamed or removed.
+
+Where this document gives a link's target it names the page, and in brackets
+the route in `apps/web/src/lib/routes.ts` (`routes.wizard`). No component
+writes a path: every `href` is built by `href(locale, …)`, `categoryHref`,
+`productHref` or `brandHref` from that file, so the address carries the locale
+and the slug tables decide its spelling. File paths under `app/` are relative
+to `apps/web/src/`.
 
 ## Overview
 
@@ -930,8 +937,8 @@ from. Two engineers building it from this section must produce the same card.
 ├──────────────────────────┤
 │ [■ Dolce Gusto]          │  2  system badge        20 px
 │ BIANCHI · 16 бр.         │  3  brand · pack        16 px
-│ Капсули DG Bianchi Gusto │  4  name, up to 3 lines 60 px
-│ Forte Espresso 16 бр.    │
+│ Bianchi Gusto Forte      │  4  name, up to 3 lines 60 px
+│ Espresso                 │
 │                          │
 │ ▮▮▮▮▮▮▮▮▮▮▯▯ 10 от 12    │  5  intensity           16 px
 │ 5,60 €  ~~6,60 €~~       │  6  price               26 px
@@ -948,7 +955,8 @@ transition-colors">`.
    - Image: `next/image` with `fill`, `object-contain`, no padding (the
      photographs carry their own margin), `sizes={IMAGE_SIZES.card}`.
      `priority` for the first row of a page (4 cards) and `loading="lazy"` for
-     the rest. `alt` is the image's stored alt text, else the product name.
+     the rest. `alt` is the image's stored alt text, else the product's full
+     name ("Bianchi Gusto Forte Espresso — капсули за Dolce Gusto, 16 бр.").
    - No photo: the image placeholder (below) fills the well.
    - Top left, `absolute top-2 left-2`: the reduction badge, only when
      `discountPercent` and `oldPrice` are both present.
@@ -962,9 +970,13 @@ tracking-[0.06em] uppercase text-ink-500`: brand name (`truncate`), a
    `aria-hidden` "·", then the pack size in `shrink-0 font-normal normal-case
 tracking-normal`. Either part may be absent; the row keeps 16 px.
 5. **Name.** `<h3 class="line-clamp-3 min-h-[3.75rem] text-sm font-medium
-text-ink-900">` containing the one link of the card: `<a
-href="/products/{slug}" class="after:absolute after:inset-0">`. The stretched
-   link makes the whole card the target.
+text-ink-900">` containing the one link of the card, to the product page
+   (`productHref`), with `class="after:absolute after:inset-0"`. The stretched
+   link makes the whole card the target. The text is the product's `title`:
+   brand and line, "Bianchi Gusto Forte Espresso". It is the shop's own name
+   for the product, never the supplier's wording, and it does not repeat the
+   format or the pack size: the system badge above and the brand line beside it
+   already say both.
 6. **Intensity scale**, card variant. Row height 16 px, kept when absent.
 7. **Price block.** `mt-auto pt-3` — pushed to the bottom so prices align
    across a row.
@@ -983,7 +995,8 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
 8. **Quick-order control.** `mt-3`. A `secondary` button, `w-full`, `min-h-10`
    (40 px), `text-sm`, `relative z-10` so it sits above the stretched link.
    Label "Бърза поръчка" plus `<span class="sr-only">: {name}</span>`.
-   - It is `<a href="/products/{slug}#order">`. With JavaScript it opens the
+   - It is a link to the product page's `#order`
+     (`productHref(locale, product, "#order")`). With JavaScript it opens the
      order form in a dialog; without, it goes to the form on the product page.
    - `out_of_stock`: the control is replaced by a `secondary` link "Виж
      продукта" of the same size, so heights still match.
@@ -1126,14 +1139,14 @@ keeps an empty box so names line up.
 
 **Where it appears.**
 
-| Place                        | Size         | Notes                                                                                                                                                                               |
-| ---------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Brands index (`/brands`)     | `tile`       | Grid of tiles: logo, then the name (`h2`) and the product count in text. The logo takes `alt=""` there — the name follows inside the same link — and the fallback is `aria-hidden`. |
-| Brand page header            | `header`     | Logo above the `h1`, eager; the `h1` stays text. No logo: nothing.                                                                                                                  |
-| Home page, brand row         | `tile`       | Logo tiles, one link each to the brand page; `alt` is the name and the count follows in `sr-only`.                                                                                  |
-| Product page, brand line     | `line`       | A small logo linking to the brand page, beside the system badge; `alt` is the name, so it is the link's name. Not legible or absent: the Label-style text link.                     |
-| Search typeahead, brand rows | `suggestion` | Before the name, `alt=""` (the name follows).                                                                                                                                       |
-| Structured data              | —            | `logo`, as an absolute URL, on the `Brand` in the Product and brand-page JSON-LD when a logo exists.                                                                                |
+| Place                          | Size         | Notes                                                                                                                                                                               |
+| ------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brands index (`routes.brands`) | `tile`       | Grid of tiles: logo, then the name (`h2`) and the product count in text. The logo takes `alt=""` there — the name follows inside the same link — and the fallback is `aria-hidden`. |
+| Brand page header              | `header`     | Logo above the `h1`, eager; the `h1` stays text. No logo: nothing.                                                                                                                  |
+| Home page, brand row           | `tile`       | Logo tiles, one link each to the brand page; `alt` is the name and the count follows in `sr-only`.                                                                                  |
+| Product page, brand line       | `line`       | A small logo linking to the brand page, beside the system badge; `alt` is the name, so it is the link's name. Not legible or absent: the Label-style text link.                     |
+| Search typeahead, brand rows   | `suggestion` | Before the name, `alt=""` (the name follows).                                                                                                                                       |
+| Structured data                | —            | `logo`, as an absolute URL, on the `Brand` in the Product and brand-page JSON-LD when a logo exists.                                                                                |
 
 **Where it does not.** Product cards, filter lists, active-filter chips,
 breadcrumbs, the footer and the wizard. On a card or a filter the brand is one
@@ -1207,20 +1220,23 @@ section first said, comes to 125 px on a phone and could not meet it.)
 **Row 2 — the rail** (`md` and up). `<nav aria-label="Основна навигация">`, one
 `ul`, `flex items-center gap-x-6`. Organised by what the customer owns.
 
-| #   | Label                           | Target                  | Notes                                                    |
-| --- | ------------------------------- | ----------------------- | -------------------------------------------------------- |
-| 1   | Капсули ▾                       | `/categories/kapsuli`   | Opens the systems panel.                                 |
-| 2   | Дози ESE                        | `/categories/kafe-dozi` |                                                          |
-| 3   | Кафе на зърна                   | beans category          |                                                          |
-| 4   | Намери по машина                | `/wizard/machines`      | First-class, with a 16 px machine icon before the label. |
-| 5   | Вендинг зона                    | its page                | Shown once the page exists.                              |
-| —   | _(pushed right with `ml-auto`)_ |                         |                                                          |
-| 6   | Кое кафе е за вас               | `/wizard`               |                                                          |
-| 7   | Марки                           | `/brands`               |                                                          |
-| 8   | Промоции                        | `/promotions`           | `text-clay-600`. Shown only when a promotion exists.     |
+| #   | Label                           | Target                                       | Notes                                                    |
+| --- | ------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
+| 1   | Капсули ▾                       | the capsule parent listing                   | Opens the systems panel.                                 |
+| 2   | Дози ESE                        | the ESE pods listing                         |                                                          |
+| 3   | Кафе на зърна                   | the beans listing                            |                                                          |
+| 4   | Намери по машина                | the machine finder (`routes.machines`)       | First-class, with a 16 px machine icon before the label. |
+| 5   | Вендинг зона                    | its page (`routes.vending`)                  | Shown once the page exists.                              |
+| —   | _(pushed right with `ml-auto`)_ |                                              |                                                          |
+| 6   | Кое кафе е за вас               | the wizard (`routes.wizard`)                 |                                                          |
+| 7   | Марки                           | the brands index (`routes.brands`)           |                                                          |
+| 8   | Промоции                        | the promotions listing (`routes.promotions`) | `text-clay-600`. Shown only when a promotion exists.     |
 
-Categories and systems with no products are not listed. Slugs come from
-`BREWING_SYSTEMS` and the category tree, never typed into the header.
+Categories and systems with no products are not listed. The structure is
+built once, by `buildNavigation()` in `components/layout/navigation.ts`, from
+`BREWING_SYSTEMS` and the category tree; no slug is typed into the header. In
+the rail and the panel a system goes by its short name ("Nespresso"), because
+the group's heading supplies the noun.
 
 - _Rail link:_ `inline-flex items-center gap-1.5 border-b-2 border-transparent
 py-3 text-sm font-medium text-ink-700`.
@@ -1245,8 +1261,8 @@ gap-2.5 rounded-sm px-3 text-sm text-ink-900 hover:bg-paper-sunken`, carrying
   марка и модел и ще ви кажем какво пасва." (`text-sm text-ink-700`), and a link
   "Намери по машина →" (`text-sm font-medium text-pine-700 underline`).
 
-**Search field.** Existing behaviour stays: a real `GET` form to `/search`,
-typeahead layered on top. Field per "Inputs" at `min-h-11`; the submit is a
+**Search field.** Existing behaviour stays: a real `GET` form to the search
+page (`routes.search`), typeahead layered on top. Field per "Inputs" at `min-h-11`; the submit is a
 `primary` button attached to its right edge. A typeahead product row shows a
 40 px well, the name, the system badge (`sm`) and the price; a brand row shows
 the brand logo at size `suggestion` (`alt=""`), then the name and the count.
@@ -1265,9 +1281,9 @@ buttons or icons-in-circles for categories.
 order, with nothing left out.
 
 **Trigger.** In the masthead, left of the wordmark: a 44 by 44 px `ghost` icon
-button, `aria-label="Меню"`, `aria-expanded`, `aria-controls`. Rendered as `<a
-href="/categories">` so that without JavaScript it leads to a page with the
-same structure.
+button, `aria-label="Меню"`, `aria-expanded`, `aria-controls`. Rendered as a
+link to the category index (`routes.categories`) so that without JavaScript it
+leads to a page with the same structure.
 
 **Panel.** `role="dialog" aria-modal="true" aria-label="Меню на сайта"`, fixed,
 left edge, `w-[86%] max-w-sm`, full height, `bg-paper`, `shadow-float`, over a
@@ -1286,7 +1302,8 @@ text-ink-500`: "По марка и модел") and "Кое кафе е за в�
    "Всички капсули".
 4. **Дози ESE, Кафе на зърна, Вендинг зона** — plain rows.
 5. A hairline, then **Марки, Промоции** (clay, only when one exists),
-   **Дневник, Контакти**.
+   **Блог, Контакти**. The journal is called „Блог“ wherever a customer reads
+   its name; „Дневник“ is not used.
 6. **Foot,** `border-t border-line bg-paper-sunken p-4`: the phone number as a
    `tel:` link in `text-base font-medium text-pine-700`, and the opening hours
    in `text-sm text-ink-500`.
@@ -1305,7 +1322,7 @@ the drawer — it is already in the header.
 
 ### Home page
 
-`app/(site)/page.tsx`. Sections in this order. Every section is driven by data
+`app/(site)/[lang]/page.tsx`. Sections in this order. Every section is driven by data
 and is omitted entirely when it has nothing to show; no section renders an
 empty shell or a placeholder message.
 
@@ -1332,11 +1349,11 @@ gap-8 py-10 md:grid-cols-12 md:items-center md:py-16`.
   - Lead in `text-pine-200`, max 48ch: one sentence on what is sold and how
     ordering works.
   - Actions, `mt-6 flex flex-wrap gap-3`: an `accent` button, size `lg`,
-    "Намерете кафе за вашата машина" → `/wizard`; then the on-pine secondary
+    "Намерете кафе за вашата машина" → the wizard; then the on-pine secondary
     button, "Разгледайте по система" → the tiles (`#systems`).
   - Under them, `mt-4 text-sm text-pine-200`: "Не знаете каква система е
     машината ви? " and a `text-gold-300 underline` link "Намерете я по марка и
-    модел" → `/wizard/machines`.
+    модел" → the machine finder.
 - _Shelf, `md:col-span-6`:_ six real packshots in a `grid grid-cols-3 gap-3`.
   Each is a link to its product: a `aspect-square rounded-md bg-well` well with
   the image `object-contain`, `alt` the product name. Selection is
@@ -1379,7 +1396,7 @@ bg-(--system-wash) p-4 transition-colors hover:border-(--system)">`.
 `bg-gold-100 rounded-md p-6 md:p-8` panel, `md:grid md:grid-cols-2 md:gap-10`.
 Left: Section title "Кое кафе е за вас?", a paragraph ("Няколко въпроса и три
 предложения — с причините за всяко."), and a `primary` button "Започнете" →
-`/wizard`. Right: the wizard's step labels (`STEP_LABELS`) as a numbered list,
+the wizard. Right: the wizard's step labels (`STEP_LABELS`) as a numbered list,
 each numeral in a 24 px `bg-gold-500 text-ink-900 rounded-xs` square. On a
 phone the list is hidden.
 
@@ -1405,8 +1422,9 @@ logo") — or, with no logo, the name in the same box — and the product count 
 `sr-only`. From `md` a `grid-cols-4` grid, `lg:grid-cols-6`, `gap-3`; on a
 phone one scrolling row.
 
-**9. Journal.** Up to three article cards: title (Panel title), date (Meta),
-one-line summary. No image unless the article has its own.
+**9. Journal.** `SectionHeading` "От блога". Up to three article cards: title
+(Panel title), date (Meta), one-line summary. No image unless the article has
+its own.
 
 **10. Vending Zone.** `on-pine bg-pine-900 text-paper`, one row: Section title,
 one sentence in `text-pine-200`, the on-pine secondary button. No `accent`
@@ -1423,15 +1441,53 @@ Category, brand, promotions and search share `CatalogListing`.
 
 **Page head,** inside the shell:
 
-1. Breadcrumbs.
+1. Breadcrumbs, by format and never by brand, with no „Категории“ step in
+   between: Начало › Кафе капсули › Капсули за Dolce Gusto. Each step is named
+   as the page it leads to names itself. A brand page's trail is Начало ›
+   Марки кафе › the brand.
 2. `h1`, Page title. On a system's listing the system badge (`md`) sits above
-   it.
-3. Introduction: the category's own text, `text-base text-ink-700`, max 68ch.
+   it. The `h1` is the listing's own heading from `content/category-copy.ts`
+   ("Капсули за Dolce Gusto", "Капсули, съвместими с Nespresso"), which says
+   „за“ or „съвместими с“ a system wherever the capsules are made by others.
+3. The category's stored description, `text-base text-ink-700`, max 68ch.
    Omitted when empty.
-4. On a system's listing, one line linking to machine pages: "Става за машини
-   {system}. " and "Проверете вашата машина" → `/wizard/machines`.
-5. On "Капсули": a row of choice chips, one per system with products, each
-   carrying `data-system`, an 8 px system square and its count.
+4. On a system's listing, one line, `text-base text-ink-700`: for a capsule
+   system "Става за машини {system}. ", for pods and beans the system's own
+   summary; then the listing's one link to the machine finder, "Не знаете
+   системата? Намерете машината си" (`font-medium text-pine-700 underline`).
+   It is the only link from a listing back to the machine finder.
+5. On a parent listing ("Кафе капсули"): a row of choice chips, one per
+   subcategory with products, systems first in `BREWING_SYSTEMS` order. Each
+   carries `data-system`, an 8 px system square, **the listing's own name**
+   ("Капсули за Dolce Gusto", not "Dolce Gusto") and its count. The name is
+   the one a breadcrumb or a footer link gives that listing, so a coloured
+   square never stands beside a bare trade name and one destination has one
+   anchor.
+6. Related pages (`RelatedLandings`), when the page has any: a `nav` of text
+   links in `text-sm`, `font-medium text-pine-700 underline`. A link with a
+   note takes a line of its own, the note after it in `text-ink-500`; links
+   without one share a line. A system's shelf links the decaf and
+   cheapest-per-cup listings here.
+
+The written introduction is not in the head. It sits **below** the listing, on
+the first page only: an `h2` in the Section title style, two or three
+paragraphs in `text-base text-ink-500` (max 65ch) in which a phrase that names
+another listing is a link to it, then a row of text links: at most one journal
+article, and "Помощник за избор на кафе" → the wizard. Products stay first.
+
+A brand page's head is its own: the brand's logo (`header` size), the `h1`,
+the brand's tagline and description where the record has them, one generated
+sentence on what the brand is stocked in, a row of choice chips "Сравнете с
+останалите марки:" linking to each system's listing by the listing's own name,
+then the related pages. A shelf the related pages already link is left out of
+the chips.
+
+The four landing listings (`app/(site)/[lang]/_components/landing-page.tsx`)
+use the same card and grid with no filter rail, toolbar or pagination:
+breadcrumbs (Начало › the page), `h1`, a short introduction, a row of chips
+that jump to each system's section when there is more than one (each with the
+system's square, name and count), the related pages, then one section per
+brewing system — an `h2`, one sentence and its grid, cheapest per cup first.
 
 **Body.** `lg:grid lg:grid-cols-[240px_1fr] lg:gap-8`.
 
@@ -1510,7 +1566,7 @@ rounded-t-lg bg-paper p-5 shadow-float`, over the scrim. Head: "Филтри"
   филтри", description "Махнете някой филтър и опитайте пак.", action "Изчисти
   филтрите" (`primary`). The toolbar, chips and rail stay.
 - _Empty category:_ title "Тук още няма продукти", action "Кое кафе е за вас" →
-  `/wizard`.
+  the wizard.
 - _Search with no results:_ title "Не намерихме „{term}“", description
   "Проверете изписването или опитайте с марка или система.", actions: the
   search field, and "Намери по машина".
@@ -1523,9 +1579,14 @@ header already holds 116 px.
 
 ### Product page
 
-`app/(site)/products/[slug]/page.tsx`. Order on the page is the order a
-customer decides in: does it fit, what does it cost, how do I get it, then the
-details.
+`app/(site)/[lang]/[slug]/_components/product-page.tsx`, reached through
+`[lang]/[slug]/page.tsx`. Order on the page is the order a customer decides in:
+does it fit, what does it cost, how do I get it, then the details.
+
+**Breadcrumbs** follow the format, not the brand: Начало › Кафе капсули ›
+Капсули за Dolce Gusto › the product's title. The system's step is named as
+its listing is. The brand is linked above the heading and in the facts table
+instead.
 
 **Top,** `grid gap-8 lg:grid-cols-2 lg:gap-12`, under the breadcrumbs.
 
@@ -1549,11 +1610,18 @@ border border-line bg-well` buttons, `gap-2`, under the well. Selected:
    logo at size `line`, linking to the brand page (see "Brand logo"), or, with
    no logo legible at that size, the name as a Label-style link in
    `text-pine-700`.
-2. `h1`, Page title.
-3. Badge row, `mt-3 flex flex-wrap gap-2`: availability, pack size (`neutral`).
+2. The name, in two parts. Both are the shop's own wording, computed from the
+   record; the supplier's name for the product is never shown to a customer.
+   - `h1`, Page title: brand and line — "Borbone Crema Classica".
+   - Directly under it, `mt-1 text-base text-ink-700 tabular-nums md:text-lg`:
+     the format and quantity line — "Капсули за Dolce Gusto, 16 бр.". Text,
+     not a badge: it is the second half of the name. Omitted when neither the
+     format nor the pack size is known.
+3. Badge row, `mt-3 flex flex-wrap gap-2`: availability; and the pack size
+   (`neutral`) only when the line above could not say it.
 4. For a capsule or pod, the compatibility line, `mt-3 text-sm text-ink-700`:
-   "Става за машини {system}. " and a link "Проверете вашата машина" →
-   `/wizard/machines`. Wording is "става за" or "съвместими с", never
+   "Става за машини {system}. " and a link "Проверете вашата машина" → the
+   machine finder. Wording is "става за" or "съвместими с", never
    "оригинални".
 5. Price block, `mt-5`:
    - Price: `text-3xl font-semibold tabular-nums text-ink-900` (Inter).
@@ -1650,7 +1718,8 @@ another system. A second `accent` button.
 
 ### Wizard
 
-`app/(site)/wizard/**`, `components/wizard/**`. Every control is a link; the
+`app/(site)/[lang]/izbor-na-kafe/**`, `app/(site)/[lang]/za-kafemashina/**`,
+`components/wizard/**`. Every control is a link; the
 answers live in the URL. The page content sits in a `max-w-2xl` column.
 
 - _Progress:_ an ordered list in the Label style. Done steps `text-ink-500`,
@@ -1678,10 +1747,22 @@ that implies a fixed number of steps when the flow can skip them.
 
 ### Footer
 
-`bg-paper-sunken`, `border-t border-line`. Columns: the wordmark with one
-sentence and contact details; **Магазин** (the systems, then Дози ESE, Кафе на
-зърна, Марки, Промоции); **Помощ** (Намери по машина, Кое кафе е за вас,
-Доставка и плащане, Контакти, Дневник); legal links; the newsletter form.
+`components/layout/site-footer.tsx`. `bg-paper-sunken`, `border-t
+border-line`. Columns: the wordmark with one sentence and contact details;
+**Магазин**; **Помощ**; legal links; the newsletter form.
+
+- **Магазин**, in this order: each capsule system with products, then ESE
+  pods, then beans — every one under its listing's own name ("Капсули за
+  Nespresso", "Кафе дози ESE"), never the bare system name, because down here
+  a link stands alone and "Капсули Nespresso" would pass a compatible capsule
+  off as the system owner's; then **Безкофеиново кафе** and **Най-евтино на
+  чаша**, each only while its listing has products; then Вендинг зона,
+  Консумативи, Марки, and Промоции while a reduction exists.
+- **Помощ:** Намери по машина, Кое кафе е за вас, Доставка и плащане,
+  Контакти, Блог.
+
+The language switcher sits under the contact details and renders nothing while
+one locale ships.
 Column heads in the Label style; links `text-sm text-ink-700 hover:text-ink-900
 hover:underline`. Under a hairline: the company's legal line and the payment
 methods as text, `text-xs text-ink-500`. A notice that legal details are
@@ -1725,8 +1806,12 @@ content. Shimmer gradients sweeping across the page.
 
 ### Not found
 
-`app/not-found.tsx`, returned with a real 404 status. Shell, `min-h-[60vh]`,
-centred column, `py-16`.
+`components/not-found-body.tsx`, returned with a real 404 status and rendered
+on the server, so it is readable with JavaScript off. It is drawn in two
+places: `app/global-not-found.tsx`, for every URL that names nothing, inside
+the shop's frame (header, search, footer) and always in Bulgarian; and
+`app/(site)/[lang]/not-found.tsx`, for a `notFound()` thrown inside a page.
+Shell, `min-h-[60vh]`, centred column, `py-16`.
 
 1. "404" — `font-display text-5xl font-semibold text-pine-500`, `aria-hidden`.
 2. `h1`, Page title: "Тази страница я няма".
@@ -1738,7 +1823,7 @@ centred column, `py-16`.
 
 ### Error
 
-`app/(site)/error.tsx`. Same layout as not found, without the numeral.
+`app/(site)/[lang]/error.tsx`. Same layout as not found, without the numeral.
 
 1. `h1`: "Нещо се обърка".
 2. "Не е от вас. Опитайте пак след малко или ни се обадете."
