@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { brandFactsFor } from "../../../content/brand-facts";
 import { categoryCopyFor } from "../../../content/category-copy";
-import { siteConfig } from "@/config/site";
 import { fill } from "@/i18n/fill";
 import { cupRangePhrase, type CupRange } from "@/lib/catalog/cup-range";
 import type { BrewMethod, BrewingSystem } from "@/lib/recommend/systems";
+import { fullTitle } from "./title";
 
 /**
  * Titles, headings and meta descriptions of the listing, brand and index
@@ -27,17 +27,15 @@ import type { BrewMethod, BrewingSystem } from "@/lib/recommend/systems";
 /**
  * A full `<title>`: the page's own words, then the shop's name.
  *
- * Absolute, bypassing the layout's `%s — name` template, because these titles
- * already use a dash inside („Кафе на зърна — цена за кг и на чаша“) and a
- * second one before the name would read as a third clause. The name itself
- * still comes from `siteConfig`, like everywhere else.
+ * Absolute, and ending exactly as the layout's template ends every other
+ * page's title: both are `fullTitle` in `lib/seo/title.ts`, which is the one
+ * place the separator is decided.
  */
 export function pageTitle(text: string): NonNullable<Metadata["title"]> {
   return { absolute: fullTitle(text) };
 }
 
-/** The title as a search result prints it. */
-export const fullTitle = (text: string): string => `${text} | ${siteConfig.name}`;
+export { fullTitle };
 
 /**
  * How ordering works, in the one sentence a search snippet has room for.

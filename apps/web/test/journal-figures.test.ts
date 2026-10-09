@@ -15,6 +15,27 @@ describe("journal figures: an empty catalog", () => {
     expect(computeJournalFigures([], "EUR")).toEqual(EMPTY_JOURNAL_FIGURES);
   });
 
+  it("says no landing listing exists unless it is told one does", () => {
+    // Which landings exist is `landingAvailability`'s answer, handed in. Left
+    // out, an article links to none of them.
+    expect(EMPTY_JOURNAL_FIGURES.landings).toEqual({
+      lavazzaCapsules: false,
+      lavazzaBeans: false,
+      decaf: false,
+      cheapest: false,
+    });
+    expect(computeJournalFigures(FIXTURE_ROWS, "EUR").landings).toEqual(
+      EMPTY_JOURNAL_FIGURES.landings,
+    );
+    const told = { lavazzaCapsules: true, lavazzaBeans: false, decaf: true, cheapest: false };
+    expect(computeJournalFigures(FIXTURE_ROWS, "EUR", told).landings).toEqual(told);
+    // …and it changes no other figure.
+    expect({ ...computeJournalFigures(FIXTURE_ROWS, "EUR", told), landings: null }).toEqual({
+      ...computeJournalFigures(FIXTURE_ROWS, "EUR"),
+      landings: null,
+    });
+  });
+
   it("yields no price figures when nothing has a price", () => {
     const figures = computeJournalFigures(
       [row({ category: "nespresso", price: null }), row({ category: "kafe-na-zarna", price: "" })],

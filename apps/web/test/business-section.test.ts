@@ -225,6 +225,27 @@ describe.each([
  * one of these words for an honest reason, the edit should also change this
  * list and say why.
  */
+describe("the pointer to the sibling section", () => {
+  it("links the vending page by its head term, in a sentence that reads", () => {
+    // One anchor per owner (`docs/seo.md` §13.1): „Вендинг зона“ is the menu's
+    // short name; in running text the page is „кафе за вендинг машини“, as the
+    // articles link it.
+    expect(consumablesCopy.related.label).toBe("кафе за вендинг машини");
+    expect(consumablesCopy.related.label).toBe(vendingCopy.title.toLocaleLowerCase("bg"));
+    const html = render({ copy: consumablesCopy, path: "/konsumativi" });
+    expect(html).toMatch(
+      /има отделна страница — <a[^>]*href="\/bg\/kafe-za-vending-mashini"[^>]*>кафе за вендинг машини<\/a>/,
+    );
+    expect(html).not.toMatch(/>Вендинг зона</);
+  });
+
+  it("links consumables from the vending page under its own name", () => {
+    const html = render({ copy: vendingCopy, path: "/kafe-za-vending-mashini" });
+    expect(html).toMatch(/<a[^>]*href="\/bg\/konsumativi"[^>]*>Консумативи<\/a>/);
+    expect(vendingCopy.related.label).toBe(consumablesCopy.title);
+  });
+});
+
 describe("copy makes no offer the catalog cannot back", () => {
   const flatten = (value: unknown): string[] =>
     typeof value === "string"

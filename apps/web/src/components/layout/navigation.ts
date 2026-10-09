@@ -35,6 +35,13 @@ import type { CategoryView } from "@/lib/catalog/types";
 export interface NavSystem {
   readonly id: BrewingSystemId;
   readonly name: string;
+  /**
+   * What the listing calls itself: „Капсули за Nespresso“, „Кафе дози ESE“.
+   * `name` is the short form for the rail, where the group's heading supplies
+   * the noun; this is the anchor wherever the link stands on its own (the
+   * footer), the same one a breadcrumb or a chip gives that listing.
+   */
+  readonly listingName: string;
   readonly href: string;
   /** Products on sale in the system's category. Always above zero. */
   readonly count: number;
@@ -176,6 +183,13 @@ export interface NavigationOptions {
    */
   readonly hasPromotions?: boolean;
   readonly hasJournal?: boolean;
+  /**
+   * What a category's listing calls itself (`categoryNameFor` in
+   * `content/category-copy.ts`). Handed in, not imported: this module is shared
+   * with the client drawer, and the copy file is not something to ship to a
+   * browser for one function. Left out, a listing goes by its stored name.
+   */
+  readonly listingName?: (category: CategoryView) => string;
 }
 
 export function buildNavigation(
@@ -199,6 +213,7 @@ export function buildNavigation(
     return {
       id: system.id,
       name: systemName(system),
+      listingName: options.listingName?.(category) ?? category.name,
       href: categoryHref(locale, category),
       count: category.productCount,
       categorySlug: category.slug,
@@ -208,6 +223,7 @@ export function buildNavigation(
   const strip = (system: NavSystem & { categorySlug: string }): NavSystem => ({
     id: system.id,
     name: system.name,
+    listingName: system.listingName,
     href: system.href,
     count: system.count,
   });

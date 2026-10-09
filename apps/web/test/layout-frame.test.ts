@@ -17,6 +17,8 @@ const catalog = vi.hoisted(() => ({
   consumablesListed: false,
   /** Products each landing listing holds; zero means the page does not exist. */
   landings: { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 },
+  /** Products with a genuine reduction; zero means the promotions page is `noindex`. */
+  promotions: 0,
 }));
 
 vi.mock("@/lib/db", () => ({ db: {} }));
@@ -27,6 +29,7 @@ vi.mock("@/lib/catalog/queries", () => ({
   getCatalogSummary: async () => ({ products: 3, brands: 1, categories: 2, promotions: 0 }),
   getProductBySlug: async () => null,
   listProducts: async () => ({ items: [] }),
+  countPromotions: async () => catalog.promotions,
 }));
 vi.mock("@/lib/catalog/vending", () => ({
   sectionListsProducts: async () => catalog.consumablesListed,
@@ -69,6 +72,7 @@ import type { CategoryView } from "@/lib/catalog/types";
 import { listArticles } from "@/lib/journal";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
 import { bg as dict } from "@/i18n/dictionaries/bg";
+import { categoryNameFor } from "../content/category-copy";
 import { href } from "@/lib/routes";
 
 /** A canonical path as a Bulgarian URL, the way every link is built. */
@@ -142,7 +146,13 @@ const TREE: CategoryView[] = [
 ];
 
 const navigation = (tree: CategoryView[] = TREE) =>
-  buildNavigation(tree, { locale: "bg", labels: dict.nav, sections: BUSINESS_SECTIONS });
+  buildNavigation(tree, {
+    locale: "bg",
+    labels: dict.nav,
+    sections: BUSINESS_SECTIONS,
+    // As `loadNavigation` wires it: each listing under the name it gives itself.
+    listingName: categoryNameFor,
+  });
 
 beforeEach(() => {
   catalog.tree = TREE;
@@ -150,6 +160,7 @@ beforeEach(() => {
   catalog.brands = [{ slug: "bianchi", name: "Bianchi" }];
   catalog.consumablesListed = false;
   catalog.landings = { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 };
+  catalog.promotions = 0;
 });
 
 const LANDING_URLS = [
@@ -172,6 +183,25 @@ describe("the navigation built from the category tree", () => {
       href: "/bg/nespresso-kapsuli",
       count: 36,
     });
+  });
+
+  it("carries each listing's own name beside the rail's short one", () => {
+    const nav = navigation();
+    expect(nav.capsules?.systems.map((system) => [system.name, system.listingName])).toEqual([
+      ["Nespresso Original", "Капсули за Nespresso"],
+      ["Dolce Gusto", "Капсули за Dolce Gusto"],
+      ["Lavazza A Modo Mio", "Капсули за Lavazza A Modo Mio"],
+    ]);
+    expect(nav.pods).toMatchObject({ name: "Дози ESE", listingName: "Кафе дози ESE" });
+    expect(nav.beans).toMatchObject({ name: "Кафе на зърна", listingName: "Кафе на зърна" });
+
+    // Nobody told it how listings are named: the stored name, never a guess.
+    const bare = buildNavigation(TREE, {
+      locale: "bg",
+      labels: dict.nav,
+      sections: BUSINESS_SECTIONS,
+    });
+    expect(bare.capsules?.systems[0]?.listingName).toBe("Име nespresso");
   });
 
   it("omits a system with no products and one with no category", () => {
@@ -342,6 +372,22 @@ describe("the footer", () => {
     expect(markup()).not.toContain("caffitaly-kapsuli");
   });
 
+  it("calls each shelf what the shelf calls itself", () => {
+    // One anchor per listing (`docs/seo.md` §13.1): the footer's is the name
+    // the breadcrumbs and chips use, with „за“ where the capsule is only
+    // compatible with the system (`PRODUCT.md`).
+    const rendered = markup();
+    expect(rendered).toMatch(/href="\/bg\/nespresso-kapsuli"[^>]*>Капсули за Nespresso</);
+    expect(rendered).toMatch(/href="\/bg\/dolce-gusto-kapsuli"[^>]*>Капсули за Dolce Gusto</);
+    expect(rendered).toMatch(
+      /href="\/bg\/lavazza-a-modo-mio-kapsuli"[^>]*>Капсули за Lavazza A Modo Mio</,
+    );
+    expect(rendered).toMatch(/href="\/bg\/kafe-dozi"[^>]*>Кафе дози ESE</);
+    expect(rendered).toMatch(/href="\/bg\/kafe-na-zarna"[^>]*>Кафе на зърна</);
+    // A third-party capsule is never „Капсули <system>“, as if the owner's own.
+    expect(rendered).not.toMatch(/>Капсули (Nespresso|Dolce Gusto)/);
+  });
+
   it("uses no clay: nothing here is a reduced price", () => {
     expect(markup()).not.toMatch(/clay-/);
     expect(markup()).not.toMatch(/<h1/);
@@ -396,6 +442,14 @@ describe("the sitemap", () => {
     expect(await urls()).not.toContain(absoluteUrl("/bg/konsumativi"));
     catalog.consumablesListed = true;
     expect(await urls()).toContain(absoluteUrl("/bg/konsumativi"));
+  });
+
+  it("leaves promotions out while nothing is reduced, and in once something is", async () => {
+    // The page is `noindex` with nothing reduced; a sitemap entry would
+    // contradict it.
+    expect(await urls()).not.toContain(absoluteUrl("/bg/promotsii"));
+    catalog.promotions = 3;
+    expect(await urls()).toContain(absoluteUrl("/bg/promotsii"));
   });
 
   it("lists each landing only while it has products", async () => {
@@ -516,6 +570,15 @@ describe("llms.txt", () => {
     expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Блог");
   });
 
+  it("links promotions only while a reduction exists", () => {
+    const promotions = `(${absoluteUrl("/bg/promotsii")})`;
+    expect(llmsText(input(UNSET))).not.toContain(promotions);
+    expect(llmsText({ ...input(UNSET), hasPromotions: false })).not.toContain(promotions);
+    expect(llmsText({ ...input(UNSET), hasPromotions: true })).toContain(
+      `- [Промоции]${promotions}`,
+    );
+  });
+
   it("lists the landing listings it is given, and no empty block without them", () => {
     expect(llmsText(input(UNSET))).not.toContain("## Подбрани списъци");
     const text = llmsText({
@@ -542,11 +605,14 @@ describe("llms.txt", () => {
       // Consumables and the landings follow the sitemap: out while they list nothing.
       expect(text).not.toContain(`(${absoluteUrl("/bg/konsumativi")})`);
       for (const path of LANDING_URLS) expect(text).not.toContain(`(${absoluteUrl(path)})`);
+      expect(text).not.toContain(`(${absoluteUrl("/bg/promotsii")})`);
 
       catalog.consumablesListed = true;
+      catalog.promotions = 2;
       catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 8, decaf: 8, cheapest: 21 };
       const filled = await (await llmsRoute()).text();
       expect(filled).toContain(`(${absoluteUrl("/bg/konsumativi")})`);
+      expect(filled).toContain(`(${absoluteUrl("/bg/promotsii")})`);
       for (const path of LANDING_URLS) expect(filled).toContain(`(${absoluteUrl(path)})`);
       for (const article of listArticles()) {
         expect(text).toContain(`(${absoluteUrl(bgPath(article.href))})`);

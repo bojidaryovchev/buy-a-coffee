@@ -43,6 +43,12 @@ export interface LlmsInput {
    * beans, decaf, cheapest per cup). Absent or empty: no block.
    */
   readonly landings?: readonly (LlmsLink & { readonly description: string })[];
+  /**
+   * Whether any product is reduced right now. The promotions page is `noindex`
+   * while nothing is, and is linked here only while something is. Absent: not
+   * linked.
+   */
+  readonly hasPromotions?: boolean;
   /** Journal articles, newest first. Empty when the journal is off. */
   readonly articles: readonly (LlmsLink & { readonly description: string })[];
   readonly commerce?: CommerceConfig;
@@ -98,7 +104,7 @@ export function llmsText(input: LlmsInput): string {
     },
     { href: at(routes.categories), name: "Всички категории" },
     { href: at(routes.brands), name: "Всички марки" },
-    { href: at(routes.promotions), name: "Промоции" },
+    ...(input.hasPromotions ? [{ href: at(routes.promotions), name: "Промоции" }] : []),
     { href: at(routes.delivery), name: "Доставка и плащане" },
     { href: at(routes.contact), name: "Контакти" },
   ];

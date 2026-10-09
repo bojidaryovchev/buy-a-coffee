@@ -8,24 +8,21 @@ import { WizardNotice } from "@/components/wizard/wizard-ui";
 import { CapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
-import {
-  MACHINE_BRANDS,
-  getMachineBrand,
-  type MachineBrand,
-  type MachineModel,
-} from "@/content/machines";
+import { MACHINE_BRANDS, getMachineBrand, type MachineModel } from "@/content/machines";
 import { getSystemListing, type LandingView } from "@/lib/catalog/landing-queries";
 import { getSystemAvailability } from "@/lib/catalog/queries";
 import { getBrewingSystem, getUnsupportedSystem, isSupportedSystem } from "@/lib/recommend/systems";
-import { wizardHref } from "@/lib/recommend/answers";
 import { pluralize } from "@/lib/catalog/format";
 import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { categoryHref, href, productHref, routes, systemCategory } from "@/lib/routes";
+import { categoryNameFor } from "../../../../../../content/category-copy";
 import {
+  hasCapsuleMachines,
   machineBrandCopy,
   machineBrandFeatures,
+  machineBrandNames,
   type LandingFacts,
 } from "../../../../../../content/landing-copy";
 
@@ -68,18 +65,6 @@ export function generateStaticParams() {
  */
 export const dynamicParams = false;
 
-/**
- * Whether any model in our list takes a capsule, of a system we stock or not.
- * Pre-ground coffee is the one "system" in the unsupported list that is not a
- * capsule.
- */
-function hasCapsuleMachines(brand: MachineBrand): boolean {
-  return brand.models.some((model) => {
-    const system = getBrewingSystem(model.system);
-    return system ? system.method === "capsule" : model.system !== "ground";
-  });
-}
-
 const factsOf = (listing: LandingView): LandingFacts => ({
   count: listing.count,
   systems: listing.groups.map((group) => group.system),
@@ -96,13 +81,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!brand) return { title: "Марката не е намерена", robots: { index: false, follow: true } };
 
   const feature = machineBrandFeatures[brand.slug];
-  const capsules = hasCapsuleMachines(brand);
 
   return {
-    title: feature?.title ?? machineBrandCopy.title(brand.name, capsules),
+    title: machineBrandNames(brand).title,
     description: feature
       ? feature.description(factsOf(await getSystemListing(feature.system)))
-      : machineBrandCopy.description(brand.name, capsules),
+      : machineBrandCopy.description(brand.name, hasCapsuleMachines(brand)),
     alternates: pageAlternates(locale, routes.machineBrand(brand.slug)),
   };
 }
@@ -156,7 +140,7 @@ export default async function MachineBrandPage({ params }: PageProps) {
 
       <header className="mb-10">
         <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">
-          {feature?.h1 ?? machineBrandCopy.h1(brand.name)}
+          {machineBrandNames(brand).h1}
         </h1>
         <div className="mt-3 max-w-measure space-y-3 text-base text-ink-700">
           <p>{brand.summary}</p>
@@ -189,6 +173,7 @@ export default async function MachineBrandPage({ params }: PageProps) {
           const system = getBrewingSystem(systemId);
           if (!system) return null;
           const count = availability[system.id] ?? 0;
+          const shelf = systemCategory(system);
 
           return (
             <section key={systemId}>
@@ -246,19 +231,18 @@ export default async function MachineBrandPage({ params }: PageProps) {
               )}
 
               {count > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  <ButtonLink
-                    href={href(locale, wizardHref({ system: system.id, brew: system.method }))}
-                  >
-                    Изберете кафе за {system.name}
-                  </ButtonLink>
-                  <ButtonLink
-                    href={categoryHref(locale, systemCategory(system))}
-                    variant="secondary"
-                  >
-                    Вижте всички
-                  </ButtonLink>
-                </div>
+                /*
+                 * One way on, to the system's shelf, under the name that shelf
+                 * has everywhere else — so seven groups do not offer seven
+                 * links all called „Вижте всички“. It used to stand beside a
+                 * link into the wizard with this system already answered;
+                 * `robots.ts` disallows answered wizard states, and nothing
+                 * crawlable may point at a disallowed URL (`docs/seo.md`
+                 * §13.6).
+                 */
+                <ButtonLink href={categoryHref(locale, shelf)}>
+                  {categoryNameFor({ ...shelf, name: system.name })}
+                </ButtonLink>
               ) : (
                 <WizardNotice tone="caution">
                   В момента нямаме нищо за тази система. Обадете ни се на{" "}

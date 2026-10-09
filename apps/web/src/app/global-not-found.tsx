@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE, HTML_LANG } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { fill } from "@/i18n/fill";
 import { href, routes } from "@/lib/routes";
+import { fullTitle } from "@/lib/seo/title";
 import { BODY_CLASS, fontVariables } from "./fonts";
 import "./globals.css";
 
@@ -43,7 +44,7 @@ import "./globals.css";
  * which was asked for. An honest generic `lang` beats a guessed one.
  */
 export const metadata: Metadata = {
-  title: `404 — ${siteConfig.name}`,
+  title: fullTitle("404"),
   robots: { index: false, follow: true },
 };
 

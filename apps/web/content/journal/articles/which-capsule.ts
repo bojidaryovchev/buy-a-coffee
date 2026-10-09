@@ -26,6 +26,8 @@ import {
   CAPSULES_HREF,
   MACHINES_HREF,
   WIZARD_HREF,
+  landingHref,
+  linkWhile,
   machineBrandHref,
   systemCategoryHref,
 } from "../links";
@@ -38,7 +40,8 @@ import {
  * `previousSlugs` and answers 308. The opening answers "what kinds are there"
  * before anything else, because that is the question the title now asks.
  *
- * Built from `machines.ts` and `systems.ts` and from nothing else. What a
+ * Built from `machines.ts` and `systems.ts`, and from the catalog only for one
+ * yes or no: whether the „Капсули Lavazza“ listing exists to be linked. What a
  * capsule looks like is quoted from each system's own `recognise` line, and
  * which brands make machines for it is counted from the machine database, so
  * neither can drift from the pages that state the same facts. The hand-written
@@ -80,9 +83,10 @@ export const whichCapsule: Article = {
   description:
     "Капсулите за кафе се делят по системи, не по марки: Nespresso, Dolce Gusto, Lavazza A Modo Mio, Lavazza Blue и Caffitaly. Как да познаете своята по капсулата и по машината.",
   publishedAt: "2026-10-09",
-  usesCatalog: false,
+  // For one link only: the Lavazza capsules listing exists while it has products.
+  usesCatalog: true,
 
-  body: () => {
+  body: ({ landings }) => {
     const capsuleSystems = systemsForMethod("capsule");
     const modelCount = allMachineModels().length;
 
@@ -129,7 +133,9 @@ export const whichCapsule: Article = {
 
       h2("Марката на машината не е достатъчна"),
       p(
-        "Лесно е да се подведете по марката на машината. Krups прави машини за три различни системи: Dolce Gusto, Nespresso и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има две несъвместими системи — A Modo Mio за дома и Blue за офиса, така че и „капсули Lavazza“ не значи един вид капсула.",
+        "Лесно е да се подведете по марката на машината. Krups прави машини за три различни системи: Dolce Gusto, Nespresso и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има две несъвместими системи — A Modo Mio за дома и Blue за офиса, така че и „",
+        linkWhile(landingHref("lavazzaCapsules", landings), "капсули Lavazza"),
+        "“ не значи един вид капсула.",
       ),
       p(
         "Обратното също важи: машините Nespresso се произвеждат от Krups, De'Longhi, Magimix и Breville, но капсулата се определя от модела, не от производителя. Затова гледайте името на модела, което пише на самата машина, а не логото.",

@@ -6,7 +6,12 @@ import {
   type CupPrice,
   type LandingId,
 } from "@/lib/catalog/landings";
-import type { BrewMethod, BrewingSystem, BrewingSystemId } from "@/lib/recommend/systems";
+import {
+  getBrewingSystem,
+  type BrewMethod,
+  type BrewingSystem,
+  type BrewingSystemId,
+} from "@/lib/recommend/systems";
 
 /**
  * The words of the landing listings, the Tchibo machine page and the
@@ -304,6 +309,40 @@ export const machineBrandFeatures: Readonly<Record<string, MachineBrandFeature>>
       }${closing(facts)}`,
   },
 };
+
+/**
+ * Whether any model in our list takes a capsule, of a system we stock or not.
+ * Pre-ground coffee is the one "system" in the unsupported list that is not a
+ * capsule.
+ */
+export function hasCapsuleMachines(brand: {
+  readonly models: ReadonlyArray<{ readonly system: string }>;
+}): boolean {
+  return brand.models.some((model) => {
+    const system = getBrewingSystem(model.system);
+    return system ? system.method === "capsule" : model.system !== "ground";
+  });
+}
+
+/**
+ * The `<title>` (before the shop's name) and `h1` of one machine brand's page:
+ * the featured wording for the brand that has one, the generic one for the
+ * rest. In one place so that the page and `test/keyword-map.test.ts` cannot
+ * build them differently.
+ */
+export function machineBrandNames(brand: {
+  readonly slug: string;
+  readonly name: string;
+  readonly models: ReadonlyArray<{ readonly system: string }>;
+}): { readonly title: string; readonly h1: string } {
+  const feature = Object.hasOwn(machineBrandFeatures, brand.slug)
+    ? machineBrandFeatures[brand.slug]
+    : undefined;
+  return {
+    title: feature?.title ?? machineBrandCopy.title(brand.name, hasCapsuleMachines(brand)),
+    h1: feature?.h1 ?? machineBrandCopy.h1(brand.name),
+  };
+}
 
 /* --- Cross-links --------------------------------------------------------- */
 

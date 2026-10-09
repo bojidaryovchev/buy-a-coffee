@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { countPromotions, getCategoryTree } from "@/lib/catalog/queries";
+import { categoryNameFor } from "../../../content/category-copy";
 
 /**
  * The shop's frame — skip link, announcement bar, header, `<main>`, footer —
@@ -35,6 +36,7 @@ export async function loadNavigation(locale: Locale, dict: Dictionary): Promise<
     labels: dict.nav,
     sections: BUSINESS_SECTIONS,
     hasJournal: siteConfig.features.blog,
+    listingName: categoryNameFor,
     // A link to a page that has only ever been empty is worse than no link.
     hasPromotions: promotionCount > 0,
   });

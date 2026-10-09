@@ -1,5 +1,10 @@
 import { siteConfig, usingPlaceholderBrand } from "@/config/site";
-import { getCatalogSummary, getCategoryTree, listBrands } from "@/lib/catalog/queries";
+import {
+  countPromotions,
+  getCatalogSummary,
+  getCategoryTree,
+  listBrands,
+} from "@/lib/catalog/queries";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
@@ -46,9 +51,10 @@ import { categoryHref, href, routes } from "@/lib/routes";
  * `lib/routes.ts` like every other link on the site.
  *
  * **It lists what the sitemap lists.** A page that is `noindex` or a 404 while
- * it has no products — consumables, and each of the landing listings — is left
- * out here on the same switch that takes it out of the sitemap, and comes back
- * by itself when the catalog fills it. A file written to be quoted must not
+ * it has no products — consumables, each of the landing listings, and the
+ * promotions page while nothing is reduced — is left out here on the same
+ * switch that takes it out of the sitemap, and comes back by itself when the
+ * catalog fills it. A file written to be quoted must not
  * point an assistant at a page that says "nothing here yet".
  */
 
@@ -71,12 +77,13 @@ export async function GET() {
     });
   }
 
-  const [summary, tree, brands, consumablesListed, landings] = await Promise.all([
+  const [summary, tree, brands, consumablesListed, landings, promotionCount] = await Promise.all([
     getCatalogSummary(),
     getCategoryTree(),
     listBrands({ withProductsOnly: true }),
     sectionListsProducts("consumables"),
     getLandingAvailability(),
+    countPromotions(),
   ]);
 
   const locale = DEFAULT_LOCALE;
@@ -100,6 +107,7 @@ export async function GET() {
         ? [{ ...consumablesCopy, href: href(locale, BUSINESS_SECTIONS.consumables.path) }]
         : []),
     ].map((copy) => ({ name: copy.title, href: copy.href, description: copy.metaDescription })),
+    hasPromotions: promotionCount > 0,
     landings: LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) => ({
       name: landingCopy[id].h1,
       href: href(locale, LANDING_PATHS[id]),

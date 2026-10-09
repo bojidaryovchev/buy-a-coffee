@@ -4,9 +4,13 @@ import { describe, expect, it } from "vitest";
 import { ARTICLES } from "../content/journal";
 import { ARABICA_ROBUSTA_SLUG } from "../content/journal/articles/arabica-robusta";
 import { CHOOSE_BEANS_SLUG } from "../content/journal/articles/choose-beans";
+import { CUP_COST_SLUG } from "../content/journal/articles/cup-cost";
 import { FORMATS_SLUG } from "../content/journal/articles/formats";
 import { WHICH_CAPSULE_SLUG } from "../content/journal/articles/which-capsule";
-import { CAPSULES_HREF } from "../content/journal/links";
+import type { Block, Inline } from "../content/journal/blocks";
+import { CAPSULES_HREF, landingHref } from "../content/journal/links";
+import { relatedCopy } from "../content/landing-copy";
+import { LANDING_IDS, LANDING_PATHS, type LandingId } from "@/lib/catalog/landings";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { STRENGTH_ORDER } from "@/lib/catalog/attributes";
 import { EMPTY_JOURNAL_FIGURES, type JournalFigures } from "@/lib/catalog/journal-figures";
@@ -26,7 +30,12 @@ import {
 import { BREWING_SYSTEMS, systemsForMethod } from "@/lib/recommend/systems";
 import { routes, type RouteTarget } from "@/lib/routes";
 import { referencesSource } from "../e2e/support/source-guard";
-import { FIXTURE_FIGURES, FIXTURE_ROWS } from "./journal-fixtures";
+import {
+  ALL_LANDINGS,
+  FIXTURE_FIGURES,
+  FIXTURE_FIGURES_NO_LANDINGS,
+  FIXTURE_ROWS,
+} from "./journal-fixtures";
 
 /**
  * Content test for the journal.
@@ -39,6 +48,7 @@ import { FIXTURE_FIGURES, FIXTURE_ROWS } from "./journal-fixtures";
 
 const VARIANTS: ReadonlyArray<{ readonly label: string; readonly figures: JournalFigures }> = [
   { label: "with catalog figures", figures: FIXTURE_FIGURES },
+  { label: "with catalog figures and no landing listing", figures: FIXTURE_FIGURES_NO_LANDINGS },
   { label: "with no catalog figures", figures: EMPTY_JOURNAL_FIGURES },
 ];
 
@@ -436,6 +446,180 @@ describe.each(ARTICLES.map((article) => [article.slug, article] as const))(
     });
   },
 );
+
+/* --- Links to the landing listings ----------------------------------------- *
+ *
+ * A landing listing is a page only while it has products, so an article links
+ * to one only while it exists (`figures.landings`), and reads as a finished
+ * sentence when it does not. Each row is one link the market study asks for
+ * (`docs/seo.md` §13.4): the article, the landing, the anchor, and the heading
+ * of the section the link stands in.
+ */
+describe("journal: links to the landing listings", () => {
+  const EXPECTED: ReadonlyArray<{
+    readonly article: string;
+    readonly landing: LandingId;
+    readonly anchor: string;
+    /** The `h2` the link stands under. */
+    readonly section: string;
+  }> = [
+    {
+      article: WHICH_CAPSULE_SLUG,
+      landing: "lavazzaCapsules",
+      anchor: "капсули Lavazza",
+      section: "Марката на машината не е достатъчна",
+    },
+    {
+      article: CHOOSE_BEANS_SLUG,
+      landing: "decaf",
+      anchor: "кафе без кофеин",
+      section: "Съставът: арабика, робуста или смес",
+    },
+    {
+      article: ARABICA_ROBUSTA_SLUG,
+      landing: "decaf",
+      anchor: "Безкофеиновото кафе",
+      section: "Кофеинът",
+    },
+    {
+      article: CHOOSE_BEANS_SLUG,
+      landing: "cheapest",
+      anchor: relatedCopy.cheapest,
+      section: "Цената за килограм",
+    },
+    {
+      article: FORMATS_SLUG,
+      landing: "cheapest",
+      anchor: relatedCopy.cheapest,
+      section: "Как да решите",
+    },
+    {
+      article: CUP_COST_SLUG,
+      landing: "cheapest",
+      anchor: relatedCopy.cheapest,
+      section: "Какво излиза в момента",
+    },
+  ];
+
+  /** Every link in a body, with the `h2` it stands under. */
+  function linksBySection(blocks: readonly Block[]) {
+    const found: Array<{ section: string | null; href: unknown; text: string }> = [];
+    let section: string | null = null;
+    const walk = (content: readonly Inline[]) => {
+      for (const node of content) {
+        if (typeof node !== "string" && node.type === "link") {
+          found.push({ section, href: node.href, text: node.text });
+        }
+      }
+    };
+    for (const block of blocks) {
+      if (block.type === "heading" && block.level === 2) section = block.text;
+      if (block.type === "paragraph" || block.type === "callout") walk(block.content);
+      if (block.type === "list") block.items.forEach(walk);
+      if (block.type === "table") block.rows.forEach((cells) => cells.forEach(walk));
+    }
+    return found;
+  }
+
+  /*
+   * The fixture catalog has no decaf beans, and the beans article mentions
+   * decaf only when there are some; so these tests read it with one.
+   */
+  const withDecafBeans = (figures: JournalFigures): JournalFigures => ({
+    ...figures,
+    beans: figures.beans ? { ...figures.beans, decaf: 1 } : null,
+  });
+  const FULL = withDecafBeans(FIXTURE_FIGURES);
+  const FULL_NO_LANDINGS = withDecafBeans(FIXTURE_FIGURES_NO_LANDINGS);
+
+  const landingPaths = new Set<unknown>(LANDING_IDS.map((id) => LANDING_PATHS[id]));
+
+  it("hands out a target only for a landing that exists", () => {
+    for (const id of LANDING_IDS) {
+      expect(landingHref(id, ALL_LANDINGS)).toBe(LANDING_PATHS[id]);
+      expect(landingHref(id, EMPTY_JOURNAL_FIGURES.landings)).toBeNull();
+      expect(linkProblem(LANDING_PATHS[id]), id).toBeNull();
+    }
+  });
+
+  it.each(EXPECTED)(
+    "$article links $landing under „$section“ while it exists",
+    ({ article, landing, anchor, section }) => {
+      const links = linksBySection(getArticle(article)!.body(FULL));
+      expect(
+        links.filter((entry) => entry.href === LANDING_PATHS[landing]),
+        `${article} → ${landing}`,
+      ).toEqual([{ section, href: LANDING_PATHS[landing], text: anchor }]);
+    },
+  );
+
+  it("links exactly the landings listed above, and no other", () => {
+    for (const article of ARTICLES) {
+      const linked = linksBySection(article.body(FULL))
+        .filter((entry) => landingPaths.has(entry.href))
+        .map((entry) => entry.href)
+        .sort();
+      const expected = EXPECTED.filter((entry) => entry.article === article.slug)
+        .map((entry) => LANDING_PATHS[entry.landing])
+        .sort();
+      expect(linked, article.slug).toEqual(expected);
+    }
+  });
+
+  it.each([
+    ["the catalog has figures", FULL_NO_LANDINGS],
+    ["the catalog cannot be read", EMPTY_JOURNAL_FIGURES],
+  ] as const)("links no landing that does not exist, when %s", (_label, figures) => {
+    for (const article of ARTICLES) {
+      const linked = linksBySection(article.body(figures)).filter((entry) =>
+        landingPaths.has(entry.href),
+      );
+      expect(linked, article.slug).toEqual([]);
+    }
+  });
+
+  it("follows each landing on its own: one that is gone takes only its own links", () => {
+    for (const gone of LANDING_IDS) {
+      const figures = { ...FULL, landings: { ...ALL_LANDINGS, [gone]: false } };
+      for (const article of ARTICLES) {
+        const linked = linksBySection(article.body(figures))
+          .filter((entry) => landingPaths.has(entry.href))
+          .map((entry) => entry.href)
+          .sort();
+        const expected = EXPECTED.filter(
+          (entry) => entry.article === article.slug && entry.landing !== gone,
+        )
+          .map((entry) => LANDING_PATHS[entry.landing])
+          .sort();
+        expect(linked, `${article.slug} without ${gone}`).toEqual(expected);
+      }
+    }
+  });
+
+  it("keeps the sentence when the link inside it is gone", () => {
+    // Where the anchor is words of an existing sentence, the article says the
+    // same thing with and without the listing: only the link differs.
+    const sameText: ReadonlyArray<readonly [string, string]> = [
+      [WHICH_CAPSULE_SLUG, "така че и „капсули Lavazza“ не значи един вид капсула."],
+      [CHOOSE_BEANS_SLUG, "Сред зърната има и кафе без кофеин — в момента"],
+      [
+        ARABICA_ROBUSTA_SLUG,
+        "Безкофеиновото кафе е отделен продукт и в каталога е отбелязано като такова.",
+      ],
+    ];
+    for (const [slug, sentence] of sameText) {
+      const article = getArticle(slug)!;
+      expect(plainText(article.body(FULL)), slug).toContain(sentence);
+      expect(plainText(article.body(FULL_NO_LANDINGS)), slug).toContain(sentence);
+    }
+    // Where the link is a sentence of its own, the sentence goes with it.
+    for (const slug of [CHOOSE_BEANS_SLUG, FORMATS_SLUG, CUP_COST_SLUG]) {
+      const article = getArticle(slug)!;
+      expect(plainText(article.body(FULL)), slug).toContain(relatedCopy.cheapest);
+      expect(plainText(article.body(FULL_NO_LANDINGS)), slug).not.toContain(relatedCopy.cheapest);
+    }
+  });
+});
 
 /* --- Claims that are typed, pinned to the data they rest on --------------- *
  *

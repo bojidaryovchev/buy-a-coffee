@@ -2,6 +2,7 @@ import {
   computeJournalFigures,
   type JournalCatalogRow,
   type JournalFigures,
+  type JournalLandings,
 } from "@/lib/catalog/journal-figures";
 
 /**
@@ -132,4 +133,22 @@ export const FIXTURE_ROWS: readonly JournalCatalogRow[] = [
   }),
 ];
 
-export const FIXTURE_FIGURES: JournalFigures = computeJournalFigures(FIXTURE_ROWS, "EUR");
+/** Every landing listing has products: what a full catalog answers. */
+export const ALL_LANDINGS: JournalLandings = {
+  lavazzaCapsules: true,
+  lavazzaBeans: true,
+  decaf: true,
+  cheapest: true,
+};
+
+export const FIXTURE_FIGURES: JournalFigures = computeJournalFigures(
+  FIXTURE_ROWS,
+  "EUR",
+  ALL_LANDINGS,
+);
+
+/** The same catalog on a day no landing has anything to list. */
+export const FIXTURE_FIGURES_NO_LANDINGS: JournalFigures = computeJournalFigures(
+  FIXTURE_ROWS,
+  "EUR",
+);
