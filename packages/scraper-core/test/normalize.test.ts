@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseWeight, semanticHash } from "@catalog/shared";
 import {
   type RawProductRecord,
   buildSemanticFields,
@@ -204,5 +205,85 @@ describe("validateNormalizedProduct", () => {
       normalizeProduct({ ...base, url: "/relative/" }, OPTIONS),
     );
     expect(result.ok).toBe(false);
+  });
+});
+
+/*
+ * The one record in the catalog whose name and pack field disagree, exactly as
+ * the source publishes it in its listing blob: a tin of 18 pods at the price
+ * of 18, with a pack field of 100.
+ */
+describe("pack size, when the source contradicts itself", () => {
+  const tin: RawProductRecord = {
+    path: "/illy-decaffeinato-18/",
+    url: "https://www.kafezona.com/illy-decaffeinato-18/",
+    name: "Дозети Illy Decaffeinato 18бр.",
+    priceText: "€9.20",
+    oldPriceText: "",
+    availabilityText: "in_stock",
+    weightText: "100 бр.",
+    brandKey: "illy",
+    categoryKeys: ["kafe-dozi"],
+    descriptionText:
+      "Меко и ароматно безкофеиново еспресо, което запазва характерния изискан вкус на Illy.",
+    imageUrls: ["https://www.kafezona.com/img/product-img-1412.jpg-800w.jpg"],
+    attributes: { intensity: "7 от 9", strength: "weak", decaf: "yes", aromas: "no" },
+  };
+  /** The hash production stores for it, computed before the rule existed. */
+  const STORED_HASH = "568d4266cc7706d0952814241d6bf81b37be5a464d22b6d8a30f45635051fdab";
+
+  it("publishes the size the name states", () => {
+    const product = normalizeProduct(tin, OPTIONS);
+    expect(product.weight).toEqual({ raw: "18 бр.", value: "18", unit: "pc", canonical: "18pc" });
+    expect(product.weightText).toBe("18 бр.");
+    expect(product.packFieldText).toBe("100 бр.");
+    expect(product.packSizeConflict).toEqual({ inName: "18 бр.", inPackField: "100 бр." });
+  });
+
+  it("keeps the identity the source's pack field gives the product", () => {
+    // Re-keying on a correction would move the product, and with it every
+    // override and every redirect, for nothing.
+    const product = normalizeProduct(tin, OPTIONS);
+    expect(product.sourceKey).toBe("/illy-decaffeinato-18/#100pc");
+    expect(product.sourceVariantKey).toBe("100pc");
+    expect(product.identityStrategy).toBe("path_and_size");
+  });
+
+  it("changes the semantic hash, so the next sync records the correction as an update", () => {
+    const product = normalizeProduct(tin, OPTIONS);
+    // The record above is the one production holds: hashed with the pack
+    // field's size, as the sync hashed it until now, it is the stored hash.
+    const before = semanticHash(
+      buildSemanticFields({ ...product, weight: parseWeight("100 бр.") }),
+    );
+    expect(before).toBe(STORED_HASH);
+    expect(product.semanticHash).not.toBe(STORED_HASH);
+    expect(buildSemanticFields(product).weight).toBe("18pc");
+  });
+
+  it("leaves a product whose two sizes agree exactly as it was", () => {
+    const product = normalizeProduct(base, OPTIONS);
+    expect(product.weight).toEqual({ raw: "1 кг.", value: "1000", unit: "g", canonical: "1000g" });
+    expect(product.weightText).toBe("1 кг.");
+    expect(product.packFieldText).toBe("1 кг.");
+    expect(product.packSizeConflict).toBeNull();
+  });
+
+  it("takes the name's size when the pack field is empty, and still keys by the path alone", () => {
+    const product = normalizeProduct({ ...base, weightText: "" }, OPTIONS);
+    expect(product.weight?.canonical).toBe("1000g");
+    expect(product.weightText).toBe("1 кг");
+    expect(product.packFieldText).toBeNull();
+    expect(product.packSizeConflict).toBeNull();
+    expect(product.sourceKey).toBe("/lavazza-super-crema/");
+  });
+
+  it("clears the conflict once the source corrects its pack field", () => {
+    const product = normalizeProduct({ ...tin, weightText: "18 бр." }, OPTIONS);
+    expect(product.packSizeConflict).toBeNull();
+    expect(product.weight?.canonical).toBe("18pc");
+    expect(product.weightText).toBe("18 бр.");
+    // The hash is of what is published, so the correction is not a change.
+    expect(product.semanticHash).toBe(normalizeProduct(tin, OPTIONS).semanticHash);
   });
 });

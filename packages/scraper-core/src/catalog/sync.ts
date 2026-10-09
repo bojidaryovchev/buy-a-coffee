@@ -772,6 +772,15 @@ function productColumns(input: {
       brandKey: product.brandKey,
       categoryKeys: product.categoryKeys,
       weightCanonical: product.weight?.canonical ?? null,
+      /*
+       * The source's own pack field, verbatim, and — when its name states
+       * another size — both sizes. Written on every run, null when there is
+       * nothing to say, so a conflict the source corrects clears itself. The
+       * admin's sync page lists the conflicts; `catalog:pack-size` reads the
+       * field to redo the decision without a crawl.
+       */
+      packField: product.packFieldText ?? null,
+      packSizeConflict: product.packSizeConflict ?? null,
       imageUrls: product.sourceImageUrls,
       identityStrategy: product.identityStrategy,
     },

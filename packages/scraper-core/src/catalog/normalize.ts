@@ -1,6 +1,8 @@
 import {
   type Money,
   type NormalizedWeight,
+  type PackSizeConflict,
+  decidePackSize,
   htmlToText,
   moneyHashToken,
   normalizeLabel,
@@ -40,8 +42,21 @@ export interface NormalizedProduct {
   readonly descriptionHtml: string | null;
   readonly descriptionText: string | null;
 
+  /**
+   * The pack size, as `decidePackSize` in `@catalog/shared` decides it: the
+   * source's pack field, unless the product's name states another size, and
+   * then the name's. Everything published — servings, price per cup, the
+   * semantic hash, the audit snapshot — reads this one. Identity does not:
+   * `sourceKey` and `sourceVariantKey` are built from the pack field as the
+   * source typed it, so a correction here never re-keys a product.
+   */
   readonly weight: NormalizedWeight | null;
+  /** `weight` as text: the source's own wording when its pack field stands. */
   readonly weightText: string | null;
+  /** The source's pack field exactly as it published it, right or wrong. */
+  readonly packFieldText: string | null;
+  /** Both sizes, when the name and the pack field disagree; null otherwise. */
+  readonly packSizeConflict: PackSizeConflict | null;
   readonly sku: string | null;
   readonly gtin: string | null;
 
@@ -191,6 +206,13 @@ export function normalizeProduct(
   const descriptionText =
     raw.descriptionText?.trim() ?? (descriptionHtml ? htmlToText(descriptionHtml) : null) ?? null;
 
+  const name = normalizeLabel(raw.name);
+  const packFieldText = raw.weightText ? normalizeLabel(raw.weightText) || null : null;
+  // Decided once, here, so that no reader downstream has to know the source
+  // can contradict itself. See `pack-size.ts` for the rule and the reason.
+  const pack = decidePackSize(name, identity.weight);
+  const fromName = pack.from === "name" && pack.named !== null;
+
   const product: NormalizedProduct = {
     sourceSite: options.sourceSite,
     sourceKey: identity.sourceKey,
@@ -200,7 +222,7 @@ export function normalizeProduct(
     identityStrategy: identity.strategy,
     hasUrlCollision: false,
 
-    name: normalizeLabel(raw.name),
+    name,
     slug: null,
 
     currentPrice,
@@ -222,8 +244,10 @@ export function normalizeProduct(
     descriptionHtml,
     descriptionText: descriptionText ? normalizeLabel(descriptionText) : null,
 
-    weight: identity.weight,
-    weightText: raw.weightText ? normalizeLabel(raw.weightText) : null,
+    weight: fromName ? pack.named : identity.weight,
+    weightText: fromName ? pack.label : packFieldText,
+    packFieldText,
+    packSizeConflict: pack.conflict,
     sku: raw.sku ? normalizeLabel(raw.sku) : null,
     gtin: raw.gtin ? normalizeLabel(raw.gtin) : null,
 
