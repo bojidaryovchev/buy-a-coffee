@@ -24,6 +24,7 @@ public pages. They drift — re-measure before relying on one.
 - [Phase G — Search, wizard and SEO](#phase-g--search-wizard-and-seo)
 - [Phase H — Hook-up and launch](#phase-h--hook-up-and-launch)
 - [Phase I — After launch](#phase-i--after-launch)
+- [Phase J — Bulgarian URLs, brand logos and search demand](#phase-j--bulgarian-urls-brand-logos-and-search-demand)
 - [Order and dependencies](#order-and-dependencies)
 - [Not doing](#not-doing)
 - [Appendix: what changed at the source](#appendix-what-changed-at-the-source)
@@ -164,21 +165,21 @@ product descriptions.
 
 None of these blocks code. Each has a default the plan assumes.
 
-| #   | Decision                                            | Default                                                                                                                                                                      |
-| --- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1  | Where product images live                           | **Vercel Blob.** Same platform as the storefront, one token. Costs a new storage driver (C2). The alternative is S3, whose driver and Terraform already exist.               |
-| Q2  | What runs the sync                                  | **A scheduled GitHub Actions workflow** (B13), with the alarm living in the storefront (B14). The alternative is the Lambda in `infra/terraform`, written and never applied. |
-| Q3  | Delivery fee, free-delivery threshold, timeframes   | Mirror what the source publishes — free above €49 — since the source fulfils the order. Values live in config (D1), not in copy. `owner`                                     |
-| Q4  | Payment methods offered                             | Cash on delivery and bank transfer. `owner`                                                                                                                                  |
-| Q5  | Who pays return shipping; the Article 57 exclusions | None — this needs a business answer and a lawyer. `owner`                                                                                                                    |
-| Q6  | Opening hours                                       | Keep `siteConfig.contact.hours` until told otherwise; the source publishes shorter hours. `owner`                                                                            |
-| Q7  | Vending Zone and Consumables                        | Content pages with an enquiry form now; products appear by themselves once the source lists them (E1).                                                                       |
-| Q8  | Brand logos and photography                         | Product packshots carry the imagery. Brand logos appear only from files we are permitted to use; text until then. `owner`                                                    |
-| Q9  | Who writes copy for new products                    | Written in the same way and under the same rules as the first 110 (B9). The generated fallback (B7) covers the gap.                                                          |
-| Q10 | Newsletter                                          | Collect and manage consent only. Sending is out of scope.                                                                                                                    |
-| Q11 | Repository visibility                               | Unchanged. Worth a deliberate yes: the repository documents the crawl and is public, and so will be the sync logs.                                                           |
-| Q12 | `infra/terraform`                                   | Keep as the documented alternative until the scheduled sync has run for 30 days, then delete.                                                                                |
-| Q13 | "Remove competitor-related texts" (workspace TODO)  | Unclear what it targets. The storefront copy contains no comparison with another shop, and `check:originality` already forbids the source's name there. Needs a pointer.     |
+| #   | Decision                                            | Default                                                                                                                                                                           |
+| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Where product images live                           | **Vercel Blob.** Same platform as the storefront, one token. Costs a new storage driver (C2). The alternative is S3, whose driver and Terraform already exist.                    |
+| Q2  | What runs the sync                                  | **A scheduled GitHub Actions workflow** (B13), with the alarm living in the storefront (B14). The alternative is the Lambda in `infra/terraform`, written and never applied.      |
+| Q3  | Delivery fee, free-delivery threshold, timeframes   | Mirror what the source publishes — free above €49 — since the source fulfils the order. Values live in config (D1), not in copy. `owner`                                          |
+| Q4  | Payment methods offered                             | Cash on delivery and bank transfer. `owner`                                                                                                                                       |
+| Q5  | Who pays return shipping; the Article 57 exclusions | None — this needs a business answer and a lawyer. `owner`                                                                                                                         |
+| Q6  | Opening hours                                       | Keep `siteConfig.contact.hours` until told otherwise; the source publishes shorter hours. `owner`                                                                                 |
+| Q7  | Vending Zone and Consumables                        | Content pages with an enquiry form now; products appear by themselves once the source lists them (E1).                                                                            |
+| Q8  | Brand logos and photography                         | Product packshots carry the imagery. Brand logos are each brand's own file from its own site, checked against the packs (J2). Four brands have none yet; text until then. `owner` |
+| Q9  | Who writes copy for new products                    | Written in the same way and under the same rules as the first 110 (B9). The generated fallback (B7) covers the gap.                                                               |
+| Q10 | Newsletter                                          | Collect and manage consent only. Sending is out of scope.                                                                                                                         |
+| Q11 | Repository visibility                               | Unchanged. Worth a deliberate yes: the repository documents the crawl and is public, and so will be the sync logs.                                                                |
+| Q12 | `infra/terraform`                                   | Keep as the documented alternative until the scheduled sync has run for 30 days, then delete.                                                                                     |
+| Q13 | "Remove competitor-related texts" (workspace TODO)  | Unclear what it targets. The storefront copy contains no comparison with another shop, and `check:originality` already forbids the source's name there. Needs a pointer.          |
 
 ## Phase A — Groundwork
 
@@ -794,8 +795,11 @@ passes.
       Send a real enquiry end to end and answer it from the panel. Confirm SPF
       and DKIM pass; move DMARC off `p=none` once reports are clean.
 - [ ] **H9 · Search engines** — verify the domain in Search Console, submit the
-      sitemap, request indexing for `/`, `/wizard`, `/wizard/machines` and
-      `/categories`. Bing Webmaster Tools. Google Business Profile.
+      sitemap, request indexing for `/bg`, `/bg/kafe-kapsuli`, `/bg/kafe-na-zarna`,
+      `/bg/izbor-na-kafe` and `/bg/za-kafemashina`; check in the URL inspection
+      tool that an old English URL answers 308. Bing Webmaster Tools. No Google
+      Business Profile: a shop that confirms by phone and ships by courier
+      does not qualify ([docs/seo.md](docs/seo.md) §14).
 - [ ] **H10 · Smoke test on production** — a product from each system opens
       with photo, price, price per cup and delivery terms; search finds a brand
       in both alphabets; the wizard completes; a quick order arrives by email
@@ -821,6 +825,78 @@ Backlog, in rough order of value:
   routinely ordering several products at once.
 - Sending the newsletter.
 - Deleting `infra/terraform` (Q12).
+
+## Phase J — Bulgarian URLs, brand logos and search demand
+
+Added on 9 October 2026, after the first three waves. The storefront's URLs were
+English while every customer is Bulgarian; every brand was plain text; and
+nobody had measured what Bulgarians search for. Like A–G, this is code and
+content only.
+
+- [ ] **J1 · Locale-prefixed routing, Bulgarian URLs · L**
+  - Every storefront URL under `/bg/`, with transliterated Bulgarian slugs
+    chosen from measured demand (`/bg/dolce-gusto-kapsuli`, `/bg/kafe-na-zarna`,
+    `/bg/marki/lavazza`, products at the first level). One table of slugs per
+    locale; `href()` builds every link; the proxy maps translated segments to
+    the route tree. English is built and switched off (`LOCALE_READY`). `/`
+    answers by `Accept-Language`, never by location. Every old English URL
+    answers 308.
+  - _Done when_ no bare path survives (`test/bare-paths.test.ts`), the sitemap
+    and `hreflang` list only shipping locales, and the browser suite passes on
+    the new URLs.
+
+- [x] **J2 · Brand logos · M**
+  - Each brand's own logo where the brand is the subject: the brand index, the
+    brand page, the home brand row, the product's brand line, the typeahead,
+    and `Brand.logo` in structured data. Files from the brand's own site, never
+    recoloured, each checked against the mark on our packshots, with the
+    provenance kept in `content/brand-logo-provenance.ts`.
+  - **Found.** 16 of 20 brands have a usable file; three (Lollo Caffè, Rema
+    Caffè, Vandino) publish only a light logo and sit on a dark tile. None was
+    found for 3 Bourbons, Este, Eurocaf or Molini. The source's owner deals
+    with these brands and may be able to ask them for files. `owner`. The
+    brands' own spellings replace the cautious ones: Lollo Caffè, Biancaffè,
+    Rema Caffè.
+
+- [x] **J3 · Market and search research · M**
+  - Measured Bulgarian demand for every format, system, brand and question
+    this shop could answer, the result pages for the commercial heads, and the
+    two shops that matter: [docs/seo.md](docs/seo.md), with the raw data in
+    `docs/seo-data/`.
+  - **Found.** Capsules carry most of the demand (about 29,000 searches a
+    month, against 5,000 for beans); the system comes first in what people
+    type; the source ranks for almost nothing, so the risk is looking like a
+    copy, not competing with it; English is 2–3 % of demand.
+
+- [ ] **J4 · Our own product names and URLs · L**
+  - Names as Bulgarians search them („Капсули за Dolce Gusto", „Кафе дози", not
+    „DG", „Дозети"); brand-first product URLs; distinct names for the two
+    products the source calls by one name; brand URLs spelled as the brand
+    spells itself. Old URLs answer 308. The owner keeps seeing the source's
+    names, which is what they order by.
+  - _Done when_ every product name a customer reads is ours, and a test parses
+    all 187 real names.
+
+- [ ] **J5 · Pages with measured demand · M**
+  - Капсули Lavazza, Кафе на зърна Lavazza, Безкофеиново кафе, Най-евтино на
+    чаша, and the Tchibo Cafissimo machine page: about 9,000 searches a month
+    the shop had no page for. Each disappears when it would be empty.
+
+- [ ] **J6 · Titles, headings and links · M**
+  - Every page's title and heading in the words its searchers use, one page per
+    query cluster, descriptions that show the price per cup and the callback,
+    breadcrumbs by format, and internal links per [docs/seo.md](docs/seo.md)
+    §13. The consumables page stays out of the index while it is empty.
+
+- [ ] **J7 · Journal · M**
+  - The capsule article retitled for „видове капсули за кафе" and moved with a
+    308; the formats article retitled; two new articles, choosing beans and
+    arabica against robusta, with every catalog figure computed.
+
+**For the runbook.** J4 adds a migration (it goes out with H3's) and one step
+to H6: after the catch-up sync and before `copy:apply`, `pnpm --filter
+@catalog/web catalog:reslug` (plan), then `--apply`. The exact sequence is
+written into H6 when J4 is merged.
 
 ## Order and dependencies
 
@@ -876,7 +952,10 @@ How the workspace TODO list maps onto this:
   violation and a lie.
 - **A price different from the source's.** `retail_price_override` stays empty
   by design.
-- **A second language.** The shop sells in Bulgaria.
+- **Shipping a second language.** The shop sells in Bulgaria. The capability is
+  built (J1) and English is switched off: Bulgarian demand is about forty times
+  the English, and half a translation would be thin duplicate content
+  ([docs/seo.md](docs/seo.md) §11).
 - **Sending bulk email.** Consent is collected properly so it can be added
   later without rework.
 
