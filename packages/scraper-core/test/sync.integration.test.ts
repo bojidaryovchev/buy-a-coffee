@@ -11,7 +11,13 @@ import {
   syncChanges,
   syncRuns,
 } from "@catalog/db/schema";
-import { silentLogger } from "@catalog/shared";
+import {
+  packServings,
+  parseWeight,
+  pricePerServing,
+  semanticHash,
+  silentLogger,
+} from "@catalog/shared";
 import { loadConfig } from "../src/config.ts";
 import { Fetcher } from "../src/fetch/fetcher.ts";
 import {
@@ -21,6 +27,7 @@ import {
   planProductLink,
 } from "../src/catalog/link.ts";
 import { runCatalogEnrich } from "../src/catalog/enrich.ts";
+import { type NormalizedProduct, buildSemanticFields } from "../src/catalog/normalize.ts";
 import { runCatalogSync } from "../src/catalog/sync.ts";
 import { formatCatalogVerifyReport, verifyCatalog } from "../src/catalog/verify.ts";
 import { LocalStorageDriver } from "../src/storage/driver.ts";
@@ -2168,5 +2175,252 @@ describeIntegration("catalog sync (integration)", () => {
         slugs: ["otherbrand-coffee-number-2-1-kg", "test-brand-coffee-number-1-1-kg"],
       },
     ]);
+  });
+
+  /* --- Pack size ---------------------------------------------------------- */
+
+  /*
+   * The one record whose name and pack field disagree, as the source lists it:
+   * 18 pods at the price of 18, with a pack field of 100. See `pack-size.ts`
+   * in `@catalog/shared` for the rule.
+   */
+  const TIN: FakeProduct = {
+    h1: "Дозети Illy Decaffeinato 18бр.",
+    url: "/illy-decaffeinato-18/",
+    price: "€9.20",
+    weight: "100 бр.",
+  };
+  const TIN_KEY = "/illy-decaffeinato-18/#100pc";
+  const withTin = (tin: FakeProduct = TIN): FakeProduct[] => [...baseCatalog(), tin];
+
+  const tinRow = async () => {
+    const [row] = await db
+      .select({
+        id: products.id,
+        slug: products.slug,
+        status: products.status,
+        sourceKey: products.sourceKey,
+        sourceVariantKey: products.sourceVariantKey,
+        previousSourceKeys: products.previousSourceKeys,
+        weight: products.weight,
+        weightValue: products.weightValue,
+        weightUnit: products.weightUnit,
+        servings: products.servings,
+        servingsEstimated: products.servingsEstimated,
+        price: products.currentPrice,
+        semanticHash: products.semanticHash,
+        sourceData: products.sourceData,
+        lastChangedAt: products.lastChangedAt,
+      })
+      .from(products)
+      .where(eq(products.sourcePath, "/illy-decaffeinato-18/"));
+    if (!row) throw new Error("the tin is not stored");
+    return { ...row, sourceData: row.sourceData as Record<string, unknown> };
+  };
+
+  /** The hash the sync stored for a product before the rule existed. */
+  const hashBeforeTheRule = (discovered: readonly NormalizedProduct[]): string => {
+    const product = discovered.find((candidate) => candidate.sourceKey === TIN_KEY);
+    if (!product) throw new Error("the tin was not discovered");
+    return semanticHash(buildSemanticFields({ ...product, weight: parseWeight("100 бр.") }));
+  };
+
+  /**
+   * Put the tin's row back to what the sync wrote before the rule existed,
+   * which is what production holds: the pack field's size in every column, no
+   * record of a conflict, and the hash of the record with that size in it.
+   */
+  async function storeAsBeforeTheRule(discovered: readonly NormalizedProduct[]): Promise<void> {
+    const {
+      packField: _field,
+      packSizeConflict: _conflict,
+      ...sourceData
+    } = (await tinRow()).sourceData;
+    await db
+      .update(products)
+      .set({
+        weight: "100 бр.",
+        weightValue: "100",
+        weightUnit: "pc",
+        servings: "100",
+        servingsEstimated: false,
+        sourceData: { ...sourceData, weightCanonical: "100pc" },
+        semanticHash: hashBeforeTheRule(discovered),
+      })
+      .where(eq(products.sourceKey, TIN_KEY));
+  }
+
+  const cupPrice = (row: {
+    price: string | null;
+    weightValue: string | null;
+    weightUnit: string | null;
+  }) => pricePerServing(row.price, packServings(row.weightValue, row.weightUnit));
+
+  it("stores the size the name states when the pack field states another", async () => {
+    const result = await sync(withTin());
+    expect(result.appliedDiff.counts.created).toBe(13);
+
+    const row = await tinRow();
+    expect(row).toMatchObject({
+      // Identity is the source's record, pack field and all.
+      sourceKey: TIN_KEY,
+      sourceVariantKey: "100pc",
+      weight: "18 бр.",
+      weightValue: "18.0000",
+      weightUnit: "pc",
+      servings: "18.0000",
+      servingsEstimated: false,
+      price: "9.20",
+    });
+    // 9,20 € over 18 pods, not over 100.
+    expect(cupPrice(row)).toBe("0.5111");
+    expect(row.slug.endsWith("-18-br")).toBe(true);
+    expect(row.sourceData).toMatchObject({
+      // What the source said, kept verbatim beside what was decided.
+      weight: "100 бр.",
+      packField: "100 бр.",
+      weightCanonical: "18pc",
+      packSizeConflict: { inName: "18 бр.", inPackField: "100 бр." },
+    });
+
+    // Every other product: the pack field stands and no conflict is recorded.
+    const others = await db
+      .select({ weight: products.weight, sourceData: products.sourceData })
+      .from(products)
+      .where(sql`${products.sourceKey} <> ${TIN_KEY}`);
+    expect(others).toHaveLength(12);
+    for (const other of others) {
+      expect(other.weight).toBe("1 кг.");
+      expect(other.sourceData).toMatchObject({ packField: "1 кг.", packSizeConflict: null });
+    }
+  });
+
+  it("corrects a product stored before the rule on the next ordinary sync, and only once", async () => {
+    const first = await sync(withTin());
+    await storeAsBeforeTheRule(first.discovery.products);
+    const stale = await tinRow();
+    expect(stale).toMatchObject({ weightValue: "100.0000", servings: "100.0000" });
+    expect(cupPrice(stale)).toBe("0.0920");
+
+    // The next sync, with nothing special about it.
+    const second = await sync(withTin());
+
+    expect(second.status).toBe("succeeded");
+    expect(second.breaker.tripped).toBe(false);
+    expect(second.appliedDiff.counts).toMatchObject({
+      created: 0,
+      updated: 1,
+      unchanged: 12,
+      moved: 0,
+      marked_missing: 0,
+      removed: 0,
+    });
+    const fixed = await tinRow();
+    expect(fixed).toMatchObject({
+      // The same row at the same address, under the same key.
+      id: stale.id,
+      slug: stale.slug,
+      sourceKey: TIN_KEY,
+      previousSourceKeys: [],
+      status: "active",
+      weight: "18 бр.",
+      weightValue: "18.0000",
+      weightUnit: "pc",
+      servings: "18.0000",
+      servingsEstimated: false,
+    });
+    expect(cupPrice(fixed)).toBe("0.5111");
+    expect(fixed.sourceData).toMatchObject({
+      weightCanonical: "18pc",
+      packField: "100 бр.",
+      packSizeConflict: { inName: "18 бр.", inPackField: "100 бр." },
+    });
+    expect(fixed.semanticHash).not.toBe(stale.semanticHash);
+    expect(fixed.lastChangedAt.getTime()).toBeGreaterThan(stale.lastChangedAt.getTime());
+
+    // Audited as what it is: the pack size changed, and nothing else did.
+    const audit = await db.select().from(syncChanges).where(eq(syncChanges.changeType, "updated"));
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({
+      productId: stale.id,
+      sourceKey: TIN_KEY,
+      changedFields: ["semanticHash", "weight"],
+    });
+    expect(audit[0]?.before).toMatchObject({ weight: "100pc" });
+    expect(audit[0]?.after).toMatchObject({ weight: "18pc" });
+
+    // And the sync after that has nothing to do.
+    const third = await sync(withTin());
+    expect(third.appliedDiff.counts).toMatchObject({
+      created: 0,
+      updated: 0,
+      unchanged: 13,
+      moved: 0,
+      marked_missing: 0,
+      removed: 0,
+    });
+    expect(await tinRow()).toEqual(fixed);
+    expect(
+      await db.select().from(syncChanges).where(eq(syncChanges.changeType, "updated")),
+    ).toHaveLength(1);
+  });
+
+  it("settles in one run when the stored row was corrected before the sync reached it", async () => {
+    // `catalog:pack-size --apply` writes the pack columns and leaves the hash
+    // to the sync, which records the product once more and then has nothing
+    // left to say.
+    const first = await sync(withTin());
+    const settled = await tinRow();
+    await db
+      .update(products)
+      .set({ semanticHash: hashBeforeTheRule(first.discovery.products) })
+      .where(eq(products.sourceKey, TIN_KEY));
+
+    const second = await sync(withTin());
+    expect(second.appliedDiff.counts).toMatchObject({ updated: 1, unchanged: 12 });
+    const [audit] = await db
+      .select()
+      .from(syncChanges)
+      .where(eq(syncChanges.changeType, "updated"));
+    expect(audit?.changedFields).toEqual(["semanticHash"]);
+    expect(await tinRow()).toMatchObject({
+      weightValue: "18.0000",
+      servings: "18.0000",
+      semanticHash: settled.semanticHash,
+    });
+
+    const third = await sync(withTin());
+    expect(third.appliedDiff.counts).toMatchObject({ updated: 0, unchanged: 13 });
+  });
+
+  it("follows the product and drops the conflict when the source corrects its pack field", async () => {
+    await sync(withTin());
+    const before = await tinRow();
+
+    const result = await sync(withTin({ ...TIN, weight: "18 бр." }));
+
+    expect(result.breaker.tripped).toBe(false);
+    expect(result.appliedDiff.counts).toMatchObject({
+      moved: 1,
+      created: 0,
+      updated: 0,
+      unchanged: 12,
+      marked_missing: 0,
+    });
+    const after = await tinRow();
+    expect(after).toMatchObject({
+      id: before.id,
+      slug: before.slug,
+      sourceKey: "/illy-decaffeinato-18/#18pc",
+      sourceVariantKey: "18pc",
+      previousSourceKeys: [TIN_KEY],
+      weight: "18 бр.",
+      weightValue: "18.0000",
+      servings: "18.0000",
+      // What is published did not change, so neither did the hash.
+      semanticHash: before.semanticHash,
+    });
+    expect(after.sourceData).toMatchObject({ packField: "18 бр.", packSizeConflict: null });
+    expect(await countProducts()).toBe(13);
   });
 });

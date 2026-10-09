@@ -1,6 +1,6 @@
 import { brandDisplayNames, productNameOverrides } from "./storefront-data.ts";
 import { normalizeLabel, slugify } from "./text.ts";
-import { parseWeight } from "./weight.ts";
+import { type PackSizeConflict, TRAILING_QUANTITY, decidePackSize } from "./pack-size.ts";
 
 /**
  * A product's name, as this shop writes it.
@@ -20,10 +20,11 @@ import { parseWeight } from "./weight.ts";
  *     "Oro", "Crema e Aroma";
  *   - **format**: the phrase people search for the product's kind, chosen by
  *     the category the product is filed under, never by its name;
- *   - **quantity**: the parsed pack size. The name is read for a size only
- *     to catch the supplier contradicting itself: where the name states one
- *     size and the pack field another, the name's is the product's (see
- *     `packConflict`).
+ *   - **quantity**: the pack size, as `decidePackSize` (`pack-size.ts`)
+ *     decides it: the pack field's, unless the name states another, and then
+ *     the name's. The sync stores a size decided by the same function, so a
+ *     stored product never arrives here in conflict; a record that has not
+ *     been through the sync is settled here, by the same rule.
  *
  * The supplier's name is still stored untouched (`products.name`). It is what
  * the owner orders by, so the admin pages and the order mail keep it, and
@@ -91,12 +92,13 @@ export interface ProductName {
   readonly format: ProductFormat | null;
   readonly quantity: ProductQuantity | null;
   /**
-   * Set when the supplier's name states one pack size and its pack-size field
-   * another: both, as the shop would write them. `quantity` is then the
-   * name's. Null for every product whose two sizes agree, and for one that
-   * states only one of them.
+   * Set when the supplier's name states one pack size and the pack size
+   * passed in is another: both, as the shop would write them. `quantity` is
+   * then the name's. Null for every product whose two sizes agree, for one
+   * that states only one of them, and for every stored product, whose pack
+   * size the sync has already settled.
    */
-  readonly packConflict: { readonly inName: string; readonly inPackField: string } | null;
+  readonly packConflict: PackSizeConflict | null;
   /** The heading: "Lavazza Super Crema". */
   readonly title: string;
   /** The line under the heading: "Кафе на зърна, 1 кг". Null when neither part is known. */
@@ -313,9 +315,6 @@ export function brandDisplayName(brand: {
 /** What the supplier opens a name with to say what kind of thing it is. */
 const FORMAT_WORDS = /^(?:кафе\s+на\s+зърна|кафе\s+капсули|кафе\s+дози|капсули|дозети|дози)\s+/iu;
 
-/** A pack size at the end of a name: "16 бр.", "100бр.", "0.500кг.", "1кг.". */
-const TRAILING_QUANTITY = /\s*\d+(?:[.,]\d+)?\s*(?:кг|гр|г|мл|л|бр|kg|g|ml|l|pcs|pc)\.?$/iu;
-
 const CYRILLIC = /\p{Script=Cyrillic}/u;
 
 /** Italian connectives the supplier capitalises and the brands do not. */
@@ -405,59 +404,6 @@ function parseLine(
   return { line, inferredBrand };
 }
 
-/* --- Quantity ----------------------------------------------------------- */
-
-/** Bulgarian writes a decimal comma: „1,5 кг“. At most three decimals. */
-function formatNumber(value: number): string {
-  return String(Math.round(value * 1000) / 1000).replace(".", ",");
-}
-
-/**
- * The pack size as the shop writes it beside a name: „1 кг“, „250 г“,
- * „16 бр.“. Null for anything that is not a positive quantity in a known
- * unit, and for a fractional piece count, which is a parsing accident.
- */
-export function packQuantityLabel(
-  value: string | number | null | undefined,
-  unit: string | null | undefined,
-): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  const quantity = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(quantity) || quantity <= 0) return null;
-  switch (unit) {
-    case "g":
-      return quantity >= 1000
-        ? `${formatNumber(quantity / 1000)} кг`
-        : `${formatNumber(quantity)} г`;
-    case "ml":
-      return quantity >= 1000
-        ? `${formatNumber(quantity / 1000)} л`
-        : `${formatNumber(quantity)} мл`;
-    case "pc":
-      return Number.isInteger(quantity) ? `${quantity} бр.` : null;
-    default:
-      return null;
-  }
-}
-
-/**
- * The pack size the supplier's name ends with, as the shop writes it, or null
- * when the name states none.
- *
- * Read only to be compared with the parsed pack field. The two are typed
- * separately at the source, and one tin of 18 pods is recorded there as
- * "100 бр." at the price of 18. A name is what the supplier's customers see
- * and complain about, so when the two disagree the name is the one that has
- * been checked; and a name and a URL are frozen once published, so they must
- * not carry the wrong one. The price per cup still follows the stored pack
- * size: correcting that is the catalog's job, not the name's.
- */
-function quantityInName(sourceName: string): string | null {
-  const stated = normalizeLabel(sourceName).match(TRAILING_QUANTITY)?.[0];
-  const parsed = stated ? parseWeight(stated) : null;
-  return parsed ? packQuantityLabel(parsed.value, parsed.unit) : null;
-}
-
 /* --- The name ----------------------------------------------------------- */
 
 function lowerFirst(text: string): string {
@@ -499,15 +445,13 @@ export function productName(input: ProductNameInput): ProductName {
       }
     : null;
 
-  const inPackField = packQuantityLabel(input.packValue, input.packUnit);
-  const inName = quantityInName(input.sourceName);
-  const packConflict =
-    inName !== null && inPackField !== null && inName !== inPackField
-      ? { inName, inPackField }
-      : null;
-  // The parsed pack size, unless the name contradicts it; the name's own when
-  // nothing was parsed at all.
-  const quantityLabel = packConflict ? packConflict.inName : (inPackField ?? inName);
+  // The pack size is decided in one place, for the page and the sync alike.
+  const pack = decidePackSize(input.sourceName, {
+    value: input.packValue,
+    unit: input.packUnit,
+  });
+  const packConflict = pack.conflict;
+  const quantityLabel = pack.label;
   const quantity: ProductQuantity | null = quantityLabel
     ? { label: quantityLabel, slug: slugify(quantityLabel) }
     : null;

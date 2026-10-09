@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { packQuantityLabel, productName, type ProductNameInput } from "../src/product-name.ts";
+import { decidePackSize, packQuantityLabel } from "../src/pack-size.ts";
+import { productName, type ProductNameInput } from "../src/product-name.ts";
 import { planProductSlugs } from "../src/product-slug.ts";
 import { RESERVED_PRODUCT_SLUGS, productNameOverrides } from "../src/storefront-data.ts";
 import fixture from "./fixtures/product-names.json" with { type: "json" };
@@ -95,33 +96,44 @@ describe("productName over the whole catalog", () => {
   });
 
   /*
-   * Products whose name states one pack size and whose pack-size field states
-   * another, by source key. The name's size is the one published. Each entry
-   * is a mistake in the supplier's record that someone has looked at; a
-   * product that starts to disagree fails here until it is looked at too.
+   * No list of known conflicts gates this suite, on purpose. There used to be
+   * one, and a product that started to disagree failed here until someone
+   * added it. But a conflict is the supplier's mistake and arrives with a
+   * sync, which no test runs before: a list in a test cannot stop it being
+   * published, it can only fail the next unrelated build. So what is tested is
+   * the rule — every conflict, on whichever product, publishes the name's
+   * size — and the conflicts themselves are data: the sync stores both sizes
+   * on the product, and the admin's sync page shows them to the owner
+   * (`pack-size.ts`).
    */
-  const KNOWN_PACK_CONFLICTS: Readonly<Record<string, { inName: string; inPackField: string }>> = {
-    // An 18-pod tin, priced as one (9,20 €, as the 18-pod illy Classico),
-    // recorded with a pack size of 100.
-    "/illy-decaffeinato-18/#100pc": { inName: "18 бр.", inPackField: "100 бр." },
-  };
-
-  it("takes the size from the pack field, which agrees with the name for every product but the known ones", () => {
-    const conflicts = Object.fromEntries(
-      records.flatMap((record) => {
-        const { packConflict } = productName(record);
-        return packConflict ? [[record.sourceKey, packConflict] as const] : [];
-      }),
-    );
-    expect(conflicts).toEqual(KNOWN_PACK_CONFLICTS);
+  it("gives every product a size: the name's wherever the pack field states another", () => {
     for (const record of records) {
       const name = productName(record);
       // Every product states its size in its name, and has one to show.
       expect(name.quantity, record.sourceName).not.toBeNull();
-      if (!name.packConflict) {
-        expect(name.quantity?.label).toBe(packQuantityLabel(record.packValue, record.packUnit));
-      }
+      expect(name.quantity?.label).toBe(
+        name.packConflict
+          ? name.packConflict.inName
+          : packQuantityLabel(record.packValue, record.packUnit),
+      );
+      expect(name.packConflict).toEqual(
+        decidePackSize(record.sourceName, { value: record.packValue, unit: record.packUnit })
+          .conflict,
+      );
     }
+  });
+
+  it("finds the one conflict in the catalog as the supplier published it", () => {
+    // An 18-pod tin, priced as one (9,20 €, as the 18-pod illy Classico),
+    // recorded with a pack size of 100. This describes a frozen fixture: it
+    // cannot start failing because the supplier makes another mistake.
+    const conflicts = records.flatMap((record) => {
+      const { packConflict } = productName(record);
+      return packConflict ? [[record.sourceKey, packConflict] as const] : [];
+    });
+    expect(conflicts).toEqual([
+      ["/illy-decaffeinato-18/#100pc", { inName: "18 бр.", inPackField: "100 бр." }],
+    ]);
   });
 
   it("publishes the size in the name where the two disagree", () => {

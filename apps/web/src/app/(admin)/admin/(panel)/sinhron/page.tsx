@@ -5,6 +5,7 @@ import { productHref } from "@/lib/routes";
 import {
   getSyncRun,
   lastSuccessfulSync,
+  listPackSizeConflicts,
   listSyncChanges,
   listSyncRuns,
   productsWithoutOwnCopy,
@@ -18,6 +19,7 @@ import {
   isManualLink,
   optionalCount,
   presentRunCounts,
+  productCount,
   runStatusLabel,
 } from "@/lib/sync-display";
 import {
@@ -64,10 +66,11 @@ export default async function AdminSyncPage({
   const requestedId = typeof requested === "string" && UUID.test(requested) ? requested : null;
 
   const now = new Date();
-  const [runs, lastGood, withoutCopy] = await Promise.all([
+  const [runs, lastGood, withoutCopy, packConflicts] = await Promise.all([
     listSyncRuns(20),
     lastSuccessfulSync(),
     productsWithoutOwnCopy(),
+    listPackSizeConflicts(),
   ]);
 
   /* A run outside the twenty shown can still be opened by id; the default is the
@@ -142,7 +145,25 @@ export default async function AdminSyncPage({
             </p>
           </div>
         ) : (
-          !stale && <p className="mt-3 text-sm text-ink-500">Нищо за отбелязване.</p>
+          !stale &&
+          packConflicts.length === 0 && (
+            <p className="mt-3 text-sm text-ink-500">Нищо за отбелязване.</p>
+          )
+        )}
+
+        {/* Not a fault of the sync, so not among the problems above and never
+            mailed; but it is a mistake only the source can correct, and this
+            box is where the owner looks first. */}
+        {packConflicts.length > 0 && (
+          <p className="mt-4 text-sm text-ink-700">
+            <span className="font-semibold text-ink-900">Грешка в данните при източника.</span> За{" "}
+            {productCount(packConflicts.length)} източникът посочва един размер на опаковката в
+            името и друг в полето за тегло. Вижте{" "}
+            <a href="#razmer" className="text-pine-700 underline">
+              „Разминаване в размера на опаковката“
+            </a>{" "}
+            по-долу.
+          </p>
         )}
       </section>
 
@@ -357,6 +378,59 @@ export default async function AdminSyncPage({
         )}
       </section>
 
+      {packConflicts.length > 0 && (
+        <section aria-labelledby="sync-pack" id="razmer" className="mt-10 scroll-mt-6">
+          <h2 id="sync-pack" className="font-display text-xl font-semibold text-ink-900">
+            Разминаване в размера на опаковката
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink-700">
+            За тези продукти източникът посочва един размер в името и друг в полето за тегло. Сайтът
+            показва размера от името и смята цената на чаша по него. Записът може да се поправи само
+            при източника.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-md border border-line bg-paper-raised">
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <caption className="sr-only">
+                Продукти с различен размер на опаковката в името и в полето за тегло при източника
+              </caption>
+              <thead className="border-b border-line text-ink-500">
+                <tr>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    Продукт (име при източника)
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    В името
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    В полето за тегло
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    На сайта
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {packConflicts.map((p) => (
+                  <tr key={p.id} className="border-b border-line last:border-0">
+                    <td className="px-3 py-2">
+                      <Link
+                        href={productHref(DEFAULT_LOCALE, p)}
+                        className="text-pine-700 underline"
+                      >
+                        {p.name}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">{p.inName}</td>
+                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">{p.inPackField}</td>
+                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">{p.inName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="sync-copy" className="mt-10">
         <h2 id="sync-copy" className="font-display text-xl font-semibold text-ink-900">
           Продукти без собствено описание
@@ -412,6 +486,19 @@ export default async function AdminSyncPage({
               изчезнали и синхронизацията се държи на резервния разчитач. Възстановете образците
               (fixtures), пуснете тестовете на разчитача, за да видите какво точно се е променило, и
               поправете разчитача — не теста.
+            </dd>
+          </div>
+          <div className="rounded-md border border-line bg-paper-raised p-4">
+            <dt className="font-semibold text-ink-900">
+              Размерът в името и в полето за тегло не съвпадат
+            </dt>
+            <dd className="mt-1 text-sm leading-relaxed text-ink-700">
+              Каталогът не е засегнат: при разминаване сайтът взима размера от името на продукта,
+              защото него виждат и клиентите на източника, и по него смята цената на чаша. Съобщете
+              на източника кой продукт е и кои са двата размера — те са в таблицата „Разминаване в
+              размера на опаковката“. Щом поправят записа, следващата синхронизация сама маха реда
+              оттам. Ако верният размер се окаже този от полето, а не от името, кажете го на
+              поддръжката на сайта, преди да промените нещо.
             </dd>
           </div>
           <div className="rounded-md border border-line bg-paper-raised p-4">

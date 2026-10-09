@@ -78,6 +78,8 @@ export function fixtureAsDiscovered(record: CatalogFixtureProduct): NormalizedPr
       ? { raw: record.pack, value: "0", unit: "g", canonical: record.pack }
       : null,
     weightText: record.pack,
+    packFieldText: record.pack,
+    packSizeConflict: null,
     sku: record.sku,
     gtin: null,
     attributes: {},

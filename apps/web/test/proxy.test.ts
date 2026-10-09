@@ -184,6 +184,15 @@ describe("the pre-locale URLs", () => {
     expect(location(response)).toBe(target);
   });
 
+  it("answers an old journal address with the article's current one, in one hop", async () => {
+    const { getMovedArticle, listPreviousSlugs } = await import("@/lib/journal");
+    const [former] = listPreviousSlugs();
+    expect(former).toBeTruthy();
+    const response = await proxy(request(`/journal/${former}?utm_source=mail`));
+    expect(response.status).toBe(308);
+    expect(location(response)).toBe(`/bg/blog/${getMovedArticle(former)?.slug}?utm_source=mail`);
+  });
+
   it("passes an old category URL on to the route handler that knows the catalog", async () => {
     expect(passesThrough(await proxy(request("/categories/kapsuli")))).toBe(true);
   });

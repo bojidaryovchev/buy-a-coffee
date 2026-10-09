@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { SEEDED_FORMER_SLUGS } from "../scripts/reference-former-slugs";
 
 /**
  * A product's and a brand's identity on this site, as a crawler and a customer
@@ -11,36 +12,25 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
  * proxy rewrites a slug the catalog does not know to the 404 before any page
  * runs, so an old slug that is missing from what it knows fails here.
  *
- * The seeded catalog is the reference snapshot, moved by the same code as
- * `catalog:reslug` (`scripts/reference-seed.ts`), so each product has the slug
- * it was exported with in `previous_slugs`.
+ * The old addresses asked for here are ones the seed gives these products on
+ * purpose (`scripts/reference-former-slugs.ts`), so the redirects have
+ * something to redirect whether the committed snapshot was exported before
+ * products moved to the shop's own slugs or after.
  */
 
 /** One Dolce Gusto capsule, by the slug the supplier's wording gave it and by ours. */
 const CAPSULE = {
-  former: "kapsuli-dg-borbone-crema-classica-16-br",
-  slug: "borbone-crema-classica-kapsuli-dolce-gusto-16-br",
+  ...SEEDED_FORMER_SLUGS.capsule,
   title: "Borbone Crema Classica",
   detail: "Капсули за Dolce Gusto, 16 бр.",
   name: "Borbone Crema Classica — капсули за Dolce Gusto, 16 бр.",
 };
 
 /** One bag of beans, and the two bags the supplier gives one name. */
-const BEANS = {
-  former: "kafe-na-zarna-lavazza-super-crema-1kg",
-  slug: "lavazza-super-crema-kafe-na-zarna-1-kg",
-};
+const BEANS = SEEDED_FORMER_SLUGS.beans;
 const CREMA_E_AROMA = [
-  {
-    former: "kafe-na-zarna-lavazza-crema-e-aroma-1kg-1000g",
-    slug: "lavazza-crema-e-aroma-kafe-na-zarna-1-kg",
-    title: "Lavazza Crema e Aroma",
-  },
-  {
-    former: "kafe-na-zarna-lavazza-crema-e-aroma-1kg",
-    slug: "lavazza-crema-e-aroma-expert-kafe-na-zarna-1-kg",
-    title: "Lavazza Crema e Aroma Expert",
-  },
+  { ...SEEDED_FORMER_SLUGS.cremaEAroma, title: "Lavazza Crema e Aroma" },
+  { ...SEEDED_FORMER_SLUGS.cremaEAromaExpert, title: "Lavazza Crema e Aroma Expert" },
 ];
 
 /** A GET that does not follow redirects. */

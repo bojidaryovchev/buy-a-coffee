@@ -4,6 +4,7 @@ import {
   formatAgo,
   formatDuration,
   optionalCount,
+  productCount,
   runStatusLabel,
 } from "@/lib/sync-display";
 
@@ -49,5 +50,15 @@ describe("optionalCount", () => {
     expect(optionalCount({ movedCount: 3 }, "movedCount")).toBe(3);
     expect(optionalCount({}, "movedCount")).toBeNull();
     expect(optionalCount({ movedCount: "3" }, "movedCount")).toBeNull();
+  });
+});
+
+describe("productCount", () => {
+  it.each([
+    [1, "1 продукт"],
+    [2, "2 продукта"],
+    [21, "21 продукта"],
+  ])("%i -> %s", (n, expected) => {
+    expect(productCount(n)).toBe(expected);
   });
 });

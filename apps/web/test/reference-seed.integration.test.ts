@@ -14,10 +14,12 @@ import {
 } from "@catalog/db/schema";
 import { productCopy } from "../content/product-copy";
 import { SOURCE_PATTERNS } from "../e2e/support/source-patterns";
+import { SEEDED_FORMER_SLUGS } from "../scripts/reference-former-slugs";
 import {
   REFERENCE_SOURCE_KEY,
   type ReferenceSnapshotData,
   loadSnapshot,
+  seedFormerSlugs,
   seedReference,
 } from "../scripts/reference-seed";
 import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
@@ -172,6 +174,58 @@ describeIntegration("seed:reference (integration)", () => {
     });
     expect(Number(row?.servings)).toBeGreaterThan(70);
     expect(row?.brandId).not.toBeNull();
+  });
+
+  it("stores the pack size the name states where the supplier's pack field states another", async () => {
+    // The snapshot is the supplier's record: an 18-pod tin with a pack field
+    // of 100. The seed decides by the rule the sync decides by.
+    const listed = snapshot.products.find(
+      (product) => product.sourceKey === "/illy-decaffeinato-18/#100pc",
+    );
+    expect(listed).toMatchObject({ name: "Дозети Illy Decaffeinato 18бр.", weight: "100 бр." });
+
+    const [row] = await db
+      .select()
+      .from(products)
+      .where(eq(products.sourceKey, "/illy-decaffeinato-18/#100pc"));
+    expect(row).toMatchObject({
+      slug: "illy-decaffeinato-kafe-dozi-18-br",
+      currentPrice: "9.20",
+      weight: "18 бр.",
+      weightValue: "18.0000",
+      weightUnit: "pc",
+      servings: "18.0000",
+      servingsEstimated: false,
+    });
+    expect(row?.sourceData).toMatchObject({
+      weightCanonical: "18pc",
+      packField: "100 бр.",
+      packSizeConflict: { inName: "18 бр.", inPackField: "100 бр." },
+    });
+
+    // It is the only one, and every other product keeps its pack field.
+    const conflicting = await db
+      .select({ sourceKey: products.sourceKey })
+      .from(products)
+      .where(sql`${products.sourceData}->'packSizeConflict' <> 'null'::jsonb`);
+    expect(conflicting).toEqual([{ sourceKey: "/illy-decaffeinato-18/#100pc" }]);
+    const bySourceKey = new Map(snapshot.products.map((product) => [product.sourceKey, product]));
+    for (const stored of await db
+      .select({ sourceKey: products.sourceKey, weight: products.weight })
+      .from(products)) {
+      if (stored.sourceKey === "/illy-decaffeinato-18/#100pc") continue;
+      expect(stored.weight, stored.sourceKey).toBe(bySourceKey.get(stored.sourceKey)?.weight);
+    }
+  });
+
+  it("gives each product the redirect tests name the old address they ask for", async () => {
+    for (const { slug, former } of Object.values(SEEDED_FORMER_SLUGS)) {
+      const [row] = await db
+        .select({ previousSlugs: products.previousSlugs })
+        .from(products)
+        .where(eq(products.slug, slug));
+      expect(row?.previousSlugs, slug).toContain(former);
+    }
   });
 
   it("publishes our copy into the override columns, and leaves the source columns alone", async () => {
@@ -336,5 +390,71 @@ describeIntegration("seed:reference (integration)", () => {
     expect(summary.created).toBe(true);
     expect((await counts()).links).toBeGreaterThan(0);
     expect(await db.select().from(productCategories).limit(1)).toHaveLength(1);
+  });
+
+  it("still gives them from a snapshot exported after the products moved", async () => {
+    // What `reference:export` will write next: every product at the slug it
+    // has now. The seed's reslug then moves nothing, and the old addresses the
+    // redirect tests ask for exist only because the seed writes them.
+    const current = new Map(
+      (await db.select({ sourceKey: products.sourceKey, slug: products.slug }).from(products)).map(
+        (row) => [row.sourceKey, row.slug],
+      ),
+    );
+    const exportedLater: ReferenceSnapshotData = {
+      ...snapshot,
+      products: snapshot.products.map((product) => ({
+        ...product,
+        slug: current.get(product.sourceKey) ?? product.slug,
+      })),
+    };
+    expect(exportedLater.products.filter((product) => product.slug !== null)).toHaveLength(
+      SNAPSHOT.products,
+    );
+    await db.execute(
+      sql`truncate table product_images, product_categories, products, brands, categories, source_sites cascade`,
+    );
+
+    await seedReference(db, { snapshot: exportedLater, copy: productCopy, storageDir: storage });
+
+    const deliberate = Object.values(SEEDED_FORMER_SLUGS);
+    const withHistory = await db
+      .select({ slug: products.slug, previousSlugs: products.previousSlugs })
+      .from(products)
+      .where(sql`cardinality(${products.previousSlugs}) > 0`)
+      .orderBy(products.slug);
+    expect(withHistory).toEqual(
+      deliberate
+        .map(({ slug, former }) => ({ slug, previousSlugs: [former] }))
+        .sort((a, b) => a.slug.localeCompare(b.slug)),
+    );
+
+    // And a second run adds none of them twice.
+    await seedReference(db, { snapshot: exportedLater, copy: productCopy, storageDir: storage });
+    expect(
+      await db
+        .select({ slug: products.slug, previousSlugs: products.previousSlugs })
+        .from(products)
+        .where(sql`cardinality(${products.previousSlugs}) > 0`)
+        .orderBy(products.slug),
+    ).toEqual(withHistory);
+  });
+
+  it("refuses to plant an old address on a product that is not there, or over a live one", async () => {
+    const [site] = await db
+      .select({ id: sourceSites.id })
+      .from(sourceSites)
+      .where(eq(sourceSites.key, REFERENCE_SOURCE_KEY));
+    await expect(
+      seedFormerSlugs(db, site!.id, [{ slug: "no-such-product-1-kg", former: "an-old-address" }]),
+    ).rejects.toThrow(/no seeded product is at "no-such-product-1-kg"/);
+    await expect(
+      seedFormerSlugs(db, site!.id, [
+        {
+          slug: SEEDED_FORMER_SLUGS.beans.slug,
+          former: SEEDED_FORMER_SLUGS.capsule.slug,
+        },
+      ]),
+    ).rejects.toThrow(/is the current address of a seeded product/);
   });
 });

@@ -49,10 +49,11 @@ import {
   products,
   sourceSites,
 } from "@catalog/db/schema";
-import { packServings, parseWeight } from "@catalog/shared";
 import type { ProductCopy } from "../content/product-copy.ts";
+import { plannedPackColumns } from "./catalog-pack-size-lib.ts";
 import { applyReslug, planReslug } from "./catalog-reslug-lib.ts";
 import { publishProductCopy } from "./product-copy-publish.ts";
+import { type FormerSlug, SEEDED_FORMER_SLUGS } from "./reference-former-slugs.ts";
 
 /** The one source site every seeded row belongs to. */
 export const REFERENCE_SOURCE_KEY = "reference-snapshot";
@@ -325,6 +326,51 @@ export function imageKeyFor(bytes: Uint8Array): { key: string; hash: string } {
   return { key: `catalog/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.png`, hash };
 }
 
+/* --- Former slugs -------------------------------------------------------- */
+
+/**
+ * Give each listed product the slug it is said to have had, unless it has it
+ * already. See `reference-former-slugs.ts` for why this is deliberate.
+ *
+ * Throws when a listed product is not in the seeded catalog, or when the
+ * former slug is some product's current address: either would leave a
+ * redirect test asking for something that cannot redirect, and it is better
+ * to learn that here than from a 404 in a browser test.
+ */
+export async function seedFormerSlugs(
+  db: Database,
+  sourceSiteId: string,
+  formerSlugs: readonly FormerSlug[],
+): Promise<number> {
+  let written = 0;
+  for (const { slug, former } of formerSlugs) {
+    const [taken] = await db
+      .select({ slug: products.slug })
+      .from(products)
+      .where(and(eq(products.sourceSiteId, sourceSiteId), eq(products.slug, former)));
+    if (taken) {
+      throw new Error(`former slug "${former}" is the current address of a seeded product`);
+    }
+    const [product] = await db
+      .select({ id: products.id, previousSlugs: products.previousSlugs })
+      .from(products)
+      .where(and(eq(products.sourceSiteId, sourceSiteId), eq(products.slug, slug)));
+    if (!product) {
+      throw new Error(
+        `no seeded product is at "${slug}", which the redirect tests expect "${former}" to lead to; ` +
+          "update scripts/reference-former-slugs.ts to a product the snapshot still lists",
+      );
+    }
+    if (product.previousSlugs.includes(former)) continue;
+    await db
+      .update(products)
+      .set({ previousSlugs: [...product.previousSlugs, former] })
+      .where(eq(products.id, product.id));
+    written += 1;
+  }
+  return written;
+}
+
 /* --- The load ------------------------------------------------------------ */
 
 export interface SeedSummary {
@@ -429,8 +475,13 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
     if (!product.slug)
       throw new Error(`product "${product.sourceKey}" has no slug in the snapshot`);
     const id = deterministicId("product", product.sourceKey);
-    const weight = parseWeight(product.weight);
-    const servings = packServings(weight?.value ?? null, weight?.unit ?? null);
+    /*
+     * The pack size by the rule the sync stores it by (`pack-size.ts` in
+     * `@catalog/shared`): a snapshot exported before the rule still carries
+     * the supplier's pack field where the product's name states another size,
+     * and the seeded catalog must show what a synced one shows.
+     */
+    const pack = plannedPackColumns(product.name, product.weight);
     const values = {
       sourceUrl: `https://${REFERENCE_HOST}${product.sourcePath}`,
       sourcePath: product.sourcePath,
@@ -443,11 +494,11 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
       availability: product.availability,
       brandId: product.brandKey ? (brandIds.get(product.brandKey) ?? null) : null,
       descriptionText: product.descriptionText,
-      weight: product.weight,
-      weightValue: weight?.value ?? null,
-      weightUnit: weight?.unit ?? null,
-      servings: servings?.exact ?? null,
-      servingsEstimated: servings?.estimated ?? null,
+      weight: pack.weight,
+      weightValue: pack.weightValue,
+      weightUnit: pack.weightUnit,
+      servings: pack.servings,
+      servingsEstimated: pack.servingsEstimated,
       sku: product.sku,
       gtin: product.gtin,
       attributes: { ...product.attributes },
@@ -455,7 +506,9 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
         seededFrom: "reference-snapshot",
         brandKey: product.brandKey,
         categoryKeys: product.categoryKeys,
-        weightCanonical: weight?.canonical ?? null,
+        weightCanonical: pack.weightCanonical,
+        packField: product.weight,
+        packSizeConflict: pack.conflict,
         // Deliberately empty: the snapshot's image addresses are not stored.
         imageUrls: [],
         identityStrategy: product.identityStrategy,
@@ -555,11 +608,13 @@ export async function seedReference(db: Database, options: SeedOptions): Promise
    * exported. One exported before products moved to the shop's own slugs still
    * says `kapsuli-dg-…`, so the seed then makes the same move production makes
    * (`catalog:reslug`), by the same code: the seeded catalog has the new slugs
-   * our copy is keyed by, and the old ones in `previous_slugs`, which is what
-   * lets the redirect tests ask for a real old address. A snapshot exported
-   * after the move leaves nothing to move, and only the search names are set.
+   * our copy is keyed by, and the old ones in `previous_slugs`. A snapshot
+   * exported after the move leaves nothing to move, and only the search names
+   * are set.
    */
   await applyReslug(db, await planReslug(db, { sourceSiteId: siteId }));
+  // And the ones the redirect tests ask for, which must not depend on that.
+  await seedFormerSlugs(db, siteId, Object.values(SEEDED_FORMER_SLUGS));
 
   // Our written copy, by the same rule `copy:apply` uses.
   const seeded = await db
