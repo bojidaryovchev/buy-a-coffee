@@ -1113,11 +1113,12 @@ what a logo on paper does. `test/brand-logo.test.ts` checks the rule and runs
 every logo in the catalogue through every box.
 
 **Legibility.** Some files are lockups whose name is a thin line under an
-emblem (Bianchi, Lollo Caffè, Vandino). Each such file records a `minHeight`,
-judged by eye at 1x: the smallest height at which its name can still be read.
-A placement whose box would draw the logo below that shows the name in text
-instead. Today that is the product line for those three brands, and their
-typeahead rows.
+emblem (Bianchi, Lollo Caffè, Vandino), a brushed script under a large numeral
+(3 Bourbons), or a pale gold name that fades at small sizes (Este). Each such
+file records a `minHeight`, judged by eye at 1x: the smallest height at which
+its name can still be read. A placement whose box would draw the logo below
+that shows the name in text instead. Today that is the product line for those
+five brands, and their typeahead rows.
 
 **Grounds.** Most logos are drawn for light grounds and sit on the page's own
 paper or a white tile. A logo the brand publishes only in white — Lollo Caffè,
@@ -1125,13 +1126,15 @@ Rema Caffè — sits on what it was made for, a dark tile in `ink-900`, the dark
 neutral; Rema's black pods agree, and Lollo's packs change colour by blend, so
 no single colour of theirs is the brand's ground. Vandino's only logo is gold
 drawn for a dark-green pack, about 2.1:1 on white, under the 3:1 a graphic
-needs, so it sits on the same tile. The logo's own white on `ink-900` measures
+needs, so it sits on the same tile. Este's gold is about 2.6:1 on white too,
+but every letter carries a near-black shadow and "COFFEE" is near-black, which
+a dark tile would swallow, so Este sits on paper. The logo's own white on `ink-900` measures
 17.36:1 (see the contrast table). Self-contained marks that carry their own
 fill (illy's and Julius Meinl's red squares, the Vergnano roundel) sit on paper
 as they are.
 
-**Text fallback.** A brand with no logo — none found (3 Bourbons, Este, Eurocaf,
-Molini, each with the reason recorded), or one the sync added after the file
+**Text fallback.** A brand with no logo — none found (Eurocaf, Molini, each
+with the reason recorded), or one the sync added after the file
 was written — shows its display name in the same box: `font-display
 font-semibold text-ink-700`, `text-lg` in a tile, clamped to two lines, centred.
 A row of tiles stays even. Where the name is already printed next to the logo

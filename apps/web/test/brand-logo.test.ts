@@ -65,14 +65,9 @@ function intrinsicSize(file: string): { width: number; height: number } {
 describe("brand logos: the data file", () => {
   const entries = Object.entries(brandLogos);
 
-  it("holds sixteen logos and four recorded absences", () => {
-    expect(entries).toHaveLength(16);
-    expect(Object.keys(brandsWithoutLogo).sort()).toEqual([
-      "3-bourbons",
-      "este",
-      "eurocaf",
-      "molini",
-    ]);
+  it("holds eighteen logos and two recorded absences", () => {
+    expect(entries).toHaveLength(18);
+    expect(Object.keys(brandsWithoutLogo).sort()).toEqual(["eurocaf", "molini"]);
   });
 
   it("serves every logo from our own origin, from a file that exists, named by its key", () => {
@@ -101,9 +96,10 @@ describe("brand logos: the data file", () => {
 
   it("records complete provenance for every logo", () => {
     for (const [key, provenance] of Object.entries(brandLogoProvenance)) {
-      expect(["official-site", "official-press-kit", "wikimedia"], key).toContain(
-        provenance.sourceType,
-      );
+      expect(
+        ["official-site", "official-press-kit", "owner-company", "official-social", "wikimedia"],
+        key,
+      ).toContain(provenance.sourceType);
       expect(provenance.sourcePage, key).toMatch(/^https:\/\/\S+$/);
       expect(provenance.assetUrl, key).toMatch(/^https:\/\/\S+$/);
       expect(provenance.retrievedAt, key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -235,7 +231,7 @@ describe("brand logos: legibility", () => {
 
   it("gives up on a logo whose name would be too small to read, and only then", () => {
     // Stacked lockups whose name is a thin line under an emblem.
-    for (const key of ["bianchi", "lollocafe", "vandino"]) {
+    for (const key of ["bianchi", "lollocafe", "vandino", "3-bourbons", "este"]) {
       expect(legibleBrandLogo(key, "line"), key).toBeNull();
     }
     for (const key of ["lavazza", "illy", "rema-caffe", "kimbo", "vergnano"]) {

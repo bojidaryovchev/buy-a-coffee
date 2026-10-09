@@ -4,8 +4,10 @@
  * A logo is a brand's trademark. We show it for one reason: to identify the
  * genuine product the shop sells, on the pages where the brand itself is the
  * subject (DESIGN.md, "Brand logo"). So every file in `public/brand-logos/` is the
- * brand's own, taken unmodified from the brand's own website, and checked
- * against the mark printed on the packs in our product photographs. The
+ * brand's own, published by the brand itself — its website, the website of
+ * the company that owns the label, or the brand's own social media page —
+ * and checked against the mark printed on the packs in our product
+ * photographs. Each record says what, if anything, was done to the file. The
  * record of that check is kept here, because "may we show this?" is a
  * question somebody will ask again, and the answer should not depend on
  * anybody's memory.
@@ -25,9 +27,26 @@
  * record a logo.
  */
 
+/**
+ * Where a logo was found, in the order a source is preferred:
+ *
+ *  - `official-site` / `official-press-kit`: the brand's own website;
+ *  - `owner-company`: the website of the company that owns the label (for a
+ *    house brand with no site of its own), with the ownership recorded in
+ *    `note`;
+ *  - `official-social`: the brand's own social media page (its profile
+ *    picture or its own post);
+ *  - `wikimedia`: Wikimedia Commons.
+ *
+ * Logo libraries and other retailers' copies are a last resort that no
+ * record uses today.
+ */
+export type BrandLogoSourceType =
+  "official-site" | "official-press-kit" | "owner-company" | "official-social" | "wikimedia";
+
 export interface BrandLogoProvenance {
-  /** Where the logo was found: the brand's own site in every case today. */
-  readonly sourceType: "official-site" | "official-press-kit" | "wikimedia";
+  /** Where the logo was found. */
+  readonly sourceType: BrandLogoSourceType;
   /** The page the logo was found on. */
   readonly sourcePage: string;
   /** The file that was downloaded, or the page that embeds it (see `note`). */
@@ -48,6 +67,15 @@ export interface BrandWithoutLogo {
 }
 
 export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> = {
+  "3-bourbons": {
+    sourceType: "official-social",
+    sourcePage: "https://www.facebook.com/3Bourbons/",
+    assetUrl: "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100063595568051",
+    retrievedAt: "2026-10-09",
+    packagingCheck:
+      'b713a0fd...jpg (Дозети 3bourbons 50бр.): the large brush-stroke "3" whose tail sweeps under the script "Bourbons" (looped B, the same brushed "ourbons") is the same mark, letter for letter. DIFFERENCES: the profile picture draws the "3" in a gold gradient where the pod prints it in dark brown, and its tagline is "тероарно кафе" where the pod has "blend of terroir coffees".',
+    note: 'The brand\'s own Facebook page ("3 Bourbons - тероарно, порционно кафе, еспресо дозети"); the file is its profile picture, the page\'s og:image, a 1181x1181 JPEG on white. It was made transparent by exact colour-to-alpha against white (drawn over white it gives back the JPEG to within 3/255 per channel; pixels within 3/255 of white, JPEG noise in the ground, became fully transparent) and its margin trimmed; the artwork is otherwise untouched. No brand website exists: the maker named by retailers, "Atelier del caffe terroir", has no site that resolves. Below 28 px tall the script name cannot be read.',
+  },
   amann: {
     sourceType: "official-site",
     sourcePage: "https://www.amann-kaffee.at/",
@@ -103,6 +131,15 @@ export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> 
     packagingCheck:
       '651a63c0...jpg (Dozeti Elia Esclusiva 50) and 21c5e3ed...jpg (Elia Espresso Vending Aroma 1kg): same red lowercase "elia" wordmark with the red swoosh underline and "COFFEE EMOTION / SINCE 1991" below.',
     note: "The official site is no longer live; the file is its header logo, fetched from the Internet Archive copy of 2018-10-28 (https://web.archive.org/web/20181028093846im_/https://elia-bg.com/file/2018/05/elia_new_logo_320.png). Transparent margin trimmed. Soft above about 140 px tall.",
+  },
+  este: {
+    sourceType: "owner-company",
+    sourcePage: "https://cafeshop.bg/produkt-kategoriya/vending/",
+    assetUrl: "https://cafeshop.bg/wp-content/uploads/2025/03/este_coffee_logo.png",
+    retrievedAt: "2026-10-09",
+    packagingCheck:
+      '36cb2aa7...jpg (Este Aroma 1kg): ring of eight coffee beans above "ESTE" in wide gold capitals with a dark offset shadow, thin rules either side, spaced "COFFEE" below. Same symbol, letterforms and gold; the pack sets the lockup on a red band, the file on transparent.',
+    note: 'Este is a house brand of Европейски Кафе Експерти ООД (Enco Vending until 2025): its company history (https://www.enco-vending.com/about/history) records launching "собствена марка кафе за вендинг автомати с наименование Este Vending" in 2007, and the side panel of its own Este Aroma packshot carries the ENCO mark. cafeshop.bg is that company\'s shop (its terms name "ЕВРОПЕЙСКИ КАФЕ ЕКСПЕРТИ" ООД as the trader); the file is the brand image on its vending page, taken unmodified. enco-vending.com shows only an older grey "Este vending" script mark at 78x70, which does not match the packs. The gold fill alone is about 2.6:1 on white, but every letter carries a dark shadow and "COFFEE" is near-black, so it sits on paper; a dark tile would lose both. Below 24 px tall the gold "ESTE" is too faint to read.',
   },
   foodness: {
     sourceType: "official-site",
@@ -199,24 +236,14 @@ export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> 
 };
 
 export const brandsWithoutLogo: Readonly<Record<string, BrandWithoutLogo>> = {
-  "3-bourbons": {
-    reason:
-      "No official source publishes the mark. The maker's site (Atelier del Caffe Terroir) no longer resolves and its archived copies hold no logo file; nothing on Wikimedia Commons. Retailer copies are not used.",
-    checkedAt: "2026-10-09",
-  },
-  este: {
-    reason:
-      "No official site could be confirmed against the packaging (a gold ESTE wordmark with a coffee-flower symbol): the domains tried are unrelated or parked. Nothing taken from resellers or aggregators.",
-    checkedAt: "2026-10-09",
-  },
   eurocaf: {
     reason:
-      "The roaster's site (eurocafcaffe.it) shows a different mark from the one on our vending packs, and the pack mark is published nowhere official, so neither was taken.",
+      'The owner of the label on our packs (the round "EUROCAF" badge over a bean, "ESPRESSO VENDING"; Crema Vivace, Piacere d\'Oro, Piacere d\'Oro Green, Rosso Fuoco) was not found. Tried: eurocafcaffe.it (EUROCAF SRL, Druento, Turin: its home, vending, brand-history and logo-history pages; its marks are a star-ringed oval, never this badge, and it lists none of these coffees), its ICE agrifood profile, EUROCAF trademark records; Bulgarian sellers coffeprint.bg (Kardzhali), the RiO vending site (introbg.wixsite.com/rio2012coffee, Ruse), 100caffeine.com and bestcoffee.bg, none of which names a maker or publishes the badge (they pair Eurocaf with Eurodrinks instant drinks; ЕВРОДРИНКС ЕООД, Sliven, is registered but shows no link to the coffee); Turkish listings (trendyol, cimri) of Eurocaf Piacere d\'Oro, with no maker named; Facebook and Instagram handles (eurocaf, eurocaf.bg, eurocafbg: none is this brand); seeklogo and other logo libraries (nothing). Web searches in Bulgarian, Italian, English and Turkish.',
     checkedAt: "2026-10-09",
   },
   molini: {
     reason:
-      "No official brand website publishes the wordmark: the only brand-owned page is password-gated and sets the name as text. Resellers and Wikimedia Commons have nothing usable.",
+      'The label appears to be REMACAFFE\'s (РЕМА КАФЕ ЕООД, Plovdiv): its own shop, remacaffe.com, sells the Molini Dolce Gusto range under the vendor "MOLINI", and its 2024 exhibitor profile on food-exhibitions.bg is reported to call MOLINI its budget line (that page refused a direct fetch). The brand\'s own store, molini.coffee, is a Shopify shop in Bulgarian still behind a password, with no logo file reachable. Neither site, nor any Molini or REMACAFFE social page that could be found, publishes the "molini" wordmark (red "l") as a file. Also tried: nicecompany.bg, cafemag.bg, espressimo.bg (its brand image is a blurred 150 px copy upscaled to 400, on a grey band: not usable), plausible molini domains (.bg, .com, molinicoffee, molinicaffe: none resolve), Wikimedia Commons and seeklogo (nothing). Web searches in Bulgarian, Italian and English.',
     checkedAt: "2026-10-09",
   },
 };
