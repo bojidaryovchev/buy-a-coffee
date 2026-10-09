@@ -1,6 +1,7 @@
+import { slugDiscriminator } from "@catalog/shared";
 import { describe, expect, it } from "vitest";
 import {
-  assignUniqueSlug,
+  assignProductSlug,
   normalizeSourceSlug,
   resolveProductIdentity,
 } from "../src/catalog/identity.ts";
@@ -116,36 +117,69 @@ describe("normalizeSourceSlug", () => {
   });
 });
 
-describe("assignUniqueSlug", () => {
-  it("returns the plain slug when it is free", () => {
+describe("assignProductSlug", () => {
+  const superCrema = {
+    sourceName: "Кафе на зърна Lavazza Super Crema 1кг.",
+    sourceKey: "/lavazza-super-crema-1/#1000g",
+    brand: { sourceKey: "lavazza", name: "LAVAZZA" },
+    categoryKeys: ["kafe-na-zyrna"],
+    packValue: "1000",
+    packUnit: "g",
+  };
+
+  it("leads with the brand and the line, in the shop's own words", () => {
+    expect(assignProductSlug(superCrema, new Set())).toBe("lavazza-super-crema-kafe-na-zarna-1-kg");
+  });
+
+  it("tells two pack sizes of one coffee apart without any tie-break", () => {
     const taken = new Set<string>();
-    expect(assignUniqueSlug("Кафе на зърна Lavazza Super Crema 1кг.", taken)).toBe(
-      "kafe-na-zarna-lavazza-super-crema-1kg",
+    const borbone = {
+      sourceName: "Кафе на зърна Borbone Crema Classica 0.500кг.",
+      brand: { sourceKey: "borbone", name: "BORBONE" },
+      categoryKeys: ["kafe-na-zyrna"],
+      packUnit: "g",
+    };
+    expect(
+      assignProductSlug(
+        { ...borbone, sourceKey: "/borbone-crema-classica/#500g", packValue: "500" },
+        taken,
+      ),
+    ).toBe("borbone-crema-classica-kafe-na-zarna-500-g");
+    expect(
+      assignProductSlug(
+        {
+          ...borbone,
+          sourceName: "Кафе на зърна Borbone Crema Classica 1кг.",
+          sourceKey: "/borbone-crema-classica/#1000g",
+          packValue: "1000",
+        },
+        taken,
+      ),
+    ).toBe("borbone-crema-classica-kafe-na-zarna-1-kg");
+  });
+
+  it("settles a real collision from the newcomer's source key, never a counter", () => {
+    const taken = new Set(["lavazza-super-crema-kafe-na-zarna-1-kg"]);
+    const slug = assignProductSlug({ ...superCrema, sourceKey: "/another-address/#1000g" }, taken);
+    expect(slug).toBe(
+      `lavazza-super-crema-kafe-na-zarna-1-kg-${slugDiscriminator("/another-address/#1000g")}`,
     );
-  });
-
-  it("disambiguates a collision with the pack size", () => {
-    const taken = new Set<string>();
-    const first = assignUniqueSlug("Borbone Crema Classica", taken, { variantKey: "500g" });
-    const second = assignUniqueSlug("Borbone Crema Classica", taken, { variantKey: "1000g" });
-    expect(first).toBe("borbone-crema-classica");
-    expect(second).toBe("borbone-crema-classica-1000g");
-    expect(first).not.toBe(second);
-  });
-
-  it("falls back to a numeric suffix when the variant is also taken", () => {
-    const taken = new Set(["x", "x-1000g"]);
-    expect(assignUniqueSlug("x", taken, { variantKey: "1000g" })).toBe("x-2");
+    // The same product, met in another run or another database, gets the same slug.
+    expect(
+      assignProductSlug(
+        { ...superCrema, sourceKey: "/another-address/#1000g" },
+        new Set(["lavazza-super-crema-kafe-na-zarna-1-kg"]),
+      ),
+    ).toBe(slug);
   });
 
   it("never produces an empty slug", () => {
-    const taken = new Set<string>();
-    expect(assignUniqueSlug("!!!", taken)).toBe("product");
+    expect(assignProductSlug({ sourceName: "!!!", sourceKey: "/x/" }, new Set())).toBe("product");
   });
 
   it("registers each allocation so later calls see it", () => {
     const taken = new Set<string>();
-    assignUniqueSlug("Coffee", taken);
-    expect(taken.has("coffee")).toBe(true);
+    const slug = assignProductSlug(superCrema, taken);
+    expect(taken.has(slug)).toBe(true);
   });
 });

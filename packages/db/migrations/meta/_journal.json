@@ -50,6 +50,13 @@
       "when": 1791547200000,
       "tag": "0006_completion",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791633600000,
+      "tag": "0007_product_previous_slugs",
+      "breakpoints": true
     }
   ]
 }

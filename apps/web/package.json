@@ -26,7 +26,8 @@
     "check:launch": "tsx scripts/check-launch.ts",
     "copy:apply": "tsx scripts/apply-product-copy.ts",
     "copy:todo": "tsx scripts/copy-todo.ts",
-    "mail:prune-foreign": "tsx scripts/mail-prune-foreign.ts"
+    "mail:prune-foreign": "tsx scripts/mail-prune-foreign.ts",
+    "catalog:reslug": "tsx scripts/catalog-reslug.ts"
   },
   "dependencies": {
     "@catalog/db": "workspace:*",

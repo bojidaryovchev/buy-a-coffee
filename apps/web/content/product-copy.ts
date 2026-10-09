@@ -63,7 +63,7 @@ export interface ProductCopy {
 }
 
 export const productCopy: Readonly<Record<string, ProductCopy>> = {
-  "kafe-na-zarna-amann-la-cascada-0-500kg": {
+  "amann-la-cascada-kafe-na-zarna-500-g": {
     summary:
       "Едносортова арабика от гватемалската ферма Finca Flor del Rosario, с чист профил и умерена сила в чашата.",
     body: [
@@ -72,7 +72,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка 500 г цели зърна. Смила се прясно според метода — за еспресо машина с ръкохватка или за автоматична кафемашина.",
     ],
   },
-  "kafe-na-zarna-amann-sido-0-500kg": {
+  "amann-sido-kafe-na-zarna-500-g": {
     summary:
       "Селекция от високопланинска арабика на Amann — гладко и ароматно кафе с умерена сила и мек послевкус.",
     body: [
@@ -81,7 +81,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка 500 г цели зърна, подходяща за еспресо машина и за автоматична кафемашина.",
     ],
   },
-  "kafe-na-zarna-biancaffe-arabica-0-500kg": {
+  "biancaffe-arabica-kafe-na-zarna-500-g": {
     summary:
       "100 % арабика с интензивност 2 от 5 — деликатен аромат и лека чаша за тези, които избягват тежките блендове.",
     body: [
@@ -90,7 +90,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка 500 г цели зърна. Разгръща се най-добре като по-дълго еспресо или в автоматична кафемашина.",
     ],
   },
-  "kafe-na-zarna-biancaffe-classica-1kg": {
+  "biancaffe-classica-kafe-na-zarna-1-kg": {
     summary:
       "Бленд с деликатен характер и интензивност 4 от 5 — балансирана чаша без резки ръбове, в опаковка от 1 кг.",
     body: [
@@ -99,7 +99,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна — размерът, който има смисъл за офис или за домакинство с автоматична кафемашина.",
     ],
   },
-  "kafe-na-zarna-biancaffe-dek-0-500kg": {
+  "biancaffe-dek-kafe-na-zarna-500-g": {
     summary:
       "Декофеинизиран състав със 70 % арабика и 30 % робуста, в който остатъчният кофеин пада под 0,1 %.",
     body: [
@@ -108,7 +108,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка 500 г цели зърна — за следобедното и вечерното кафе, което не иска да ви държи буден.",
     ],
   },
-  "kafe-na-zarna-biancaffe-intenso-1kg": {
+  "biancaffe-intenso-kafe-na-zarna-1-kg": {
     summary:
       "Бленд с високо съдържание на робуста и интензивност 5 от 5 — мощна и плътна чаша с дълга крема.",
     body: [
@@ -117,7 +117,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за тези, които искат кафето да се усеща — само или с мляко, където издържа, без да се губи.",
     ],
   },
-  "kafe-na-zarna-biancaffe-soave-1kg": {
+  "biancaffe-soave-kafe-na-zarna-1-kg": {
     summary:
       "Италиански бленд, разделен почти поравно между арабика и робуста — наситена и уравновесена чаша, 1 кг.",
     body: [
@@ -126,7 +126,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна, подходяща както за ръкохватка, така и за автоматична машина.",
     ],
   },
-  "kapsuli-dg-bianchi-gusto-forte-espresso-16-br": {
+  "bianchi-gusto-forte-espresso-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 10 от 12 — плътно еспресо с наситен вкус и интензивен аромат.",
     body: [
@@ -135,7 +135,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-blue-lavazza-decaffeinato-100-br": {
+  "lavazza-decaffeinato-kapsuli-lavazza-blue-100-br": {
     summary:
       "Безкофеинови капсули Lavazza Blue с интензивност 7 от 13 — меко и ароматно италианско еспресо.",
     body: [
@@ -144,7 +144,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Голяма опаковка от 100 капсули за системата Lavazza Blue — количество, което има смисъл за офис.",
     ],
   },
-  "kafe-na-zarna-borbone-crema-classica-1kg": {
+  "borbone-crema-classica-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста с интензивност 8 от 10 — гладка крема и богат вкус, в килограмова опаковка.",
     body: [
@@ -153,7 +153,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна — форматът за всекидневна употреба в офис или за домакинство, което пие по няколко чаши дневно.",
     ],
   },
-  "kafe-na-zarna-borbone-crema-classica-0-500kg": {
+  "borbone-crema-classica-kafe-na-zarna-500-g": {
     summary:
       "Класическият бленд на Borbone за гладка крема, с интензивност 8 от 10 — в по-малката опаковка от 500 г.",
     body: [
@@ -162,7 +162,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Половинкилограмовият формат има едно практично предимство — зърната се изразходват по-бързо и остават пресни докрай. Разумният избор, ако пиете по една-две чаши на ден.",
     ],
   },
-  "kafe-na-zarna-borbone-crema-superiore-0-500kg": {
+  "borbone-crema-superiore-kafe-na-zarna-500-g": {
     summary:
       "Около 80 % арабика и 20 % робуста с по-светло средно изпичане — интензивност 7 от 10, в опаковка от 500 г.",
     body: [
@@ -171,7 +171,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Интензивност 7 от 10 и умерена сила. Опаковка 500 г цели зърна.",
     ],
   },
-  "kafe-na-zarna-borbone-crema-superiore-1kg": {
+  "borbone-crema-superiore-kafe-na-zarna-1-kg": {
     summary:
       "Бленд с превес на арабиката (около 80 %) и по-светло средно изпичане, с интензивност 7 от 10 — 1 кг зърна.",
     body: [
@@ -180,7 +180,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна — за автоматична кафемашина или за еспресо машина с ръкохватка при по-висок дневен разход.",
     ],
   },
-  "kafe-na-zarna-borbone-intenso-1kg": {
+  "borbone-intenso-kafe-na-zarna-1-kg": {
     summary:
       "Бленд с висок процент робуста и интензивност 9 от 10 — силно, плътно и енергично кафе в опаковка от 1 кг.",
     body: [
@@ -189,7 +189,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна. Издържа добре с мляко, ако предпочитате капучино с изразен кафеен вкус.",
     ],
   },
-  "kapsuli-caffitaly-espresso-corposo-10-br": {
+  "caffitaly-espresso-corposo-kapsuli-caffitaly-10-br": {
     summary:
       "Капсули Caffitaly с интензивност 9 от 10 — плътно и силно еспресо с богат италиански характер.",
     body: [
@@ -198,7 +198,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за системата Caffitaly.",
     ],
   },
-  "kapsuli-caffitaly-espresso-morbido-10-br": {
+  "caffitaly-espresso-morbido-kapsuli-caffitaly-10-br": {
     summary:
       "Капсули Caffitaly с 70 % арабика и 30 % робуста — меко и хармонично еспресо с интензивност 6 от 10.",
     body: [
@@ -207,7 +207,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за системата Caffitaly.",
     ],
   },
-  "kapsuli-caffitaly-espresso-panettone-10-br": {
+  "caffitaly-espresso-panettone-kapsuli-caffitaly-10-br": {
     summary:
       "Ароматизирани капсули Caffitaly с 70 % арабика и 30 % робуста и аромат на италианския коледен сладкиш панетоне.",
     body: [
@@ -216,7 +216,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за системата Caffitaly.",
     ],
   },
-  "kapsuli-dg-bianchi-100-arabica-espresso-16-br": {
+  "bianchi-100-arabica-espresso-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto от 100 % арабика с интензивност 6 от 12 — меко и балансирано еспресо.",
     body: [
@@ -225,7 +225,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-chocolate-aroma-espresso-16-br": {
+  "bianchi-chocolate-aroma-espresso-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с нежен шоколадов аромат и интензивност 5 от 12.",
     body: [
       "Шоколадът се усеща като аромат в носа и в послевкуса, а вкусът в чашата остава на кафе.",
@@ -233,7 +233,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-crema-aroma-espresso-16-br": {
+  "bianchi-crema-aroma-espresso-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 9 от 12, създадени около богатата и кадифена крема на еспресото.",
     body: [
@@ -242,7 +242,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-fine-aroma-espresso-16-br": {
+  "bianchi-fine-aroma-espresso-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 8 от 12 — деликатен баланс между изтънчен аромат и гладка текстура.",
     body: [
@@ -251,7 +251,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-gusto-decaf-espresso-16-br": {
+  "bianchi-gusto-decaf-espresso-kapsuli-dolce-gusto-16-br": {
     summary:
       "Безкофеинови капсули Dolce Gusto с интензивност 3 от 12 — автентичен вкус на еспресо без кофеина.",
     body: [
@@ -260,7 +260,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-hazelnut-aroma-espresso-16-br": {
+  "bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с аромат на печен лешник и интензивност 5 от 12.",
     body: [
       "Лешникът е сред малкото аромати, които стоят естествено върху кафе — препечен, леко маслен, без да залепва по небцето.",
@@ -268,7 +268,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-bianchi-irish-cream-aroma-espresso-16-br": {
+  "bianchi-irish-cream-aroma-espresso-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с аромат на Irish Cream и интензивност 5 от 12.",
     body: [
       "Ароматът повтаря познатия ирландски крем-ликьор — сметана, ванилия и лека уискова нотка — но в чашата няма алкохол.",
@@ -276,7 +276,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-borbone-baileys-cappuccino-16-br": {
+  "borbone-baileys-cappuccino-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с вкус, вдъхновен от ликьора Baileys — сладко капучино с умерена сила.",
     body: [
@@ -285,7 +285,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-borbone-crema-classica-16-br": {
+  "borbone-crema-classica-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 8 от 10 — богат балансиран вкус и кадифена крема в италиански стил.",
     body: [
@@ -294,7 +294,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-borbone-crema-superiore-16-br": {
+  "borbone-crema-superiore-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 7 от 10 — плътна кремообразна текстура и изразен аромат.",
     body: [
@@ -303,7 +303,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-borbone-lungo-sublime-16-br": {
+  "borbone-lungo-sublime-kapsuli-dolce-gusto-16-br": {
     summary: "Капсули Dolce Gusto за дълго кафе — мек, но пълноценен вкус с интензивност 6 от 10.",
     body: [
       "Lungo Sublime е създадена за по-дългото извличане, при което водата минава повече и вкусът се разгръща по-широко.",
@@ -311,7 +311,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-molini-firenze-16-br": {
+  "molini-firenze-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 10 от 12 — изискано и балансирано кафе в тосканския дух на Molini Firenze.",
     body: [
@@ -320,7 +320,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-molini-milano-16-br": {
+  "molini-milano-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 8 от 12 — фино и елегантно кафе в стила на северна Италия.",
     body: [
@@ -329,7 +329,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-molini-napoli-16-br": {
+  "molini-napoli-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с интензивност 11 от 12 — тъмен профил и темперамент в неаполитански стил.",
     body: [
@@ -338,7 +338,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-molini-torino-16-br": {
+  "molini-torino-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с максимална интензивност 12 от 12 — богат вкус и кадифена кремообразност.",
     body: [
@@ -347,7 +347,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-arabica-gold-16-br": {
+  "rema-caffe-arabica-gold-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto, създадени изцяло от висококачествена арабика — елегантен и фин вкус с умерена сила.",
     body: [
@@ -356,7 +356,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-cappuccino-3in1-16-br": {
+  "rema-caffe-cappuccino-3in1-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto за капучино 3 в 1 — кафе, мляко и фина сладост с кадифена пяна в една капсула.",
     body: [
@@ -365,7 +365,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-caramel-16-br": {
+  "rema-caffe-caramel-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с карамелени нотки и интензивност 8 от 12.",
     body: [
       "Карамелът тук балансира, вместо да залива: сладките нотки стоят върху ароматно еспресо, а не го заменят.",
@@ -373,7 +373,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-cookies-16-br": {
+  "rema-caffe-cookies-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с аромат на бисквитка и интензивност 8 от 12.",
     body: [
       "Cookies съчетава богатия аромат на еспресо със сладките нотки на прясно изпечена бисквитка — масло, ванилия и препечено тесто.",
@@ -381,7 +381,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-cortado-16-br": {
+  "rema-caffe-cortado-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto за кортадо — баланс между силно еспресо и меко мляко с леко сладък нюанс.",
     body: [
@@ -390,7 +390,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-creme-brulee-16-br": {
+  "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br": {
     summary:
       "Безкофеинови ароматизирани капсули Dolce Gusto с деликатен карамелен вкус в стила на крем брюле.",
     body: [
@@ -399,7 +399,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-forte-16-br": {
+  "rema-caffe-forte-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с плътен и мощен вкус — създадени за любителите на интензивното еспресо.",
     body: [
@@ -408,7 +408,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-gusto-satin-16-br": {
+  "rema-caffe-gusto-satin-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto с мека сила — елегантно и кадифено кафе за любителите на балансираните вкусове.",
     body: [
@@ -417,7 +417,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-hazelnut-16-br": {
+  "rema-caffe-hazelnut-kapsuli-dolce-gusto-16-br": {
     summary:
       "Ароматизирани капсули Dolce Gusto с наситен вкус на печени лешници и интензивност 8 от 12.",
     body: [
@@ -426,7 +426,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-intenso-16-br": {
+  "rema-caffe-intenso-kapsuli-dolce-gusto-16-br": {
     summary: "Капсули Dolce Gusto с максимална интензивност 12 от 12 — силно и плътно еспресо.",
     body: [
       "Intenso е на самия връх на скалата: интензивност 12 от 12.",
@@ -434,7 +434,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-irish-cream-16-br": {
+  "rema-caffe-irish-cream-kapsuli-dolce-gusto-16-br": {
     summary: "Ароматизирани капсули Dolce Gusto с нежен аромат на Irish Cream и умерена сила.",
     body: [
       "Irish Cream в изпълнение на Rema Caffè: сметанов, ванилов профил с характерната ликьорна нотка, положен върху кафе с умерена сила.",
@@ -442,7 +442,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-rema-caffe-matcha-16-br": {
+  "rema-caffe-matcha-kapsuli-dolce-gusto-16-br": {
     summary:
       "Капсули Dolce Gusto за мача лате — натурален зелен чай с нежна млечна пяна вместо кафе.",
     body: [
@@ -451,7 +451,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kafe-na-zarna-elia-vending-aroma-1kg": {
+  "elia-vending-aroma-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста с интензивност 8 от 10, създаден за автоматични кафемашини и вендинг системи.",
     body: [
@@ -460,7 +460,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за автоматични кафемашини и вендинг системи.",
     ],
   },
-  "kafe-na-zarna-elia-vending-crema-1kg": {
+  "elia-vending-crema-kafe-na-zarna-1-kg": {
     summary:
       "Хармоничен бленд с интензивност 9 от 10, създаден специално за автоматични кафемашини и вендинг системи.",
     body: [
@@ -469,7 +469,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за вендинг и автоматични кафемашини.",
     ],
   },
-  "kafe-na-zarna-elia-vending-intenso-1kg": {
+  "elia-vending-intenso-kafe-na-zarna-1-kg": {
     summary:
       "Бленд за вендинг и автоматични машини с максимална интензивност 10 от 10 — плътно тяло и дълготраен каймак.",
     body: [
@@ -478,7 +478,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за вендинг и автоматични кафемашини.",
     ],
   },
-  "kafe-na-zarna-espressia-capri-1kg": {
+  "biancaffe-espressia-capri-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста, вдъхновен от южноиталианската традиция — интензивност 8 от 10 в опаковка от 1 кг.",
     body: [
@@ -487,7 +487,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-espressia-positano-1kg": {
+  "biancaffe-espressia-positano-kafe-na-zarna-1-kg": {
     summary:
       "Арабика и робуста в равновесие, с интензивност 7 от 10 — наситен аромат, плътност и кадифена пяна.",
     body: [
@@ -496,7 +496,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна, подходяща за еспресо машина и за автоматична кафемашина.",
     ],
   },
-  "kafe-na-zarna-este-aroma-1kg": {
+  "este-aroma-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста с плътно тяло и изразителен вкус, в килограмова опаковка цели зърна.",
     body: [
@@ -505,7 +505,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-este-crema-1kg": {
+  "este-crema-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста със силен и хармоничен вкус и отличителна крема — 1 кг цели зърна.",
     body: [
@@ -514,7 +514,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-este-forte-1kg": {
+  "este-forte-kafe-na-zarna-1-kg": {
     summary:
       "Съставен от ароматни зърна робуста — мощна чаша, в която пяната се задържа дълго. Опаковка 1 кг.",
     body: [
@@ -523,7 +523,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-eurocaf-crema-vivace-1kg": {
+  "eurocaf-crema-vivace-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от робуста с умерено до тъмно изпичане и интензивност 9 от 10 — плътно тяло и отличителна крема.",
     body: [
@@ -532,7 +532,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-eurocaf-piacere-d-oro-1kg": {
+  "eurocaf-piacere-d-oro-kafe-na-zarna-1-kg": {
     summary:
       "Изчистен, уравновесен бленд с интензивност 8 от 10 — умерена плътност, фина текстура и трайна пяна.",
     body: [
@@ -541,7 +541,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-eurocaf-rosso-fuoco-1kg": {
+  "eurocaf-rosso-fuoco-kafe-na-zarna-1-kg": {
     summary:
       "100 % робуста с произход Уганда и Индия, изпечена средно тъмно — интензивност 9 от 10 и изразителна крема.",
     body: [
@@ -550,7 +550,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Интензивност 9 от 10. Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-illy-classico-0-250kg": {
+  "illy-classico-kafe-na-zarna-250-g": {
     summary:
       "Разпознаваемият бленд на Illy, изцяло от арабика — премерено еспресо без горчив ръб, 250 г зърна.",
     body: [
@@ -559,7 +559,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка 250 г цели зърна — малкият формат, който позволява зърната да се изпият, докато са пресни.",
     ],
   },
-  "kafe-na-zarna-julius-meinl-arabica-1kg": {
+  "julius-meinl-arabica-kafe-na-zarna-1-kg": {
     summary:
       "100 % арабика от Julius Meinl с интензивност 6 от 10 — по-леко еспресо с кадифено усещане и деликатна сладост.",
     body: [
@@ -568,7 +568,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-julius-meinl-clasico-1kg": {
+  "julius-meinl-espresso-classico-kafe-na-zarna-1-kg": {
     summary:
       "Балансиран бленд от арабика и робуста с интензивност 5 от 10 — богат аромат и дълготрайна крема.",
     body: [
@@ -577,7 +577,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-julius-meinl-crema-1kg": {
+  "julius-meinl-crema-kafe-na-zarna-1-kg": {
     summary:
       "Елегантен бленд от арабика и селектирана робуста с интензивност 7 от 10 — меко кафе с плътна и дълготрайна крема.",
     body: [
@@ -586,7 +586,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-kimbo-aroma-gold-1kg": {
+  "kimbo-aroma-gold-kafe-na-zarna-1-kg": {
     summary:
       "100 % арабика от Kimbo с интензивност 9 от 13 — деликатно и елегантно еспресо в духа на Амалфийското крайбрежие.",
     body: [
@@ -595,7 +595,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-kimbo-barista-napoli-1kg": {
+  "kimbo-barista-napoli-kafe-na-zarna-1-kg": {
     summary:
       "Класически неаполитански бленд от арабика и робуста с интензивност 10 от 13 — плътно еспресо с богата крема.",
     body: [
@@ -604,7 +604,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за професионална или домашна еспресо машина.",
     ],
   },
-  "kafe-na-zarna-lavazza-crema-e-aroma-1kg": {
+  "lavazza-crema-e-aroma-expert-kafe-na-zarna-1-kg": {
     summary:
       "Професионалният бленд Expert на Lavazza от южноамериканска арабика и азиатска робуста — интензивност 11 от 13.",
     body: [
@@ -613,7 +613,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-crema-e-aroma-1kg-1000g": {
+  "lavazza-crema-e-aroma-kafe-na-zarna-1-kg": {
     summary:
       "Класическият бленд Crema e Aroma на Lavazza от арабика и робуста — интензивност 8 от 10 и кремообразен профил.",
     body: [
@@ -622,7 +622,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-gold-selection-1kg": {
+  "lavazza-gold-selection-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от бразилска и централноамериканска арабика с висококачествена азиатска робуста — интензивност 7 от 10.",
     body: [
@@ -631,7 +631,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-gran-espresso-1kg": {
+  "lavazza-gran-espresso-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от централно- и южноамериканска арабика с азиатска робуста — плътно и автентично италианско еспресо.",
     body: [
@@ -640,7 +640,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-gusto-forte-1kg": {
+  "lavazza-gusto-forte-kafe-na-zarna-1-kg": {
     summary:
       "Бленд Expert от робуста с максимална интензивност 13 от 13 — енергично и дълбоко ароматно кафе.",
     body: [
@@ -649,7 +649,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за тези, които не правят компромис със силата.",
     ],
   },
-  "kafe-na-zarna-lavazza-gusto-pieno-1kg": {
+  "lavazza-gusto-pieno-kafe-na-zarna-1-kg": {
     summary:
       "Бленд Expert от арабика и робуста с интензивност 12 от 13 — богат вкус с кадифена текстура и балансиран аромат.",
     body: [
@@ -658,7 +658,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-super-crema-1kg": {
+  "lavazza-super-crema-kafe-na-zarna-1-kg": {
     summary:
       "Арабика от Бразилия и Колумбия с робуста от Индонезия и Виетнам — мек и кадифен профил с интензивност 8 от 10.",
     body: [
@@ -667,7 +667,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-lavazza-top-class-1kg": {
+  "lavazza-top-class-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от бразилска и централноамериканска арабика с робуста от Индия и Индонезия — баланс между аромат и сила.",
     body: [
@@ -676,7 +676,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kapsuli-a-modo-mio-lavazza-crema-e-gusto-36-br": {
+  "lavazza-crema-e-gusto-kapsuli-a-modo-mio-36-br": {
     summary:
       "36 капсули A Modo Mio с интензивност 12 от 13 — концентрирано еспресо с обем в чашата и трайна пяна.",
     body: [
@@ -685,7 +685,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "36 капсули за системата Lavazza A Modo Mio.",
     ],
   },
-  "kapsuli-a-modo-mio-lavazza-delizioso-36-br": {
+  "lavazza-delizioso-kapsuli-a-modo-mio-36-br": {
     summary:
       "36 капсули A Modo Mio от подбрана арабика с интензивност 8 от 13 — меко и ароматно ежедневно еспресо.",
     body: [
@@ -694,7 +694,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "36 капсули за системата Lavazza A Modo Mio.",
     ],
   },
-  "kapsuli-a-modo-mio-lavazza-intenso-36-br": {
+  "lavazza-intenso-kapsuli-a-modo-mio-36-br": {
     summary:
       "36 капсули A Modo Mio с максимална интензивност 13 от 13 — дълбок вкус с плътно тяло и изразителен аромат.",
     body: [
@@ -703,7 +703,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "36 капсули за системата Lavazza A Modo Mio.",
     ],
   },
-  "dozeti-molini-firenze-150br": {
+  "molini-firenze-kafe-dozi-150-br": {
     summary:
       "150 дозети с интензивност 10 от 12 — елегантен бленд от робуста и арабика с нотки на какао и горчив шоколад.",
     body: [
@@ -712,7 +712,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Голяма опаковка от 150 дозети — форматът за офис или заведение, където кафето се пие през целия ден.",
     ],
   },
-  "kafe-na-zarna-molini-firenze-1kg": {
+  "molini-firenze-kafe-na-zarna-1-kg": {
     summary:
       "Арабика и робуста от висок клас, с интензивност 8 от 10 — балансирана чаша с кадифена текстура.",
     body: [
@@ -721,7 +721,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-molini-napoli-1kg": {
+  "molini-napoli-kafe-na-zarna-1-kg": {
     summary:
       "Повече робуста в състава и интензивност 9 от 10 — наситена чаша с плътност и трайна пяна.",
     body: [
@@ -730,7 +730,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-molini-torino-1kg": {
+  "molini-torino-kafe-na-zarna-1-kg": {
     summary:
       "Бленд с висок процент робуста и максимална интензивност 10 от 10 — мощно кафе с плътно тяло и устойчива крема.",
     body: [
@@ -739,7 +739,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kapsuli-nespresso-bianchi-caffe-arte-classico-10-br": {
+  "bianchi-caffe-arte-classico-kapsuli-nespresso-10-br": {
     summary:
       "Капсули за Nespresso с интензивност 9 от 12 — богат и балансиран аромат в традиционен италиански стил.",
     body: [
@@ -748,7 +748,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-bianchi-colombia-10-br": {
+  "bianchi-colombia-kapsuli-nespresso-10-br": {
     summary:
       "Капсули за Nespresso с колумбийски характер и интензивност 6 от 12 — фин и изискан аромат.",
     body: [
@@ -757,7 +757,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-bianchi-costa-rica-10-br": {
+  "bianchi-costa-rica-kapsuli-nespresso-10-br": {
     summary:
       "Капсули за Nespresso с централноамерикански профил и интензивност 6 от 12 — елегантен и балансиран аромат.",
     body: [
@@ -766,7 +766,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-bianchi-hazelnut-10-br": {
+  "bianchi-hazelnut-kapsuli-nespresso-10-br": {
     summary:
       "Ароматизирани капсули за Nespresso с аромат на печени лешници и интензивност 5 от 12.",
     body: [
@@ -775,7 +775,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-lavazza-crema-e-gusto-classico-10-br": {
+  "lavazza-crema-e-gusto-classico-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Lavazza за Nespresso с интензивност 12 от 13 — класическо, балансирано и изключително ароматно еспресо.",
     body: [
@@ -784,7 +784,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-lavazza-crema-e-gusto-forte-10br": {
+  "lavazza-crema-e-gusto-forte-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Lavazza за Nespresso с максимална интензивност 13 от 13 — смело, плътно и изключително ароматно еспресо.",
     body: [
@@ -793,7 +793,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-lavazza-crema-e-gusto-ricco-10br": {
+  "lavazza-crema-e-gusto-ricco-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Lavazza за Nespresso с интензивност 12 от 12 — плътно и наситено еспресо с богат аромат.",
     body: [
@@ -802,7 +802,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-molini-firenze-10-br": {
+  "molini-firenze-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Molini за Nespresso с интензивност 8 от 12 — богат и балансиран вкус с елегантен профил.",
     body: [
@@ -811,7 +811,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-molini-napoli-10-br": {
+  "molini-napoli-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Molini за Nespresso с интензивност 10 от 12 — мощен и плътен вкус с изразителен аромат.",
     body: [
@@ -820,7 +820,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-molini-torino-10-br": {
+  "molini-torino-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Molini за Nespresso с максимална интензивност 12 от 12 — плътен, наситен вкус и дълбок аромат.",
     body: [
@@ -829,7 +829,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-allegro-10-br": {
+  "rema-caffe-allegro-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso с интензивност 8 от 12 — приятен и балансиран вкус с меки аромати.",
     body: [
@@ -838,7 +838,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-arabica-gold-10-br": {
+  "rema-caffe-arabica-gold-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso от чиста арабика с интензивност 10 от 12 — деликатен и елегантен аромат.",
     body: [
@@ -847,7 +847,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-caramel-10-br": {
+  "rema-caffe-caramel-kapsuli-nespresso-10-br": {
     summary:
       "Ароматизирани капсули Rema Caffè за Nespresso с богата карамелена сладост и интензивност 8 от 12.",
     body: [
@@ -856,7 +856,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-cookies-10-br": {
+  "rema-caffe-cookies-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso от 100 % арабика с бразилско тяло и кремообразен карамел — интензивност 7 от 10.",
     body: [
@@ -865,7 +865,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-decaffeinato-10-br": {
+  "rema-caffe-decaffeinato-kapsuli-nespresso-10-br": {
     summary:
       "Безкофеинови капсули Rema Caffè за Nespresso с интензивност 6 от 12 — пълен аромат без кофеина.",
     body: [
@@ -874,7 +874,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-forte-10-br": {
+  "rema-caffe-forte-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso с интензивност 11 от 12 — плътно и силно еспресо с мощен характер.",
     body: [
@@ -883,7 +883,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-fortissimo-20-br": {
+  "rema-caffe-fortissimo-kapsuli-nespresso-20-br": {
     summary:
       "20 капсули Rema Caffè за Nespresso от 100 % бразилска арабика — кадифена мекота при интензивност 11 от 12.",
     body: [
@@ -892,7 +892,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "20 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-gusto-satin-10-br": {
+  "rema-caffe-gusto-satin-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso с интензивност 4 от 12 — елегантно и кадифено кафе с мек баланс.",
     body: [
@@ -901,7 +901,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-hazelnut-10-br": {
+  "rema-caffe-hazelnut-kapsuli-nespresso-10-br": {
     summary:
       "Ароматизирани капсули Rema Caffè за Nespresso с елегантен вкус на лешник и интензивност 7 от 10.",
     body: [
@@ -910,7 +910,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-intenso-10-br": {
+  "rema-caffe-intenso-kapsuli-nespresso-10-br": {
     summary:
       "Капсули Rema Caffè за Nespresso с максимална интензивност 12 от 12 — плътен и енергичен аромат.",
     body: [
@@ -919,7 +919,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-ristretto-20-br": {
+  "rema-caffe-ristretto-kapsuli-nespresso-20-br": {
     summary:
       "20 капсули Rema Caffè за Nespresso с интензивност 11 от 12 — интензивно ристрето с дълготраен послевкус.",
     body: [
@@ -928,7 +928,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "20 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-supremo-20-br": {
+  "rema-caffe-supremo-kapsuli-nespresso-20-br": {
     summary:
       "20 капсули Rema Caffè за Nespresso от 100 % южноамериканска арабика — първокласна чаша с интензивност 8 от 12.",
     body: [
@@ -937,7 +937,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "20 капсули, съвместими с домашни машини Nespresso.",
     ],
   },
-  "dozeti-rema-caffe-fortissimo-25br": {
+  "rema-caffe-fortissimo-kafe-dozi-25-br": {
     summary:
       "25 дозети арабика от висок клас, с интензивност 9 от 10 и изразени какаови и шоколадови нотки.",
     body: [
@@ -946,7 +946,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка от 25 дозети.",
     ],
   },
-  "dozeti-rema-caffe-intenso": {
+  "rema-caffe-intenso-kafe-dozi-100-br": {
     summary:
       "Дозети с интензивност 11 от 12 — интензивен и плътен бленд с тъмно изпичане и силен характер.",
     body: [
@@ -955,7 +955,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Дозети за машини, работещи с готови дози.",
     ],
   },
-  "kafe-na-zarna-tezzoro-espresso-classic-1kg": {
+  "tezzoro-espresso-classic-kafe-na-zarna-1-kg": {
     summary: "Бленд от арабика и робуста с балансиран вкус и приятна плътност — 1 кг цели зърна.",
     body: [
       "Classic е базовият бленд на Tezzoro: арабика и робуста в съотношение, подбрано за баланс.",
@@ -963,7 +963,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-tezzoro-excellence-0-250kg": {
+  "tezzoro-excellence-kafe-na-zarna-250-g": {
     summary:
       "Бленд от четири сорта премиум арабика с максимално развит аромат и характер — в опаковка от 250 г.",
     body: [
@@ -972,7 +972,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Малката опаковка от 250 г има смисъл точно при такъв бленд: ароматът се губи бързо след отваряне, а 250 г се изпиват, докато зърната са още пресни.",
     ],
   },
-  "kafe-na-zarna-tezzoro-espresso-excellence-1kg": {
+  "tezzoro-espresso-excellence-kafe-na-zarna-1-kg": {
     summary:
       "Четири сорта премиум арабика в един бленд, изпечени за максимален аромат и характер — килограмова опаковка.",
     body: [
@@ -981,7 +981,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна — за домакинство или офис с по-висок дневен разход, където разликата в цената на килограм си личи.",
     ],
   },
-  "kafe-na-zarna-tezzoro-espresso-top-class-1kg": {
+  "tezzoro-espresso-top-class-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от първокласни азиатски зърна робуста, обогатен с ароматни арабики — плътно и ароматно кафе, 1 кг.",
     body: [
@@ -990,7 +990,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-vandino-espresso-aroma-1kg": {
+  "vandino-espresso-aroma-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста с кадифен каймак, създаден за класическо еспресо и за автоматични кафемашини.",
     body: [
@@ -999,7 +999,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна за автоматични кафемашини и вендинг системи.",
     ],
   },
-  "kafe-na-zarna-vandino-espresso-bar-1kg": {
+  "vandino-espresso-bar-kafe-na-zarna-1-kg": {
     summary:
       "Робустата води в състава — оттам плътното тяло, гъстата пяна и ниската киселинност на чашата.",
     body: [
@@ -1008,7 +1008,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-vandino-espresso-club-1kg": {
+  "vandino-espresso-club-kafe-na-zarna-1-kg": {
     summary:
       "Премиум бленд от селектирана бразилска арабика и индонезийска робуста за италианско еспресо.",
     body: [
@@ -1017,7 +1017,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-vergnano-antica-bottega-1kg": {
+  "vergnano-antica-bottega-kafe-na-zarna-1-kg": {
     summary:
       "Преобладаваща арабика с малко робуста, преминала през бавно и щадящо изпичане — интензивност 5 от 10.",
     body: [
@@ -1026,7 +1026,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-vergnano-espresso-1kg": {
+  "vergnano-espresso-kafe-na-zarna-1-kg": {
     summary:
       "Бленд от арабика и робуста, изпичан за максимално развитие на аромата — интензивност 7 от 10, 1 кг зърна.",
     body: [
@@ -1035,7 +1035,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Килограмова опаковка цели зърна.",
     ],
   },
-  "kafe-na-zarna-vergnano-gran-aroma-1kg": {
+  "vergnano-gran-aroma-kafe-na-zarna-1-kg": {
     summary:
       "Арабика от висок клас със селектирана робуста, интензивност 8 от 10 — обемна чаша с ясен характер.",
     body: [
@@ -1045,7 +1045,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     ],
   },
   // Lollo Caffè, written 9 October 2026.
-  "dozeti-lollo-caffe-amaretto-18br": {
+  "lollo-caffe-amaretto-kafe-dozi-18-br": {
     summary:
       "Дози ESE с аромат на амарето — кафе с бадемови и десертни нотки, интензивност 6 от 10, в пакет от 18 броя.",
     body: [
@@ -1054,7 +1054,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "18 хартиени дози по 44 мм, които влизат в машина с цедка за дози ESE. Една доза прави едно еспресо, затова малкият пакет е удобен, за да опитате вкуса, без да купувате голямо количество.",
     ],
   },
-  "dozeti-lollo-caffe-argento-50br": {
+  "lollo-caffe-argento-kafe-dozi-50-br": {
     summary:
       "Argento в дози ESE: арабика и робуста с интензивност 10 от 10, печени нотки и плътно тяло — 50 дози в пакет.",
     body: [
@@ -1063,7 +1063,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "50 хартиени дози ESE (44 мм), по една за чаша. Броят на дозите е и броят на чашите, затова цената на чаша, показана до цената на пакета, е точна, а не приблизителна.",
     ],
   },
-  "dozeti-lollo-caffe-classico-150br": {
+  "lollo-caffe-classico-kafe-dozi-150-br": {
     summary:
       "Голям пакет от 150 дози ESE с Classico — арабика и робуста, интензивност 8 от 10; количество за офис или малко кафене.",
     body: [
@@ -1072,7 +1072,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Дозите са хартиени, 44 мм, по стандарта ESE, и влизат в еспресо машина с цедка за дози. Цената на чаша стои до цената на пакета, така че двата размера се сравняват с един поглед.",
     ],
   },
-  "dozeti-lollo-caffe-classico-50br": {
+  "lollo-caffe-classico-kafe-dozi-50-br": {
     summary:
       "Classico в 50 дози ESE — арабика и робуста с печени и ядкови нотки, интензивност 8 от 10, за всекидневното еспресо у дома.",
     body: [
@@ -1081,7 +1081,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът от 50 дози е разумната мярка за дома: по една доза ESE от 44 мм за всяко еспресо, в машина с цедка за дози. Ако пиете повече, същият Classico има и пакет от 150 дози.",
     ],
   },
-  "dozeti-lollo-caffe-decaffeinato-50br": {
+  "lollo-caffe-decaffeinato-kafe-dozi-50-br": {
     summary:
       "Безкофеиново кафе в дози ESE — печени и какаови нотки, плътно тяло и интензивност 6 от 10, 50 дози в пакет.",
     body: [
@@ -1090,7 +1090,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "50 хартиени дози по 44 мм, всяка за едно еспресо в машина с цедка за дози ESE.",
     ],
   },
-  "dozeti-lollo-caffe-ginseng-18br": {
+  "lollo-caffe-ginseng-kafe-dozi-18-br": {
     summary:
       "Дози ESE с кафе и женшен — леко сладък вкус с кадифена текстура, интензивност 6 от 10, 18 броя в пакет.",
     body: [
@@ -1099,7 +1099,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът съдържа 18 дози ESE с диаметър 44 мм — за машини с цедка за дози. Пълният състав не е посочен в данните, с които разполагаме; ако ви трябва, попитайте ни при поръчката.",
     ],
   },
-  "dozeti-lollo-caffe-nero-150br": {
+  "lollo-caffe-nero-kafe-dozi-150-br": {
     summary:
       "150 дози ESE с Nero — 100 % робуста, интензивност 10 от 10 и запас за офис, в който силното кафе върви през целия ден.",
     body: [
@@ -1108,7 +1108,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът от 150 хартиени дози (44 мм, стандарт ESE) е за машина с цедка за дози, която работи много: офис, работилница, рецепция. Една доза е едно еспресо, затова и цената на чаша е точна.",
     ],
   },
-  "dozeti-lollo-caffe-nero-50br": {
+  "lollo-caffe-nero-kafe-dozi-50-br": {
     summary:
       "Nero в 50 дози ESE: робуста с нотки на какао, тютюн и подправки и интензивност 10 от 10, в неаполитански стил.",
     body: [
@@ -1117,7 +1117,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "50 дози ESE с диаметър 44 мм, за еспресо машина с цедка за дози. Ако Nero е вашето всекидневно кафе, има и пакет от 150 дози.",
     ],
   },
-  "dozeti-lollo-caffe-oro-150br": {
+  "lollo-caffe-oro-kafe-dozi-150-br": {
     summary:
       "150 дози ESE с Oro — бленд с превес на арабиката, мек вкус и интензивност 7 от 10, в количество за офис.",
     body: [
@@ -1126,7 +1126,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "150 хартиени дози по 44 мм за машини с цедка за дози ESE. Големият пакет е за място с постоянна консумация; цената на чаша е до цената на пакета, за да я сравните с тази на пакета от 50 дози.",
     ],
   },
-  "dozeti-lollo-caffe-oro-50br": {
+  "lollo-caffe-oro-kafe-dozi-50-br": {
     summary:
       "Oro в 50 дози ESE — мекото кафе на Lollo Caffè от арабика и робуста, с деликатен аромат и интензивност 7 от 10.",
     body: [
@@ -1135,7 +1135,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът е от 50 дози ESE (44 мм), подходящи за машина с цедка за дози. При по-голяма консумация Oro се предлага и по 150 броя.",
     ],
   },
-  "kapsuli-blue-lollo-caffe-classico-100br": {
+  "lollo-caffe-classico-kapsuli-lavazza-blue-100-br": {
     summary:
       "Classico в капсули за Lavazza Blue — арабика и робуста, 9 от 10 по интензивност, в кутия от 100 капсули за офисната машина.",
     body: [
@@ -1144,7 +1144,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "100 капсули, по едно кафе от всяка — кутията стига за сто чаши, а цената на чаша е изчислена точно, не по тегло.",
     ],
   },
-  "kapsuli-blue-lollo-caffe-nero-100br": {
+  "lollo-caffe-nero-kapsuli-lavazza-blue-100-br": {
     summary:
       "Nero за машини Lavazza Blue — бленд, в който преобладава робустата, с интензивност 10 от 10; кутия от 100 капсули.",
     body: [
@@ -1153,7 +1153,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутията съдържа 100 капсули, съвместими с машини Lavazza Blue.",
     ],
   },
-  "kapsuli-blue-lollo-caffe-oro-100br": {
+  "lollo-caffe-oro-kapsuli-lavazza-blue-100-br": {
     summary:
       "Oro за Lavazza Blue — арабиката преобладава, робустата дава плътност; интензивност 8 от 10, кутия от 100 капсули.",
     body: [
@@ -1162,7 +1162,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "100 капсули, съвместими с професионалните машини Lavazza Blue; всяка капсула е една чаша.",
     ],
   },
-  "kapsuli-dg-lollo-caffe-argento-16-br": {
+  "lollo-caffe-argento-kapsuli-dolce-gusto-16-br": {
     summary:
       "Argento в капсули за Dolce Gusto — арабика и робуста с печени нотки и интензивност 10 от 10, 16 капсули.",
     body: [
@@ -1171,7 +1171,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "В кутията има 16 капсули, по една на чаша. Ако предпочитате Argento в друг формат, има го и в дози ESE, и в капсули за Nespresso Original.",
     ],
   },
-  "kapsuli-dg-lollo-caffe-classico-16-br": {
+  "lollo-caffe-classico-kapsuli-dolce-gusto-16-br": {
     summary:
       "Classico за машини Dolce Gusto: 16 капсули с уравновесения бленд на Lollo Caffè от арабика и робуста, 8 от 10 по интензивност.",
     body: [
@@ -1180,7 +1180,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с Dolce Gusto. Всяка капсула е едно кафе, така че цената на чаша се вижда точно, а не като оценка.",
     ],
   },
-  "kapsuli-dg-lollo-caffe-nero-16-br": {
+  "lollo-caffe-nero-kapsuli-dolce-gusto-16-br": {
     summary:
       "Nero в капсули за Dolce Gusto — 100 % робуста с какао, тютюн и подправки във вкуса, интензивност 10 от 10.",
     body: [
@@ -1189,7 +1189,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули в кутия, съвместими с машини Dolce Gusto.",
     ],
   },
-  "kapsuli-dg-lollo-caffe-oro-16-br": {
+  "lollo-caffe-oro-kapsuli-dolce-gusto-16-br": {
     summary:
       "Oro за Dolce Gusto — арабика и робуста в мек, хармоничен бленд със златиста крема; интензивност 7 от 10.",
     body: [
@@ -1198,7 +1198,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "16 капсули, съвместими с машини Dolce Gusto, по една на чаша.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-afrodite-10br": {
+  "lollo-caffe-afrodite-kapsuli-nespresso-10-br": {
     summary:
       "Afrodite за машини Nespresso Original — арабика и робуста със сладост и кадифена крема, интензивност 7 от 10.",
     body: [
@@ -1207,7 +1207,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Nespresso Original. Малкият пакет е удобен, ако тепърва избирате кое от кафетата на Lollo Caffè ви харесва.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-argento-30br": {
+  "lollo-caffe-argento-kapsuli-nespresso-30-br": {
     summary:
       "Argento в 30 капсули за Nespresso Original — арабика и робуста, печени нотки и плътно тяло при интензивност 10 от 10.",
     body: [
@@ -1216,7 +1216,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът е от 30 капсули. Капсулите на Lollo Caffè за Nespresso Original идват по 10 или по 30, а по-големият пакет има смисъл, когато вече знаете, че това е вашето кафе.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-classico-30br": {
+  "lollo-caffe-classico-kapsuli-nespresso-30-br": {
     summary:
       "Classico за Nespresso Original, 30 капсули — арабика и робуста с ядкови и печени нотки, интензивност 8 от 10.",
     body: [
@@ -1225,7 +1225,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "30 капсули, съвместими с машини Nespresso Original, стигат за 30 чаши.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-dek-30br": {
+  "lollo-caffe-dek-kapsuli-nespresso-30-br": {
     summary:
       "Dek в капсули за Nespresso Original — безкофеиново кафе с печени и какаови нотки, интензивност 6 от 10, 30 капсули.",
     body: [
@@ -1234,7 +1234,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Капсулите са съвместими с машини Nespresso Original.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-giove-10br": {
+  "lollo-caffe-giove-kapsuli-nespresso-10-br": {
     summary:
       "Безкофеиново кафе Giove в капсули за Nespresso Original — балансиран вкус и приятно тяло, интензивност 8 от 10.",
     body: [
@@ -1243,7 +1243,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Nespresso Original — малък пакет за вечерното кафе.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-hermes-10br": {
+  "lollo-caffe-hermes-kapsuli-nespresso-10-br": {
     summary:
       "Hermes за Nespresso Original — едносортова колумбийска арабика, отгледана на голяма височина, с нотки на мед и лешник.",
     body: [
@@ -1252,7 +1252,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Интензивността е 8 от 10. Пакетът съдържа 10 капсули, съвместими с машини Nespresso Original.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-nero-30br": {
+  "lollo-caffe-nero-kapsuli-nespresso-30-br": {
     summary:
       "Nero в 30 капсули за Nespresso Original — чиста робуста, в чийто вкус се усещат какао, тютюн и подправки; интензивност 9 от 10.",
     body: [
@@ -1261,7 +1261,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът съдържа 30 капсули, съвместими с машини Nespresso Original.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-oro-30br": {
+  "lollo-caffe-oro-kapsuli-nespresso-30-br": {
     summary:
       "Oro в 30 капсули за Nespresso Original — мек бленд от арабика и робуста с деликатен аромат, интензивност 7 от 10.",
     body: [
@@ -1270,7 +1270,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "30 капсули, съвместими с машини Nespresso Original. Ако тепърва избирате, Afrodite в същата система е със същата интензивност и с акцент върху сладостта.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-sole-10br": {
+  "lollo-caffe-sole-kapsuli-nespresso-10-br": {
     summary:
       "Sole за Nespresso Original — 100 % бразилска арабика с вкус на шоколад и ядки и интензивност 10 от 10.",
     body: [
@@ -1279,7 +1279,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Nespresso Original. Сред капсулите на Lollo Caffè за тази система Sole и Hermes са двете кафета от чиста арабика с посочен произход — Бразилия и Колумбия.",
     ],
   },
-  "kapsuli-nespresso-lollo-caffe-terra-10br": {
+  "lollo-caffe-terra-kapsuli-nespresso-10-br": {
     summary:
       "Terra за Nespresso Original — 40 % арабика и 60 % робуста при тъмно изпичане, шоколадов вкус и интензивност 9 от 10.",
     body: [
@@ -1288,7 +1288,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Nespresso Original — за първото кафе сутрин, когато мекото не стига.",
     ],
   },
-  "kafe-na-zarna-lollo-caffe-classico-0-500kg": {
+  "lollo-caffe-classico-kafe-na-zarna-500-g": {
     summary:
       "Classico на зърна, 500 г — уравновесено кафе в италиански стил с интензивност 8 от 10, за автоматична машина или мелачка.",
     body: [
@@ -1297,7 +1297,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Зърната се мелят в автоматичната кафемашина или в собствена мелачка за машина с ръкохватка. Цената на чаша при зърната е оценка (≈), защото зависи от това колко кафе слага машината ви на една доза.",
     ],
   },
-  "kafe-na-zarna-lollo-caffe-classico-1kg": {
+  "lollo-caffe-classico-kafe-na-zarna-1-kg": {
     summary:
       "Килограм Classico на зърна — бленд от арабика и робуста с плътно и меко тяло, интензивност 8 от 10.",
     body: [
@@ -1306,7 +1306,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Цената на чаша при зърната е приблизителна, защото дозата зависи от машината, но се сравнява пряко с капсулите и дозите ESE на същия Classico.",
     ],
   },
-  "kafe-na-zarna-lollo-caffe-nero-0-500kg": {
+  "lollo-caffe-nero-kafe-na-zarna-500-g": {
     summary:
       "Nero на зърна, 500 г — изцяло робуста, интензивност 9 от 10, за машина с ръкохватка или за автоматична кафемашина.",
     body: [
@@ -1315,7 +1315,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Ако вече сте решили, същото кафе има и килограмов пакет.",
     ],
   },
-  "kafe-na-zarna-lollo-caffe-nero-1kg": {
+  "lollo-caffe-nero-kafe-na-zarna-1-kg": {
     summary:
       "Килограм Nero на зърна: робуста с богато тяло и нотки на какао и подправки, интензивност 9 от 10.",
     body: [
@@ -1324,7 +1324,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Един килограм е запасът за автоматична машина в офис или у дома, когато Nero е всекидневното кафе. Цената на чаша е изчислена от теглото и затова е отбелязана с ≈.",
     ],
   },
-  "kafe-na-zarna-lollo-caffe-oro-1kg": {
+  "lollo-caffe-oro-kafe-na-zarna-1-kg": {
     summary:
       "Oro на зърна, 1 кг — фино еспресо с кадифена текстура и интензивност 7 от 10, най-ниската сред зърната на Lollo Caffè.",
     body: [
@@ -1334,7 +1334,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     ],
   },
   // Twelve brands, written 9 October 2026.
-  "dozeti-3bourbons-50br": {
+  "3-bourbons-kafe-dozi-50-br": {
     summary:
       "Дози ESE от 100 % арабика от три страни — Ел Салвадор, Доминиканска република и Гватемала — с лек, сладък вкус и 8 от 10.",
     body: [
@@ -1343,7 +1343,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Пакетът съдържа 50 хартиени дози от 44 мм. Слагат се направо в цедката за дози на еспресо машината.",
     ],
   },
-  "dozeti-3bourbons-brutale-50br": {
+  "3-bourbons-brutale-kafe-dozi-50-br": {
     summary:
       "Brutale е силната доза на 3 Bourbons — половин арабика, половин робуста, интензивност 10 от 10 и плътно еспресо, 50 дози ESE.",
     body: [
@@ -1352,7 +1352,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутия от 50 дози, за машина, която приема хартиени дози ESE с диаметър 44 мм.",
     ],
   },
-  "kafe-na-zarna-amann-fazenda-rainha-0-500kg": {
+  "amann-fazenda-rainha-kafe-na-zarna-500-g": {
     summary:
       "Кафе на зърна от района São Sebastião da Grama в щата Сао Пауло, Бразилия — интензивност 7 от 10 и умерена сила, 500 г.",
     body: [
@@ -1360,7 +1360,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Интензивност 7 от 10, умерена сила. В пакета има 500 г цели зърна. Нужна е мелачка — вградената в автоматичната кафемашина или отделна.",
     ],
   },
-  "kafe-na-zarna-amann-finca-aurora-0-500kg": {
+  "amann-finca-aurora-kafe-na-zarna-500-g": {
     summary:
       "Finca Aurora на Amann е от района Huatulco в мексиканския щат Oaxaca — зърна с интензивност 7 от 10, опаковка 500 г.",
     body: [
@@ -1368,7 +1368,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "500 г цели зърна. Мелят се според машината — в автоматична кафемашина с мелачка или в отделна мелачка преди еспресо машината.",
     ],
   },
-  "dozeti-adore-espresso-bar-100br": {
+  "bianchi-adore-espresso-bar-kafe-dozi-100-br": {
     summary:
       "Adore Espresso Bar в 100 дози ESE: 90 % арабика от Колумбия и Коста Рика с 10 % робуста, кадифена крема и 6 от 10.",
     body: [
@@ -1377,7 +1377,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "В кутията има 100 дози ESE. Машината ви трябва да има цедка за дози — капсулните не ги приемат.",
     ],
   },
-  "dozeti-adore-grand-espresso-100br": {
+  "bianchi-adore-grand-espresso-kafe-dozi-100-br": {
     summary:
       "Adore Grand Espresso: 80 % арабика от Централна Америка и 20 % робуста, шоколад и печени зърна — 100 дози ESE, 7 от 10.",
     body: [
@@ -1386,7 +1386,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Сто хартиени дози, всяка по 44 мм — за дом или офис, в който еспресо машината има цедка за дози.",
     ],
   },
-  "dozeti-bianchi-decaf-100br": {
+  "bianchi-decaf-kafe-dozi-100-br": {
     summary:
       "Безкофеинови дози ESE от Bianchi — 50 % арабика и 50 % робуста, богат вкус и мек характер, 100 дози в кутия.",
     body: [
@@ -1395,7 +1395,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "100 хартиени дози по 44 мм — достатъчно, за да има безкофеиново в офиса редом с обикновеното, в същата машина с цедка за дози.",
     ],
   },
-  "dozeti-bianchi-gold-100br": {
+  "bianchi-gold-kafe-dozi-100-br": {
     summary:
       "Bianchi Gold в 100 дози ESE: 80 % робуста от Индия и 20 % арабика от Колумбия, изразителен аромат и 9 от 10.",
     body: [
@@ -1404,7 +1404,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковката е от 100 хартиени дози по 44 мм — за ръкохватка с цедка за дози ESE.",
     ],
   },
-  "dozeti-bianchi-rosso-100br": {
+  "bianchi-rosso-kafe-dozi-100-br": {
     summary:
       "Bianchi Rosso в дози ESE: 60 % робуста и 40 % арабика от Индия, Уганда и Колумбия — плътно класическо еспресо, 8 от 10.",
     body: [
@@ -1413,7 +1413,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "100 дози ESE по 44 мм. Бройката е точна, затова цената на чаша е цената на кутията, разделена на сто.",
     ],
   },
-  "dozeti-bianchi-silver-100br": {
+  "bianchi-silver-kafe-dozi-100-br": {
     summary:
       "Silver е най-силната доза на Bianchi при нас — 100 % робуста от Индия и Уганда, интензивност 10 от 10, 100 дози ESE.",
     body: [
@@ -1422,7 +1422,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутия от 100 дози за еспресо машина с цедка за дози ESE.",
     ],
   },
-  "kapsuli-caffitaly-espresso-cappuccino-10-br": {
+  "caffitaly-espresso-cappuccino-kapsuli-caffitaly-10-br": {
     summary:
       "Капсули Caffitaly за капучино — една капсула дава напитка с кафе и мляко, с приятна сладост и кадифена текстура.",
     body: [
@@ -1431,7 +1431,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Капсулите са 10 и пасват на машини Caffitaly; същият формат приемат и машините Tchibo Cafissimo.",
     ],
   },
-  "kapsuli-caffitaly-espresso-cremoso-10-br": {
+  "caffitaly-espresso-cremoso-kapsuli-caffitaly-10-br": {
     summary:
       "Cremoso за Caffitaly: изцяло арабика с произход Южна и Централна Америка, мека кадифена крема и интензивност 5 от 10 — 10 капсули.",
     body: [
@@ -1440,7 +1440,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, които влизат в машини Caffitaly и Tchibo Cafissimo.",
     ],
   },
-  "kapsuli-caffitaly-espresso-intenso-10-br": {
+  "caffitaly-espresso-intenso-kapsuli-caffitaly-10-br": {
     summary:
       "Intenso за Caffitaly: 70 % арабика и 30 % робуста от Южна Америка и Индия, наситен вкус с шоколадов привкус, 8 от 10.",
     body: [
@@ -1449,7 +1449,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Caffitaly и Tchibo Cafissimo.",
     ],
   },
-  "kapsuli-caffitaly-espresso-nocciola-10-br": {
+  "caffitaly-espresso-nocciola-kapsuli-caffitaly-10-br": {
     summary:
       "Ароматизирани капсули Caffitaly с печен лешник върху 100 % арабика — мек вкус с шоколадова нотка, интензивност 7 от 10.",
     body: [
@@ -1458,7 +1458,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за Caffitaly и за Tchibo Cafissimo.",
     ],
   },
-  "kapsuli-caffitaly-espresso-prezioso-10-br": {
+  "caffitaly-espresso-prezioso-kapsuli-caffitaly-10-br": {
     summary:
       "Prezioso за Caffitaly — само арабика, отгледана в Латинска Америка, с богат и приятен вкус и добре балансирано тяло, 7 от 10.",
     body: [
@@ -1467,7 +1467,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутия от 10 капсули за машини Caffitaly и Tchibo Cafissimo.",
     ],
   },
-  "kapsuli-caffitaly-espresso-vigoroso-10-br": {
+  "caffitaly-espresso-vigoroso-kapsuli-caffitaly-10-br": {
     summary:
       "Vigoroso е най-силното еспресо на Caffitaly при нас — 100 % робуста, какао, черен шоколад и леко димни тонове, 10 от 10.",
     body: [
@@ -1476,7 +1476,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo.",
     ],
   },
-  "dozeti-elia-esclusiva-50br": {
+  "elia-esclusiva-kafe-dozi-50-br": {
     summary:
       "Esclusiva в 50 дози ESE: 100 % арабика от Колумбия и Коста Рика, вкус на печени зърна и кадифена крема, 7 от 10.",
     body: [
@@ -1485,7 +1485,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутията е от 50 дози — по-малка от офис опаковките, удобна за дом с еспресо машина с цедка за дози 44 мм.",
     ],
   },
-  "dozeti-elia-suprema-50br": {
+  "elia-suprema-kafe-dozi-50-br": {
     summary:
       "Suprema в дози ESE е 100 % робуста от Индия и Уганда — наситен аромат и концентрирана чаша с интензивност 9 от 10, 50 дози.",
     body: [
@@ -1494,7 +1494,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "В кутията има 50 дози; всяка е плоска хартиена възглавничка от 44 мм за цедката на еспресо машината.",
     ],
   },
-  "kafe-na-zarna-eurocaf-piacere-d-oro-green-1kg": {
+  "eurocaf-piacere-d-oro-green-kafe-na-zarna-1-kg": {
     summary:
       "Piacere d'Oro Green на Eurocaf — зърна с тъмен шоколад, лешници и лека сладост, интензивност 8 от 10, опаковка 1 кг.",
     body: [
@@ -1503,7 +1503,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Какво точно отличава Green от Piacere d'Oro без това означение, не е посочено; двата вида са с еднаква интензивност. Килограмова опаковка цели зърна.",
     ],
   },
-  "kapsuli-dg-foodness-mermaid-latte-10-br": {
+  "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br": {
     summary:
       "Капсули Dolce Gusto без кафе и без кофеин: Mermaid Latte от растителни екстракти, кокосово мляко и драконов плод.",
     body: [
@@ -1512,7 +1512,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с машини Dolce Gusto.",
     ],
   },
-  "dozeti-illy-classico-18br": {
+  "illy-classico-kafe-dozi-18-br": {
     summary:
       "Малката кутия illy Classico в дози ESE — 18 дози от 100 % арабика с шоколад и карамел, за да опитате, преди да вземете повече.",
     body: [
@@ -1520,7 +1520,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Всяка доза е хартиена, 44 мм, за машина с цедка за дози ESE. 18 броя стигат за малко повече от две седмици, ако пиете по една чаша дневно — или за проба, преди кутията от 200.",
     ],
   },
-  "dozeti-illy-classico-200br": {
+  "illy-classico-kafe-dozi-200-br": {
     summary:
       "200 дози ESE illy Classico — бленд от 100 % арабика с гладък вкус, шоколад и карамел, в кутия за офис или заведение.",
     body: [
@@ -1529,7 +1529,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Дозите са стандартни ESE, по 44 мм; машината трябва да има цедка за дози. При 200 дози в кутия цената на една чаша е лесна сметка — цената на кутията, делена на 200.",
     ],
   },
-  "dozeti-illy-decaffeinato-18br": {
+  "illy-decaffeinato-kafe-dozi-18-br": {
     summary:
       "Безкофеиново illy в хартиени дози ESE — 100 % арабика с карамел, шоколад и препечен хляб и гладък послевкус.",
     body: [
@@ -1538,7 +1538,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Формат: дози ESE от 44 мм, за еспресо машина с цедка за дози.",
     ],
   },
-  "kapsuli-nespresso-illy-classico-10br": {
+  "illy-classico-kapsuli-nespresso-10-br": {
     summary:
       "illy Classico в капсули за Nespresso Original — 100 % арабика на средно изпичане, интензивност 7 от 10, 10 капсули.",
     body: [
@@ -1547,7 +1547,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули, съвместими с класическите домашни машини Nespresso. За машините Iperespresso на illy нямаме капсули.",
     ],
   },
-  "kapsuli-nespresso-illy-forte-10br": {
+  "illy-forte-kapsuli-nespresso-10-br": {
     summary:
       "illy Forte за Nespresso Original — 100 % арабика с по-тъмно изпичане, тъмен шоколад и препечен хляб, интензивност 9 от 10.",
     body: [
@@ -1556,7 +1556,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "10 капсули за домашни машини Nespresso Original.",
     ],
   },
-  "dozeti-kimbo-amalfi-150br": {
+  "kimbo-amalfi-kafe-dozi-150-br": {
     summary:
       "Amalfi в 150 дози ESE: 100 % арабика с флорални нотки, цитруси, препечен хляб и бадеми, интензивност 9 от 13.",
     body: [
@@ -1565,7 +1565,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутията е от 150 дози. Машината трябва да приема хартиени дози ESE от 44 мм.",
     ],
   },
-  "dozeti-kimbo-capri-150br": {
+  "kimbo-capri-kafe-dozi-150-br": {
     summary:
       "Capri в 150 дози ESE: арабика и робуста на средно тъмно изпичане, в неаполитански стил, с интензивност 10 от 13 и устойчива крема.",
     body: [
@@ -1574,7 +1574,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "150 дози в кутия — за вкъщи при по-голям разход или за офис; нужна е машина с цедка за дози ESE.",
     ],
   },
-  "dozeti-kimbo-pompei-150br": {
+  "kimbo-pompei-kafe-dozi-150-br": {
     summary:
       "Pompei е най-силната доза на Kimbo при нас — тъмно изпичане, екстра тъмен шоколад и подправки, 12 от 13, в кутия от 150.",
     body: [
@@ -1583,7 +1583,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "150 хартиени дози по 44 мм. За тези, които пият еспресото кратко и силно, на машина с цедка за дози ESE.",
     ],
   },
-  "dozeti-lavazza-crema-e-gusto-100br": {
+  "lavazza-crema-e-gusto-kafe-dozi-100-br": {
     summary:
       "Crema e Gusto в дози ESE: арабика и робуста, тъмен шоколад и подправки, интензивност 8 от 10 — кутия от 100 дози.",
     body: [
@@ -1592,7 +1592,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Сто дози в кутия — количеството за офис кухня или за дом, в който кафето се пие по няколко пъти на ден.",
     ],
   },
-  "dozeti-lavazza-gran-espresso-150br": {
+  "lavazza-gran-espresso-kafe-dozi-150-br": {
     summary:
       "150 дози ESE Gran Espresso: арабика и робуста на средно изпичане, какао и подправки, гладка и устойчива крема — 8 от 10.",
     body: [
@@ -1601,7 +1601,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "150 дози ESE в кутия — за офис или малко заведение, където машината с цедка за дози работи цял ден.",
     ],
   },
-  "dozeti-lavazza-gran-espresso-intenso-150br": {
+  "lavazza-gran-espresso-intenso-kafe-dozi-150-br": {
     summary:
       "По-тъмната версия на Gran Espresso в дози ESE — тъмно изпичане, какао и пикантни нюанси, интензивност 9 от 10, 150 дози.",
     body: [
@@ -1610,7 +1610,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковка от 150 хартиени дози, всяка по 44 мм.",
     ],
   },
-  "kapsuli-blue-lavazza-milano-espresso-100-br": {
+  "lavazza-milano-espresso-kapsuli-lavazza-blue-100-br": {
     summary:
       "100 капсули Lavazza Blue Milano: бразилска арабика на средно изпичане, шоколад и сушени плодове — интензивност 7 от 10.",
     body: [
@@ -1619,7 +1619,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Капсулите са за професионалните машини Lavazza Blue, които най-често стоят в офиси; машината обикновено носи означение LB. 100 броя в кутия.",
     ],
   },
-  "kapsuli-blue-lavazza-venezia-espresso-100-br": {
+  "lavazza-venezia-espresso-kapsuli-lavazza-blue-100-br": {
     summary:
       "Venezia за Lavazza Blue: 100 % арабика на средно изпичане, флорални и плодови нотки и плътна крема, интензивност 10 от 10.",
     body: [
@@ -1628,7 +1628,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "100 капсули за машини Lavazza Blue. Ако предпочитате по-дълга чаша, същото име има и във вариант Lungo.",
     ],
   },
-  "kapsuli-blue-lavazza-venezia-lungo-espresso-100-br": {
+  "lavazza-venezia-lungo-espresso-kapsuli-lavazza-blue-100-br": {
     summary:
       "Дългото еспресо от линията Venezia: арабика от Централна и Южна Америка, флорални и плодови нотки, 8 от 10 — 100 капсули Lavazza Blue.",
     body: [
@@ -1637,7 +1637,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутия от 100 капсули за професионалните машини Lavazza Blue.",
     ],
   },
-  "dozeti-molini-milano-150br": {
+  "molini-milano-kafe-dozi-150-br": {
     summary:
       "Milano в дози ESE: 40 % арабика и 60 % робуста, плодови и шоколадови нотки и компактна крема — 8 от 10, кутия от 150.",
     body: [
@@ -1646,7 +1646,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутията от 150 дози ESE е за място с постоянен разход — офис, малко кафене или голямо домакинство.",
     ],
   },
-  "dozeti-molini-napoli-150br": {
+  "molini-napoli-kafe-dozi-150-br": {
     summary:
       "Napoli в 150 дози ESE: 80 % робуста и 20 % арабика, черен шоколад и дълбоко тяло, интензивност 9 от 10.",
     body: [
@@ -1655,7 +1655,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "По 150 дози в кутия, за ръкохватка с цедка за хартиени дози.",
     ],
   },
-  "dozeti-molini-torino-150br": {
+  "molini-torino-kafe-dozi-150-br": {
     summary:
       "Torino в дози ESE е изцяло робуста — какао, горчив шоколад и плътна крема при интензивност 10 от 10, 150 дози.",
     body: [
@@ -1664,7 +1664,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "150 хартиени дози по 44 мм. Стават за еспресо машина с цедка за дози, не за капсулна машина.",
     ],
   },
-  "dozeti-rema-caffe-arabica-gold-100br": {
+  "rema-caffe-arabica-gold-kafe-dozi-100-br": {
     summary:
       "Arabica Gold в хартиени дози ESE: изцяло арабика, средно изпичане и 10 от 12, в кутия от 100 дози за машина с цедка за дози.",
     body: [
@@ -1673,7 +1673,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Сто дози в кутия означават сто чаши, така че цената на чаша се получава точно, без догадки за грамаж.",
     ],
   },
-  "dozeti-rema-caffe-caramel-karamel-100br": {
+  "rema-caffe-caramel-kafe-dozi-100-br": {
     summary:
       "Дози ESE с аромат на карамел върху основа от 100 % арабика — мека и сладка чаша с интензивност 8 от 12, 100 броя в кутия.",
     body: [
@@ -1682,7 +1682,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Опаковката от 100 дози има смисъл, ако ароматизираното кафе е ежедневие, а не изключение.",
     ],
   },
-  "dozeti-rema-caffe-crema-forte-100br": {
+  "rema-caffe-crema-forte-kafe-dozi-100-br": {
     summary:
       "Crema Forte на Rema Caffe в дози ESE: робустата е 60 %, арабиката 40 %, интензивност 11 от 12 и плътен, добре структуриран вкус.",
     body: [
@@ -1691,7 +1691,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Всяка хартиена доза от 44 мм е за едно еспресо, така че кутията стига за 100 чаши.",
     ],
   },
-  "dozeti-rema-caffe-hazelnut-leshnik-100br": {
+  "rema-caffe-hazelnut-kafe-dozi-100-br": {
     summary:
       "Ароматизирани дози ESE с печен лешник и шоколадово-орехови нюанси, върху 100 % арабика — 8 от 12, кутия от 100 дози.",
     body: [
@@ -1700,7 +1700,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Със същата интензивност и в същата кутия от 100 броя е и вариантът с карамел.",
     ],
   },
-  "dozeti-rema-caffe-ristretto-25br": {
+  "rema-caffe-ristretto-kafe-dozi-25-br": {
     summary:
       "Ristretto в дози ESE: арабика от планината Сиера Маестра в Куба, средно изпичане и интензивност 10 от 12 — 25 дози.",
     body: [
@@ -1709,7 +1709,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Кутията от 25 дози е малка — удобна, ако искате да опитате кубинската арабика, преди да решите дали да остане в шкафа. Размерът на дозата е 44 мм.",
     ],
   },
-  "dozeti-rema-caffe-supremo-25br": {
+  "rema-caffe-supremo-kafe-dozi-25-br": {
     summary:
       "Supremo в 25 хартиени дози ESE: 100 % арабика с шоколад, ядки и деликатни плодови акценти, интензивност 8 от 12.",
     body: [
@@ -1718,7 +1718,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "25 дози са 25 чаши — около три седмици и половина при една чаша на ден.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-arabica-gold-44-br": {
+  "rema-caffe-arabica-gold-kapsuli-nespresso-44-br": {
     summary:
       "44 капсули Arabica Gold за Nespresso Original — интензивност 10 от 12 и силен характер, в по-голямата кутия на Rema Caffe.",
     body: [
@@ -1726,7 +1726,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Интензивност 10 от 12 при силен характер. Капсулите са съвместими с класическите домашни машини Nespresso Original, не с Vertuo.",
     ],
   },
-  "kapsuli-nespresso-rema-caffe-forte-44-br": {
+  "rema-caffe-forte-kapsuli-nespresso-44-br": {
     summary:
       "Forte на Rema Caffe в кутия от 44 капсули за Nespresso Original — интензивност 11 от 12 за любителите на силното кафе.",
     body: [

@@ -1,0 +1,3739 @@
+[
+  {
+    "sourceKey": "/3-bourbons-50/#50pc",
+    "sourceName": "Дозети 3bourbons 50бр.",
+    "brand": {
+      "sourceKey": "3-bourbons",
+      "name": "3bourbons"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-3bourbons-50br",
+    "expected": {
+      "brand": "3 Bourbons",
+      "line": "",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "3 Bourbons — кафе дози ESE, 50 бр.",
+      "slug": "3-bourbons-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/3-bourbons-brutale-50/#50pc",
+    "sourceName": "Дозети 3bourbons Brutale 50бр.",
+    "brand": {
+      "sourceKey": "3-bourbons",
+      "name": "3bourbons"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-3bourbons-brutale-50br",
+    "expected": {
+      "brand": "3 Bourbons",
+      "line": "Brutale",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "3 Bourbons Brutale — кафе дози ESE, 50 бр.",
+      "slug": "3-bourbons-brutale-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/adore-espresso-bar-100/#100pc",
+    "sourceName": "Дозети Adore Espresso Bar 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-adore-espresso-bar-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Adore Espresso Bar",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Adore Espresso Bar — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-adore-espresso-bar-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/adore-grand-espresso-100/#100pc",
+    "sourceName": "Дозети Adore Grand Espresso 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-adore-grand-espresso-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Adore Grand Espresso",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Adore Grand Espresso — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-adore-grand-espresso-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/amann-cascada-500/#500g",
+    "sourceName": "Кафе на зърна Amann La Cascada 0.500кг.",
+    "brand": {
+      "sourceKey": "amann",
+      "name": "AMANN"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-amann-la-cascada-0-500kg",
+    "expected": {
+      "brand": "Amann",
+      "line": "La Cascada",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Amann La Cascada — кафе на зърна, 500 г",
+      "slug": "amann-la-cascada-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/amann-fazenda-rainha-500/#500g",
+    "sourceName": "Кафе на зърна Amann Fazenda Rainha 0.500кг.",
+    "brand": {
+      "sourceKey": "amann",
+      "name": "AMANN"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-amann-fazenda-rainha-0-500kg",
+    "expected": {
+      "brand": "Amann",
+      "line": "Fazenda Rainha",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Amann Fazenda Rainha — кафе на зърна, 500 г",
+      "slug": "amann-fazenda-rainha-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/amann-finca-aurora-500/#500g",
+    "sourceName": "Кафе на зърна Amann Finca Aurora 0.500кг.",
+    "brand": {
+      "sourceKey": "amann",
+      "name": "AMANN"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-amann-finca-aurora-0-500kg",
+    "expected": {
+      "brand": "Amann",
+      "line": "Finca Aurora",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Amann Finca Aurora — кафе на зърна, 500 г",
+      "slug": "amann-finca-aurora-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/amann-sido-500/#500g",
+    "sourceName": "Кафе на зърна Amann Sido 0.500кг.",
+    "brand": {
+      "sourceKey": "amann",
+      "name": "AMANN"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-amann-sido-0-500kg",
+    "expected": {
+      "brand": "Amann",
+      "line": "Sido",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Amann Sido — кафе на зърна, 500 г",
+      "slug": "amann-sido-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/biancaffe-arabica-500/#500g",
+    "sourceName": "Кафе на зърна Biancaffe Arabica 0.500кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-biancaffe-arabica-0-500kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Arabica",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Biancaffè Arabica — кафе на зърна, 500 г",
+      "slug": "biancaffe-arabica-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/biancaffe-classica-1/#1000g",
+    "sourceName": "Кафе на зърна Biancaffe Classica 1кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-biancaffe-classica-1kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Classica",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Biancaffè Classica — кафе на зърна, 1 кг",
+      "slug": "biancaffe-classica-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/biancaffe-dek-500/#500g",
+    "sourceName": "Кафе на зърна Biancaffe Dek 0.500кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-biancaffe-dek-0-500kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Dek",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Biancaffè Dek — кафе на зърна, 500 г",
+      "slug": "biancaffe-dek-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/biancaffe-intenso-1/#1000g",
+    "sourceName": "Кафе на зърна Biancaffe Intenso 1кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-biancaffe-intenso-1kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Intenso",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Biancaffè Intenso — кафе на зърна, 1 кг",
+      "slug": "biancaffe-intenso-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/biancaffe-soave-1/#1000g",
+    "sourceName": "Кафе на зърна Biancaffe Soave 1кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-biancaffe-soave-1kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Soave",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Biancaffè Soave — кафе на зърна, 1 кг",
+      "slug": "biancaffe-soave-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/bianchi-decaf-100/#100pc",
+    "sourceName": "Дозети Bianchi Decaf 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-bianchi-decaf-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Decaf",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Decaf — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-decaf-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/bianchi-dg-forte-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Gusto Forte Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-gusto-forte-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Gusto Forte Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Gusto Forte Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-gusto-forte-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/bianchi-gold-100/#100pc",
+    "sourceName": "Дозети Bianchi Gold 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-bianchi-gold-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Gold",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Gold — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-gold-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/bianchi-rosso-100/#100pc",
+    "sourceName": "Дозети Bianchi Rosso 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-bianchi-rosso-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Rosso",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Rosso — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-rosso-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/bianchi-silver-100/#100pc",
+    "sourceName": "Дозети Bianchi Silver 100бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-bianchi-silver-100br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Silver",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Bianchi Silver — кафе дози ESE, 100 бр.",
+      "slug": "bianchi-silver-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lavazza-decaffeinato-100/#100pc",
+    "sourceName": "Капсули Blue Lavazza Decaffeinato 100 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-blue-lavazza-decaffeinato-100-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Decaffeinato",
+      "detail": "Капсули Lavazza Blue, 100 бр.",
+      "full": "Lavazza Decaffeinato — капсули Lavazza Blue, 100 бр.",
+      "slug": "lavazza-decaffeinato-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lavazza-milano-espresso-100/#100pc",
+    "sourceName": "Капсули Blue Lavazza Milano Espresso 100 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lavazza-milano-espresso-100-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Milano Espresso",
+      "detail": "Капсули Lavazza Blue, 100 бр.",
+      "full": "Lavazza Milano Espresso — капсули Lavazza Blue, 100 бр.",
+      "slug": "lavazza-milano-espresso-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lavazza-venezia-espresso-100/#100pc",
+    "sourceName": "Капсули Blue Lavazza Venezia Espresso 100 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lavazza-venezia-espresso-100-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Venezia Espresso",
+      "detail": "Капсули Lavazza Blue, 100 бр.",
+      "full": "Lavazza Venezia Espresso — капсули Lavazza Blue, 100 бр.",
+      "slug": "lavazza-venezia-espresso-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lavazza-venezia-lungo-espresso-100/#100pc",
+    "sourceName": "Капсули Blue Lavazza Venezia Lungo Espresso 100 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lavazza-venezia-lungo-espresso-100-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Venezia Lungo Espresso",
+      "detail": "Капсули Lavazza Blue, 100 бр.",
+      "full": "Lavazza Venezia Lungo Espresso — капсули Lavazza Blue, 100 бр.",
+      "slug": "lavazza-venezia-lungo-espresso-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lollo-caffe-classico-100/#100pc",
+    "sourceName": "Капсули Blue Lollo caffe Classico 100бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lollo-caffe-classico-100br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Капсули за Lavazza Blue, 100 бр.",
+      "full": "Lollo Caffè Classico — капсули за Lavazza Blue, 100 бр.",
+      "slug": "lollo-caffe-classico-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lollo-caffe-nero-100/#100pc",
+    "sourceName": "Капсули Blue Lollo caffe Nero 100бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lollo-caffe-nero-100br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Капсули за Lavazza Blue, 100 бр.",
+      "full": "Lollo Caffè Nero — капсули за Lavazza Blue, 100 бр.",
+      "slug": "lollo-caffe-nero-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/blue-lollo-caffe-oro-100/#100pc",
+    "sourceName": "Капсули Blue Lollo caffe Oro 100бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["lavazza-blue"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-blue-lollo-caffe-oro-100br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Капсули за Lavazza Blue, 100 бр.",
+      "full": "Lollo Caffè Oro — капсули за Lavazza Blue, 100 бр.",
+      "slug": "lollo-caffe-oro-kapsuli-lavazza-blue-100-br"
+    }
+  },
+  {
+    "sourceKey": "/borbone-crema-classica-1/#1000g",
+    "sourceName": "Кафе на зърна Borbone Crema Classica 1кг.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-borbone-crema-classica-1kg",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Classica",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Borbone Crema Classica — кафе на зърна, 1 кг",
+      "slug": "borbone-crema-classica-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/borbone-crema-classica-500/#500g",
+    "sourceName": "Кафе на зърна Borbone Crema Classica 0.500кг.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-borbone-crema-classica-0-500kg",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Classica",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Borbone Crema Classica — кафе на зърна, 500 г",
+      "slug": "borbone-crema-classica-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/borbone-crema-superiore-1/#1000g",
+    "sourceName": "Кафе на зърна Borbone Crema Superiore 1кг.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-borbone-crema-superiore-1kg",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Superiore",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Borbone Crema Superiore — кафе на зърна, 1 кг",
+      "slug": "borbone-crema-superiore-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/borbone-crema-superiore-500/#500g",
+    "sourceName": "Кафе на зърна Borbone Crema Superiore 0.500кг.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-borbone-crema-superiore-0-500kg",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Superiore",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Borbone Crema Superiore — кафе на зърна, 500 г",
+      "slug": "borbone-crema-superiore-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/borbone-intenso-1/#1000g",
+    "sourceName": "Кафе на зърна Borbone Intenso 1кг.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-borbone-intenso-1kg",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Intenso",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Borbone Intenso — кафе на зърна, 1 кг",
+      "slug": "borbone-intenso-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-cappuccino-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Cappuccino 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-cappuccino-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Cappuccino",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Cappuccino — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-cappuccino-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-corposo-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Corposo 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-caffitaly-espresso-corposo-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Corposo",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Corposo — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-corposo-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-cremoso-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Cremoso 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-cremoso-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Cremoso",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Cremoso — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-cremoso-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-intenso-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Intenso 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-intenso-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Intenso",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Intenso — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-intenso-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-morbido-10 /#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Morbido 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-caffitaly-espresso-morbido-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Morbido",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Morbido — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-morbido-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-nocciola-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Nocciola 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-nocciola-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Nocciola",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Nocciola — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-nocciola-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-panettone-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Panettone 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-caffitaly-espresso-panettone-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Panettone",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Panettone — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-panettone-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-prezioso-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Prezioso 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-prezioso-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Prezioso",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Prezioso — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-prezioso-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/caffitaly-espresso-vigoroso-10/#10pc",
+    "sourceName": "Капсули Caffitaly Espresso Vigoroso 10 бр.",
+    "brand": {
+      "sourceKey": "caffitaly",
+      "name": "CAFFITALY"
+    },
+    "categoryKeys": ["caffitaly"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-caffitaly-espresso-vigoroso-10-br",
+    "expected": {
+      "brand": "Caffitaly",
+      "line": "Espresso Vigoroso",
+      "detail": "Капсули Caffitaly, 10 бр.",
+      "full": "Caffitaly Espresso Vigoroso — капсули Caffitaly, 10 бр.",
+      "slug": "caffitaly-espresso-vigoroso-kapsuli-caffitaly-10-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-arabica-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi 100% Arabica Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-100-arabica-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "100% Arabica Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi 100% Arabica Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-100-arabica-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-chocolate-aroma-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Chocolate Aroma Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-chocolate-aroma-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Chocolate Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Chocolate Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-chocolate-aroma-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-crema-aroma-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Crema Aroma Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-crema-aroma-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Crema Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Crema Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-crema-aroma-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-fine-aroma-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Fine Aroma Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-fine-aroma-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Fine Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Fine Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-fine-aroma-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-gusto-decaf-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Gusto Decaf Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-gusto-decaf-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Gusto Decaf Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Gusto Decaf Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-gusto-decaf-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-hazelnut-aroma-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Hazelnut Aroma Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-hazelnut-aroma-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Hazelnut Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Hazelnut Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-bianchi-irish-cream-aroma-espresso-16/#16pc",
+    "sourceName": "Капсули DG Bianchi Irish Cream Aroma Espresso 16 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-bianchi-irish-cream-aroma-espresso-16-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Irish Cream Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Bianchi Irish Cream Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "bianchi-irish-cream-aroma-espresso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-borbone-baileys-cappuccino-16/#16pc",
+    "sourceName": "Капсули DG Borbone Baileys Cappuccino 16 бр.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-borbone-baileys-cappuccino-16-br",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Baileys Cappuccino",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Borbone Baileys Cappuccino — капсули за Dolce Gusto, 16 бр.",
+      "slug": "borbone-baileys-cappuccino-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-borbone-crema-classica-16/#16pc",
+    "sourceName": "Капсули DG Borbone Crema Classica 16 бр.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-borbone-crema-classica-16-br",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Classica",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Borbone Crema Classica — капсули за Dolce Gusto, 16 бр.",
+      "slug": "borbone-crema-classica-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-borbone-crema-superiore-16/#16pc",
+    "sourceName": "Капсули DG Borbone Crema Superiore 16 бр.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-borbone-crema-superiore-16-br",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Crema Superiore",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Borbone Crema Superiore — капсули за Dolce Gusto, 16 бр.",
+      "slug": "borbone-crema-superiore-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-borbone-lungo-sublime-16/#16pc",
+    "sourceName": "Капсули DG Borbone Lungo Sublime 16 бр.",
+    "brand": {
+      "sourceKey": "borbone",
+      "name": "BORBONE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-borbone-lungo-sublime-16-br",
+    "expected": {
+      "brand": "Borbone",
+      "line": "Lungo Sublime",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Borbone Lungo Sublime — капсули за Dolce Gusto, 16 бр.",
+      "slug": "borbone-lungo-sublime-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-foodness-marmaid-latte-10/#10pc",
+    "sourceName": "Капсули DG Foodness Mermaid Latte 10 бр.",
+    "brand": {
+      "sourceKey": "foodness",
+      "name": "FoodNess"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-dg-foodness-mermaid-latte-10-br",
+    "expected": {
+      "brand": "Foodness",
+      "line": "Mermaid Latte",
+      "detail": "Капсули за Dolce Gusto, 10 бр.",
+      "full": "Foodness Mermaid Latte — капсули за Dolce Gusto, 10 бр.",
+      "slug": "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-lollo-caffe-argento-16/#16pc",
+    "sourceName": "Капсули DG Lollo caffe Argento 16 бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-dg-lollo-caffe-argento-16-br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Argento",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Lollo Caffè Argento — капсули за Dolce Gusto, 16 бр.",
+      "slug": "lollo-caffe-argento-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-lollo-caffe-classico-16/#16pc",
+    "sourceName": "Капсули DG Lollo caffe Classico 16 бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-dg-lollo-caffe-classico-16-br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Lollo Caffè Classico — капсули за Dolce Gusto, 16 бр.",
+      "slug": "lollo-caffe-classico-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-lollo-caffe-nero-16/#16pc",
+    "sourceName": "Капсули DG Lollo caffe Nero 16 бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-dg-lollo-caffe-nero-16-br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Lollo Caffè Nero — капсули за Dolce Gusto, 16 бр.",
+      "slug": "lollo-caffe-nero-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-lollo-caffe-oro-16/#16pc",
+    "sourceName": "Капсули DG Lollo caffe Oro 16 бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-dg-lollo-caffe-oro-16-br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Lollo Caffè Oro — капсули за Dolce Gusto, 16 бр.",
+      "slug": "lollo-caffe-oro-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-molini-firenze-16/#16pc",
+    "sourceName": "Капсули DG Molini Firenze 16 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-molini-firenze-16-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Firenze",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Molini Firenze — капсули за Dolce Gusto, 16 бр.",
+      "slug": "molini-firenze-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-molini-milano-16/#16pc",
+    "sourceName": "Капсули DG Molini Milano 16 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-molini-milano-16-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Milano",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Molini Milano — капсули за Dolce Gusto, 16 бр.",
+      "slug": "molini-milano-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-molini-napoli-16/#16pc",
+    "sourceName": "Капсули DG Molini Napoli 16 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-molini-napoli-16-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Napoli",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Molini Napoli — капсули за Dolce Gusto, 16 бр.",
+      "slug": "molini-napoli-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-molini-torino-16/#16pc",
+    "sourceName": "Капсули DG Molini Torino 16 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-molini-torino-16-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Torino",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Molini Torino — капсули за Dolce Gusto, 16 бр.",
+      "slug": "molini-torino-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-arabica-gold-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Arabica Gold 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-arabica-gold-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Arabica Gold",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Arabica Gold — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-arabica-gold-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-cappuccino-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Cappuccino 3in1 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-cappuccino-3in1-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Cappuccino 3in1",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Cappuccino 3in1 — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-cappuccino-3in1-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-caramel-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Caramel 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-caramel-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Caramel",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Caramel — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-caramel-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-cookies-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Cookies 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-cookies-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Cookies",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Cookies — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-cookies-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-cortado-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Cortado 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-cortado-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Cortado",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Cortado — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-cortado-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-creme-brulee-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Creme Brulee 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-creme-brulee-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Creme Brulee",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Creme Brulee — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-forte-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Forte 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-forte-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Forte",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Forte — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-forte-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-gusto-satin-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Gusto Satin 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-gusto-satin-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Gusto Satin",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Gusto Satin — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-gusto-satin-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-hazelnut-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Hazelnut 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-hazelnut-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Hazelnut",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Hazelnut — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-hazelnut-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-intenso-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Intenso 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-intenso-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Intenso",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Intenso — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-intenso-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-irish-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffè Irish Cream 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-irish-cream-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Irish Cream",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Irish Cream — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-irish-cream-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/dg-rema-caffe-matcha-16/#16pc",
+    "sourceName": "Капсули DG Rema Caffe Matcha 16 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "16",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-dg-rema-caffe-matcha-16-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Matcha",
+      "detail": "Капсули за Dolce Gusto, 16 бр.",
+      "full": "Rema Caffè Matcha — капсули за Dolce Gusto, 16 бр.",
+      "slug": "rema-caffe-matcha-kapsuli-dolce-gusto-16-br"
+    }
+  },
+  {
+    "sourceKey": "/elia-esclusiva-50/#50pc",
+    "sourceName": "Дозети Elia Esclusiva 50бр.",
+    "brand": {
+      "sourceKey": "elia",
+      "name": "ELIA"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-elia-esclusiva-50br",
+    "expected": {
+      "brand": "Elia",
+      "line": "Esclusiva",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Elia Esclusiva — кафе дози ESE, 50 бр.",
+      "slug": "elia-esclusiva-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/elia-suprema-50/#50pc",
+    "sourceName": "Дозети Elia Suprema 50бр.",
+    "brand": {
+      "sourceKey": "elia",
+      "name": "ELIA"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-elia-suprema-50br",
+    "expected": {
+      "brand": "Elia",
+      "line": "Suprema",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Elia Suprema — кафе дози ESE, 50 бр.",
+      "slug": "elia-suprema-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/elia-vending-aroma-1/#1000g",
+    "sourceName": "Кафе на зърна Elia Vending Aroma 1кг.",
+    "brand": {
+      "sourceKey": "elia",
+      "name": "ELIA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-elia-vending-aroma-1kg",
+    "expected": {
+      "brand": "Elia",
+      "line": "Vending Aroma",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Elia Vending Aroma — кафе на зърна, 1 кг",
+      "slug": "elia-vending-aroma-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/elia-vending-crema-1/#1000g",
+    "sourceName": "Кафе на зърна Elia Vending Crema 1кг.",
+    "brand": {
+      "sourceKey": "elia",
+      "name": "ELIA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-elia-vending-crema-1kg",
+    "expected": {
+      "brand": "Elia",
+      "line": "Vending Crema",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Elia Vending Crema — кафе на зърна, 1 кг",
+      "slug": "elia-vending-crema-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/elia-vending-intenso-1/#1000g",
+    "sourceName": "Кафе на зърна Elia Vending Intenso 1кг.",
+    "brand": {
+      "sourceKey": "elia",
+      "name": "ELIA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-elia-vending-intenso-1kg",
+    "expected": {
+      "brand": "Elia",
+      "line": "Vending Intenso",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Elia Vending Intenso — кафе на зърна, 1 кг",
+      "slug": "elia-vending-intenso-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/espressia-capri-1/#1000g",
+    "sourceName": "Кафе на зърна Espressia Capri 1кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-espressia-capri-1kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Espressia Capri",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Biancaffè Espressia Capri — кафе на зърна, 1 кг",
+      "slug": "biancaffe-espressia-capri-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/espressia-positano-1/#1000g",
+    "sourceName": "Кафе на зърна Espressia Positano 1кг.",
+    "brand": {
+      "sourceKey": "biancaffe",
+      "name": "BIANCAFFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-espressia-positano-1kg",
+    "expected": {
+      "brand": "Biancaffè",
+      "line": "Espressia Positano",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Biancaffè Espressia Positano — кафе на зърна, 1 кг",
+      "slug": "biancaffe-espressia-positano-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/este-aroma-1/#1000g",
+    "sourceName": "Кафе на зърна Este Aroma 1кг.",
+    "brand": {
+      "sourceKey": "este",
+      "name": "ESTE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-este-aroma-1kg",
+    "expected": {
+      "brand": "Este",
+      "line": "Aroma",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Este Aroma — кафе на зърна, 1 кг",
+      "slug": "este-aroma-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/este-crema-1/#1000g",
+    "sourceName": "Кафе на зърна Este Crema 1кг.",
+    "brand": {
+      "sourceKey": "este",
+      "name": "ESTE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-este-crema-1kg",
+    "expected": {
+      "brand": "Este",
+      "line": "Crema",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Este Crema — кафе на зърна, 1 кг",
+      "slug": "este-crema-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/este-forte-1/#1000g",
+    "sourceName": "Кафе на зърна Este Forte 1кг.",
+    "brand": {
+      "sourceKey": "este",
+      "name": "ESTE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-este-forte-1kg",
+    "expected": {
+      "brand": "Este",
+      "line": "Forte",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Este Forte — кафе на зърна, 1 кг",
+      "slug": "este-forte-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/eurocaf-crema-vivace-1/#1000g",
+    "sourceName": "Кафе на зърна Eurocaf Crema Vivace 1кг.",
+    "brand": {
+      "sourceKey": "eurocaf",
+      "name": "EUROCAF"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-eurocaf-crema-vivace-1kg",
+    "expected": {
+      "brand": "Eurocaf",
+      "line": "Crema Vivace",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Eurocaf Crema Vivace — кафе на зърна, 1 кг",
+      "slug": "eurocaf-crema-vivace-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/eurocaf-piacere-oro-green-1/#1000g",
+    "sourceName": "Кафе на зърна Eurocaf Piacere d'Oro Green 1кг.",
+    "brand": {
+      "sourceKey": "eurocaf",
+      "name": "EUROCAF"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-eurocaf-piacere-d-oro-green-1kg",
+    "expected": {
+      "brand": "Eurocaf",
+      "line": "Piacere d'Oro Green",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Eurocaf Piacere d'Oro Green — кафе на зърна, 1 кг",
+      "slug": "eurocaf-piacere-d-oro-green-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/eurocaf-piacere-oro-orange-1/#1000g",
+    "sourceName": "Кафе на зърна Eurocaf Piacere d'Oro 1кг.",
+    "brand": {
+      "sourceKey": "eurocaf",
+      "name": "EUROCAF"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-eurocaf-piacere-d-oro-1kg",
+    "expected": {
+      "brand": "Eurocaf",
+      "line": "Piacere d'Oro",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Eurocaf Piacere d'Oro — кафе на зърна, 1 кг",
+      "slug": "eurocaf-piacere-d-oro-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/eurocaf-rosso-fuoco-1/#1000g",
+    "sourceName": "Кафе на зърна Eurocaf Rosso Fuoco 1кг.",
+    "brand": {
+      "sourceKey": "eurocaf",
+      "name": "EUROCAF"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-eurocaf-rosso-fuoco-1kg",
+    "expected": {
+      "brand": "Eurocaf",
+      "line": "Rosso Fuoco",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Eurocaf Rosso Fuoco — кафе на зърна, 1 кг",
+      "slug": "eurocaf-rosso-fuoco-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/illy-classico-10/#10pc",
+    "sourceName": "Капсули Nespresso Illy Classico 10бр.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-illy-classico-10br",
+    "expected": {
+      "brand": "illy",
+      "line": "Classico",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "illy Classico — капсули за Nespresso, 10 бр.",
+      "slug": "illy-classico-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/illy-classico-18/#18pc",
+    "sourceName": "Дозети Illy Classico 18бр.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "18",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-illy-classico-18br",
+    "expected": {
+      "brand": "illy",
+      "line": "Classico",
+      "detail": "Кафе дози ESE, 18 бр.",
+      "full": "illy Classico — кафе дози ESE, 18 бр.",
+      "slug": "illy-classico-kafe-dozi-18-br"
+    }
+  },
+  {
+    "sourceKey": "/illy-classico-200/#200pc",
+    "sourceName": "Дозети Illy Classico 200бр.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "200",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-illy-classico-200br",
+    "expected": {
+      "brand": "illy",
+      "line": "Classico",
+      "detail": "Кафе дози ESE, 200 бр.",
+      "full": "illy Classico — кафе дози ESE, 200 бр.",
+      "slug": "illy-classico-kafe-dozi-200-br"
+    }
+  },
+  {
+    "sourceKey": "/illy-classico-250/#250g",
+    "sourceName": "Кафе на зърна Illy Classico 0.250кг.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "250",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-illy-classico-0-250kg",
+    "expected": {
+      "brand": "illy",
+      "line": "Classico",
+      "detail": "Кафе на зърна, 250 г",
+      "full": "illy Classico — кафе на зърна, 250 г",
+      "slug": "illy-classico-kafe-na-zarna-250-g"
+    }
+  },
+  {
+    "sourceKey": "/illy-decaffeinato-18/#100pc",
+    "sourceName": "Дозети Illy Decaffeinato 18бр.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-illy-decaffeinato-18br",
+    "expected": {
+      "brand": "illy",
+      "line": "Decaffeinato",
+      "detail": "Кафе дози ESE, 18 бр.",
+      "full": "illy Decaffeinato — кафе дози ESE, 18 бр.",
+      "slug": "illy-decaffeinato-kafe-dozi-18-br"
+    }
+  },
+  {
+    "sourceKey": "/julius-meinl-arabica-1/#1000g",
+    "sourceName": "Кафе на зърна Julius Meinl Arabica 1кг.",
+    "brand": {
+      "sourceKey": "julius-meinl",
+      "name": "JULIUS MEINL"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-julius-meinl-arabica-1kg",
+    "expected": {
+      "brand": "Julius Meinl",
+      "line": "Arabica",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Julius Meinl Arabica — кафе на зърна, 1 кг",
+      "slug": "julius-meinl-arabica-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/julius-meinl-classico-1/#1000g",
+    "sourceName": "Кафе на зърна Julius Meinl Espresso Classico 1кг.",
+    "brand": {
+      "sourceKey": "julius-meinl",
+      "name": "JULIUS MEINL"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-julius-meinl-clasico-1kg",
+    "expected": {
+      "brand": "Julius Meinl",
+      "line": "Espresso Classico",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Julius Meinl Espresso Classico — кафе на зърна, 1 кг",
+      "slug": "julius-meinl-espresso-classico-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/julius-meinl-crema-1/#1000g",
+    "sourceName": "Кафе на зърна Julius Meinl Crema 1кг.",
+    "brand": {
+      "sourceKey": "julius-meinl",
+      "name": "JULIUS MEINL"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-julius-meinl-crema-1kg",
+    "expected": {
+      "brand": "Julius Meinl",
+      "line": "Crema",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Julius Meinl Crema — кафе на зърна, 1 кг",
+      "slug": "julius-meinl-crema-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/kimbo-amalfi-150/#150pc",
+    "sourceName": "Дозети Kimbo Amalfi 150бр.",
+    "brand": {
+      "sourceKey": "kimbo",
+      "name": "KIMBO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-kimbo-amalfi-150br",
+    "expected": {
+      "brand": "Kimbo",
+      "line": "Amalfi",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Kimbo Amalfi — кафе дози ESE, 150 бр.",
+      "slug": "kimbo-amalfi-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/kimbo-aroma-gold-1/#1000g",
+    "sourceName": "Кафе на зърна Kimbo Aroma Gold 1кг.",
+    "brand": {
+      "sourceKey": "kimbo",
+      "name": "KIMBO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-kimbo-aroma-gold-1kg",
+    "expected": {
+      "brand": "Kimbo",
+      "line": "Aroma Gold",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Kimbo Aroma Gold — кафе на зърна, 1 кг",
+      "slug": "kimbo-aroma-gold-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/kimbo-barista-napoli-1/#1000g",
+    "sourceName": "Кафе на зърна Kimbo Barista Napoli 1кг.",
+    "brand": {
+      "sourceKey": "kimbo",
+      "name": "KIMBO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-kimbo-barista-napoli-1kg",
+    "expected": {
+      "brand": "Kimbo",
+      "line": "Barista Napoli",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Kimbo Barista Napoli — кафе на зърна, 1 кг",
+      "slug": "kimbo-barista-napoli-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/kimbo-capri-150/#150pc",
+    "sourceName": "Дозети Kimbo Capri 150бр.",
+    "brand": {
+      "sourceKey": "kimbo",
+      "name": "KIMBO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-kimbo-capri-150br",
+    "expected": {
+      "brand": "Kimbo",
+      "line": "Capri",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Kimbo Capri — кафе дози ESE, 150 бр.",
+      "slug": "kimbo-capri-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/kimbo-pompei-150/#150pc",
+    "sourceName": "Дозети Kimbo Pompei 150бр.",
+    "brand": {
+      "sourceKey": "kimbo",
+      "name": "KIMBO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-kimbo-pompei-150br",
+    "expected": {
+      "brand": "Kimbo",
+      "line": "Pompei",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Kimbo Pompei — кафе дози ESE, 150 бр.",
+      "slug": "kimbo-pompei-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-crema-aroma-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Crema E Aroma 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-crema-e-aroma-1kg-1000g",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Aroma",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Crema e Aroma — кафе на зърна, 1 кг",
+      "slug": "lavazza-crema-e-aroma-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-crema-aroma-expert-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Crema E Aroma 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-crema-e-aroma-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Aroma Expert",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Crema e Aroma Expert — кафе на зърна, 1 кг",
+      "slug": "lavazza-crema-e-aroma-expert-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-crema-gusto-100/#100pc",
+    "sourceName": "Дозети Lavazza Crema E Gusto 100бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lavazza-crema-e-gusto-100br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Gusto",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Lavazza Crema e Gusto — кафе дози ESE, 100 бр.",
+      "slug": "lavazza-crema-e-gusto-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gold-selection-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Gold Selection 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-gold-selection-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gold Selection",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Gold Selection — кафе на зърна, 1 кг",
+      "slug": "lavazza-gold-selection-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gran-espresso-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Gran Espresso 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-gran-espresso-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gran Espresso",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Gran Espresso — кафе на зърна, 1 кг",
+      "slug": "lavazza-gran-espresso-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gran-espresso-150/#150pc",
+    "sourceName": "Дозети Lavazza Gran Espresso 150бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lavazza-gran-espresso-150br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gran Espresso",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Lavazza Gran Espresso — кафе дози ESE, 150 бр.",
+      "slug": "lavazza-gran-espresso-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gran-espresso-intenso-150/#150pc",
+    "sourceName": "Дозети Lavazza Gran Espresso Intenso 150бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lavazza-gran-espresso-intenso-150br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gran Espresso Intenso",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Lavazza Gran Espresso Intenso — кафе дози ESE, 150 бр.",
+      "slug": "lavazza-gran-espresso-intenso-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gusto-forte-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Gusto Forte 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-gusto-forte-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gusto Forte",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Gusto Forte — кафе на зърна, 1 кг",
+      "slug": "lavazza-gusto-forte-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-gusto-pieno-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Gusto Pieno 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-gusto-pieno-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Gusto Pieno",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Gusto Pieno — кафе на зърна, 1 кг",
+      "slug": "lavazza-gusto-pieno-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-super-crema-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Super Crema 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-super-crema-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Super Crema",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Super Crema — кафе на зърна, 1 кг",
+      "slug": "lavazza-super-crema-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lavazza-top-class-1/#1000g",
+    "sourceName": "Кафе на зърна Lavazza Top Class 1кг.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-lavazza-top-class-1kg",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Top Class",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lavazza Top Class — кафе на зърна, 1 кг",
+      "slug": "lavazza-top-class-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-amaretto-18/#18pc",
+    "sourceName": "Дозети Lollo caffe Amaretto 18бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "18",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-amaretto-18br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Amaretto",
+      "detail": "Кафе дози ESE, 18 бр.",
+      "full": "Lollo Caffè Amaretto — кафе дози ESE, 18 бр.",
+      "slug": "lollo-caffe-amaretto-kafe-dozi-18-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-argento-50/#50pc",
+    "sourceName": "Дозети Lollo caffe Argento 50бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-argento-50br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Argento",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Lollo Caffè Argento — кафе дози ESE, 50 бр.",
+      "slug": "lollo-caffe-argento-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-classico-1/#1000g",
+    "sourceName": "Кафе на зърна Lollo caffe Classico 1кг.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-lollo-caffe-classico-1kg",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lollo Caffè Classico — кафе на зърна, 1 кг",
+      "slug": "lollo-caffe-classico-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-classico-150/#150pc",
+    "sourceName": "Дозети Lollo caffe Classico 150бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-classico-150br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Lollo Caffè Classico — кафе дози ESE, 150 бр.",
+      "slug": "lollo-caffe-classico-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-classico-50/#50pc",
+    "sourceName": "Дозети Lollo caffe Classico 50бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-classico-50br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Lollo Caffè Classico — кафе дози ESE, 50 бр.",
+      "slug": "lollo-caffe-classico-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-classico-500/#500g",
+    "sourceName": "Кафе на зърна Lollo caffe Classico 0.500кг.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-lollo-caffe-classico-0-500kg",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Lollo Caffè Classico — кафе на зърна, 500 г",
+      "slug": "lollo-caffe-classico-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-decaffeinato-50/#50pc",
+    "sourceName": "Дозети Lollo caffe Decaffeinato 50бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-decaffeinato-50br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Decaffeinato",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Lollo Caffè Decaffeinato — кафе дози ESE, 50 бр.",
+      "slug": "lollo-caffe-decaffeinato-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-ginseng-18/#18pc",
+    "sourceName": "Дозети Lollo caffe Ginseng 18бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "18",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-ginseng-18br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Ginseng",
+      "detail": "Кафе дози ESE, 18 бр.",
+      "full": "Lollo Caffè Ginseng — кафе дози ESE, 18 бр.",
+      "slug": "lollo-caffe-ginseng-kafe-dozi-18-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-nero-1/#1000g",
+    "sourceName": "Кафе на зърна Lollo caffe Nero 1кг.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-lollo-caffe-nero-1kg",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lollo Caffè Nero — кафе на зърна, 1 кг",
+      "slug": "lollo-caffe-nero-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-nero-150/#150pc",
+    "sourceName": "Дозети Lollo caffe Nero 150бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-nero-150br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Lollo Caffè Nero — кафе дози ESE, 150 бр.",
+      "slug": "lollo-caffe-nero-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-nero-50/#50pc",
+    "sourceName": "Дозети Lollo caffe Nero 50бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-nero-50br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Lollo Caffè Nero — кафе дози ESE, 50 бр.",
+      "slug": "lollo-caffe-nero-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-nero-500/#500g",
+    "sourceName": "Кафе на зърна Lollo caffe Nero 0.500кг.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-lollo-caffe-nero-0-500kg",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Кафе на зърна, 500 г",
+      "full": "Lollo Caffè Nero — кафе на зърна, 500 г",
+      "slug": "lollo-caffe-nero-kafe-na-zarna-500-g"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-oro-1/#1000g",
+    "sourceName": "Кафе на зърна Lollo caffe Oro 1кг.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "catch-up",
+    "formerSlug": "kafe-na-zarna-lollo-caffe-oro-1kg",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Lollo Caffè Oro — кафе на зърна, 1 кг",
+      "slug": "lollo-caffe-oro-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-oro-150/#150pc",
+    "sourceName": "Дозети Lollo caffe Oro 150бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-oro-150br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Lollo Caffè Oro — кафе дози ESE, 150 бр.",
+      "slug": "lollo-caffe-oro-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/lollo-caffe-oro-50/#50pc",
+    "sourceName": "Дозети Lollo caffe Oro 50бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-lollo-caffe-oro-50br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Lollo Caffè Oro — кафе дози ESE, 50 бр.",
+      "slug": "lollo-caffe-oro-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/modo-mio-lavazza-crema-gusto-36/#36pc",
+    "sourceName": "Капсули A Modo Mio Lavazza Crema E Gusto 36 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["a-modo-mio"],
+    "packValue": "36",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-a-modo-mio-lavazza-crema-e-gusto-36-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Gusto",
+      "detail": "Капсули Lavazza A Modo Mio, 36 бр.",
+      "full": "Lavazza Crema e Gusto — капсули Lavazza A Modo Mio, 36 бр.",
+      "slug": "lavazza-crema-e-gusto-kapsuli-a-modo-mio-36-br"
+    }
+  },
+  {
+    "sourceKey": "/modo-mio-lavazza-delizioso-36/#36pc",
+    "sourceName": "Капсули A Modo Mio Lavazza Delizioso 36 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["a-modo-mio"],
+    "packValue": "36",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-a-modo-mio-lavazza-delizioso-36-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Delizioso",
+      "detail": "Капсули Lavazza A Modo Mio, 36 бр.",
+      "full": "Lavazza Delizioso — капсули Lavazza A Modo Mio, 36 бр.",
+      "slug": "lavazza-delizioso-kapsuli-a-modo-mio-36-br"
+    }
+  },
+  {
+    "sourceKey": "/modo-mio-lavazza-intenso-36/#36pc",
+    "sourceName": "Капсули A Modo Mio Lavazza Intenso 36 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["a-modo-mio"],
+    "packValue": "36",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-a-modo-mio-lavazza-intenso-36-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Intenso",
+      "detail": "Капсули Lavazza A Modo Mio, 36 бр.",
+      "full": "Lavazza Intenso — капсули Lavazza A Modo Mio, 36 бр.",
+      "slug": "lavazza-intenso-kapsuli-a-modo-mio-36-br"
+    }
+  },
+  {
+    "sourceKey": "/molini-firenze-1/#1000g",
+    "sourceName": "Кафе на зърна Molini Firenze 1кг.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-molini-firenze-1kg",
+    "expected": {
+      "brand": "Molini",
+      "line": "Firenze",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Molini Firenze — кафе на зърна, 1 кг",
+      "slug": "molini-firenze-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/molini-firenze-150/#150pc",
+    "sourceName": "Дозети Molini Firenze 150бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "dozeti-molini-firenze-150br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Firenze",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Molini Firenze — кафе дози ESE, 150 бр.",
+      "slug": "molini-firenze-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/molini-milano-150/#150pc",
+    "sourceName": "Дозети Molini Milano 150бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-molini-milano-150br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Milano",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Molini Milano — кафе дози ESE, 150 бр.",
+      "slug": "molini-milano-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/molini-napoli-1/#1000g",
+    "sourceName": "Кафе на зърна Molini Napoli 1кг.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-molini-napoli-1kg",
+    "expected": {
+      "brand": "Molini",
+      "line": "Napoli",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Molini Napoli — кафе на зърна, 1 кг",
+      "slug": "molini-napoli-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/molini-napoli-150/#150pc",
+    "sourceName": "Дозети Molini Napoli 150бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-molini-napoli-150br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Napoli",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Molini Napoli — кафе дози ESE, 150 бр.",
+      "slug": "molini-napoli-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/molini-torino-1/#1000g",
+    "sourceName": "Кафе на зърна Molini Torino 1кг.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-molini-torino-1kg",
+    "expected": {
+      "brand": "Molini",
+      "line": "Torino",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Molini Torino — кафе на зърна, 1 кг",
+      "slug": "molini-torino-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/molini-torino-150/#150pc",
+    "sourceName": "Дозети Molini Torino 150бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-molini-torino-150br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Torino",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Molini Torino — кафе дози ESE, 150 бр.",
+      "slug": "molini-torino-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-bianchi-arte-classico-10/#10pc",
+    "sourceName": "Капсули Nespresso Bianchi Caffè Arte Classico 10 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-bianchi-caffe-arte-classico-10-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Caffè Arte Classico",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Bianchi Caffè Arte Classico — капсули за Nespresso, 10 бр.",
+      "slug": "bianchi-caffe-arte-classico-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-bianchi-arte-colombia-10/#10pc",
+    "sourceName": "Капсули Nespresso Bianchi Colombia 10 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-bianchi-colombia-10-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Colombia",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Bianchi Colombia — капсули за Nespresso, 10 бр.",
+      "slug": "bianchi-colombia-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-bianchi-arte-costa-rica-10/#10pc",
+    "sourceName": "Капсули Nespresso Bianchi Costa Rica 10 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-bianchi-costa-rica-10-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Costa Rica",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Bianchi Costa Rica — капсули за Nespresso, 10 бр.",
+      "slug": "bianchi-costa-rica-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-bianchi-arte-hazelnut-10/#10pc",
+    "sourceName": "Капсули Nespresso Bianchi Hazelnut 10 бр.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-bianchi-hazelnut-10-br",
+    "expected": {
+      "brand": "Bianchi",
+      "line": "Hazelnut",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Bianchi Hazelnut — капсули за Nespresso, 10 бр.",
+      "slug": "bianchi-hazelnut-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-illy-forte-10/#10pc",
+    "sourceName": "Капсули Nespresso Illy Forte 10бр.",
+    "brand": {
+      "sourceKey": "illy",
+      "name": "ILLY"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-illy-forte-10br",
+    "expected": {
+      "brand": "illy",
+      "line": "Forte",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "illy Forte — капсули за Nespresso, 10 бр.",
+      "slug": "illy-forte-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lavazza-crema-gusto-classico-10/#10pc",
+    "sourceName": "Капсули Nespresso Lavazza Crema E Gusto Classico 10 бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-lavazza-crema-e-gusto-classico-10-br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Gusto Classico",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lavazza Crema e Gusto Classico — капсули за Nespresso, 10 бр.",
+      "slug": "lavazza-crema-e-gusto-classico-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lavazza-crema-gusto-forte-10/#10pc",
+    "sourceName": "Капсули Nespresso Lavazza Crema E Gusto Forte 10бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-lavazza-crema-e-gusto-forte-10br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Gusto Forte",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lavazza Crema e Gusto Forte — капсули за Nespresso, 10 бр.",
+      "slug": "lavazza-crema-e-gusto-forte-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lavazza-crema-gusto-ricco-10/#10pc",
+    "sourceName": "Капсули Nespresso Lavazza Crema E Gusto Ricco 10бр.",
+    "brand": {
+      "sourceKey": "lavazza",
+      "name": "LAVAZZA"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-lavazza-crema-e-gusto-ricco-10br",
+    "expected": {
+      "brand": "Lavazza",
+      "line": "Crema e Gusto Ricco",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lavazza Crema e Gusto Ricco — капсули за Nespresso, 10 бр.",
+      "slug": "lavazza-crema-e-gusto-ricco-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-afrodite-10/#10pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Afrodite 10бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-afrodite-10br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Afrodite",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lollo Caffè Afrodite — капсули за Nespresso, 10 бр.",
+      "slug": "lollo-caffe-afrodite-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-argento-30/#30pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Argento 30бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-argento-30br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Argento",
+      "detail": "Капсули за Nespresso, 30 бр.",
+      "full": "Lollo Caffè Argento — капсули за Nespresso, 30 бр.",
+      "slug": "lollo-caffe-argento-kapsuli-nespresso-30-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-classico-30/#30pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Classico 30бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-classico-30br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Classico",
+      "detail": "Капсули за Nespresso, 30 бр.",
+      "full": "Lollo Caffè Classico — капсули за Nespresso, 30 бр.",
+      "slug": "lollo-caffe-classico-kapsuli-nespresso-30-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-dek-30/#30pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Dek 30бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-dek-30br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Dek",
+      "detail": "Капсули за Nespresso, 30 бр.",
+      "full": "Lollo Caffè Dek — капсули за Nespresso, 30 бр.",
+      "slug": "lollo-caffe-dek-kapsuli-nespresso-30-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-giove-10/#10pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Giove 10бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-giove-10br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Giove",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lollo Caffè Giove — капсули за Nespresso, 10 бр.",
+      "slug": "lollo-caffe-giove-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-hermes-10/#10pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Hermes 10бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-hermes-10br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Hermes",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lollo Caffè Hermes — капсули за Nespresso, 10 бр.",
+      "slug": "lollo-caffe-hermes-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-nero-30/#30pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Nero 30бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-nero-30br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Nero",
+      "detail": "Капсули за Nespresso, 30 бр.",
+      "full": "Lollo Caffè Nero — капсули за Nespresso, 30 бр.",
+      "slug": "lollo-caffe-nero-kapsuli-nespresso-30-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-oro-30/#30pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Oro 30бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-oro-30br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Oro",
+      "detail": "Капсули за Nespresso, 30 бр.",
+      "full": "Lollo Caffè Oro — капсули за Nespresso, 30 бр.",
+      "slug": "lollo-caffe-oro-kapsuli-nespresso-30-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-sole-10/#10pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Sole 10бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-sole-10br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Sole",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lollo Caffè Sole — капсули за Nespresso, 10 бр.",
+      "slug": "lollo-caffe-sole-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-lollo-caffe-terra-10/#10pc",
+    "sourceName": "Капсули Nespresso Lollo caffe Terra 10бр.",
+    "brand": {
+      "sourceKey": "lollocafe",
+      "name": "LOLLOCAFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-lollo-caffe-terra-10br",
+    "expected": {
+      "brand": "Lollo Caffè",
+      "line": "Terra",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Lollo Caffè Terra — капсули за Nespresso, 10 бр.",
+      "slug": "lollo-caffe-terra-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-molini-firenze-10/#10pc",
+    "sourceName": "Капсули Nespresso Molini Firenze 10 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-molini-firenze-10-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Firenze",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Molini Firenze — капсули за Nespresso, 10 бр.",
+      "slug": "molini-firenze-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-molini-napoli-10/#10pc",
+    "sourceName": "Капсули Nespresso Molini Napoli 10 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-molini-napoli-10-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Napoli",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Molini Napoli — капсули за Nespresso, 10 бр.",
+      "slug": "molini-napoli-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-molini-torino-10/#10pc",
+    "sourceName": "Капсули Nespresso Molini Torino 10 бр.",
+    "brand": {
+      "sourceKey": "molini",
+      "name": "MOLINI"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-molini-torino-10-br",
+    "expected": {
+      "brand": "Molini",
+      "line": "Torino",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Molini Torino — капсули за Nespresso, 10 бр.",
+      "slug": "molini-torino-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-allegro-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Allegro 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-allegro-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Allegro",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Allegro — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-allegro-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-arabica-gold-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Arabica Gold 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-arabica-gold-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Arabica Gold",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Arabica Gold — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-arabica-gold-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-arabica-gold-44/#44pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Arabica Gold 44 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "44",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-arabica-gold-44-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Arabica Gold",
+      "detail": "Капсули за Nespresso, 44 бр.",
+      "full": "Rema Caffè Arabica Gold — капсули за Nespresso, 44 бр.",
+      "slug": "rema-caffe-arabica-gold-kapsuli-nespresso-44-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-caramel-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffe Caramel 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-caramel-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Caramel",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Caramel — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-caramel-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-cookies-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Cookies 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-cookies-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Cookies",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Cookies — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-cookies-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-decaffeinato-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Decaffeinato 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-decaffeinato-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Decaffeinato",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Decaffeinato — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-decaffeinato-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-forte-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Forte 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-forte-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Forte",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Forte — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-forte-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-forte-44/#44pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Forte 44 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "44",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-forte-44-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Forte",
+      "detail": "Капсули за Nespresso, 44 бр.",
+      "full": "Rema Caffè Forte — капсули за Nespresso, 44 бр.",
+      "slug": "rema-caffe-forte-kapsuli-nespresso-44-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-fortissimo-20/#20pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Fortissimo 20 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "20",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-fortissimo-20-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Fortissimo",
+      "detail": "Капсули за Nespresso, 20 бр.",
+      "full": "Rema Caffè Fortissimo — капсули за Nespresso, 20 бр.",
+      "slug": "rema-caffe-fortissimo-kapsuli-nespresso-20-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-gusto-satin-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Gusto Satin 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-gusto-satin-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Gusto Satin",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Gusto Satin — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-gusto-satin-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-hazelnut-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Hazelnut 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-hazelnut-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Hazelnut",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Hazelnut — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-hazelnut-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-intenso-10/#10pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Intenso 10 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "10",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-intenso-10-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Intenso",
+      "detail": "Капсули за Nespresso, 10 бр.",
+      "full": "Rema Caffè Intenso — капсули за Nespresso, 10 бр.",
+      "slug": "rema-caffe-intenso-kapsuli-nespresso-10-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-ristretto-20/#20pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Ristretto 20 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "20",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-ristretto-20-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Ristretto",
+      "detail": "Капсули за Nespresso, 20 бр.",
+      "full": "Rema Caffè Ristretto — капсули за Nespresso, 20 бр.",
+      "slug": "rema-caffe-ristretto-kapsuli-nespresso-20-br"
+    }
+  },
+  {
+    "sourceKey": "/nespresso-rema-caffe-supremo-20/#20pc",
+    "sourceName": "Капсули Nespresso Rema Caffè Supremo 20 бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["nespresso"],
+    "packValue": "20",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "kapsuli-nespresso-rema-caffe-supremo-20-br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Supremo",
+      "detail": "Капсули за Nespresso, 20 бр.",
+      "full": "Rema Caffè Supremo — капсули за Nespresso, 20 бр.",
+      "slug": "rema-caffe-supremo-kapsuli-nespresso-20-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-arabica-gold-100/#100pc",
+    "sourceName": "Дозети Rema Caffe Arabica Gold 100бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-arabica-gold-100br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Arabica Gold",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Rema Caffè Arabica Gold — кафе дози ESE, 100 бр.",
+      "slug": "rema-caffe-arabica-gold-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-caramel-100/#100pc",
+    "sourceName": "Дозети Rema Caffe Caramel карамел 100бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-caramel-karamel-100br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Caramel",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Rema Caffè Caramel — кафе дози ESE, 100 бр.",
+      "slug": "rema-caffe-caramel-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-crema-forte-100/#100pc",
+    "sourceName": "Дозети Rema Caffe Crema Forte 100бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-crema-forte-100br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Crema Forte",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Rema Caffè Crema Forte — кафе дози ESE, 100 бр.",
+      "slug": "rema-caffe-crema-forte-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-fortissimo-25/#25pc",
+    "sourceName": "Дозети Rema Caffe Fortissimo 25бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "25",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "dozeti-rema-caffe-fortissimo-25br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Fortissimo",
+      "detail": "Кафе дози ESE, 25 бр.",
+      "full": "Rema Caffè Fortissimo — кафе дози ESE, 25 бр.",
+      "slug": "rema-caffe-fortissimo-kafe-dozi-25-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-hazelnut-100/#100pc",
+    "sourceName": "Дозети Rema Caffe Hazelnut лешник 100бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-hazelnut-leshnik-100br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Hazelnut",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Rema Caffè Hazelnut — кафе дози ESE, 100 бр.",
+      "slug": "rema-caffe-hazelnut-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-intenso-100/#100pc",
+    "sourceName": "Дозети Rema Caffe Intenso 100бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "100",
+    "packUnit": "pc",
+    "wave": "launch",
+    "formerSlug": "dozeti-rema-caffe-intenso",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Intenso",
+      "detail": "Кафе дози ESE, 100 бр.",
+      "full": "Rema Caffè Intenso — кафе дози ESE, 100 бр.",
+      "slug": "rema-caffe-intenso-kafe-dozi-100-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-ristretto-25/#25pc",
+    "sourceName": "Дозети Rema Caffe Ristretto 25бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "25",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-ristretto-25br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Ristretto",
+      "detail": "Кафе дози ESE, 25 бр.",
+      "full": "Rema Caffè Ristretto — кафе дози ESE, 25 бр.",
+      "slug": "rema-caffe-ristretto-kafe-dozi-25-br"
+    }
+  },
+  {
+    "sourceKey": "/rema-caffe-supremo-25/#25pc",
+    "sourceName": "Дозети Rema Caffe Supremo 25бр.",
+    "brand": {
+      "sourceKey": "rema-caffe",
+      "name": "REMA CAFFE"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "25",
+    "packUnit": "pc",
+    "wave": "catch-up",
+    "formerSlug": "dozeti-rema-caffe-supremo-25br",
+    "expected": {
+      "brand": "Rema Caffè",
+      "line": "Supremo",
+      "detail": "Кафе дози ESE, 25 бр.",
+      "full": "Rema Caffè Supremo — кафе дози ESE, 25 бр.",
+      "slug": "rema-caffe-supremo-kafe-dozi-25-br"
+    }
+  },
+  {
+    "sourceKey": "/tezzoro-espresso-classic-1/#1000g",
+    "sourceName": "Кафе на зърна Tezzoro Espresso Classic 1кг.",
+    "brand": null,
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-tezzoro-espresso-classic-1kg",
+    "expected": {
+      "brand": "Tezzoro",
+      "line": "Espresso Classic",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Tezzoro Espresso Classic — кафе на зърна, 1 кг",
+      "slug": "tezzoro-espresso-classic-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/tezzoro-espresso-excellence-1/#1000g",
+    "sourceName": "Кафе на зърна Tezzoro Espresso Excellence 1кг.",
+    "brand": {
+      "sourceKey": "tezzoro",
+      "name": "TEZZORO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-tezzoro-espresso-excellence-1kg",
+    "expected": {
+      "brand": "Tezzoro",
+      "line": "Espresso Excellence",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Tezzoro Espresso Excellence — кафе на зърна, 1 кг",
+      "slug": "tezzoro-espresso-excellence-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/tezzoro-espresso-excellence-250/#250g",
+    "sourceName": "Кафе на зърна Tezzoro Excellence 0.250кг.",
+    "brand": {
+      "sourceKey": "tezzoro",
+      "name": "TEZZORO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "250",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-tezzoro-excellence-0-250kg",
+    "expected": {
+      "brand": "Tezzoro",
+      "line": "Excellence",
+      "detail": "Кафе на зърна, 250 г",
+      "full": "Tezzoro Excellence — кафе на зърна, 250 г",
+      "slug": "tezzoro-excellence-kafe-na-zarna-250-g"
+    }
+  },
+  {
+    "sourceKey": "/tezzoro-espresso-top-class-1/#1000g",
+    "sourceName": "Кафе на зърна Tezzoro Espresso Top Class 1кг.",
+    "brand": {
+      "sourceKey": "tezzoro",
+      "name": "TEZZORO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-tezzoro-espresso-top-class-1kg",
+    "expected": {
+      "brand": "Tezzoro",
+      "line": "Espresso Top Class",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Tezzoro Espresso Top Class — кафе на зърна, 1 кг",
+      "slug": "tezzoro-espresso-top-class-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vandino-espresso-aroma-1/#1000g",
+    "sourceName": "Кафе на зърна Vandino Espresso Aroma 1кг.",
+    "brand": {
+      "sourceKey": "vandino",
+      "name": "VANDINO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vandino-espresso-aroma-1kg",
+    "expected": {
+      "brand": "Vandino",
+      "line": "Espresso Aroma",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vandino Espresso Aroma — кафе на зърна, 1 кг",
+      "slug": "vandino-espresso-aroma-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vandino-espresso-bar-1/#1000g",
+    "sourceName": "Кафе на зърна Vandino Espresso Bar 1кг.",
+    "brand": {
+      "sourceKey": "vandino",
+      "name": "VANDINO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vandino-espresso-bar-1kg",
+    "expected": {
+      "brand": "Vandino",
+      "line": "Espresso Bar",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vandino Espresso Bar — кафе на зърна, 1 кг",
+      "slug": "vandino-espresso-bar-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vandino-espresso-club-1/#1000g",
+    "sourceName": "Кафе на зърна Vandino Espresso Club 1кг.",
+    "brand": {
+      "sourceKey": "vandino",
+      "name": "VANDINO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vandino-espresso-club-1kg",
+    "expected": {
+      "brand": "Vandino",
+      "line": "Espresso Club",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vandino Espresso Club — кафе на зърна, 1 кг",
+      "slug": "vandino-espresso-club-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vergnano-antica-bottega-1/#1000g",
+    "sourceName": "Кафе на зърна Vergnano Antica Bottega 1кг.",
+    "brand": {
+      "sourceKey": "vergnano",
+      "name": "VERGNANO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vergnano-antica-bottega-1kg",
+    "expected": {
+      "brand": "Vergnano",
+      "line": "Antica Bottega",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vergnano Antica Bottega — кафе на зърна, 1 кг",
+      "slug": "vergnano-antica-bottega-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vergnano-espresso-1/#1000g",
+    "sourceName": "Кафе на зърна Vergnano Espresso 1кг.",
+    "brand": {
+      "sourceKey": "vergnano",
+      "name": "VERGNANO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vergnano-espresso-1kg",
+    "expected": {
+      "brand": "Vergnano",
+      "line": "Espresso",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vergnano Espresso — кафе на зърна, 1 кг",
+      "slug": "vergnano-espresso-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vergnano-gran-aroma-1/#1000g",
+    "sourceName": "Кафе на зърна Vergnano Gran Aroma 1кг.",
+    "brand": {
+      "sourceKey": "vergnano",
+      "name": "VERGNANO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "launch",
+    "formerSlug": "kafe-na-zarna-vergnano-gran-aroma-1kg",
+    "expected": {
+      "brand": "Vergnano",
+      "line": "Gran Aroma",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Vergnano Gran Aroma — кафе на зърна, 1 кг",
+      "slug": "vergnano-gran-aroma-kafe-na-zarna-1-kg"
+    }
+  }
+]

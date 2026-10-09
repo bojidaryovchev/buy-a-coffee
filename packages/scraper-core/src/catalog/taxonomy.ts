@@ -69,6 +69,15 @@ function byStatus(a: ExistingEntity, b: ExistingEntity): number {
 export function planEntities<Incoming extends IncomingEntity>(
   existing: readonly ExistingEntity[],
   incoming: readonly Incoming[],
+  options: {
+    /**
+     * Slugs no new row may be given, beyond the ones the table already holds.
+     * Categories are published at the first level of the storefront, beside
+     * its routes, so a new category must not be handed a route's name; brands
+     * live under their own segment and reserve nothing.
+     */
+    readonly reservedSlugs?: ReadonlySet<string>;
+  } = {},
 ): EntityPlan<Incoming> {
   const byKey = new Map(existing.map((row) => [row.sourceKey, row]));
   const bySourceId = new Map<string, ExistingEntity[]>();
@@ -81,7 +90,10 @@ export function planEntities<Incoming extends IncomingEntity>(
 
   // Every slug already in the table is taken, whether or not its row is in
   // this listing: a new row must never collide with, or displace, an old one.
-  const takenSlugs = new Set(existing.map((row) => row.slug));
+  const takenSlugs = new Set([
+    ...(options.reservedSlugs ?? []),
+    ...existing.map((row) => row.slug),
+  ]);
   const claimed = new Set<string>();
   const seenKeys = new Set<string>();
   const assignments: Array<EntityAssignment<Incoming>> = [];
