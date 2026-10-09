@@ -245,9 +245,17 @@ test.describe("links between listings", () => {
     page,
   }) => {
     await page.goto("/bg/caffitaly-kapsuli");
-    const link = page.locator(`main a[href="${BG.machineBrand("tchibo")}"]`);
+    // In the introduction under the products, from the sentence that says the
+    // format fits them — as the two Lavazza shelves name each other in theirs.
+    // (The page's header links the same page once more, by its name; that
+    // link is `landings.spec.ts`'s.)
+    const link = page.locator(`main a[href="${BG.machineBrand("tchibo")}"]`, {
+      hasText: "машините Tchibo Cafissimo",
+    });
     await expect(link).toHaveCount(1);
-    await expect(link).toHaveText("машините Tchibo Cafissimo");
+    await expect(page.locator(`main header a[href="${BG.machineBrand("tchibo")}"]`)).toHaveText(
+      "Капсули за Tchibo Cafissimo",
+    );
   });
 
   test("a brand page links up to the listing of each system it is stocked in", async ({ page }) => {
