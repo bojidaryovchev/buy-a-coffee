@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ArticleBody } from "@/components/journal/article-body";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -8,11 +8,14 @@ import { absoluteUrl, siteConfig } from "@/config/site";
 import { EMPTY_JOURNAL_FIGURES } from "@/lib/catalog/journal-figures";
 import { getJournalFigures } from "@/lib/catalog/journal-queries";
 import {
+  JOURNAL_NAME,
   JOURNAL_PATH,
   articleDate,
   formatArticleDate,
   getArticle,
+  getMovedArticle,
   listArticles,
+  listPreviousSlugs,
   summariseArticle,
 } from "@/lib/journal";
 import { articleJsonLd } from "@/lib/seo/article-json-ld";
@@ -29,6 +32,12 @@ import { href, routes } from "@/lib/routes";
  * Statically generated: the set of slugs is the list of files in the
  * repository, so every article is built ahead of time and an unknown slug is a
  * 404 without rendering anything (`dynamicParams = false`).
+ *
+ * **A slug an article used to have is part of that set.** An article lists its
+ * `previousSlugs`; each is prebuilt here as a 308 to the article's current
+ * address, so a retitled article keeps every link and ranking its old address
+ * earned. The redirect is decided before anything is read or rendered, which is
+ * what makes it a real status line rather than a client-side hop.
  *
  * The page is nonetheless revalidated, for one reason. Some articles quote
  * figures computed from the catalog — price per cup, the intensity scales in
@@ -47,13 +56,18 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return listArticles().map((article) => ({ slug: article.slug }));
+  return [
+    ...listArticles().map((article) => ({ slug: article.slug })),
+    ...listPreviousSlugs().map((slug) => ({ slug })),
+  ];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { lang, slug } = await params;
   const locale = shippingLocale(lang);
   const article = getArticle(slug);
+  // A moved article has no metadata of its own: the page answers 308 instead.
+  if (!article && getMovedArticle(slug)) return {};
   if (!article) return { title: "Статията не е намерена", robots: { index: false, follow: true } };
 
   const summary = summariseArticle(article);
@@ -89,7 +103,11 @@ export default async function JournalArticlePage({ params }: PageProps) {
   const { lang, slug } = await params;
   const locale = shippingLocale(lang);
   const article = getArticle(slug);
-  if (!article) notFound();
+  if (!article) {
+    const moved = getMovedArticle(slug);
+    if (moved) permanentRedirect(href(locale, summariseArticle(moved).href));
+    notFound();
+  }
 
   const summary = summariseArticle(article);
   const figures = article.usesCatalog ? await getJournalFigures() : EMPTY_JOURNAL_FIGURES;
@@ -100,7 +118,7 @@ export default async function JournalArticlePage({ params }: PageProps) {
 
   const breadcrumbs = [
     { name: "Начало", href: href(locale, routes.home) },
-    { name: "Дневник", href: href(locale, JOURNAL_PATH) },
+    { name: JOURNAL_NAME, href: href(locale, JOURNAL_PATH) },
     { name: summary.title, href: href(locale, summary.href) },
   ];
 
@@ -139,7 +157,7 @@ export default async function JournalArticlePage({ params }: PageProps) {
       {others.length > 0 && (
         <nav aria-labelledby="journal-more" className="mt-14 max-w-prose border-t border-line pt-8">
           <h2 id="journal-more" className="font-display text-xl font-semibold text-ink-900">
-            Още от дневника
+            Още от блога
           </h2>
           <ul className="mt-4 space-y-3">
             {others.map((entry) => (

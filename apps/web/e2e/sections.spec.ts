@@ -171,6 +171,56 @@ test.describe("/bg/blog", () => {
     }
   });
 
+  test("the section is called „Блог“, in its heading and in the frame", async ({ page }) => {
+    await page.goto("/bg/blog");
+    await expect(page.locator("h1")).toHaveText("Блог");
+    await expect(page).toHaveTitle(/^Блог/);
+    // The footer names the section on every page, at every width.
+    await expect(page.locator('footer a[href="/bg/blog"]')).toHaveText("Блог");
+    await expect(page.locator("body")).not.toContainText(/дневник/i);
+  });
+
+  test("the articles with measured demand are published at the slug of their query", async ({
+    page,
+  }) => {
+    const expected: ReadonlyArray<readonly [string, string]> = [
+      ["/bg/blog/vidove-kapsuli-za-kafe", "Видове капсули за кафе: коя пасва на вашата машина"],
+      ["/bg/blog/kak-da-izberete-kafe-na-zarna", "Как да изберете кафе на зърна"],
+      ["/bg/blog/arabika-i-robusta", "Арабика и робуста: каква е разликата"],
+      [
+        "/bg/blog/kafemashina-s-kapsuli-ili-na-zarna",
+        "Кафемашина с капсули или на зърна: какво ще купувате после",
+      ],
+    ];
+    const listed = await articleLinks(page);
+    for (const [path, title] of expected) {
+      expect(listed, path).toContain(path);
+      await page.goto(path);
+      await expect(page.locator("h1")).toHaveText(title);
+      await expect(page).toHaveTitle(new RegExp(`^${title}`));
+    }
+  });
+
+  test("an article's previous address answers 308 to its current one, in one hop", async ({
+    request,
+  }) => {
+    // Literal on purpose: these are the addresses the journal launched at, and
+    // a retitled article must never turn one of them into a 404.
+    const moved: ReadonlyArray<readonly [string, string]> = [
+      ["/bg/blog/koya-kapsula-pasva-na-koya-mashina", "/bg/blog/vidove-kapsuli-za-kafe"],
+      ["/bg/blog/zarna-kapsuli-ili-dozi", "/bg/blog/kafemashina-s-kapsuli-ili-na-zarna"],
+    ];
+    for (const [from, to] of moved) {
+      const response = await request.get(from, { maxRedirects: 0 });
+      expect(response.status(), from).toBe(308);
+      const location = response.headers()["location"] ?? "";
+      expect(new URL(location, "http://shop.test").pathname, from).toBe(to);
+
+      const landed = await request.get(to, { maxRedirects: 0 });
+      expect(landed.status(), to).toBe(200);
+    }
+  });
+
   test("an unknown article is a real 404", async ({ page }) => {
     const response = await page.goto("/bg/blog/this-article-does-not-exist");
     expect(response?.status()).toBe(404);

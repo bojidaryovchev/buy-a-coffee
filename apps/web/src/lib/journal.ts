@@ -37,6 +37,15 @@ export interface ArticleSummary {
 /** Canonical; a link to it goes through `href(locale, JOURNAL_PATH)`. */
 export const JOURNAL_PATH = routes.journal;
 
+/**
+ * What the section is called on the page: its title, its breadcrumb, the name
+ * of its `ItemList`. „Блог“, to match the address and the navigation label
+ * (`nav.journal` in the dictionary). Not „Дневник“, which Bulgarians read as a
+ * school register or a newspaper. The code keeps calling it the journal; only
+ * the word a customer reads changed.
+ */
+export const JOURNAL_NAME = "Блог";
+
 export const articlePath = (slug: string): `/${string}` => routes.article(slug);
 
 /**
@@ -101,6 +110,24 @@ export function listArticles(options: { readonly limit?: number } = {}): readonl
 export function getArticle(slug: string | null | undefined): Article | null {
   if (!slug) return null;
   return ARTICLES.find((article) => article.slug === slug) ?? null;
+}
+
+/**
+ * The article that used to be published at `slug`, or null.
+ *
+ * Only the article route asks: it answers a previous slug with a permanent
+ * redirect to the current one. A current slug always wins — `getArticle` is
+ * tried first — so a slug can never both be an article and redirect away from
+ * one, and the content test refuses a list that would make it ambiguous.
+ */
+export function getMovedArticle(slug: string | null | undefined): Article | null {
+  if (!slug) return null;
+  return ARTICLES.find((article) => article.previousSlugs?.includes(slug)) ?? null;
+}
+
+/** Every slug that redirects to an article: what the route prebuilds beside the articles. */
+export function listPreviousSlugs(): readonly string[] {
+  return ARTICLES.flatMap((article) => article.previousSlugs ?? []);
 }
 
 export function summariseArticle(article: Article): ArticleSummary {

@@ -1,4 +1,6 @@
 import { getMachineBrand } from "@/content/machines";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { SLUGS } from "@/i18n/slugs";
 import { routes, type RouteTarget } from "@/lib/routes";
 import { getBrewingSystem, type BrewingSystemId } from "@/lib/recommend/systems";
 
@@ -26,6 +28,22 @@ export function systemCategoryHref(id: BrewingSystemId): RouteTarget {
   return { category: { slug, sourceKey: system.categorySourceKeys[0] ?? null } };
 }
 
+/**
+ * The capsule parent listing — „Кафе капсули“, the shelf every capsule system
+ * hangs off. No brewing system names it (a system is one of its children), so
+ * it is named here by the source key the slug table curates and by the slug
+ * the category is stored under. Checked against the slug table when this
+ * module loads: if the landing page is ever dropped from it, every article
+ * that links here fails at build, not in front of a reader.
+ */
+const CAPSULES_SOURCE_KEY = "kafe-kapsuli";
+if (!Object.hasOwn(SLUGS[DEFAULT_LOCALE].categories, CAPSULES_SOURCE_KEY)) {
+  throw new Error(`journal: no landing slug for the capsule parent "${CAPSULES_SOURCE_KEY}"`);
+}
+export const CAPSULES_HREF: RouteTarget = {
+  category: { slug: "kapsuli", sourceKey: CAPSULES_SOURCE_KEY },
+};
+
 export function machineBrandHref(slug: string): RouteTarget {
   if (!getMachineBrand(slug)) throw new Error(`journal: unknown machine brand "${slug}"`);
   return routes.machineBrand(slug);
@@ -36,4 +54,5 @@ export const productHref = (slug: string): RouteTarget => ({ product: slug });
 export const articleHref = (slug: string): RouteTarget => routes.article(slug);
 
 export const MACHINES_HREF: RouteTarget = routes.machines;
+export const VENDING_HREF: RouteTarget = routes.vending;
 export const WIZARD_HREF: RouteTarget = routes.wizard;

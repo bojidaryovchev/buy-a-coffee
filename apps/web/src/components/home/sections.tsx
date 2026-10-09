@@ -435,8 +435,8 @@ export function JournalTeaser({
     <section className="bg-paper-sunken py-12 md:py-16">
       <div className="shell">
         <SectionHeading
-          title="От дневника"
-          description="Кратки отговори на въпросите, които изникват преди поръчка."
+          title="От блога"
+          description="Отговори на въпросите, които изникват преди поръчка."
           action={
             <ButtonLink href={href(locale, JOURNAL_PATH)} variant="secondary" size="sm">
               Всички статии

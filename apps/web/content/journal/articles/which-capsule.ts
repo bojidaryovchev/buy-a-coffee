@@ -22,10 +22,21 @@ import {
   type Block,
   type Inline,
 } from "../blocks";
-import { MACHINES_HREF, WIZARD_HREF, machineBrandHref, systemCategoryHref } from "../links";
+import {
+  CAPSULES_HREF,
+  MACHINES_HREF,
+  WIZARD_HREF,
+  machineBrandHref,
+  systemCategoryHref,
+} from "../links";
 
 /**
- * Which capsule fits which machine.
+ * The kinds of coffee capsule, and which one fits which machine.
+ *
+ * Retitled in October 2026 toward the query people type — „видове капсули за
+ * кафе“ — and moved to the slug that says so; the address it launched at is in
+ * `previousSlugs` and answers 308. The opening answers "what kinds are there"
+ * before anything else, because that is the question the title now asks.
  *
  * Built from `machines.ts` and `systems.ts` and from nothing else. What a
  * capsule looks like is quoted from each system's own `recognise` line, and
@@ -35,7 +46,7 @@ import { MACHINES_HREF, WIZARD_HREF, machineBrandHref, systemCategoryHref } from
  * is not in them does not belong here either.
  */
 
-export const WHICH_CAPSULE_SLUG = "koya-kapsula-pasva-na-koya-mashina";
+export const WHICH_CAPSULE_SLUG = "vidove-kapsuli-za-kafe";
 
 /** Machine brands that list at least one model for a system, with the count. */
 function brandsFor(system: AnySystemId): Inline[][] {
@@ -64,9 +75,10 @@ const SYSTEM_NOTES: Partial<Record<BrewingSystemId, string>> = {
 
 export const whichCapsule: Article = {
   slug: WHICH_CAPSULE_SLUG,
-  title: "Коя капсула пасва на коя кафемашина",
+  previousSlugs: ["koya-kapsula-pasva-na-koya-mashina"],
+  title: "Видове капсули за кафе: коя пасва на вашата машина",
   description:
-    "Пет системи капсули, и нито една не влиза в машина за друга. Как да познаете своята по капсулата и по машината — и какво да направите, ако не сте сигурни.",
+    "Капсулите за кафе се делят по системи, не по марки: Nespresso, Dolce Gusto, Lavazza A Modo Mio, Lavazza Blue и Caffitaly. Как да познаете своята по капсулата и по машината.",
   publishedAt: "2026-10-09",
   usesCatalog: false,
 
@@ -103,20 +115,32 @@ export const whichCapsule: Article = {
 
     return [
       p(
-        "Капсулите за кафе не са взаимозаменяеми. Държим капсули за ",
+        "Видовете капсули за кафе не се различават по марката на кафето, а по системата — тоест по машината, за която са направени. Държим капсули за ",
         pluralize(capsuleSystems.length, "система", "системи"),
-        " и нито една от тях не влиза в машина за друга. Грешната кутия не е „малко по-различно кафе“ — тя просто не става за вашата машина.",
+        ": ",
+        ...sentenceList(
+          capsuleSystems.map((system) => [link(systemCategoryHref(system.id), system.name)]),
+        ),
+        ".",
+      ),
+      p(
+        "Нито една от тях не влиза в машина за друга. Затова „какви капсули да купя“ е въпрос за машината, не за кафето: грешната кутия не е „малко по-различно кафе“ — тя просто не става за вашата машина.",
       ),
 
       h2("Марката на машината не е достатъчна"),
       p(
-        "Лесно е да се подведете по марката на машината. Krups прави машини за три различни системи: Dolce Gusto, Nespresso и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има две несъвместими системи — A Modo Mio за дома и Blue за офиса.",
+        "Лесно е да се подведете по марката на машината. Krups прави машини за три различни системи: Dolce Gusto, Nespresso и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има две несъвместими системи — A Modo Mio за дома и Blue за офиса, така че и „капсули Lavazza“ не значи един вид капсула.",
       ),
       p(
         "Обратното също важи: машините Nespresso се произвеждат от Krups, De'Longhi, Magimix и Breville, но капсулата се определя от модела, не от производителя. Затова гледайте името на модела, което пише на самата машина, а не логото.",
       ),
 
       h2("Системите, за които имаме капсули"),
+      p(
+        "Всички заедно са в категорията ",
+        link(CAPSULES_HREF, "кафе капсули"),
+        ". По-долу са една по една: как изглежда капсулата и в кои машини влиза.",
+      ),
       ...systemSections,
 
       h2("Системи, за които нямаме капсули"),

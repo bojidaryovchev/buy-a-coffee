@@ -37,6 +37,8 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
       currency: products.currency,
       weightValue: products.weightValue,
       weightUnit: products.weightUnit,
+      arabicaPercent: products.arabicaPercent,
+      roast: products.roast,
       attributes: products.attributes,
     })
     .from(products)
@@ -78,6 +80,8 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
     currency: row.currency,
     weightValue: row.weightValue,
     weightUnit: row.weightUnit,
+    arabicaPercent: row.arabicaPercent,
+    roast: row.roast,
     attributes: row.attributes ?? {},
     categories: byProduct.get(row.id) ?? [],
   }));

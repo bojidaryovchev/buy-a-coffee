@@ -108,6 +108,17 @@ export type Block =
 export interface Article {
   /** URL segment under the journal (`/bg/blog/<slug>`). Latin, lower case, hyphenated. */
   readonly slug: string;
+  /**
+   * Slugs this article was published at before, oldest first.
+   *
+   * An article is retitled toward the question people actually type, and its
+   * slug follows the title. Every address it has had is indexed, bookmarked or
+   * linked somewhere, so each one listed here answers a permanent redirect to
+   * `slug` (the article route resolves them). Renaming an article is therefore
+   * two edits in its own file: the new `slug`, and the old one appended here.
+   * A slug is never removed from this list and never reused by another article.
+   */
+  readonly previousSlugs?: readonly string[];
   /** The page's single `h1`, and the `headline` of its structured data. */
   readonly title: string;
   /** One or two sentences: meta description, share text, and the index teaser. */
