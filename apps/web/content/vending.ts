@@ -27,7 +27,13 @@ import { routes, type RouteTarget } from "@/lib/routes";
 export interface BusinessSectionCopy {
   /** The `h1`, the breadcrumb and the structured-data name. */
   readonly title: string;
+  /** `<title>`, before the shop's name. */
   readonly metaTitle: string;
+  /**
+   * The meta description. The vending page adds the price per cup of what it
+   * lists and how ordering works, so there it is the opening clause and has
+   * no full stop of its own.
+   */
   readonly metaDescription: string;
   readonly lead: readonly string[];
 
@@ -66,10 +72,12 @@ export interface BusinessSectionCopy {
 }
 
 export const vendingCopy: BusinessSectionCopy = {
-  title: "Вендинг зона",
-  metaTitle: "Вендинг зона — кафе за вендинг автомати и автоматични машини",
-  metaDescription:
-    "Кафе на зърна за вендинг автомати и автоматични кафемашини в офиса или обекта. Поръчвате по телефона и уговаряте количеството в същия разговор.",
+  /* „Кафе за вендинг машини“ is what operators type (`docs/seo.md` §1); the
+     menu still calls the section „Вендинг зона“, which is its name, not a
+     search term. */
+  title: "Кафе за вендинг машини",
+  metaTitle: "Кафе за вендинг машини и автомати — смеси на зърна",
+  metaDescription: "Кафе на зърна за вендинг машини и автоматични кафемашини",
   lead: [
     "Тази страница е за хората, които зареждат машини: оператори на вендинг автомати и фирми с една или няколко автоматични кафемашини в офиса или в обекта.",
     "Тук събираме кафето от нашия каталог, което е предназначено за такава работа. Показваме само продукти, които наистина са в каталога ни, с цената им за опаковка. Ако търсите нещо, което не виждате по-долу, попитайте ни направо.",

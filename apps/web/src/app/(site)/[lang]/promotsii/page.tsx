@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
 import { Breadcrumbs, ButtonLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   countActiveFilters,
   parseCatalogQuery,
   shouldIndexListing,
   type RawSearchParams,
 } from "@/lib/catalog/filters";
+import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listProducts } from "@/lib/catalog/queries";
-import { siteConfig } from "@/config/site";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
+import {
+  CALLBACK_SENTENCE,
+  PROMOTIONS_META,
+  metaDescription,
+  pageTitle,
+} from "@/lib/seo/listing-meta";
 import { href, routes } from "@/lib/routes";
 
 /**
@@ -37,11 +45,23 @@ interface PageProps {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
+  const facts = await getListingFacts({ kind: "promotions" });
+  const hasPromotions = facts.productCount > 0;
   return {
-    title: "Актуални промоции",
-    description: `Кафе с намалени цени в ${siteConfig.name}.`,
+    /* Searchers type the singular as a modifier — „кафе на зърна промоция“,
+       „капсули долче густо промоция“ — so the title carries „промоция“. */
+    title: pageTitle(PROMOTIONS_META.title),
+    description: hasPromotions
+      ? metaDescription(PROMOTIONS_META.description, facts.cupRange)
+      : `${PROMOTIONS_META.descriptionWhenEmpty} ${CALLBACK_SENTENCE}`,
     alternates: pageAlternates(locale, routes.promotions),
-    robots: shouldIndexListing(query) ? undefined : { index: false, follow: true },
+    /*
+     * The page exists for search only while a reduction does (`docs/seo.md`
+     * §1). With nothing reduced it still answers 200, so no link to it breaks,
+     * but a page that says "nothing here today" is not one to index under
+     * „промоция“.
+     */
+    robots: hasPromotions && shouldIndexListing(query) ? undefined : { index: false, follow: true },
   };
 }
 
@@ -56,19 +76,16 @@ export default async function PromotionsPage({ params, searchParams }: PageProps
    * products. A filtered-to-nothing view still has promotions behind it.
    */
   const hasPromotions = result.total > 0 || countActiveFilters(query) > 0;
+  const breadcrumbs = listingBreadcrumbs(locale, [{ name: PROMOTIONS_META.name, href: path }]);
 
   return (
     <div className="shell pb-16">
-      <Breadcrumbs
-        items={[
-          { name: "Начало", href: href(locale, routes.home) },
-          { name: "Промоции", href: path },
-        ]}
-      />
+      <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
+      <Breadcrumbs items={breadcrumbs} />
 
       <header className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">
-          Актуални промоции
+          {PROMOTIONS_META.name}
         </h1>
         {hasPromotions && (
           <p className="mt-3 max-w-[60ch] text-lg text-ink-700">

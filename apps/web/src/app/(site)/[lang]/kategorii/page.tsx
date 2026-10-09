@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Breadcrumbs, EmptyState, SectionHeading } from "@/components/ui/primitives";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { getCategoryTree } from "@/lib/catalog/queries";
-import { siteConfig } from "@/config/site";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { pageAlternates } from "@/lib/seo/alternates";
+import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
+import { CATEGORIES_INDEX_META, metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { categoryHref, href, routes } from "@/lib/routes";
+import { categoryNameFor } from "../../../../../content/category-copy";
 
 export const revalidate = 300;
 
@@ -17,9 +21,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
+  const facts = await getListingFacts({ kind: "all" });
   return {
-    title: "Всички категории",
-    description: `Разгледайте целия асортимент на ${siteConfig.name}: кафе на зърна, капсули, дози и още.`,
+    /* No search term is this page's own (`docs/seo.md` §1 gives it none), so
+       the title describes the page without borrowing a listing's term. */
+    title: pageTitle(CATEGORIES_INDEX_META.title),
+    description: metaDescription(CATEGORIES_INDEX_META.description, facts.cupRange),
     alternates: pageAlternates(locale, routes.categories),
   };
 }
@@ -39,17 +46,17 @@ export default async function CategoriesPage({ params }: PageProps) {
     children: category.children.filter(outside),
   }));
 
+  const breadcrumbs = listingBreadcrumbs(locale, [
+    { name: CATEGORIES_INDEX_META.name, href: href(locale, routes.categories) },
+  ]);
+
   return (
     <div className="shell pb-16">
-      <Breadcrumbs
-        items={[
-          { name: "Начало", href: href(locale, routes.home) },
-          { name: "Категории", href: href(locale, routes.categories) },
-        ]}
-      />
+      <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
+      <Breadcrumbs items={breadcrumbs} />
       <SectionHeading
         as="h1"
-        title="Разгледайте по вид"
+        title={CATEGORIES_INDEX_META.name}
         description="Целият асортимент, подреден според начина на приготвяне."
       />
 
@@ -64,7 +71,8 @@ export default async function CategoriesPage({ params }: PageProps) {
                   href={categoryHref(locale, category)}
                   className="underline-offset-4 hover:underline"
                 >
-                  {category.name}
+                  {/* Each listing by the name its own page carries. */}
+                  {categoryNameFor(category)}
                 </Link>
               </h2>
               <p className="mt-1 text-sm text-ink-500">
@@ -79,7 +87,7 @@ export default async function CategoriesPage({ params }: PageProps) {
                         href={categoryHref(locale, child)}
                         className="flex items-center justify-between text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
                       >
-                        {child.name}
+                        {categoryNameFor(child)}
                         <span className="text-2xs text-ink-300">{child.productCount}</span>
                       </Link>
                     </li>

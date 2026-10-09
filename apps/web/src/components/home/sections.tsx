@@ -386,7 +386,7 @@ export function HomeBrands({
           title="Марките, които предлагаме"
           action={
             <ButtonLink href={href(locale, routes.brands)} variant="secondary" size="sm">
-              Всички марки
+              Всички марки кафе
             </ButtonLink>
           }
         />
@@ -489,7 +489,7 @@ export function VendingBand({ locale }: { readonly locale: Locale }) {
           size="lg"
           className="w-full shrink-0 md:w-auto"
         >
-          Към Вендинг зоната
+          Кафе за вендинг машини
         </ButtonLink>
       </div>
     </section>
