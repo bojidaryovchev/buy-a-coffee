@@ -262,7 +262,9 @@ describe("check:launch", () => {
     expect(text).toContain("unset term: commerce.deliveryFee");
     expect(text).toContain("unset term: commerce.deliveryTime");
     expect(text).toContain("unset term: commerce.returnShippingPaidBy");
-    expect(report.blockers.filter((line) => line.startsWith("/terms renders"))).toHaveLength(4);
+    expect(
+      report.blockers.filter((line) => line.startsWith("/bg/obshti-usloviya renders")),
+    ).toHaveLength(4);
     expect(
       run(
         report,
@@ -304,7 +306,9 @@ describe("check:launch", () => {
       sections: [{ heading: "x", paragraphs: [`${REVIEW_MARKER}: довършете`] }],
     };
     const report = launchReport(COMPLETE, [withMarker]);
-    expect(report.blockers).toEqual([expect.stringContaining('/cookies renders a "ЗА ПРЕГЛЕД"')]);
+    expect(report.blockers).toEqual([
+      expect.stringContaining('/bg/biskvitki renders a "ЗА ПРЕГЛЕД"'),
+    ]);
     expect(
       run(
         report,
@@ -325,7 +329,9 @@ describe("check:launch", () => {
     const settled: LegalDocument = { ...cookiePolicy, slug: "terms", needsReview: true };
     const report = launchReport(COMPLETE, [settled]);
     expect(report.blockers).toEqual([]);
-    expect(report.notes).toEqual([expect.stringContaining("/terms still shows its draft notice")]);
+    expect(report.notes).toEqual([
+      expect.stringContaining("/bg/obshti-usloviya still shows its draft notice"),
+    ]);
 
     const out: string[] = [];
     expect(

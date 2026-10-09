@@ -37,6 +37,8 @@ import {
   privacyPolicy,
   type LegalDocument,
 } from "../src/content/legal.ts";
+import { DEFAULT_LOCALE } from "../src/i18n/config.ts";
+import { href, routes } from "../src/lib/routes.ts";
 
 export interface LaunchReport {
   /** Each one fails the check. */
@@ -50,6 +52,20 @@ export function legalPagesFor(commerce: CommerceConfig): readonly LegalDocument[
   return [privacyPolicy, buildTermsOfService(commerce), cookiePolicy];
 }
 
+/**
+ * The address a legal document is published at, which is what a person
+ * reading this report will open. The document's own `slug` is an internal
+ * key and has not been a URL since the storefront's routes were localised.
+ */
+const LEGAL_ROUTES: Readonly<Record<string, string>> = {
+  privacy: routes.privacy,
+  terms: routes.terms,
+  cookies: routes.cookies,
+};
+
+export const legalPagePath = (document: Pick<LegalDocument, "slug">): string =>
+  href(DEFAULT_LOCALE, LEGAL_ROUTES[document.slug] ?? `/${document.slug}`);
+
 const excerpt = (text: string): string => (text.length > 110 ? `${text.slice(0, 107)}…` : text);
 
 export function launchReport(
@@ -61,11 +77,13 @@ export function launchReport(
 
   for (const document of documents) {
     for (const item of openReviewItems(document)) {
-      blockers.push(`/${document.slug} renders a "${REVIEW_MARKER}" callout: ${excerpt(item)}`);
+      blockers.push(
+        `${legalPagePath(document)} renders a "${REVIEW_MARKER}" callout: ${excerpt(item)}`,
+      );
     }
     if (document.needsReview) {
       notes.push(
-        `/${document.slug} still shows its draft notice (needsReview is true) — cleared by the lawyer's read`,
+        `${legalPagePath(document)} still shows its draft notice (needsReview is true) — cleared by the lawyer's read`,
       );
     }
   }
