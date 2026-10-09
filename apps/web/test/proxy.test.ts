@@ -1,14 +1,44 @@
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
-import { config, isUntouched, proxy } from "@/proxy";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
  * The proxy, called the way Next calls it: a request in, a response out. What
  * it must do is narrow — resolve the bare `/`, send the old URLs home, serve
- * a translated URL from its folder — and what it must never do is as
- * important: move a visitor off the locale in their URL, set a cookie, or
- * touch the admin, the API, the files.
+ * a translated URL from its folder, send a dead catalog link to the 404 Next
+ * renders on the server — and what it must never do is as important: move a
+ * visitor off the locale in their URL, set a cookie, or touch the admin, the
+ * API, the files.
+ *
+ * The catalog lookup is replaced: what the proxy does with its answer is the
+ * subject here, and the lookup itself reads a database.
  */
+
+const catalog = vi.hoisted(() => ({
+  slugs: new Set<string>(),
+  /** What the lookup answers; `null` is "could not be asked". */
+  broken: false,
+  asked: [] as string[],
+}));
+
+vi.mock("@/lib/catalog/slug-exists", () => ({
+  slugExists: async (kind: string, slug: string) => {
+    catalog.asked.push(`${kind}:${slug}`);
+    return catalog.broken ? null : catalog.slugs.has(`${kind}:${slug}`);
+  },
+}));
+
+import { catalogLookup, config, isUntouched, proxy } from "@/proxy";
+
+beforeEach(() => {
+  catalog.slugs = new Set([
+    "first-level:kafe-kapsuli",
+    "first-level:kapsuli",
+    "first-level:dozeti-illy-classico-18br",
+    "brand:lavazza",
+  ]);
+  catalog.broken = false;
+  catalog.asked = [];
+});
 
 const request = (path: string, headers: Record<string, string> = {}) =>
   new NextRequest(new URL(path, "https://buy-a-coffee.com"), { headers });
@@ -21,22 +51,28 @@ const location = (response: Response) => {
 /** `NextResponse.next()` carries this header; a rewrite or redirect does not. */
 const passesThrough = (response: Response) => response.headers.get("x-middleware-next") === "1";
 
+/** A rewrite names its target in this header; the address bar keeps the request's. */
+const rewrittenTo = (response: Response) => {
+  const value = response.headers.get("x-middleware-rewrite");
+  return value ? new URL(value).pathname : null;
+};
+
 describe("the bare /", () => {
-  it("goes to Bulgarian, temporarily, varying on Accept-Language only", () => {
-    const response = proxy(request("/"));
+  it("goes to Bulgarian, temporarily, varying on Accept-Language only", async () => {
+    const response = await proxy(request("/"));
     expect(response.status).toBe(307);
     expect(location(response)).toBe("/bg");
     expect(response.headers.get("vary")).toBe("Accept-Language");
   });
 
-  it("asks the browser's languages, and with English off every answer is Bulgarian", () => {
+  it("asks the browser's languages, and with English off every answer is Bulgarian", async () => {
     for (const language of ["en-GB,en;q=0.9", "de-DE", "bg-BG,bg;q=0.9", "*"]) {
-      expect(location(proxy(request("/", { "accept-language": language })))).toBe("/bg");
+      expect(location(await proxy(request("/", { "accept-language": language })))).toBe("/bg");
     }
   });
 
-  it("never by geography, and never with a cookie", () => {
-    const response = proxy(
+  it("never by geography, and never with a cookie", async () => {
+    const response = await proxy(
       request("/", {
         "x-vercel-ip-country": "US",
         "accept-language": "en-US",
@@ -47,39 +83,71 @@ describe("the bare /", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
-  it("keeps the query string", () => {
-    expect(location(proxy(request("/?utm_source=x")))).toBe("/bg?utm_source=x");
+  it("keeps the query string", async () => {
+    expect(location(await proxy(request("/?utm_source=x")))).toBe("/bg?utm_source=x");
   });
 });
 
 describe("a path under a locale", () => {
-  it("is served as asked", () => {
+  it("is served as asked", async () => {
     for (const path of ["/bg", "/bg/marki", "/bg/kafe-kapsuli", "/bg/tarsene?q=лаваца"]) {
-      expect(passesThrough(proxy(request(path))), path).toBe(true);
+      expect(passesThrough(await proxy(request(path))), path).toBe(true);
     }
   });
 
-  it("whatever the browser says about its languages", () => {
-    expect(passesThrough(proxy(request("/bg/marki", { "accept-language": "en-US" })))).toBe(true);
+  it("whatever the browser says about its languages", async () => {
+    expect(passesThrough(await proxy(request("/bg/marki", { "accept-language": "en-US" })))).toBe(
+      true,
+    );
   });
 });
 
-describe("everything else", () => {
-  /** A rewrite names its target in this header; the address bar keeps the request's. */
-  const rewrittenTo = (response: Response) => {
-    const value = response.headers.get("x-middleware-rewrite");
-    return value ? new URL(value).pathname : null;
-  };
-
-  it("is the global 404, for a locale that is switched off as for no locale at all", () => {
-    for (const path of ["/en", "/en/brands", "/nope", "/this-route-does-not-exist", "/de/x"]) {
-      expect(rewrittenTo(proxy(request(path))), path).toBe("/_not-found");
+describe("a catalog slug that names nothing", () => {
+  it("is sent to the 404 Next renders on the server", async () => {
+    for (const path of ["/bg/no-such-product", "/bg/marki/no-such-brand"]) {
+      expect(rewrittenTo(await proxy(request(path))), path).toBe("/_not-found");
     }
   });
 
-  it("but never for a request under a shipping locale, which the route tree answers", () => {
-    expect(rewrittenTo(proxy(request("/bg/nope")))).toBeNull();
-    expect(passesThrough(proxy(request("/bg/nope")))).toBe(true);
+  it("while one the catalog holds reaches its page", async () => {
+    for (const path of [
+      "/bg/kafe-kapsuli",
+      // A stored slug: the page redirects it to the landing slug.
+      "/bg/kapsuli",
+      "/bg/dozeti-illy-classico-18br",
+      "/bg/marki/lavazza?sort=price-asc",
+    ]) {
+      expect(passesThrough(await proxy(request(path))), path).toBe(true);
+    }
+  });
+
+  it("is never decided by a lookup that failed: the page's own 404 is still there", async () => {
+    catalog.broken = true;
+    expect(passesThrough(await proxy(request("/bg/no-such-product")))).toBe(true);
+    expect(passesThrough(await proxy(request("/bg/marki/no-such-brand")))).toBe(true);
+  });
+
+  it("asks only about the two kinds of URL the catalog decides", async () => {
+    for (const path of [
+      "/bg",
+      "/bg/marki",
+      "/bg/tarsene",
+      "/bg/blog/anything",
+      "/bg/za-kafemashina/krups",
+      "/bg/izbor-na-kafe/rezultat",
+      "/bg/a/b/c",
+      "/sitemap.xml",
+      "/products/x",
+    ]) {
+      await proxy(request(path));
+    }
+    expect(catalog.asked).toEqual([]);
+
+    expect(catalogLookup(["kafe-kapsuli"])).toEqual({ kind: "first-level", slug: "kafe-kapsuli" });
+    expect(catalogLookup(["marki", "lavazza"])).toEqual({ kind: "brand", slug: "lavazza" });
+    expect(catalogLookup(["marki"])).toBeNull();
+    expect(catalogLookup(["blog", "x"])).toBeNull();
+    expect(catalogLookup([])).toBeNull();
   });
 });
 
@@ -97,14 +165,22 @@ describe("the pre-locale URLs", () => {
       "/bg/izbor-na-kafe/rezultat?brew=capsule&system=dolce-gusto",
     ],
     ["/newsletter/unsubscribe?token=abc", "/bg/byuletin/otpisvane?token=abc"],
-  ])("%s answers 308 to %s, query kept", (from, target) => {
-    const response = proxy(request(from));
+  ])("%s answers 308 to %s, query kept", async (from, target) => {
+    const response = await proxy(request(from));
     expect(response.status).toBe(308);
     expect(location(response)).toBe(target);
   });
 
-  it("passes an old category URL on to the route handler that knows the catalog", () => {
-    expect(passesThrough(proxy(request("/categories/kapsuli")))).toBe(true);
+  it("passes an old category URL on to the route handler that knows the catalog", async () => {
+    expect(passesThrough(await proxy(request("/categories/kapsuli")))).toBe(true);
+  });
+});
+
+describe("everything else", () => {
+  it("is the global 404, for a locale that is switched off as for no locale at all", async () => {
+    for (const path of ["/en", "/en/brands", "/nope", "/this-route-does-not-exist", "/de/x"]) {
+      expect(rewrittenTo(await proxy(request(path))), path).toBe("/_not-found");
+    }
   });
 });
 
@@ -126,9 +202,9 @@ describe("what it never touches", () => {
     "/_not-found",
   ];
 
-  it.each(untouched)("%s", (path) => {
+  it.each(untouched)("%s", async (path) => {
     expect(isUntouched(path)).toBe(true);
-    expect(passesThrough(proxy(request(path)))).toBe(true);
+    expect(passesThrough(await proxy(request(path)))).toBe(true);
   });
 
   it("is kept from running there at all by the matcher", () => {

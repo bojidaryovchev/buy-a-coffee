@@ -46,9 +46,12 @@ test("404 page is a real 404 with a way forward", async ({ page }) => {
   // must not repeat that mistake.
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1, name: "Тази страница я няма" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /началната страница/i })).toBeVisible();
+  // Scoped to <main>: the 404 is drawn inside the shop's frame, whose header
+  // and footer link to the machine finder too.
+  const main = page.locator("main");
+  await expect(main.getByRole("link", { name: /началната страница/i })).toBeVisible();
   // The other ways forward: the machine finder and a search that needs no script.
-  await expect(page.getByRole("link", { name: "Намери по машина" })).toHaveAttribute(
+  await expect(main.getByRole("link", { name: "Намери по машина" })).toHaveAttribute(
     "href",
     "/bg/za-kafemashina",
   );

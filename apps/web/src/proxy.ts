@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isShipping } from "@/i18n/config";
 import { LOCALE_VARY, preferredLocale } from "@/i18n/negotiate";
+import { ROUTE_SEGMENTS } from "@/i18n/slugs";
+import { slugExists, type SlugKind } from "@/lib/catalog/slug-exists";
 import { legacyAnswer } from "@/lib/legacy-routes";
-import { localeOfPath, resolveLocalisedPath } from "@/lib/routes";
+import { localeOfPath, resolveLocalisedPath, routes } from "@/lib/routes";
 
 /**
  * Locale routing.
@@ -19,6 +21,12 @@ import { localeOfPath, resolveLocalisedPath } from "@/lib/routes";
  *      (EU) 2018/302 forbids routing a visitor by residence, and Googlebot
  *      crawls from the US with an English `Accept-Language` — redirecting on
  *      either would bounce it off the Bulgarian pages every time.
+ *      **Unless the catalog holds nothing there.** `/bg/<slug>` and
+ *      `/bg/marki/<brand>` are checked against the catalog's slugs
+ *      (`lib/catalog/slug-exists.ts`), and one that names nothing is rewritten
+ *      to the global 404 — because that is the only 404 Next renders on the
+ *      server. Left to the page's own `notFound()`, a dead link is a 404 whose
+ *      body is drawn by JavaScript, and blank without it.
  *   2. **The bare `/`** has to resolve to some locale, and resolves by
  *      `Accept-Language` alone (`i18n/negotiate.ts`): a 307, because the answer
  *      is per visitor and a cached permanent redirect would freeze one
@@ -42,17 +50,30 @@ import { localeOfPath, resolveLocalisedPath } from "@/lib/routes";
  * matcher keeps the proxy from running on them at all, and `isUntouched`
  * repeats the rule, so a matcher edit cannot quietly start rewriting the panel.
  */
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   if (isUntouched(pathname)) return NextResponse.next();
 
   const locale = localeOfPath(pathname);
   if (locale && isShipping(locale)) {
     const action = resolveLocalisedPath(locale, pathname);
-    if (action.type === "next") return NextResponse.next();
     const url = request.nextUrl.clone();
+    if (action.type === "redirect") {
+      url.pathname = action.pathname;
+      return NextResponse.redirect(url, 308);
+    }
+
+    // The canonical path: the folder the request is about to be served from.
+    const served = action.type === "rewrite" ? action.pathname : pathname;
+    const lookup = catalogLookup(served.split("/").filter(Boolean).slice(1));
+    if (lookup && (await slugExists(lookup.kind, lookup.slug)) === false) {
+      url.pathname = NOT_FOUND;
+      return NextResponse.rewrite(url);
+    }
+
+    if (action.type === "next") return NextResponse.next();
     url.pathname = action.pathname;
-    return action.type === "rewrite" ? NextResponse.rewrite(url) : NextResponse.redirect(url, 308);
+    return NextResponse.rewrite(url);
   }
 
   if (pathname === "/") {
@@ -78,6 +99,30 @@ export function proxy(request: NextRequest): NextResponse {
 
 /** Next's internal route for the global 404 (`app/global-not-found.tsx`). */
 const NOT_FOUND = "/_not-found";
+
+const STATIC_FIRST_LEVEL: ReadonlySet<string> = new Set(
+  ROUTE_SEGMENTS.filter((key) => !key.includes("/")),
+);
+const BRANDS_SEGMENT = routes.brands.slice(1);
+
+/**
+ * The catalog slug a canonical path names, if its existence is the catalog's
+ * to answer: `/<slug>` (a category or a product) and `/marki/<brand>`.
+ * Everything else is a static page or has its own list of what exists.
+ */
+export function catalogLookup(
+  segments: readonly string[],
+): { readonly kind: SlugKind; readonly slug: string } | null {
+  const [first, second] = segments;
+  if (first === undefined) return null;
+  if (segments.length === 1) {
+    return STATIC_FIRST_LEVEL.has(first) ? null : { kind: "first-level", slug: first };
+  }
+  if (segments.length === 2 && first === BRANDS_SEGMENT && second) {
+    return { kind: "brand", slug: second };
+  }
+  return null;
+}
 
 const UNTOUCHED_PREFIXES = [
   "/_next",

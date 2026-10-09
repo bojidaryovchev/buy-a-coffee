@@ -146,6 +146,40 @@ test.describe("locales", () => {
     await expect(page.locator("header").first()).toBeVisible();
   });
 
+  /*
+   * A plain request, as a crawler or a browser without JavaScript makes it:
+   * no script runs, so what is asserted is the HTML the server sent. A page's
+   * own `notFound()` would pass a browser test and fail here — Next draws that
+   * one on the client — which is why the proxy sends dead links to the 404
+   * the server renders.
+   */
+  test("a dead link is a 404 whose page is in the HTML as sent", async ({ request }) => {
+    const dead = [
+      "/bg/no-such-product-or-category",
+      "/bg/marki/no-such-brand",
+      "/bg/blog/no-such-article",
+      "/bg/za-kafemashina/no-such-machine",
+      "/bg/a/b/c",
+      "/nope",
+    ];
+    for (const path of dead) {
+      const response = await raw(request, path);
+      expect(response.status(), path).toBe(404);
+
+      const html = await response.text();
+      expect(html, path).toMatch(/<html[^>]*\slang="bg"/);
+      const body = html.slice(html.indexOf("<body"));
+      // The heading, as markup in the body, not as data in a script.
+      expect(body, path).toMatch(/<h1[^>]*>Тази страница я няма<\/h1>/);
+      // Inside the shop's frame: its header, its navigation, its footer.
+      expect(body, path).toContain("<header");
+      expect(body, path).toContain("<footer");
+      expect(body, path).toContain(`href="${BG.machines}"`);
+      // And a search that needs no script.
+      expect(body, path).toMatch(new RegExp(`<form[^>]*action="${BG.search}"`));
+    }
+  });
+
   test("no language switcher is drawn while one locale ships", async ({ page }) => {
     await page.goto(BG.home);
     await expect(page.locator("a[hreflang]")).toHaveCount(0);
