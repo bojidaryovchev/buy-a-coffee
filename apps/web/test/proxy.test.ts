@@ -35,6 +35,7 @@ beforeEach(() => {
     "first-level:kapsuli",
     "first-level:dozeti-illy-classico-18br",
     "brand:lavazza",
+    "landing:lavazza-kapsuli",
   ]);
   catalog.broken = false;
   catalog.asked = [];
@@ -121,13 +122,21 @@ describe("a catalog slug that names nothing", () => {
     }
   });
 
+  it("goes for a landing listing with nothing to list, and not for one that lists something", async () => {
+    // Static folders both; only the catalog knows which has products today.
+    expect(rewrittenTo(await proxy(request("/bg/bezkofeinovo-kafe")))).toBe("/_not-found");
+    expect(passesThrough(await proxy(request("/bg/lavazza-kapsuli")))).toBe(true);
+    expect(catalog.asked).toEqual(["landing:bezkofeinovo-kafe", "landing:lavazza-kapsuli"]);
+  });
+
   it("is never decided by a lookup that failed: the page's own 404 is still there", async () => {
     catalog.broken = true;
     expect(passesThrough(await proxy(request("/bg/no-such-product")))).toBe(true);
     expect(passesThrough(await proxy(request("/bg/marki/no-such-brand")))).toBe(true);
+    expect(passesThrough(await proxy(request("/bg/bezkofeinovo-kafe")))).toBe(true);
   });
 
-  it("asks only about the two kinds of URL the catalog decides", async () => {
+  it("asks only about the kinds of URL the catalog decides", async () => {
     for (const path of [
       "/bg",
       "/bg/marki",
@@ -145,6 +154,10 @@ describe("a catalog slug that names nothing", () => {
 
     expect(catalogLookup(["kafe-kapsuli"])).toEqual({ kind: "first-level", slug: "kafe-kapsuli" });
     expect(catalogLookup(["marki", "lavazza"])).toEqual({ kind: "brand", slug: "lavazza" });
+    expect(catalogLookup(["nay-evtino-na-chasha"])).toEqual({
+      kind: "landing",
+      slug: "nay-evtino-na-chasha",
+    });
     expect(catalogLookup(["marki"])).toBeNull();
     expect(catalogLookup(["blog", "x"])).toBeNull();
     expect(catalogLookup([])).toBeNull();

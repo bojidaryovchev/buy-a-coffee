@@ -20,10 +20,19 @@
  */
 import { categoryCopy } from "../content/category-copy.ts";
 import { ARTICLES } from "../content/journal/index.ts";
+import {
+  landingCopy,
+  machineBrandCopy,
+  machineBrandFeatures,
+  relatedCopy,
+  type LandingFacts,
+} from "../content/landing-copy.ts";
 import { productCopy } from "../content/product-copy.ts";
 import { consumablesCopy, vendingCopy } from "../content/vending.ts";
 import { EMPTY_JOURNAL_FIGURES } from "../src/lib/catalog/journal-figures.ts";
+import { LANDING_IDS } from "../src/lib/catalog/landings.ts";
 import { plainText } from "../src/lib/journal.ts";
+import { BREWING_SYSTEMS } from "../src/lib/recommend/systems.ts";
 import {
   MAX_SOURCE_OVERLAP,
   type ReferencePage,
@@ -68,7 +77,7 @@ export interface OwnPiece {
   /** Stable name, e.g. `category:nespresso` or `journal:cup-cost`. */
   readonly id: string;
   /** Which kind of content, for the report. */
-  readonly kind: "category" | "business" | "journal" | "product";
+  readonly kind: "category" | "business" | "landing" | "journal" | "product";
   readonly text: string;
 }
 
@@ -222,7 +231,23 @@ export function auditOwnContent(
 
 /* --- What there is to audit ---------------------------------------------- */
 
-/** The written content, one piece per category, business page and article. */
+/**
+ * What a landing's copy is rendered from when it is read for this audit: every
+ * brewing system and no figure. The copy is functions of the catalog's facts;
+ * with every system present each one takes its longest branch, and with no
+ * price range the sentences that only quote a figure drop out, which leaves
+ * the prose that is ours to compare.
+ */
+const LANDING_AUDIT_FACTS: LandingFacts = {
+  count: 2,
+  systems: BREWING_SYSTEMS,
+  methods: ["capsule", "pod", "beans"],
+  cupRange: null,
+  commonPack: null,
+  currency: "EUR",
+};
+
+/** The written content, one piece per category, business page, landing and article. */
 export function ownContentPieces(): OwnPiece[] {
   const pieces: OwnPiece[] = [];
 
@@ -238,6 +263,38 @@ export function ownContentPieces(): OwnPiece[] {
       text: collectStrings(consumablesCopy).join("\n"),
     },
   );
+
+  for (const id of LANDING_IDS) {
+    const copy = landingCopy[id];
+    pieces.push({
+      id: `landing:${id}`,
+      kind: "landing",
+      text: [
+        copy.h1,
+        copy.title(LANDING_AUDIT_FACTS),
+        copy.description(LANDING_AUDIT_FACTS),
+        ...copy.intro(LANDING_AUDIT_FACTS),
+        copy.llms,
+      ].join("\n"),
+    });
+  }
+  pieces.push({
+    id: "landing:machines",
+    kind: "landing",
+    text: [
+      machineBrandCopy.title("Krups", true),
+      machineBrandCopy.h1("Krups"),
+      machineBrandCopy.description("Krups", true),
+      ...Object.values(machineBrandFeatures).flatMap((feature) => [
+        feature.title,
+        feature.h1,
+        feature.lead,
+        feature.listHeading,
+        feature.description(LANDING_AUDIT_FACTS),
+      ]),
+      ...collectStrings(relatedCopy),
+    ].join("\n"),
+  });
 
   for (const article of ARTICLES) {
     pieces.push({

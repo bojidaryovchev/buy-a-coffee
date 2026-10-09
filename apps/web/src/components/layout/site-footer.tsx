@@ -9,6 +9,9 @@ import { paymentMethods } from "@/components/commerce/terms";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 import { fill } from "@/i18n/fill";
 import { openingHoursLabel } from "@/i18n/hours";
+import { getLandingAvailability } from "@/lib/catalog/landing-queries";
+import { LANDING_PATHS, NO_LANDINGS, type LandingAvailability } from "@/lib/catalog/landings";
+import { href } from "@/lib/routes";
 
 const COLUMN_HEAD = "text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
 const LINK = "text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline";
@@ -33,8 +36,27 @@ function FooterLink({ href, children }: { href: string; children: ReactNode }) {
  * first-time customer looks for down here: how to find the right capsule, what
  * delivery costs, how to reach a person. Every link in the page's locale, every
  * word from its dictionary.
+ *
+ * After the shelves come the two listings that cut across all of them — decaf
+ * and cheapest per cup — each only while it lists something, like the shelves
+ * themselves. Which of them exist is the one thing the footer reads for
+ * itself; `SiteFooter` does the read and `SiteFooterView` is the markup, so
+ * the markup renders in a test without a database.
  */
-export function SiteFooter({ navigation, dict }: { navigation: SiteNavigation; dict: Dictionary }) {
+export async function SiteFooter(props: { navigation: SiteNavigation; dict: Dictionary }) {
+  return <SiteFooterView {...props} landings={await getLandingAvailability()} />;
+}
+
+export function SiteFooterView({
+  navigation,
+  dict,
+  landings = NO_LANDINGS,
+}: {
+  navigation: SiteNavigation;
+  dict: Dictionary;
+  /** Which landing listings exist right now. None, unless the caller knows. */
+  landings?: LandingAvailability;
+}) {
   const year = new Date().getFullYear();
   const { footer } = dict;
   // Empty until the business has said how an order is paid for; the line below
@@ -94,6 +116,14 @@ export function SiteFooter({ navigation, dict }: { navigation: SiteNavigation; d
             ))}
             {pods && <FooterLink href={pods.href}>{pods.name}</FooterLink>}
             {beans && <FooterLink href={beans.href}>{beans.name}</FooterLink>}
+            {landings.counts.decaf > 0 && (
+              <FooterLink href={href(locale, LANDING_PATHS.decaf)}>{footer.decaf}</FooterLink>
+            )}
+            {landings.counts.cheapest > 0 && (
+              <FooterLink href={href(locale, LANDING_PATHS.cheapest)}>
+                {footer.cheapestPerCup}
+              </FooterLink>
+            )}
             {navigation.otherCategories.map((category) => (
               <FooterLink key={category.href} href={category.href}>
                 {category.label}

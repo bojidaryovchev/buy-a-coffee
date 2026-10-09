@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Breadcrumbs, ButtonLink, SectionHeading } from "@/components/ui/primitives";
+import { Badge, Breadcrumbs, ButtonLink } from "@/components/ui/primitives";
+import { ProductGrid } from "@/components/catalog/product-card";
+import { RelatedLandings } from "@/components/catalog/related-landings";
 import { WizardNotice } from "@/components/wizard/wizard-ui";
 import { CapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import { JsonLd } from "@/components/seo/json-ld";
-import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
-import { MACHINE_BRANDS, getMachineBrand, type MachineModel } from "@/content/machines";
+import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
+import {
+  MACHINE_BRANDS,
+  getMachineBrand,
+  type MachineBrand,
+  type MachineModel,
+} from "@/content/machines";
+import { getSystemListing, type LandingView } from "@/lib/catalog/landing-queries";
 import { getSystemAvailability } from "@/lib/catalog/queries";
 import { getBrewingSystem, getUnsupportedSystem, isSupportedSystem } from "@/lib/recommend/systems";
 import { wizardHref } from "@/lib/recommend/answers";
@@ -14,7 +22,12 @@ import { pluralize } from "@/lib/catalog/format";
 import { siteConfig } from "@/config/site";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
-import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import { categoryHref, href, productHref, routes, systemCategory } from "@/lib/routes";
+import {
+  machineBrandCopy,
+  machineBrandFeatures,
+  type LandingFacts,
+} from "../../../../../../content/landing-copy";
 
 export const revalidate = 300;
 
@@ -29,6 +42,14 @@ export const revalidate = 300;
  * spelled out. Hiding them would leave someone searching for their machine and
  * finding nothing, which reads as "this shop is broken" rather than "this shop
  * does not stock that".
+ *
+ * **One brand's page leads with products.** People search „tchibo cafissimo“
+ * by name, and what they are after is capsules that go in it. So the Tchibo
+ * page is titled for that search, opens on which capsules fit, and lists the
+ * Caffitaly shelf — the format a Cafissimo takes — above the model list
+ * (`machineBrandFeatures` in `content/landing-copy.ts`). Every other brand
+ * keeps the model list alone: no machine-brand search is won by a shop, and
+ * there are no pages per model, only an anchor on each model here.
  */
 
 interface PageProps {
@@ -47,15 +68,41 @@ export function generateStaticParams() {
  */
 export const dynamicParams = false;
 
+/**
+ * Whether any model in our list takes a capsule, of a system we stock or not.
+ * Pre-ground coffee is the one "system" in the unsupported list that is not a
+ * capsule.
+ */
+function hasCapsuleMachines(brand: MachineBrand): boolean {
+  return brand.models.some((model) => {
+    const system = getBrewingSystem(model.system);
+    return system ? system.method === "capsule" : model.system !== "ground";
+  });
+}
+
+const factsOf = (listing: LandingView): LandingFacts => ({
+  count: listing.count,
+  systems: listing.groups.map((group) => group.system),
+  methods: listing.methods,
+  cupRange: listing.cupRange,
+  commonPack: listing.commonPack,
+  currency: siteConfig.currency,
+});
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { lang, brand: slug } = await params;
   const locale = shippingLocale(lang);
   const brand = getMachineBrand(slug);
   if (!brand) return { title: "Марката не е намерена", robots: { index: false, follow: true } };
 
+  const feature = machineBrandFeatures[brand.slug];
+  const capsules = hasCapsuleMachines(brand);
+
   return {
-    title: `Кафе за машини ${brand.name}`,
-    description: `Коя капсула пасва на всеки модел ${brand.name} — и какво от асортимента ни можете да поръчате за него.`,
+    title: feature?.title ?? machineBrandCopy.title(brand.name, capsules),
+    description: feature
+      ? feature.description(factsOf(await getSystemListing(feature.system)))
+      : machineBrandCopy.description(brand.name, capsules),
     alternates: pageAlternates(locale, routes.machineBrand(brand.slug)),
   };
 }
@@ -66,7 +113,12 @@ export default async function MachineBrandPage({ params }: PageProps) {
   const brand = getMachineBrand(slug);
   if (!brand) notFound();
 
-  const availability = await getSystemAvailability();
+  const feature = machineBrandFeatures[brand.slug];
+  const [availability, listing] = await Promise.all([
+    getSystemAvailability(),
+    feature ? getSystemListing(feature.system) : null,
+  ]);
+  const listed = listing?.groups.flatMap((group) => group.products) ?? [];
 
   /* Group models by system, preserving the order they are written in. */
   const groups = new Map<string, MachineModel[]>();
@@ -91,9 +143,46 @@ export default async function MachineBrandPage({ params }: PageProps) {
   return (
     <div className="shell pb-16">
       <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
+      {listed.length > 0 && feature && (
+        <JsonLd
+          id="ld-itemlist"
+          data={itemListJsonLd(
+            listed.map((product) => ({ name: product.name, href: productHref(locale, product) })),
+            feature.listHeading,
+          )}
+        />
+      )}
       <Breadcrumbs items={breadcrumbs} />
 
-      <SectionHeading as="h1" title={`Кафе за машини ${brand.name}`} description={brand.summary} />
+      <header className="mb-10">
+        <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">
+          {feature?.h1 ?? machineBrandCopy.h1(brand.name)}
+        </h1>
+        <div className="mt-3 max-w-measure space-y-3 text-base text-ink-700">
+          <p>{brand.summary}</p>
+          {/* The lead speaks of the products below it; with none on sale it
+              would describe a list that is not there. */}
+          {feature && listed.length > 0 && <p>{feature.lead}</p>}
+        </div>
+        {await RelatedLandings({ locale, subject: { machineBrand: brand.slug } })}
+      </header>
+
+      {feature && listed.length > 0 && (
+        <section aria-labelledby="fits-heading" className="mb-14">
+          <div className="mb-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2
+              id="fits-heading"
+              className="font-display text-2xl font-semibold text-ink-900 md:text-3xl"
+            >
+              {feature.listHeading}
+            </h2>
+            <span className="text-sm text-ink-500 tabular-nums">
+              {pluralize(listed.length, "продукт", "продукта")}
+            </span>
+          </div>
+          <ProductGrid locale={locale} products={listed} />
+        </section>
+      )}
 
       <div className="max-w-3xl space-y-10">
         {supported.map(([systemId, models]) => {
@@ -127,7 +216,9 @@ export default async function MachineBrandPage({ params }: PageProps) {
                 {models.map((model) => (
                   <li
                     key={model.slug}
-                    className="inline-flex items-center gap-2 rounded-sm border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink-700"
+                    // Models have no pages of their own; each is an anchor here.
+                    id={model.slug}
+                    className="inline-flex scroll-mt-32 items-center gap-2 rounded-sm border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink-700"
                   >
                     {model.name}
                     {model.crossFormat && <Badge tone="neutral">съвместим формат</Badge>}

@@ -177,10 +177,12 @@ describe("auditOwnContent: between our own pieces", () => {
 describe("the content as it is", () => {
   const pieces = ownContentPieces();
 
-  it("covers the eight category introductions, both business pages and every article", async () => {
+  it("covers the eight category introductions, both business pages, every landing and every article", async () => {
     const kinds = (kind: string) => pieces.filter((p) => p.kind === kind).map((p) => p.id);
     expect(kinds("category")).toHaveLength(8);
     expect(kinds("business")).toEqual(["business:vending", "business:consumables"]);
+    // The four listings, and the machine pages with the cross-links between them.
+    expect(kinds("landing")).toHaveLength(5);
     expect(kinds("journal").length).toBeGreaterThanOrEqual(4);
     for (const p of pieces) expect(p.text.trim().length, p.id).toBeGreaterThan(100);
   });

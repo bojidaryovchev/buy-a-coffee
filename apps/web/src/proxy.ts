@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isShipping } from "@/i18n/config";
 import { LOCALE_VARY, preferredLocale } from "@/i18n/negotiate";
 import { ROUTE_SEGMENTS } from "@/i18n/slugs";
+import { landingForSegment } from "@/lib/catalog/landings";
 import { slugExists, type SlugKind } from "@/lib/catalog/slug-exists";
 import { legacyAnswer } from "@/lib/legacy-routes";
 import { localeOfPath, resolveLocalisedPath, routes } from "@/lib/routes";
@@ -21,8 +22,9 @@ import { localeOfPath, resolveLocalisedPath, routes } from "@/lib/routes";
  *      (EU) 2018/302 forbids routing a visitor by residence, and Googlebot
  *      crawls from the US with an English `Accept-Language` — redirecting on
  *      either would bounce it off the Bulgarian pages every time.
- *      **Unless the catalog holds nothing there.** `/bg/<slug>` and
- *      `/bg/marki/<brand>` are checked against the catalog's slugs
+ *      **Unless the catalog holds nothing there.** `/bg/<slug>`,
+ *      `/bg/marki/<brand>` and the landing listings (which exist only while
+ *      they list something) are checked against the catalog
  *      (`lib/catalog/slug-exists.ts`), and one that names nothing is rewritten
  *      to the global 404 — because that is the only 404 Next renders on the
  *      server. Left to the page's own `notFound()`, a dead link is a 404 whose
@@ -107,7 +109,8 @@ const BRANDS_SEGMENT = routes.brands.slice(1);
 
 /**
  * The catalog slug a canonical path names, if its existence is the catalog's
- * to answer: `/<slug>` (a category or a product) and `/marki/<brand>`.
+ * to answer: `/<slug>` (a category or a product), `/marki/<brand>`, and a
+ * landing listing, which is a static folder but 404s while it lists nothing.
  * Everything else is a static page or has its own list of what exists.
  */
 export function catalogLookup(
@@ -116,6 +119,7 @@ export function catalogLookup(
   const [first, second] = segments;
   if (first === undefined) return null;
   if (segments.length === 1) {
+    if (landingForSegment(first)) return { kind: "landing", slug: first };
     return STATIC_FIRST_LEVEL.has(first) ? null : { kind: "first-level", slug: first };
   }
   if (segments.length === 2 && first === BRANDS_SEGMENT && second) {

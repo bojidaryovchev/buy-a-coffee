@@ -159,7 +159,8 @@ async function checkWrittenContent(): Promise<void> {
   const productSources = sources.filter((source) => source.id.startsWith("product:")).length;
   console.log(
     `\nWritten content — ${pieces.length} pieces: ${count("category")} category introductions, ` +
-      `${count("business")} business pages (Vending, Consumables), ${count("journal")} journal articles`,
+      `${count("business")} business pages (Vending, Consumables), ${count("landing")} landing pages, ` +
+      `${count("journal")} journal articles`,
   );
   console.log(
     `  compared with ${sources.length} source texts the snapshot holds: ` +
@@ -208,8 +209,8 @@ async function checkWrittenContent(): Promise<void> {
     console.error(`      ${finding.detail}`);
   }
   console.error(
-    "\n  Rewrite the passage in our own words: content/category-copy.ts, content/vending.ts " +
-      "or content/journal/.",
+    "\n  Rewrite the passage in our own words: content/category-copy.ts, content/vending.ts, " +
+      "content/landing-copy.ts or content/journal/.",
   );
   process.exitCode = 1;
 }

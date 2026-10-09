@@ -3,11 +3,14 @@ import { eq } from "drizzle-orm";
 import { brands, categories, products } from "@catalog/db/schema";
 import { LOCALES } from "@/i18n/config";
 import { categorySlug } from "@/lib/routes";
+import { LANDING_IDS, LANDING_PATHS } from "./landings";
 
 /**
  * Does the catalog hold anything at this slug? Asked by the proxy, before the
- * route tree, for the two kinds of URL whose existence only the database
- * knows: `/bg/<category or product>` and `/bg/marki/<brand>`.
+ * route tree, for the kinds of URL whose existence only the database knows:
+ * `/bg/<category or product>`, `/bg/marki/<brand>`, and a landing listing
+ * (`/bg/bezkofeinovo-kafe`), which is a static route that exists only while
+ * it has products to list.
  *
  * WHY THE PROXY ASKS AT ALL. A page that calls `notFound()` gets the right
  * status and the wrong document: Next 16 catches the throw in a *client*
@@ -33,10 +36,12 @@ import { categorySlug } from "@/lib/routes";
  * It knows exactly what the pages accept: a product by its stored slug,
  * whatever its status (a removed product keeps its URL); an active category
  * by its stored slug or its landing slug in any locale (the page redirects the
- * ones it does not publish); an active brand.
+ * ones it does not publish); an active brand; a landing listing while its
+ * selection (`landings.ts`) is not empty, which is the same count its page
+ * 404s on.
  */
 
-export type SlugKind = "first-level" | "brand";
+export type SlugKind = "first-level" | "brand" | "landing";
 
 interface Snapshot {
   readonly at: number;
@@ -54,7 +59,8 @@ async function load(): Promise<Snapshot> {
      throws without a `DATABASE_URL`. A proxy that failed to load would take
      every page down with it; a lookup that fails only answers "cannot tell". */
   const { db } = await import("@/lib/db");
-  const [productRows, categoryRows, brandRows] = await Promise.all([
+  const { getLandingAvailability } = await import("./landing-queries");
+  const [productRows, categoryRows, brandRows, landings] = await Promise.all([
     db.select({ slug: products.slug }).from(products),
     db
       .select({
@@ -65,6 +71,7 @@ async function load(): Promise<Snapshot> {
       .from(categories)
       .where(eq(categories.status, "active")),
     db.select({ slug: brands.slug }).from(brands).where(eq(brands.status, "active")),
+    getLandingAvailability(),
   ]);
 
   return {
@@ -78,6 +85,10 @@ async function load(): Promise<Snapshot> {
         ]),
       ]),
       brand: new Set(brandRows.map((row) => row.slug)),
+      // By canonical segment, which is what the proxy holds when it asks.
+      landing: new Set(
+        LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) => LANDING_PATHS[id].slice(1)),
+      ),
     },
   };
 }

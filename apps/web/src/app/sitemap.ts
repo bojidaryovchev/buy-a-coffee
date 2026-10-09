@@ -3,6 +3,8 @@ import { absoluteUrl, siteConfig } from "@/config/site";
 import { SHIPPING_LOCALES } from "@/i18n/config";
 import { getCategoryTree, listAllProductSlugs, listBrands } from "@/lib/catalog/queries";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
+import { getLandingAvailability } from "@/lib/catalog/landing-queries";
+import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
 import { sectionListsProducts } from "@/lib/catalog/vending";
 import { JOURNAL_PATH, listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
@@ -20,7 +22,10 @@ import { categoryHref, href, productHref, routes } from "@/lib/routes";
  * Only indexable pages appear: no search, no filtered listings, no answered
  * wizard, no legal boilerplate given artificial priority. The consumables page
  * is left out while it lists nothing, because it is `noindex` until then and a
- * sitemap entry for a page that asks not to be indexed is a contradiction.
+ * sitemap entry for a page that asks not to be indexed is a contradiction. The
+ * landing listings (Lavazza capsules and beans, decaf, cheapest per cup) follow
+ * the same rule from the other side: each is a 404 while its selection is
+ * empty, and is listed here only while it is not.
  *
  * **Every page once per shipping locale, each entry carrying the page's whole
  * `hreflang` set**, `x-default` included — the same set the page's own head
@@ -53,11 +58,12 @@ const at =
     href(locale, canonical);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [productSlugs, categories, brands, consumablesListed] = await Promise.all([
+  const [productSlugs, categories, brands, consumablesListed, landings] = await Promise.all([
     listAllProductSlugs(),
     getCategoryTree(),
     listBrands({ withProductsOnly: true }),
     sectionListsProducts("consumables"),
+    getLandingAvailability(),
   ]);
 
   const now = new Date();
@@ -77,6 +83,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page(at(routes.machines), "monthly", 0.7),
     page(at(BUSINESS_SECTIONS.vending.path), "weekly", 0.6),
     ...(consumablesListed ? [page(at(BUSINESS_SECTIONS.consumables.path), "weekly", 0.6)] : []),
+    // Listings, so they change as often as the shelves they are cut from.
+    ...LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) =>
+      page(at(LANDING_PATHS[id]), "daily", 0.8),
+    ),
     page(at(routes.delivery), "monthly", 0.5),
     page(at(routes.contact), "monthly", 0.5),
     page(at(routes.privacy), "yearly", 0.2),
