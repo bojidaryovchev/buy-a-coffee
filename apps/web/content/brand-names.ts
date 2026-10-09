@@ -16,7 +16,7 @@
  *  - A brand is spelled the way it spells itself where that has been checked
  *    against its own website and packs, accents included: illy in lower case,
  *    Biancaffè, Lollo Caffè, 3 Bourbons. The evidence for each is the
- *    provenance record that came with the logos (see `brand-logos.ts`).
+ *    provenance record that came with the logos (`brand-logo-provenance.ts`).
  *  - Rema Caffè is the one compromise: the brand's site and pods set it as
  *    one word with an acute accent, "remacaffé", and some of its own pages
  *    write "Rema Caffè". Two words with the grave is how our product copy

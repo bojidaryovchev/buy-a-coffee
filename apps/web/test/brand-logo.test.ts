@@ -4,7 +4,8 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { brandLogoFor, brandLogos, brandsWithoutLogo } from "../content/brand-logos";
+import { brandLogoFor, brandLogos } from "../content/brand-logos";
+import { brandLogoProvenance, brandsWithoutLogo } from "../content/brand-logo-provenance";
 import {
   AREA_SHARE,
   BrandLogo,
@@ -89,8 +90,17 @@ describe("brand logos: the data file", () => {
     }
   });
 
+  it("keeps a provenance record for every logo, and a logo for every record", () => {
+    expect(Object.keys(brandLogoProvenance).sort()).toEqual(Object.keys(brandLogos).sort());
+    // A brand is shown with a logo or recorded without one, never both.
+    for (const key of Object.keys(brandsWithoutLogo)) {
+      expect(brandLogos[key], key).toBeUndefined();
+      expect(brandLogoProvenance[key], key).toBeUndefined();
+    }
+  });
+
   it("records complete provenance for every logo", () => {
-    for (const [key, { provenance }] of entries) {
+    for (const [key, provenance] of Object.entries(brandLogoProvenance)) {
       expect(["official-site", "official-press-kit", "wikimedia"], key).toContain(
         provenance.sourceType,
       );

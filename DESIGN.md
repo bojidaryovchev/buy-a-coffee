@@ -1034,9 +1034,11 @@ which reads as a photograph that failed to load.
 
 ### Brand logo
 
-`BrandLogo` in `components/catalog/brand-logo.tsx`; the files and their
-provenance in `content/brand-logos.ts` and `public/brands/`. A brand's own
-logo, shown where the brand itself is the subject.
+`BrandLogo` in `components/catalog/brand-logo.tsx`; the files in
+`public/brands/`, what a page needs to draw them in `content/brand-logos.ts`,
+and where each came from in `content/brand-logo-provenance.ts` (imported by
+tests only, so it never reaches the browser). A brand's own logo, shown where
+the brand itself is the subject.
 
 **Why it exists, and its limit.** A logo is the brand's trademark. We show it
 for one reason: to identify the genuine product the shop sells. So it is the
