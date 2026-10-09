@@ -159,7 +159,7 @@ test.describe("the product page", () => {
     await page.goto(`/bg/${CAPSULE.slug}`);
     const description = await page.locator('meta[name="description"]').getAttribute("content");
     expect(description).toMatch(
-      /^Borbone Crema Classica: капсули за Dolce Gusto, 16 бр\. Цена \d+,\d{2}\s€, \d+,\d{2}\s€ на чаша\. Оставете номер и ще ви се обадим, за да потвърдим поръчката\.$/u,
+      /^Borbone Crema Classica: капсули за Dolce Gusto, 16 бр\. Цена \d+,\d{2}\s€, \d+,\d{2}\s€ на чаша\. Оставяте телефон и ви се обаждаме, за да потвърдим\.$/u,
     );
     // The figures are the ones the page prints.
     const [, price, perCup] = description!.match(/Цена (\S+\s€), (\S+\s€ на чаша)/u)!;
