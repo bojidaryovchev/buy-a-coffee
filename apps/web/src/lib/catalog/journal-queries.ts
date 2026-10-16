@@ -1,7 +1,7 @@
 import "server-only";
 import { eq, inArray, sql } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
-import { productName } from "@catalog/shared";
+import { productKind, productName } from "@catalog/shared";
 import { db } from "@/lib/db";
 import { siteConfig } from "@/config/site";
 import {
@@ -95,6 +95,7 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
       packValue: row.weightValue,
       packUnit: row.weightUnit,
     }).title,
+    kind: productKind(row.name),
     brandName: row.brandName,
     price: row.price,
     currency: row.currency,

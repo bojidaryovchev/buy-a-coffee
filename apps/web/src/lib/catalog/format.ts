@@ -1,4 +1,4 @@
-import { moneyFromDecimalString, pricePerUnitMeasure } from "@catalog/shared";
+import { type ProductKind, moneyFromDecimalString, pricePerUnitMeasure } from "@catalog/shared";
 import { siteConfig } from "@/config/site";
 import { DEFAULT_LOCALE, NUMBER_LOCALE, isLocale, type Locale } from "@/i18n/config";
 import type { PriceView, UnitPriceView } from "./types";
@@ -146,8 +146,17 @@ export function availabilitySchemaUrl(availability: string): string {
 export function toPerServingView(
   pricePerServing: string | null | undefined,
   currency: string | null | undefined,
-  options: { readonly estimated?: boolean; readonly locale?: Locale } = {},
-): { readonly formatted: string; readonly estimated: boolean } | null {
+  options: {
+    readonly estimated?: boolean;
+    /** The dose an estimate was counted at, and what it is a dose of. */
+    readonly dose?: { readonly grams: number | null; readonly kind: ProductKind };
+    readonly locale?: Locale;
+  } = {},
+): {
+  readonly formatted: string;
+  readonly estimated: boolean;
+  readonly assumption: string | null;
+} | null {
   const locale = options.locale ?? DEFAULT_LOCALE;
   const price = toPriceView(pricePerServing, currency, locale);
   if (!price) return null;
@@ -156,7 +165,37 @@ export function toPerServingView(
   return {
     formatted: `${estimated ? "≈ " : ""}${price.formatted} ${UNIT_WORDS[locale].perCup}`,
     estimated,
+    assumption:
+      estimated && options.dose
+        ? servingAssumption(options.dose.grams, options.dose.kind, locale)
+        : null,
   };
+}
+
+/** What a dose is a dose of, in the words a customer reads. */
+const DOSE_OF: Readonly<Record<Locale, Readonly<Record<ProductKind, string>>>> = {
+  bg: { roasted: "кафе", instant: "разтворимо кафе" },
+  en: { roasted: "coffee", instant: "instant coffee" },
+};
+
+/**
+ * The sentence that says what an estimated price per cup assumed: „Изчислено
+ * при 7 г кафе на чаша.“, „Изчислено при 2 г разтворимо кафе на чаша.“
+ *
+ * "≈" alone does not say what was assumed; with the dose stated the figure can
+ * be checked. The grams come from `GRAMS_PER_SERVING` through the servings the
+ * figure was computed from, so the sentence and the number cannot disagree.
+ * Null for a piece count, which assumes nothing.
+ */
+export function servingAssumption(
+  grams: number | null | undefined,
+  kind: ProductKind,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  if (grams === null || grams === undefined) return null;
+  return locale === "bg"
+    ? `Изчислено при ${grams} г ${DOSE_OF.bg[kind]} на чаша.`
+    : `Counted at ${grams} g of ${DOSE_OF.en[kind]} a cup.`;
 }
 
 /**

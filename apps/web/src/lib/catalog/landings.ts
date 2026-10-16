@@ -1,4 +1,10 @@
-import { compareDecimal, packServings, parseDecimal, pricePerServing } from "@catalog/shared";
+import {
+  compareDecimal,
+  packServings,
+  parseDecimal,
+  pricePerServing,
+  productKind,
+} from "@catalog/shared";
 import { routes, type CanonicalPath } from "@/lib/routes";
 import {
   BREWING_SYSTEMS,
@@ -27,7 +33,10 @@ import { packSizeLabel, resolveProductFormat } from "./fallback-copy";
  *    the sitemap and `llms.txt` drop it and every link to it disappears, all
  *    from `landingAvailability` below.
  *  - **A product's system is the one its categories name**, resolved exactly as
- *    the card's badge is (`resolveProductFormat`). Nothing is read off a name.
+ *    the card's badge is (`resolveProductFormat`). The one thing read off a
+ *    name is whether the product is instant coffee, which belongs to no system
+ *    and so stands in no group on any of these pages: each compares cups
+ *    within one system, and a cup of instant is not one of them.
  *  - **Price per cup is the shared helpers' figure** (`@catalog/shared`
  *    `packServings` and `pricePerServing`): the very number the card prints,
  *    kept at four decimals so that two near-identical packs still order.
@@ -88,6 +97,7 @@ export const CHEAPEST_PER_SYSTEM = 3;
 /** One product on sale, as much of it as a selection needs. */
 export interface LandingRow {
   readonly id: string;
+  /** The supplier's name: the tie-break, and what says a product is instant coffee. */
   readonly name: string;
   readonly brandSlug: string | null;
   readonly brandSourceKey: string | null;
@@ -150,11 +160,11 @@ interface Resolved extends LandingItem {
 }
 
 function resolve(row: LandingRow): Resolved {
-  const servings = packServings(row.weightValue, row.weightUnit);
+  const servings = packServings(row.weightValue, row.weightUnit, productKind(row.name));
   return {
     row,
     id: row.id,
-    system: resolveProductFormat(row.categoryKeys).system,
+    system: resolveProductFormat(row.categoryKeys, row.name).system,
     perCup: pricePerServing(row.price, servings),
     estimated: servings?.estimated ?? false,
     pack: packSizeLabel(row.weightValue, row.weightUnit),
@@ -350,7 +360,7 @@ export function landingAvailability(rows: readonly LandingRow[]): LandingAvailab
     number
   >;
   for (const row of rows) {
-    const system = resolveProductFormat(row.categoryKeys).system;
+    const system = resolveProductFormat(row.categoryKeys, row.name).system;
     if (system) systems[system.id] += 1;
   }
 

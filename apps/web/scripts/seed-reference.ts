@@ -4,8 +4,8 @@
  *
  *   pnpm --filter @catalog/web seed:reference
  *
- * `reference/latest/` holds the real catalog as the last crawl saw it: 187
- * products, 20 brands and 8 categories, each with its storefront slug. This loads it
+ * `reference/latest/` holds the real catalog as the last crawl saw it: 207
+ * products, 23 brands and 9 categories, each with its storefront slug. This loads it
  * through the real schema, publishes our written product copy the way
  * `copy:apply` does, and generates one tiny image per product in the local
  * storage directory so `/media` serves real files. It is what the end-to-end

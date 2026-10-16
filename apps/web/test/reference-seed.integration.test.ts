@@ -44,12 +44,12 @@ if (!available) {
 }
 
 /**
- * The committed snapshot is the October crawl: 187 products from 20 brands in
- * 8 categories, one photograph each. Stated here so that a re-exported
+ * The committed snapshot is the 16 October crawl: 207 products from 23 brands
+ * in 9 categories, one photograph each. Stated here so that a re-exported
  * snapshot that changes the catalog's size fails loudly instead of quietly
  * re-baselining every count below.
  */
-const SNAPSHOT = { products: 187, brands: 20, categories: 8, imagesPerProduct: 1 } as const;
+const SNAPSHOT = { products: 207, brands: 23, categories: 9, imagesPerProduct: 1 } as const;
 
 /** The source's names, joined for a SQL regular expression. */
 const sourcePattern = SOURCE_PATTERNS.map((pattern) => pattern.source).join("|");
@@ -176,13 +176,17 @@ describeIntegration("seed:reference (integration)", () => {
     expect(row?.brandId).not.toBeNull();
   });
 
-  it("stores the pack size the name states where the supplier's pack field states another", async () => {
-    // The snapshot is the supplier's record: an 18-pod tin with a pack field
-    // of 100. The seed decides by the rule the sync decides by.
+  it("stores the pack size the snapshot records, which for the illy tin is the name's", async () => {
+    // The supplier's listing still gives this 18-pod tin a pack field of 100,
+    // and a synced catalog records that conflict. The exporter writes the size
+    // the rule decided (18), not the field, so a snapshot exported since the
+    // rule holds one size for the tin and the seeded catalog no conflict. The
+    // rule itself is tested on fixtures (`pack-size.test.ts`,
+    // `pack-size-conflicts.integration.test.ts`).
     const listed = snapshot.products.find(
       (product) => product.sourceKey === "/illy-decaffeinato-18/#100pc",
     );
-    expect(listed).toMatchObject({ name: "Дозети Illy Decaffeinato 18бр.", weight: "100 бр." });
+    expect(listed).toMatchObject({ name: "Дозети Illy Decaffeinato 18бр.", weight: "18 бр." });
 
     const [row] = await db
       .select()
@@ -197,25 +201,33 @@ describeIntegration("seed:reference (integration)", () => {
       servings: "18.0000",
       servingsEstimated: false,
     });
-    expect(row?.sourceData).toMatchObject({
-      weightCanonical: "18pc",
-      packField: "100 бр.",
-      packSizeConflict: { inName: "18 бр.", inPackField: "100 бр." },
-    });
+    expect(row?.sourceData).toMatchObject({ weightCanonical: "18pc", packSizeConflict: null });
 
-    // It is the only one, and every other product keeps its pack field.
+    // No product conflicts, and every product keeps the size the snapshot gives it.
     const conflicting = await db
       .select({ sourceKey: products.sourceKey })
       .from(products)
       .where(sql`${products.sourceData}->'packSizeConflict' <> 'null'::jsonb`);
-    expect(conflicting).toEqual([{ sourceKey: "/illy-decaffeinato-18/#100pc" }]);
+    expect(conflicting).toEqual([]);
     const bySourceKey = new Map(snapshot.products.map((product) => [product.sourceKey, product]));
     for (const stored of await db
       .select({ sourceKey: products.sourceKey, weight: products.weight })
       .from(products)) {
-      if (stored.sourceKey === "/illy-decaffeinato-18/#100pc") continue;
       expect(stored.weight, stored.sourceKey).toBe(bySourceKey.get(stored.sourceKey)?.weight);
     }
+  });
+
+  it("counts a tin of instant coffee at instant coffee's dose", async () => {
+    const [row] = await db
+      .select()
+      .from(products)
+      .where(eq(products.slug, "vandino-supreme-raztvorimo-kafe-500-g"));
+    expect(row).toMatchObject({
+      weightValue: "500.0000",
+      weightUnit: "g",
+      servings: "250.0000",
+      servingsEstimated: true,
+    });
   });
 
   it("gives each product the redirect tests name the old address they ask for", async () => {

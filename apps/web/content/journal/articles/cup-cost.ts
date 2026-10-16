@@ -70,7 +70,7 @@ export const cupCost: Article = {
 
     /* From the shared helper, not typed: the number of cups the article says a
        kilogram holds is the number the wizard would compute for the same bag. */
-    const cupsPerKilogram = packServings("1000", "g")?.whole ?? null;
+    const cupsPerKilogram = packServings("1000", "g", "roasted")?.whole ?? null;
 
     const example: Block[] = reversal
       ? [
@@ -145,7 +145,7 @@ export const cupCost: Article = {
         "При капсулите и дозите сметката е точна. Една капсула е една чаша, значи цената на кутията се дели на броя в нея.",
       ),
       p(
-        `При зърната е приблизителна. Смятаме по ${GRAMS_PER_SERVING} грама кафе на чаша — италианската мярка за еспресо.`,
+        `При зърната е приблизителна. Смятаме по ${GRAMS_PER_SERVING.roasted} грама кафе на чаша — италианската мярка за еспресо.`,
         ...(cupsPerKilogram
           ? [` По нея килограм зърна е около ${pluralize(cupsPerKilogram, "чаша", "чаши")}.`]
           : []),

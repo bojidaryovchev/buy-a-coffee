@@ -105,7 +105,7 @@ export function relatedLandingLinks(
   /* The system a category page is the shelf of, exactly as its badge decides it. */
   const system =
     "category" in subject
-      ? resolveProductFormat([subject.category.slug, subject.category.sourceKey ?? ""]).system
+      ? resolveProductFormat([subject.category.slug, subject.category.sourceKey ?? ""], null).system
       : null;
 
   let member: Member | null = null;

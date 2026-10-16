@@ -1,4 +1,5 @@
 import {
+  type ProductKind,
   compareDecimal,
   packServings,
   parseDecimal,
@@ -43,6 +44,12 @@ import {
 export interface JournalCatalogRow {
   readonly slug: string;
   readonly name: string;
+  /**
+   * Roasted or instant, from the supplier's name. Absent is roasted. Instant
+   * coffee belongs to no brewing system, so no figure an article quotes about
+   * a system or a format counts it.
+   */
+  readonly kind?: ProductKind;
   readonly brandName: string | null;
   /** Retail price as an exact decimal string. */
   readonly price: string | null;
@@ -283,6 +290,7 @@ const METHODS: readonly BrewMethod[] = ["beans", "capsule", "pod"];
  * journal and the wizard disagree about what a product is.
  */
 export function systemOfRow(row: JournalCatalogRow): BrewingSystem | null {
+  if (row.kind === "instant") return null;
   for (const system of BREWING_SYSTEMS) {
     const matches = row.categories.some(
       (category) =>
@@ -303,7 +311,7 @@ function toPricedPack(
   // own currency takes part. A product priced in anything else is left out.
   if (!row.price || (row.currency ?? currency) !== currency) return null;
 
-  const servings = packServings(row.weightValue, row.weightUnit);
+  const servings = packServings(row.weightValue, row.weightUnit, row.kind ?? "roasted");
   const perCupAmount = pricePerServing(row.price, servings);
   if (!servings || !perCupAmount) return null;
 

@@ -1,3 +1,4 @@
+import { joinList } from "@/components/commerce/terms";
 import { routes, type RouteTarget } from "@/lib/routes";
 
 /**
@@ -50,6 +51,24 @@ export interface BusinessSectionCopy {
   /** Heading for the vending blends found in the catalog. */
   readonly blends?: { readonly heading: string; readonly description: string };
 
+  /**
+   * The words for instant coffee in the section's own listing, recognised by
+   * each product's name (`productKind`). `heading` replaces the listing's
+   * while instant coffee is all it holds; `description` is said whenever it
+   * holds some, with the packs and the dose a cup is counted at handed in.
+   * The `<title>` and the meta description follow what the page lists.
+   */
+  readonly instant?: {
+    readonly heading: string;
+    readonly description: (facts: {
+      readonly packs: readonly string[];
+      readonly grams: number;
+    }) => string;
+    /** When the page lists instant coffee only, and with bean blends beside it. */
+    readonly metaTitle: { readonly alone: string; readonly withBeans: string };
+    readonly metaDescription: { readonly alone: string; readonly withBeans: string };
+  };
+
   /** Shown only when the page has no product to show at all. */
   readonly nothingListed: string;
 
@@ -85,6 +104,28 @@ export const vendingCopy: BusinessSectionCopy = {
 
   listing: { heading: "Продукти във Вендинг зона" },
 
+  /* What the source's vending section holds since 16 October 2026: tins of
+     instant coffee. The heading says what they are; the description gives the
+     packs and the dose, both computed, and promises nothing about machines. */
+  instant: {
+    heading: "Разтворимо кафе",
+    description: ({ packs, grams }) =>
+      [
+        packs.length > 0 ? `Опаковките са от ${joinList(packs)}.` : null,
+        `Цената на чаша е приблизителна и е отбелязана с „≈“: смятаме по ${grams} г разтворимо кафе на чаша.`,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    metaTitle: {
+      alone: "Разтворимо кафе за вендинг машини и автомати",
+      withBeans: "Кафе за вендинг машини и автомати — на зърна и разтворимо",
+    },
+    metaDescription: {
+      alone: "Разтворимо кафе за вендинг машини и автомати",
+      withBeans: "Кафе на зърна и разтворимо кафе за вендинг машини и автомати",
+    },
+  },
+
   blends: {
     heading: "Смеси за вендинг и автоматични машини",
     description:
@@ -117,6 +158,24 @@ export const vendingCopy: BusinessSectionCopy = {
     href: routes.consumables,
   },
 };
+
+/**
+ * The vending page's `<title>` and the opening of its meta description, by
+ * what it lists: bean blends, instant coffee, or both. Shared by the page and
+ * `/llms.txt`, so the two cannot describe the page differently.
+ */
+export function vendingMeta(listed: { readonly beans: boolean; readonly instant: boolean }): {
+  readonly title: string;
+  readonly description: string;
+} {
+  const instant = vendingCopy.instant;
+  if (!listed.instant || !instant) {
+    return { title: vendingCopy.metaTitle, description: vendingCopy.metaDescription };
+  }
+  return listed.beans
+    ? { title: instant.metaTitle.withBeans, description: instant.metaDescription.withBeans }
+    : { title: instant.metaTitle.alone, description: instant.metaDescription.alone };
+}
 
 export const consumablesCopy: BusinessSectionCopy = {
   title: "Консумативи",

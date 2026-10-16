@@ -14,23 +14,26 @@ import fixture from "../../shared/test/fixtures/product-names.json" with { type:
  *
  * The development copy got its 187 products from the sync while the sync still
  * named slugs after the supplier's wording, and then `catalog:reslug` moved
- * all of them at once. Production will not take that path. It holds the 110
- * products it launched with; the catch-up sync, already running the new
- * generator, creates the other 77 directly; only then does `catalog:reslug`
- * move the 110.
+ * all of them at once; the 20 the source added by 16 October were then created
+ * by a sync already running the new generator. Production will not take that
+ * path. It holds the 110 products it launched with; the catch-up sync creates
+ * the other 97 directly; only then does `catalog:reslug` move the 110.
  *
  * `content/product-copy.ts` is keyed by slug, so the two must end at the same
- * 187 slugs. This file builds the catalog both ways from the same records,
+ * 207 slugs. This file builds the catalog both ways from the same records,
  * using the function the sync calls (`assignProductSlug`) and the function the
  * script calls (`planSlugMoves`), and compares.
  */
 
 interface FixtureRecord extends ProductNameInput {
   readonly sourceKey: string;
-  /** `launch` for the 110 production already holds, `catch-up` for the 77. */
+  /**
+   * `launch` for the 110 production already holds, `catch-up` for the 77 of
+   * 9 October, `16-october` for the 20 since.
+   */
   readonly wave: string;
-  /** The slug the old generator gave it. */
-  readonly formerSlug: string;
+  /** The slug the old generator gave it; null for one that arrived after the move. */
+  readonly formerSlug: string | null;
   readonly expected: { readonly slug: string };
 }
 
@@ -46,6 +49,7 @@ const CATEGORY_SLUGS = [
   "caffitaly",
   "kafe-na-zarna",
   "kafe-dozi",
+  "vending-zona",
 ];
 const RESERVED: ReadonlySet<string> = new Set([...RESERVED_PRODUCT_SLUGS, ...CATEGORY_SLUGS]);
 
@@ -60,10 +64,12 @@ type Catalog = Map<string, Row>;
 /** Products that were stored before the generator changed, under their old slugs. */
 function stored(rows: readonly FixtureRecord[]): Catalog {
   return new Map(
-    rows.map((record) => [
-      record.sourceKey,
-      { record, slug: record.formerSlug, previousSlugs: [] },
-    ]),
+    rows.map((record) => {
+      if (record.formerSlug === null) {
+        throw new Error(`${record.sourceKey} arrived after the move and had no old slug`);
+      }
+      return [record.sourceKey, { record, slug: record.formerSlug, previousSlugs: [] }];
+    }),
   );
 }
 
@@ -123,11 +129,21 @@ function shuffled<T>(items: readonly T[], seed: number): T[] {
 
 const launch = records.filter((record) => record.wave === "launch");
 const catchUp = records.filter((record) => record.wave === "catch-up");
+const october = records.filter((record) => record.wave === "16-october");
+/** The 187 that were stored under the old generator's slugs somewhere. */
+const beforeTheMove = [...launch, ...catchUp];
 
-/** The development copy: everything stored under old slugs, then moved at once. */
-function developmentRoute(rows: readonly FixtureRecord[] = records): Catalog {
+/**
+ * The development copy: the 187 stored under old slugs and moved at once, and
+ * then the products that arrived after the move, created by the sync.
+ */
+function developmentRoute(
+  rows: readonly FixtureRecord[] = beforeTheMove,
+  later: readonly FixtureRecord[] = rows === beforeTheMove ? october : [],
+): Catalog {
   const catalog = stored(rows);
   reslug(catalog);
+  syncCreates(catalog, later);
   return catalog;
 }
 
@@ -143,20 +159,22 @@ function productionRoute(
 }
 
 describe("the real catalog, built both ways", () => {
-  it("is the catalog the brief describes: 110 at launch, 77 since", () => {
+  it("is the catalog the brief describes: 110 at launch, 77 by 9 October, 20 since", () => {
     expect(launch).toHaveLength(110);
     expect(catchUp).toHaveLength(77);
+    expect(october).toHaveLength(20);
+    expect(records).toHaveLength(207);
   });
 
-  it("ends at the same 187 slugs by either route", () => {
+  it("ends at the same 207 slugs by either route", () => {
     const development = slugsOf(developmentRoute());
-    const production = slugsOf(productionRoute(launch, catchUp));
-    expect(Object.keys(production)).toHaveLength(187);
+    const production = slugsOf(productionRoute(launch, [...catchUp, ...october]));
+    expect(Object.keys(production)).toHaveLength(207);
     expect(production).toEqual(development);
   });
 
   it("ends at the slugs the written copy is keyed by", () => {
-    const production = slugsOf(productionRoute(launch, catchUp));
+    const production = slugsOf(productionRoute(launch, [...catchUp, ...october]));
     for (const record of records) {
       expect(production[record.sourceKey], record.sourceName).toBe(record.expected.slug);
     }
@@ -165,41 +183,45 @@ describe("the real catalog, built both ways", () => {
   it("does not depend on the order the sync meets the new products in", () => {
     const development = slugsOf(developmentRoute());
     for (let seed = 1; seed <= 25; seed += 1) {
-      expect(slugsOf(productionRoute(launch, shuffled(catchUp, seed))), `seed ${seed}`).toEqual(
-        development,
-      );
+      expect(
+        slugsOf(productionRoute(launch, shuffled([...catchUp, ...october], seed))),
+        `seed ${seed}`,
+      ).toEqual(development);
     }
   });
 
   it("does not depend on which products were there first", () => {
     const development = slugsOf(developmentRoute());
+    // Only the 187 can have been stored under an old slug; the 20 that came
+    // after the move always arrive through the sync.
     for (let seed = 1; seed <= 25; seed += 1) {
-      const mixed = shuffled(records, seed);
+      const mixed = shuffled(beforeTheMove, seed);
       const cut = seed * 7;
       expect(
-        slugsOf(productionRoute(mixed.slice(0, cut), mixed.slice(cut))),
+        slugsOf(productionRoute(mixed.slice(0, cut), [...mixed.slice(cut), ...october])),
         `seed ${seed}`,
       ).toEqual(development);
     }
-    // The extremes: nothing was there first, and everything was.
+    // The extremes: nothing was there first, and everything that could be was.
     expect(slugsOf(productionRoute([], records))).toEqual(development);
-    expect(slugsOf(productionRoute(records, []))).toEqual(development);
+    expect(slugsOf(productionRoute(beforeTheMove, october))).toEqual(development);
   });
 
-  it("the sync alone already gives the 77 their final slugs: the move touches only the 110", () => {
+  it("the sync alone already gives the 97 their final slugs: the move touches only the 110", () => {
     const catalog = stored(launch);
-    syncCreates(catalog, catchUp);
-    for (const record of catchUp) {
+    const arriving = [...catchUp, ...october];
+    syncCreates(catalog, arriving);
+    for (const record of arriving) {
       expect(catalog.get(record.sourceKey)?.slug).toBe(record.expected.slug);
     }
     expect(reslug(catalog)).toBe(110);
-    for (const record of catchUp) {
+    for (const record of arriving) {
       expect(catalog.get(record.sourceKey)?.previousSlugs).toEqual([]);
     }
   });
 
   it("leaves every old slug behind as a redirect, and is a no-op the second time", () => {
-    const catalog = productionRoute(launch, catchUp);
+    const catalog = productionRoute(launch, [...catchUp, ...october]);
     for (const record of launch) {
       expect(catalog.get(record.sourceKey)?.previousSlugs).toEqual([record.formerSlug]);
     }

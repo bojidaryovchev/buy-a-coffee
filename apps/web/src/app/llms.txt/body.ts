@@ -49,6 +49,11 @@ export interface LlmsInput {
    * linked.
    */
   readonly hasPromotions?: boolean;
+  /**
+   * Whether instant coffee is on sale. It is a kind of coffee the list of
+   * formats names only while the catalog has some. Absent: not named.
+   */
+  readonly hasInstantCoffee?: boolean;
   /** Journal articles, newest first. Empty when the journal is off. */
   readonly articles: readonly (LlmsLink & { readonly description: string })[];
   readonly commerce?: CommerceConfig;
@@ -118,7 +123,11 @@ ${input.summary.brands} марки в ${input.summary.categories} категор
     `Ключови факти:
 
 - Обхват: само България. Всички цени са в ${siteConfig.currency}.
-- Продават се кафе на зърна, капсули и дози (доза-в-опаковка).
+- Продават се кафе на зърна, капсули${
+      input.hasInstantCoffee
+        ? ", дози (доза-в-опаковка) и разтворимо кафе"
+        : " и дози (доза-в-опаковка)"
+    }.
 - Поръчката не изисква регистрация и не се плаща онлайн — потвърждава се по
   телефон.
 - Работно време за запитвания: ${siteConfig.contact.hours}

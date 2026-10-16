@@ -127,10 +127,19 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
   },
   "vending-zone": {
     implementation:
-      "/bg/kafe-za-vending-mashini: our own copy, the vending blends in the catalog, and the category once the source lists products under it",
+      "/bg/kafe-za-vending-mashini: our own copy above the products the source files under its vending category (instant coffee since 16 October 2026), listed with the usual filters and named for what they are, then the vending blends elsewhere in the catalog",
     routes: ["/kafe-za-vending-mashini"],
-    files: ["src/lib/catalog/vending.ts", "src/lib/catalog/business-sections.ts"],
-    tests: ["e2e/sections.spec.ts", "test/vending.test.ts", "test/business-section.test.ts"],
+    files: [
+      "src/lib/catalog/vending.ts",
+      "src/lib/catalog/business-sections.ts",
+      "content/vending.ts",
+    ],
+    tests: [
+      "e2e/sections.spec.ts",
+      "test/vending.test.ts",
+      "test/vending.db.test.ts",
+      "test/business-section.test.ts",
+    ],
   },
   consumables: {
     implementation:

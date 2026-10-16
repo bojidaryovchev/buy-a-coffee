@@ -2,8 +2,14 @@
   "categoryTree": [
     {
       "children": [],
+      "name": "Вендинг Зона",
+      "productCount": 5,
+      "sourceKey": "vending-zona"
+    },
+    {
+      "children": [],
       "name": "Кафе дози",
-      "productCount": 41,
+      "productCount": 46,
       "sourceKey": "kafe-dozi"
     },
     {
@@ -29,7 +35,7 @@
         {
           "children": [],
           "name": "Dolce Gusto",
-          "productCount": 33,
+          "productCount": 35,
           "sourceKey": "dolce-gusto"
         },
         {
@@ -40,13 +46,13 @@
         }
       ],
       "name": "Кафе капсули",
-      "productCount": 88,
+      "productCount": 90,
       "sourceKey": "kafe-kapsuli"
     },
     {
       "children": [],
       "name": "Кафе на зърна",
-      "productCount": 58,
+      "productCount": 68,
       "sourceKey": "kafe-na-zyrna"
     }
   ],
@@ -56,12 +62,14 @@
     "3-bourbons": 2,
     "amann": 4,
     "biancaffe": 7,
-    "bianchi": 18,
+    "bianchi": 19,
     "borbone": 9,
+    "cafe-moreno": 9,
     "caffitaly": 9,
     "elia": 5,
     "este": 3,
     "eurocaf": 4,
+    "excelsior": 6,
     "foodness": 1,
     "illy": 6,
     "julius-meinl": 3,
@@ -70,18 +78,20 @@
     "lollocafe": 32,
     "molini": 14,
     "rema-caffe": 34,
+    "ristora": 3,
     "tezzoro": 3,
-    "vandino": 3,
+    "vandino": 4,
     "vergnano": 3
   },
   "productsPerCategory": {
     "a-modo-mio": 3,
     "caffitaly": 9,
-    "dolce-gusto": 33,
-    "kafe-dozi": 41,
-    "kafe-na-zyrna": 58,
+    "dolce-gusto": 35,
+    "kafe-dozi": 45,
+    "kafe-na-zyrna": 67,
     "lavazza-blue": 7,
-    "nespresso": 36
+    "nespresso": 36,
+    "vending-zona": 5
   },
   "productsWithoutBrand": 1,
   "productsWithoutPrice": 0,

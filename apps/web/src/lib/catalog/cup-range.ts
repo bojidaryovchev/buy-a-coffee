@@ -1,4 +1,10 @@
-import { compareDecimal, packServings, parseDecimal, pricePerServing } from "@catalog/shared";
+import {
+  compareDecimal,
+  packServings,
+  parseDecimal,
+  pricePerServing,
+  productKind,
+} from "@catalog/shared";
 import { siteConfig } from "@/config/site";
 import { toPriceView } from "./format";
 
@@ -17,6 +23,8 @@ import { toPriceView } from "./format";
 
 /** As much of a product as a per-cup price needs. */
 export interface CupRangeRow {
+  /** The supplier's name, which says what kind of coffee it is and so the dose. */
+  readonly name: string | null;
   /** Retail price as an exact decimal string. */
   readonly price: string | null;
   readonly currency: string | null;
@@ -53,7 +61,7 @@ export function cupRangeOf(
 
   for (const row of rows) {
     if ((row.currency ?? currency) !== currency) continue;
-    const servings = packServings(row.weightValue, row.weightUnit);
+    const servings = packServings(row.weightValue, row.weightUnit, productKind(row.name));
     const amount = pricePerServing(row.price, servings);
     if (!amount || !servings) continue;
 

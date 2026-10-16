@@ -2,7 +2,13 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
-import { formatListingLabel, packServings, pricePerServing, productName } from "@catalog/shared";
+import {
+  formatListingLabel,
+  packServings,
+  pricePerServing,
+  productKind,
+  productName,
+} from "@catalog/shared";
 import { db } from "@/lib/db";
 import { resolveImageUrl } from "./images";
 import { brandDisplayName } from "./brand-display";
@@ -12,6 +18,7 @@ import { BREWING_SYSTEMS, type BrewingSystem, type BrewingSystemId } from "@/lib
 import type { RecommendationCandidate } from "@/lib/recommend/score";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./attributes";
 import { publishedSummary, resolveProductFormat } from "./fallback-copy";
+import { isInstantCoffee, isNotInstantCoffee } from "./product-kind-sql";
 import {
   brandNameMatch,
   categoryNameMatch,
@@ -211,7 +218,10 @@ function toCard(
    * lexicographically, which would advertise a fake saving.
    */
   const discount = discountPercent(row.price, row.oldPrice);
-  const servings = packServings(row.weightValue, row.weightUnit);
+  // What kind of coffee it is decides the dose a cup is counted at and
+  // whether it belongs to a brewing system at all; the name says which.
+  const kind = productKind(row.name);
+  const servings = packServings(row.weightValue, row.weightUnit, kind);
   const name = displayName(row);
   const card = {
     id: row.id,
@@ -227,9 +237,11 @@ function toCard(
     // Ours when the size parsed ("500 г"), the stored text ("0.500кг.") when not.
     weight: name.quantity?.label ?? row.weight,
     intensity: row.attributes?.intensity ?? null,
-    systemId: resolveProductFormat(row.categoryKeys).system?.id ?? null,
+    systemId: resolveProductFormat(row.categoryKeys, row.name).system?.id ?? null,
+    kind,
     servingPrice: toPerServingView(pricePerServing(row.price, servings), row.currency, {
       estimated: servings?.estimated ?? false,
+      dose: { grams: servings?.gramsPerServing ?? null, kind },
     }),
     brand:
       row.brandSlug && row.brandName
@@ -266,6 +278,7 @@ function toCard(
       packValue: row.weightValue,
       packUnit: row.weightUnit,
       attributes: row.attributes,
+      sourceName: row.name,
     }),
   };
 }
@@ -330,13 +343,15 @@ const retailPricePerCup = sql<
  * `BREWING_SYSTEMS` is the only place that knows which categories make up a
  * system, and it binds them by slug *or* source key (see "Recommendation
  * wizard" below for why). Several systems are a union, like every other
- * multi-value filter.
+ * multi-value filter. Instant coffee is in none, whatever it is filed under,
+ * exactly as `resolveProductFormat` decides for the card's badge: the filter,
+ * its count and the badges cannot disagree.
  */
 function brewingSystemsCondition(systemIds: readonly string[]): SQL {
   const selected = BREWING_SYSTEMS.filter((system) => systemIds.includes(system.id));
   const slugs = selected.flatMap((system) => [...system.categorySlugs]);
   const sourceKeys = selected.flatMap((system) => [...system.categorySourceKeys]);
-  return sql`exists (
+  return sql`(exists (
     select 1 from ${productCategories} pc
     join ${categories} c on c.id = pc.category_id
     where pc.product_id = ${products.id}
@@ -344,7 +359,7 @@ function brewingSystemsCondition(systemIds: readonly string[]): SQL {
         c.slug = any(${sql.param(slugs)}::text[])
         or c.source_key = any(${sql.param(sourceKeys)}::text[])
       )
-  )`;
+  ) and ${isNotInstantCoffee})`;
 }
 
 /** Conditions shared by every listing query. */
@@ -876,7 +891,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
             }
           : null,
     })),
-    formatListingLabel: formatListingLabel(typed.categorySourceKeys),
+    formatListingLabel: formatListingLabel(typed.categorySourceKeys, typed.name),
     updatedAt: typed.lastChangedAt,
   };
 }
@@ -953,13 +968,20 @@ export async function getRelatedProducts(
     .leftJoin(brands, eq(products.brandId, brands.id))
     .where(inArray(products.id, candidateIds.slice(0, 200)))) as unknown as ProductRow[];
 
-  // Compared on the resolved system, exactly as the cards' own badges are.
-  const rows =
-    product.systemId === null
-      ? loaded
-      : loaded.filter(
-          (row) => resolveProductFormat(row.categoryKeys).system?.id === product.systemId,
-        );
+  /*
+   * Compared on the resolved system, exactly as the cards' own badges are, and
+   * on the kind of coffee: beside a tin of instant coffee, other instant
+   * coffee rather than the same brand's capsules; and no instant beside a
+   * coffee that is brewed.
+   */
+  const kind = product.kind ?? "roasted";
+  const rows = loaded.filter((row) => {
+    if (productKind(row.name) !== kind) return false;
+    return (
+      product.systemId === null ||
+      resolveProductFormat(row.categoryKeys, row.name).system?.id === product.systemId
+    );
+  });
 
   const anchor = product.price ? Number(product.price.amount) : null;
   const ranked = rows
@@ -1108,6 +1130,15 @@ export async function countPromotions(): Promise<number> {
   return row?.count ?? 0;
 }
 
+/** Instant coffees on sale, by their names: for the pages that list the formats sold. */
+export async function countInstantCoffee(): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(products)
+    .where(and(isVisible, isInstantCoffee));
+  return row?.count ?? 0;
+}
+
 /** Newest arrivals for the home page. */
 export async function listNewArrivals(limit = 8): Promise<readonly ProductCardView[]> {
   const rows = await db
@@ -1228,9 +1259,13 @@ export async function getCatalogSummary(): Promise<{
  * upstream rename costs us nothing.
  */
 
-/** Categories belonging to a brewing system, by slug or by source key. */
+/**
+ * Products of a brewing system: in one of its categories, by slug or by source
+ * key, and not instant coffee, which belongs to no system and is never
+ * recommended — it needs no machine, and the wizard starts from the machine.
+ */
 function systemCategoryCondition(system: BrewingSystem): SQL {
-  return sql`exists (
+  return sql`(exists (
     select 1 from ${productCategories} pc
     join ${categories} c on c.id = pc.category_id
     where pc.product_id = ${products.id}
@@ -1238,7 +1273,7 @@ function systemCategoryCondition(system: BrewingSystem): SQL {
         c.slug = any(${sql.param([...system.categorySlugs])}::text[])
         or c.source_key = any(${sql.param([...system.categorySourceKeys])}::text[])
       )
-  )`;
+  ) and ${isNotInstantCoffee})`;
 }
 
 /**
@@ -1307,7 +1342,7 @@ export async function listRecommendationCandidates(
      * on the product page can never disagree with the number the wizard
      * ranked by.
      */
-    const servings = packServings(row.weightValue, row.weightUnit);
+    const servings = packServings(row.weightValue, row.weightUnit, productKind(row.name));
     return {
       ...card,
       attributes: row.attributes ?? {},

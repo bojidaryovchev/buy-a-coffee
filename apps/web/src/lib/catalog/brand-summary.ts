@@ -57,14 +57,20 @@ function joinList(items: readonly string[]): string {
  * the capsules go last behind „както и", which keeps the list of systems from
  * running into the list of formats („зърна и капсули за A и B" reads as three
  * things or four, depending on the reader).
+ *
+ * Instant coffee belongs to no system, so it is not in `systems`: `instant`
+ * says whether the brand has any on sale (`productKind`, by the products'
+ * names). It is named as a format, after beans and pods.
  */
 export function composeBrandSummary(
   brandName: string,
   systems: readonly BrewingSystem[],
+  instant = false,
 ): BrandSummary | null {
   const formats: string[] = [];
   if (systems.some((system) => system.method === "beans")) formats.push("кафе на зърна");
   if (systems.some((system) => system.method === "pod")) formats.push("хартиени дози ESE");
+  if (instant) formats.push("разтворимо кафе");
 
   const capsuleSystems = systems.filter((system) => system.method === "capsule");
   const capsules =

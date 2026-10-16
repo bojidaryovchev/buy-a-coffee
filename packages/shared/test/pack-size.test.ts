@@ -26,10 +26,10 @@ describe("decidePackSize", () => {
       conflict: { inName: "18 бр.", inPackField: "100 бр." },
     });
     // What the rule is for: 0,51 € a cup, not 0,09 €.
-    const servings = packServings(decision.named?.value, decision.named?.unit);
-    expect(servings).toEqual({ exact: "18", whole: 18, estimated: false });
+    const servings = packServings(decision.named?.value, decision.named?.unit, "roasted");
+    expect(servings).toEqual({ exact: "18", whole: 18, estimated: false, gramsPerServing: null });
     expect(pricePerServing("9.20", servings)).toBe("0.5111");
-    expect(pricePerServing("9.20", packServings("100", "pc"))).toBe("0.0920");
+    expect(pricePerServing("9.20", packServings("100", "pc", "roasted"))).toBe("0.0920");
   });
 
   it("reads the stored columns as it reads a parsed field", () => {

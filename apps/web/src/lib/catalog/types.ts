@@ -1,3 +1,4 @@
+import type { ProductKind } from "@catalog/shared";
 import type { BrewingSystemId } from "@/lib/recommend/systems";
 
 /**
@@ -75,15 +76,28 @@ export interface ProductCardView {
   /**
    * The brewing system this product belongs to, resolved from its categories.
    * Null when it belongs to none: a system badge is a compatibility claim, and
-   * it is never guessed from a product's name.
+   * it is never guessed from a product's name. Always null for instant
+   * coffee, which needs no machine.
    */
   readonly systemId: BrewingSystemId | null;
   /**
+   * Roasted coffee, or instant coffee, from the supplier's name
+   * (`productKind` in `@catalog/shared`). Optional in the type only so a view
+   * assembled by hand need not repeat it; every query sets it, and a reader
+   * treats its absence as roasted.
+   */
+  readonly kind?: ProductKind;
+  /**
    * Price per cup, formatted ("0,31 € на чаша"). Null when the price or the
    * pack size is unknown. `estimated` is true when cups are derived from
-   * weight rather than counted pieces.
+   * weight rather than counted pieces; `assumption` then says the dose they
+   * were counted at, for the pages that state it.
    */
-  readonly servingPrice: { readonly formatted: string; readonly estimated: boolean } | null;
+  readonly servingPrice: {
+    readonly formatted: string;
+    readonly estimated: boolean;
+    readonly assumption?: string | null;
+  } | null;
   readonly brand: {
     readonly slug: string;
     /** The key the brand's published slug is chosen by (`brandHref`). */

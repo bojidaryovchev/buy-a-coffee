@@ -2254,7 +2254,7 @@ describeIntegration("catalog sync (integration)", () => {
     price: string | null;
     weightValue: string | null;
     weightUnit: string | null;
-  }) => pricePerServing(row.price, packServings(row.weightValue, row.weightUnit));
+  }) => pricePerServing(row.price, packServings(row.weightValue, row.weightUnit, "roasted"));
 
   it("stores the size the name states when the pack field states another", async () => {
     const result = await sync(withTin());
@@ -2293,6 +2293,41 @@ describeIntegration("catalog sync (integration)", () => {
       expect(other.weight).toBe("1 кг.");
       expect(other.sourceData).toMatchObject({ packField: "1 кг.", packSizeConflict: null });
     }
+  });
+
+  it("counts the cups in a tin of instant coffee at instant coffee's dose", async () => {
+    // Recognised by its name: 200 g at 2 g a cup is 100 cups, not 28.
+    const instant: FakeProduct = {
+      h1: "Разтворимо кафе Ristora Gold 0.200кг.",
+      url: "/ristora-gold-200/",
+      price: "€6.65",
+      weight: "0.200кг.",
+    };
+    await sync([...baseCatalog(), instant]);
+    const [row] = await db
+      .select({
+        weightValue: products.weightValue,
+        weightUnit: products.weightUnit,
+        servings: products.servings,
+        servingsEstimated: products.servingsEstimated,
+        price: products.currentPrice,
+      })
+      .from(products)
+      .where(eq(products.sourcePath, "/ristora-gold-200/"));
+    expect(row).toMatchObject({
+      weightValue: "200.0000",
+      weightUnit: "g",
+      servings: "100.0000",
+      servingsEstimated: true,
+    });
+    expect(pricePerServing(row!.price, packServings("200", "g", "instant"))).toBe("0.0665");
+
+    // Every bean pack beside it is still counted at 7 g.
+    const beans = await db
+      .select({ servings: products.servings })
+      .from(products)
+      .where(sql`${products.sourcePath} <> '/ristora-gold-200/'`);
+    expect(new Set(beans.map((bean) => bean.servings))).toEqual(new Set(["142.8571"]));
   });
 
   it("corrects a product stored before the rule on the next ordinary sync, and only once", async () => {

@@ -4,7 +4,11 @@ import { Breadcrumbs, EmptyState, SectionHeading } from "@/components/ui/primiti
 import { BrandLogo } from "@/components/catalog/brand-logo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { systemsForCategories } from "@/lib/catalog/brand-summary";
-import { getListingFacts, listCategoryKeysByBrand } from "@/lib/catalog/listing-facts";
+import {
+  getListingFacts,
+  listCategoryKeysByBrand,
+  listInstantCoffeeBrandSlugs,
+} from "@/lib/catalog/listing-facts";
 import { listBrands } from "@/lib/catalog/queries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
@@ -53,9 +57,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BrandsPage({ params }: PageProps) {
   const locale = await localeFrom(params);
-  const [brands, categoryKeysByBrand] = await Promise.all([
+  const [brands, categoryKeysByBrand, instantBrands] = await Promise.all([
     listBrands(),
     listCategoryKeysByBrand(),
+    listInstantCoffeeBrandSlugs(),
   ]);
   const stocked = brands.filter((brand) => brand.productCount > 0);
   /*
@@ -95,6 +100,7 @@ export default async function BrandsPage({ params }: PageProps) {
             // From the categories the brand has products in, today.
             const makes = brandMakes(
               systemsForCategories(categoryKeysByBrand.get(brand.slug) ?? []),
+              instantBrands.has(brand.slug),
             );
             return (
               <li key={brand.slug}>

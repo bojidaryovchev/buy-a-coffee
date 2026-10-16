@@ -9,7 +9,7 @@ Every capability observed on the reference site, and what implements it here. Th
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
 | Category browsing | /bg/kategorii, and each category at /bg/<landing slug> | e2e/catalog.spec.ts | PASS |
-| Vending Zone page | /bg/kafe-za-vending-mashini: our own copy, the vending blends in the catalog, and the category once the source lists products under it | e2e/sections.spec.ts, test/vending.test.ts, test/business-section.test.ts | PASS |
+| Vending Zone page | /bg/kafe-za-vending-mashini: our own copy above the products the source files under its vending category (instant coffee since 16 October 2026), listed with the usual filters and named for what they are, then the vending blends elsewhere in the catalog | e2e/sections.spec.ts, test/vending.test.ts, test/vending.db.test.ts, test/business-section.test.ts | PASS |
 | Consumables page | /bg/konsumativi: what the section covers and an enquiry form; its category's products once the source lists any | e2e/sections.spec.ts, test/business-section.test.ts | PASS |
 | Brand browsing | /bg/marki, /bg/marki/<brand> | e2e/catalog.spec.ts | PASS |
 | Product detail page | /bg/<product slug> | e2e/product.spec.ts | PASS |
@@ -34,13 +34,13 @@ Every capability observed on the reference site, and what implements it here. Th
 | --- | --- | --- | --- |
 | blog_article (1) | /bg/blog/<slug> | e2e/sections.spec.ts | PASS |
 | blog_index (1) | /bg/blog | e2e/routes.spec.ts | PASS |
-| brand (23) | /bg/marki/<brand> | e2e/routes.spec.ts | PASS |
+| brand (25) | /bg/marki/<brand> | e2e/routes.spec.ts | PASS |
 | brand_index (1) | /bg/marki | e2e/routes.spec.ts | PASS |
 | category (5) | /bg/<category landing slug>, and /bg/kafe-za-vending-mashini for the reference's vending category | e2e/routes.spec.ts, e2e/sections.spec.ts | PASS |
 | home (1) | /bg (the bare / resolves to it) | e2e/routes.spec.ts | PASS |
 | legal (2) | /bg/poveritelnost, /bg/obshti-usloviya, /bg/biskvitki | e2e/routes.spec.ts | PASS |
 | other (1) | n/a — unclassified | n/a | PASS |
-| product (187) | /bg/<product slug> | e2e/routes.spec.ts | PASS |
+| product (207) | /bg/<product slug> | e2e/routes.spec.ts | PASS |
 | promotion (1) | /bg/promotsii | e2e/routes.spec.ts | PASS |
 | subcategory (5) | /bg/<category landing slug> | e2e/routes.spec.ts | PASS |
 

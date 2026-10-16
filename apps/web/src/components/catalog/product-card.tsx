@@ -84,6 +84,14 @@ export function ProductCard({
         {/* Each optional row keeps its height when empty; see the note above. */}
         <div className="flex h-5 min-w-0 items-center">
           <SystemBadge systemId={product.systemId} size="sm" />
+          {/*
+            Instant coffee fits no system, so it has no badge; the row says
+            what it is instead, in plain ink, with no system colour and no
+            `data-system`: it is the product's kind, not a compatibility claim.
+          */}
+          {!product.systemId && product.kind === "instant" && (
+            <span className="truncate text-2xs font-semibold text-ink-700">Разтворимо кафе</span>
+          )}
         </div>
 
         <p className="mt-1.5 flex h-4 items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
@@ -107,8 +115,9 @@ export function ProductCard({
             href={href}
             className="underline-offset-2 group-focus-within:underline group-hover:underline after:absolute after:inset-0"
           >
-            {/* Brand and line. The format is the badge above and the pack size
-                is beside the brand, so the heading need not repeat either. */}
+            {/* Brand and line. The format is the badge above (for instant
+                coffee, the words in its place) and the pack size is beside the
+                brand, so the heading need not repeat either. */}
             {product.title ?? product.name}
           </Link>
         </Heading>

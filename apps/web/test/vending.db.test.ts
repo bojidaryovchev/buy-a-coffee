@@ -91,14 +91,17 @@ describe.skipIf(!reachable || !hasCatalog)("vending blends in the catalog", () =
     expect(expected.length).toBeLessThanOrEqual(MAX_VENDING_BLENDS);
   });
 
-  it("finds the Elia Vending line in the mirrored catalog", async () => {
-    const names = (await listVendingBlends()).map((blend) => blend.name);
-
-    expect(names).toEqual([
-      "Elia Vending Aroma — кафе на зърна, 1 кг",
-      "Elia Vending Crema — кафе на зърна, 1 кг",
-      "Elia Vending Intenso — кафе на зърна, 1 кг",
-    ]);
+  it("shows every coffee its maker calls Vending, whoever the maker is", async () => {
+    // The rule is the maker's own word on the bag, not a list of brands: the
+    // catalog has carried Elia's three blends since August and Moreno's two
+    // since 16 October, and a third maker's would arrive the same way.
+    const blends = await listVendingBlends();
+    expect(blends.length).toBeGreaterThan(0);
+    for (const blend of blends) {
+      expect(blend.title ?? blend.name).toMatch(/(?:^|\s)Vending(?:\s|$)/u);
+      // Roasted coffee for a machine, never a tin of instant.
+      expect(blend.kind).toBe("roasted");
+    }
   });
 
   it("leaves out coffees that merely suit automatic machines", async () => {
@@ -156,6 +159,30 @@ describe.skipIf(!reachable || !hasCatalog || alreadySynced)(
       expect(await getSectionCategory("consumables")).toBeNull();
       expect(await getSectionListing("vending", query)).toBeNull();
       expect(await getSectionListing("consumables", query)).toBeNull();
+    });
+  },
+);
+
+describe.skipIf(!reachable || !hasCatalog || !alreadySynced)(
+  "the vending section's own category",
+  () => {
+    it("lists what the category holds, and counts the instant coffee in it by name", async () => {
+      const listing = await getSectionListing("vending", parseCatalogQuery({}));
+      expect(listing, "the source lists products under its vending section").not.toBeNull();
+      const items = listing!.result.items;
+      expect(listing!.contents?.products).toBe(listing!.result.total);
+      expect(listing!.contents?.instant).toBe(
+        items.filter((item) => item.kind === "instant").length,
+      );
+      for (const item of items.filter((each) => each.kind === "instant")) {
+        // In no brewing system, and a cup counted at instant coffee's dose.
+        expect(item.systemId, item.slug).toBeNull();
+        expect(item.detail, item.slug).toMatch(/^Разтворимо кафе, /u);
+        expect(item.servingPrice?.estimated, item.slug).toBe(true);
+        expect(item.servingPrice?.assumption, item.slug).toBe(
+          "Изчислено при 2 г разтворимо кафе на чаша.",
+        );
+      }
     });
   },
 );

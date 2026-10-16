@@ -76,7 +76,7 @@ describe("journal figures: price per cup", () => {
   it("derives beans from weight at the shared constant and marks them estimated", () => {
     const beans = cupCost.byMethod.beans!;
     expect(beans.cheapest.slug).toBe("beans-kilo");
-    expect(beans.cheapest.servings).toBe(Math.floor(1000 / GRAMS_PER_SERVING));
+    expect(beans.cheapest.servings).toBe(Math.floor(1000 / GRAMS_PER_SERVING.roasted));
     expect(beans.cheapest.estimated).toBe(true);
     expect(beans.cheapest.perCup.startsWith("≈ ")).toBe(true);
   });

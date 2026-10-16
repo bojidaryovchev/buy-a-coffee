@@ -12,6 +12,7 @@ import {
   packLabel,
   systemListingHref,
 } from "@/lib/catalog/product-facts";
+import { servingAssumption } from "@/lib/catalog/format";
 import { BREWING_SYSTEMS, getBrewingSystem } from "@/lib/recommend/systems";
 import { deriveProductFacts } from "../../../packages/scraper-core/src/parsers/productFacts";
 
@@ -65,7 +66,11 @@ const BEANS_ENRICHED: FactsTableProduct = {
   roast: "средно тъмно",
   pack: { value: "1000.0000", unit: "g" },
   weight: "1 кг.",
-  servingPrice: { formatted: "≈ 0,22 € на чаша", estimated: true },
+  servingPrice: {
+    formatted: "≈ 0,22 € на чаша",
+    estimated: true,
+    assumption: "Изчислено при 7 г кафе на чаша.",
+  },
   unitPrice: { amount: "32.0000", currency: "EUR", formatted: "32,00 € / кг" },
   sku: "AB-1234",
   categories: [
@@ -437,6 +442,28 @@ describe("FactsTable", () => {
       expect(estimated).toContain("≈ 0,22 € на чаша");
       expect(stripTags(estimated)).toContain("Изчислено при 7 г кафе на чаша.");
       expect(estimated).toContain("tabular-nums");
+    });
+
+    it("price per cup of instant coffee: its own dose, stated as the beans' is", () => {
+      const tin = html(
+        createElement(FactsTable, {
+          locale: "bg",
+          product: {
+            ...EMPTY,
+            servingPrice: {
+              formatted: "≈ 0,06 € на чаша",
+              estimated: true,
+              assumption: servingAssumption(2, "instant"),
+            },
+          },
+        }),
+      );
+      expect(stripTags(cell(tin, "Цена на чаша"))).toBe(
+        "≈ 0,06 € на чашаИзчислено при 2 г разтворимо кафе на чаша.",
+      );
+      // And the sentence for roasted coffee is the one it always was.
+      expect(servingAssumption(7, "roasted")).toBe("Изчислено при 7 г кафе на чаша.");
+      expect(servingAssumption(null, "instant")).toBeNull();
     });
 
     it("unit price: per kilogram, or per litre for goods sold by volume", () => {

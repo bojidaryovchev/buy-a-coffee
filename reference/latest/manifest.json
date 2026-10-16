@@ -1,30 +1,30 @@
 {
   "counts": {
-    "brands": 20,
-    "categories": 8,
+    "brands": 23,
+    "categories": 9,
     "crawlErrors": 2,
     "features": 19,
     "filters": 5,
     "forms": 2,
-    "internalLinks": 27037,
-    "pagesCrawled": 228,
-    "products": 187,
-    "realPages": 228,
+    "internalLinks": 30676,
+    "pagesCrawled": 250,
+    "products": 207,
+    "realPages": 250,
     "routePatterns": 12,
     "softNotFoundPages": 0
   },
-  "crawlRunId": "9c8146d4-5f3e-4aad-ae54-ddbf4b1a598d",
+  "crawlRunId": "7cc8f0a6-c5e8-4fbf-aa14-a200341d18cd",
   "crawlerVersion": "0.1.0",
   "files": [
     {
-      "bytes": 4777,
+      "bytes": 5458,
       "name": "brands.json",
-      "sha256": "6049107af11de88cb78b7851efc1ce9dd1376d0a1c010dce29b8b7191bc66a18"
+      "sha256": "c967f41cbf1a97ab8b28e283c1fe0eb7674cb31b96b88e06f653c31e6a90e3d4"
     },
     {
-      "bytes": 2674,
+      "bytes": 2976,
       "name": "categories.json",
-      "sha256": "2fdcf38e13511d0a054b1eea6076675c883663a9c10329617c289d51e5eef9a1"
+      "sha256": "62e8819ccc3f082e556b8a82f9c1e4e94fe81d970eee09ca6cb8e53dc8a161e0"
     },
     {
       "bytes": 1071,
@@ -32,58 +32,58 @@
       "sha256": "cab74282218b45ff5a1fdf010df829707182094145069eb6646f396ba8b176c3"
     },
     {
-      "bytes": 17422,
+      "bytes": 17404,
       "name": "features.json",
-      "sha256": "122da71b2a31a8b4938c93ac7396abbd4a39c847172593805093068e0820c2f2"
+      "sha256": "5b7de530935849e54c1863256c46d3eeb10d08d1a0b5afd1ba505ba5867aa15a"
     },
     {
-      "bytes": 8029,
+      "bytes": 8432,
       "name": "filters.json",
-      "sha256": "9e21cb59ce6803a4a4de3780cad6601ae73ed12b7a17af2ed69de6ad8ac43b94"
+      "sha256": "fbe9a6bb22e57b411973bcf1f22739f1d857a3ccb2a5cfacf640398a211a2633"
     },
     {
-      "bytes": 13373,
+      "bytes": 14550,
       "name": "forms.json",
-      "sha256": "6306664fa5f2ec16ae92fc718fe2929c07e8bf29d1c26bcb1086ad31cba473de"
+      "sha256": "9473df6b2ce00ca5369d0d5c0453c6858972e393741dc3d2e2ce5b957dafcf9a"
     },
     {
-      "bytes": 14948,
+      "bytes": 15756,
       "name": "page-types.json",
-      "sha256": "bd53831836bb0ad75b22e71d731f89a8f1a621cca4964c26352559de8b5290f5"
+      "sha256": "608bd3bb0ba2557c346de4025c619673f6dab4c89d8dcd25da22ed6c596a1271"
     },
     {
-      "bytes": 434403,
+      "bytes": 466344,
       "name": "pages.json",
-      "sha256": "0572658e2866c02292c8442eeb57165ca2a664ad639c44fbfbee1458c7b93f83"
+      "sha256": "34ee636bbfb9d470b02a13dd1bd62500578f0eb8455feb1802c29c1308345e4a"
     },
     {
-      "bytes": 242544,
+      "bytes": 269586,
       "name": "products.json",
-      "sha256": "3fb6dad202d436799ce664bacc9aad88d9f236721770f1bc73c9f759a3de4bea"
+      "sha256": "f23eacea212d4fc25ad203f6685dcc0faf52afd607132b3237b2d42ce331fcb9"
     },
     {
-      "bytes": 1975,
+      "bytes": 2193,
       "name": "relationships.json",
-      "sha256": "da8e2fa221d6243c37f2a3fa7468dd6d3d42227ab7dfbd7f4e32be6eb9c3c312"
+      "sha256": "15980a17e194f0d784162e1b320f164763d1c65a30c367f32b5ff058ab6b5d02"
     },
     {
-      "bytes": 12117,
+      "bytes": 12105,
       "name": "report.md",
-      "sha256": "d847804e47dd64219d28392448db591a54c5cc575162286eda464e92c573462f"
+      "sha256": "60d66d5823dc3bbee30836badbb9064df5f6d398bd810fbd46b0dcb180c3b299"
     },
     {
       "bytes": 3527,
       "name": "route-patterns.json",
-      "sha256": "3b651e7bf4e3c56fdb545b56cbf025e746d02b38643040a4f38b935cd804dcec"
+      "sha256": "ff0a0bd66e78c0e9bf404d7d887c09d0118b7d1347b252eb2bf2b35dcf0415c4"
     },
     {
-      "bytes": 5408902,
+      "bytes": 6144547,
       "name": "site-map.json",
-      "sha256": "cb623dabfe230a3c1cf26fc36cd6a42f13f58dc5f885b837ba0f275cbeea6ad7"
+      "sha256": "bf384ef7dda67fcdafb40c2a98a6efe6460a84eaba1ae39a34af8b8cb596d4f8"
     }
   ],
-  "generatedAt": "2026-10-08T22:35:19.206Z",
-  "gitCommit": "fba3e7fbc2f5644e277d47ae53a6eacd3161dbbd",
+  "generatedAt": "2026-10-16T19:43:07.026Z",
+  "gitCommit": "260085072c4379cb13a9b9314c868593935fdcf0",
   "schemaVersion": "1.0.0",
   "sourceBaseUrl": "https://www.kafezona.com/",
   "sourceHost": "www.kafezona.com"

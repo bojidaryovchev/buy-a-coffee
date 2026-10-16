@@ -258,30 +258,80 @@ describe("packSizeLabel", () => {
 
 describe("resolveProductFormat", () => {
   it("finds a system by storefront slug or by source key", () => {
-    expect(resolveProductFormat(["kafe-na-zarna"]).system?.id).toBe("beans");
-    expect(resolveProductFormat(["kafe-na-zyrna"]).system?.id).toBe("beans");
-    expect(resolveProductFormat(["kapsuli", "a-modo-mio"]).system?.id).toBe("a-modo-mio");
+    expect(resolveProductFormat(["kafe-na-zarna"], null).system?.id).toBe("beans");
+    expect(resolveProductFormat(["kafe-na-zyrna"], null).system?.id).toBe("beans");
+    expect(resolveProductFormat(["kapsuli", "a-modo-mio"], null).system?.id).toBe("a-modo-mio");
   });
 
   it("resolves every system we stock from its own categories", () => {
     for (const system of BREWING_SYSTEMS) {
       for (const key of [...system.categorySlugs, ...system.categorySourceKeys]) {
-        expect(resolveProductFormat([key]).system?.id, key).toBe(system.id);
+        expect(resolveProductFormat([key], null).system?.id, key).toBe(system.id);
       }
     }
   });
 
   it("does not pick one system for a product filed under two", () => {
-    const twoCapsuleSystems = resolveProductFormat(["nespresso", "dolce-gusto"]);
-    expect(twoCapsuleSystems).toEqual({ system: null, method: "capsule" });
+    const twoCapsuleSystems = resolveProductFormat(["nespresso", "dolce-gusto"], null);
+    expect(twoCapsuleSystems).toEqual({ system: null, method: "capsule", kind: "roasted" });
     expect(composeFallbackCopy({ categoryKeys: ["nespresso", "dolce-gusto"] })).toBe("Капсули.");
 
-    expect(resolveProductFormat(["nespresso", "kafe-na-zarna"])).toEqual({
+    expect(resolveProductFormat(["nespresso", "kafe-na-zarna"], null)).toEqual({
       system: null,
       method: null,
+      kind: "roasted",
     });
-    expect(resolveProductFormat(["kapsuli"])).toEqual({ system: null, method: null });
-    expect(resolveProductFormat(null)).toEqual({ system: null, method: null });
+    expect(resolveProductFormat(["kapsuli"], null)).toEqual({
+      system: null,
+      method: null,
+      kind: "roasted",
+    });
+    expect(resolveProductFormat(null, null)).toEqual({
+      system: null,
+      method: null,
+      kind: "roasted",
+    });
+  });
+
+  it("gives instant coffee no system and no method, whatever it is filed under", () => {
+    const tin = "Разтворимо кафе Ristora Gold 0.200кг.";
+    for (const keys of [["vending-zona"], ["kafe-na-zyrna"], ["dolce-gusto"], []]) {
+      expect(resolveProductFormat(keys, tin), keys.join()).toEqual({
+        system: null,
+        method: null,
+        kind: "instant",
+      });
+    }
+    // The name is read for its kind only: a vending blend is still beans.
+    expect(
+      resolveProductFormat(["kafe-na-zyrna"], "Кафе на зърна Moreno Vending 1кг.").system?.id,
+    ).toBe("beans");
+  });
+});
+
+describe("composeFallbackCopy for instant coffee", () => {
+  it("says what it is from its name, and never what it is for", () => {
+    expect(
+      composeFallbackCopy({
+        sourceName: "Разтворимо кафе Bianchi 0.200кг.",
+        brandName: "Bianchi",
+        categoryKeys: ["vending-zona"],
+        packValue: "200",
+        packUnit: "g",
+        attributes: { intensity: "9 от 10", strength: "strong", decaf: "no", aromas: "no" },
+      }),
+    ).toBe("Разтворимо кафе от Bianchi в опаковка от 200 г, с интензивност 9 от 10.");
+    // Filed under beans, it is still not „кафе на зърна“.
+    expect(
+      composeFallbackCopy({
+        sourceName: "Разтворимо кафе Vandino Supreme 0.500кг.",
+        brandName: "Vandino",
+        categoryKeys: ["kafe-na-zyrna"],
+        packValue: "500",
+        packUnit: "g",
+        attributes: { decaf: "yes", aromas: "yes" },
+      }),
+    ).toBe("Ароматизирано разтворимо кафе без кофеин от Vandino в опаковка от 500 г.");
   });
 });
 

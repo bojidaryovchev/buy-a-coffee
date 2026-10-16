@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
+import { isInstantCoffee, isNotInstantCoffee } from "./product-kind-sql";
 import { cupRangeOf, uniformPieceCount, type CupRange, type CupRangeRow } from "./cup-range";
 
 /**
@@ -78,6 +79,7 @@ export async function getListingFacts(scope: ListingScope): Promise<ListingFacts
 
   const rows: CupRangeRow[] = await db
     .select({
+      name: products.name,
       price: retailPrice,
       currency: products.currency,
       weightValue: products.weightValue,
@@ -94,6 +96,16 @@ export async function getListingFacts(scope: ListingScope): Promise<ListingFacts
   };
 }
 
+/** Stored slugs of the brands with instant coffee on sale, for the brand index. */
+export async function listInstantCoffeeBrandSlugs(): Promise<ReadonlySet<string>> {
+  const rows = await db
+    .selectDistinct({ slug: brands.slug })
+    .from(products)
+    .innerJoin(brands, eq(brands.id, products.brandId))
+    .where(and(eq(products.status, "active"), isInstantCoffee));
+  return new Set(rows.map((row) => row.slug));
+}
+
 export type BrandCategoryKeys = ReadonlyMap<
   string,
   ReadonlyArray<{ readonly slug: string; readonly sourceKey: string | null }>
@@ -101,7 +113,7 @@ export type BrandCategoryKeys = ReadonlyMap<
 
 /**
  * The categories each brand has products in, for every brand at once, keyed by
- * brand slug.
+ * brand slug — instant coffee aside, as `listBrandCategoryKeys` explains.
  *
  * The brand index says what each brand makes. `listBrandCategoryKeys` answers
  * that for one brand; called per tile it would be a query per brand, which
@@ -118,7 +130,7 @@ export async function listCategoryKeysByBrand(): Promise<BrandCategoryKeys> {
     .innerJoin(brands, eq(brands.id, products.brandId))
     .innerJoin(productCategories, eq(productCategories.productId, products.id))
     .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-    .where(eq(products.status, "active"));
+    .where(and(eq(products.status, "active"), isNotInstantCoffee));
 
   const byBrand = new Map<string, Array<{ slug: string; sourceKey: string | null }>>();
   for (const row of rows) {

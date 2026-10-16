@@ -45,45 +45,45 @@ Every shop page is under a locale prefix, Bulgarian included: `/bg/…` ships,
 `/en/…` is built and switched off. The table shows the Bulgarian URL and, in
 brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 
-| Route (`/bg`, [`/en`])                                                 | Purpose                                                                                                                                                               |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                                                    | 307 to a locale by `Accept-Language` alone (`Vary: Accept-Language`, no cookie). With English off, always `/bg`                                                       |
-| `/bg` [`/en`]                                                          | Home. Every section is data-driven and disappears when there is nothing behind it                                                                                     |
-| `/bg/kategorii` [`categories`]                                         | Category index with live counts                                                                                                                                       |
-| `/bg/<category>`                                                       | Category listing at its landing slug (`kafe-kapsuli`, `nespresso-kapsuli`, …). Parents include their children's products                                              |
-| `/bg/<product>`                                                        | Product detail at the shop's own slug: gallery, facts table, compatibility, the order panel (`#order`), related products. A slug the product used to have answers 308 |
-| `/bg/marki` [`brands`], `/<brand>`                                     | Brand index (brands with no stock are listed but not linked) and brand listing, at the slug the brand is published at                                                 |
-| `/bg/promotsii` [`offers`]                                             | Products with a genuine reduction. Answers 200 but is `noindex`, and out of the sitemap, while nothing is reduced                                                     |
-| `/bg/lavazza-kapsuli`, `/bg/kafe-na-zarna-lavazza`                     | Landing listings: Lavazza's capsules by system, and Lavazza's beans [`lavazza-capsules`, `lavazza-coffee-beans`]                                                      |
-| `/bg/bezkofeinovo-kafe`, `/bg/nay-evtino-na-chasha`                    | Landing listings: decaf by system, and the cheapest per cup in each system [`decaf-coffee`, `cheapest-per-cup`]                                                       |
-| `/bg/tarsene` [`search`]                                               | Server-side search over PostgreSQL                                                                                                                                    |
-| `/bg/kafe-za-vending-mashini` [`vending-coffee`]                       | The vending section: prose of ours around whatever the catalog files under it; an enquiry form                                                                        |
-| `/bg/konsumativi` [`consumables`]                                      | The consumables section. `noindex` and out of the sitemap while it lists no products                                                                                  |
-| `/bg/dostavka-i-plashtane` [`delivery-and-payment`]                    | Delivery, payment and returns, from the same sentence builders as the terms                                                                                           |
-| `/bg/izbor-na-kafe` [`which-coffee`]                                   | Recommendation wizard. One question per URL, step derived from the answers                                                                                            |
-| `/bg/izbor-na-kafe/rezultat` [`…/result`]                              | The recommendation, with the reasons behind each pick                                                                                                                 |
-| `/bg/za-kafemashina` [`by-machine`], `/<brand>`                        | Machine brands and how to recognise each capsule system (with drawings); every model of one brand, grouped by system                                                  |
-| `/bg/blog` [`journal`], `/<slug>`                                      | The journal, called „Блог“ on the page: articles as typed content in `apps/web/content/journal/`                                                                      |
-| `/bg/kontakti` [`contact`]                                             | Contact details and message form                                                                                                                                      |
-| `/bg/byuletin/otpisvane` [`newsletter/unsubscribe`]                    | Tokenised unsubscribe. GET confirms, POST unsubscribes                                                                                                                |
-| `/bg/poveritelnost`, `/bg/obshti-usloviya`, `/bg/biskvitki`            | Legal documents written for this business [`privacy`, `terms`, `cookies`]                                                                                             |
-| `/products/…`, `/categories/…`, `/brands/…`, `/wizard/…`, `/search`, … | The pre-locale URLs. None is served; each answers 308 to its `/bg` equivalent, query string kept                                                                      |
-| `/sitemap.xml`, `/robots.txt`                                          | Generated from the live catalog; one entry per page per shipping locale, each with its `hreflang` set                                                                 |
-| `/llms.txt`                                                            | A plain-language map of the shop, generated from the catalog; closed whenever `robots.txt` is                                                                         |
-| `/opengraph-image`, `/manifest.webmanifest`                            | The default share card and the web app manifest                                                                                                                       |
-| `/media/[...key]`                                                      | Development-only local image serving; refuses everything once an image host is configured                                                                             |
-| `/admin`                                                               | Panel index: what is waiting                                                                                                                                          |
-| `/admin/vhod`                                                          | Password sign-in. Outside the panel group, which would otherwise redirect it                                                                                          |
-| `/admin/zayavki`, `/[id]`                                              | Order enquiries. Phone number on the list, because dialling it is the next move                                                                                       |
-| `/admin/sabshteniya`, `/[id]`                                          | Contact-form messages                                                                                                                                                 |
-| `/admin/poshta`, `/[id]`                                               | The `info@` mailbox: inbound threads, answered as the shop                                                                                                            |
-| `/admin/poshta/fail/[messageId]/[index]`                               | An attachment, streamed through the session                                                                                                                           |
-| `/admin/byuletin`                                                      | Newsletter subscribers and their consent records. A list and an unsubscribe, and deliberately not a sender                                                            |
-| `/admin/sinhron`                                                       | Is the catalog current, and if not, why                                                                                                                               |
-| `/api/inbound`                                                         | Resend `email.received` webhook                                                                                                                                       |
-| `/api/search/suggest`                                                  | The typeahead                                                                                                                                                         |
-| `/api/cron/sync-health`                                                | Daily sync alarm (Vercel cron)                                                                                                                                        |
-| `/api/cron/retention`                                                  | Daily retention deletion (Vercel cron)                                                                                                                                |
+| Route (`/bg`, [`/en`])                                                 | Purpose                                                                                                                                                                                                |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                                                    | 307 to a locale by `Accept-Language` alone (`Vary: Accept-Language`, no cookie). With English off, always `/bg`                                                                                        |
+| `/bg` [`/en`]                                                          | Home. Every section is data-driven and disappears when there is nothing behind it                                                                                                                      |
+| `/bg/kategorii` [`categories`]                                         | Category index with live counts                                                                                                                                                                        |
+| `/bg/<category>`                                                       | Category listing at its landing slug (`kafe-kapsuli`, `nespresso-kapsuli`, …). Parents include their children's products                                                                               |
+| `/bg/<product>`                                                        | Product detail at the shop's own slug: gallery, facts table, compatibility, the order panel (`#order`), related products. A slug the product used to have answers 308                                  |
+| `/bg/marki` [`brands`], `/<brand>`                                     | Brand index (brands with no stock are listed but not linked) and brand listing, at the slug the brand is published at                                                                                  |
+| `/bg/promotsii` [`offers`]                                             | Products with a genuine reduction. Answers 200 but is `noindex`, and out of the sitemap, while nothing is reduced                                                                                      |
+| `/bg/lavazza-kapsuli`, `/bg/kafe-na-zarna-lavazza`                     | Landing listings: Lavazza's capsules by system, and Lavazza's beans [`lavazza-capsules`, `lavazza-coffee-beans`]                                                                                       |
+| `/bg/bezkofeinovo-kafe`, `/bg/nay-evtino-na-chasha`                    | Landing listings: decaf by system, and the cheapest per cup in each system [`decaf-coffee`, `cheapest-per-cup`]                                                                                        |
+| `/bg/tarsene` [`search`]                                               | Server-side search over PostgreSQL                                                                                                                                                                     |
+| `/bg/kafe-za-vending-mashini` [`vending-coffee`]                       | The vending section: prose of ours around what the source files under its vending category (instant coffee since 16 October 2026, headed for what it is) and the blends named Vending; an enquiry form |
+| `/bg/konsumativi` [`consumables`]                                      | The consumables section. `noindex` and out of the sitemap while it lists no products                                                                                                                   |
+| `/bg/dostavka-i-plashtane` [`delivery-and-payment`]                    | Delivery, payment and returns, from the same sentence builders as the terms                                                                                                                            |
+| `/bg/izbor-na-kafe` [`which-coffee`]                                   | Recommendation wizard. One question per URL, step derived from the answers                                                                                                                             |
+| `/bg/izbor-na-kafe/rezultat` [`…/result`]                              | The recommendation, with the reasons behind each pick                                                                                                                                                  |
+| `/bg/za-kafemashina` [`by-machine`], `/<brand>`                        | Machine brands and how to recognise each capsule system (with drawings); every model of one brand, grouped by system                                                                                   |
+| `/bg/blog` [`journal`], `/<slug>`                                      | The journal, called „Блог“ on the page: articles as typed content in `apps/web/content/journal/`                                                                                                       |
+| `/bg/kontakti` [`contact`]                                             | Contact details and message form                                                                                                                                                                       |
+| `/bg/byuletin/otpisvane` [`newsletter/unsubscribe`]                    | Tokenised unsubscribe. GET confirms, POST unsubscribes                                                                                                                                                 |
+| `/bg/poveritelnost`, `/bg/obshti-usloviya`, `/bg/biskvitki`            | Legal documents written for this business [`privacy`, `terms`, `cookies`]                                                                                                                              |
+| `/products/…`, `/categories/…`, `/brands/…`, `/wizard/…`, `/search`, … | The pre-locale URLs. None is served; each answers 308 to its `/bg` equivalent, query string kept                                                                                                       |
+| `/sitemap.xml`, `/robots.txt`                                          | Generated from the live catalog; one entry per page per shipping locale, each with its `hreflang` set                                                                                                  |
+| `/llms.txt`                                                            | A plain-language map of the shop, generated from the catalog; closed whenever `robots.txt` is                                                                                                          |
+| `/opengraph-image`, `/manifest.webmanifest`                            | The default share card and the web app manifest                                                                                                                                                        |
+| `/media/[...key]`                                                      | Development-only local image serving; refuses everything once an image host is configured                                                                                                              |
+| `/admin`                                                               | Panel index: what is waiting                                                                                                                                                                           |
+| `/admin/vhod`                                                          | Password sign-in. Outside the panel group, which would otherwise redirect it                                                                                                                           |
+| `/admin/zayavki`, `/[id]`                                              | Order enquiries. Phone number on the list, because dialling it is the next move                                                                                                                        |
+| `/admin/sabshteniya`, `/[id]`                                          | Contact-form messages                                                                                                                                                                                  |
+| `/admin/poshta`, `/[id]`                                               | The `info@` mailbox: inbound threads, answered as the shop                                                                                                                                             |
+| `/admin/poshta/fail/[messageId]/[index]`                               | An attachment, streamed through the session                                                                                                                                                            |
+| `/admin/byuletin`                                                      | Newsletter subscribers and their consent records. A list and an unsubscribe, and deliberately not a sender                                                                                             |
+| `/admin/sinhron`                                                       | Is the catalog current, and if not, why                                                                                                                                                                |
+| `/api/inbound`                                                         | Resend `email.received` webhook                                                                                                                                                                        |
+| `/api/search/suggest`                                                  | The typeahead                                                                                                                                                                                          |
+| `/api/cron/sync-health`                                                | Daily sync alarm (Vercel cron)                                                                                                                                                                         |
+| `/api/cron/retention`                                                  | Daily retention deletion (Vercel cron)                                                                                                                                                                 |
 
 The admin panel, the API, `/media`, the share card and every file with an
 extension carry no locale and are never touched by the proxy.
@@ -222,16 +222,16 @@ else does. Everything a customer reads is computed from the record by
 `productName()` in
 [`packages/shared/src/product-name.ts`](../packages/shared/src/product-name.ts):
 
-| Part       | Where it comes from                                                                                                  | Example                                        |
-| ---------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `brand`    | how the brand spells itself (`apps/web/content/brand-names.ts`)                                                      | Rema Caffè                                     |
-| `line`     | what is left of the source's name once the format words, the system token, the brand and the pack size are taken out | Cookies                                        |
-| `format`   | the category the product is filed under, never its name; "за" a system for a capsule somebody else makes to fit it   | Капсули за Dolce Gusto                         |
-| `quantity` | the pack size as `decidePackSize` decides it (below)                                                                 | 16 бр.                                         |
-| `title`    | brand and line: a card's name and the product page's `h1`                                                            | Rema Caffè Cookies                             |
-| `detail`   | format and quantity: the line under the `h1`                                                                         | Капсули за Dolce Gusto, 16 бр.                 |
-| `full`     | the whole name in one line, for a `<title>`, an `alt`, structured data                                               | title — detail                                 |
-| `slugBase` | `<brand>-<line>-<format>-<qty>`, before uniqueness is settled                                                        | `rema-caffe-cookies-kapsuli-dolce-gusto-16-br` |
+| Part       | Where it comes from                                                                                                                                                   | Example                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `brand`    | how the brand spells itself (`apps/web/content/brand-names.ts`)                                                                                                       | Rema Caffè                                     |
+| `line`     | what is left of the source's name once the format words, the system token, the brand and the pack size are taken out                                                  | Cookies                                        |
+| `format`   | the category the product is filed under, not its name — except instant coffee, which its name says (below); "за" a system for a capsule somebody else makes to fit it | Капсули за Dolce Gusto                         |
+| `quantity` | the pack size as `decidePackSize` decides it (below)                                                                                                                  | 16 бр.                                         |
+| `title`    | brand and line: a card's name and the product page's `h1`                                                                                                             | Rema Caffè Cookies                             |
+| `detail`   | format and quantity: the line under the `h1`                                                                                                                          | Капсули за Dolce Gusto, 16 бр.                 |
+| `full`     | the whole name in one line, for a `<title>`, an `alt`, structured data                                                                                                | title — detail                                 |
+| `slugBase` | `<brand>-<line>-<format>-<qty>`, before uniqueness is settled                                                                                                         | `rema-caffe-cookies-kapsuli-dolce-gusto-16-br` |
 
 The function is pure, and the sync and the storefront both call it: the sync to
 derive a new product's slug, the storefront to print the name. In the
@@ -244,6 +244,19 @@ source key because an override has to be findable before a slug exists.
 `packages/shared/test/fixtures/product-names.json` holds every real product's
 name, and `packages/shared/test/product-name.test.ts` runs the function over
 all of them.
+
+**Instant coffee** is a kind of product, not a shelf, and is recognised by the
+supplier's own name: `productKind()` in
+[`packages/shared/src/product-kind.ts`](../packages/shared/src/product-kind.ts)
+reads „разтворимо кафе“ (or „инстантно кафе“) there, never the category, which
+is the source's navigation (its vending section holds the tins today and may
+hold bean blends tomorrow). Its format is „Разтворимо кафе“ whatever it is
+filed under: „Bianchi — разтворимо кафе, 200 г“,
+`bianchi-raztvorimo-kafe-200-g`. It has no listing of its own, so
+`formatListingLabel` gives none and the breadcrumb names the shelf. The same
+pattern string is matched in SQL over `catalog_translit(name)`
+(`isInstantCoffee` in `lib/catalog/product-kind-sql.ts`), and
+`test/product-kind.db.test.ts` holds the two to the same products.
 
 **Pack size** is decided once, by `decidePackSize` in
 [`packages/shared/src/pack-size.ts`](../packages/shared/src/pack-size.ts): the
@@ -342,6 +355,12 @@ Rules that hold throughout:
 - Price per cup is sorted in SQL: the retail price over the `servings` column the
   sync stores, both `numeric`, so the division is exact. No price or no known
   pack size sorts last.
+- A brewing system's members are the products in its categories that are not
+  instant coffee (`brewingSystemsCondition`, `systemCategoryCondition`), and
+  `resolveProductFormat` decides the same for a card's badge: instant coffee is
+  in no system whatever it is filed under, so it has no badge, counts in no
+  system facet, is never a wizard candidate and stands in no landing group.
+  Beside an instant coffee, the related products are instant coffee too.
 - Everything is parameterised through Drizzle.
 - Listings load products, images and facets in a bounded number of round trips.
   There is no per-product query anywhere.
@@ -377,8 +396,13 @@ Products with no price render "Цена при запитване", never `0,00 
 
 **Price per cup** is shown on every card and product page. Servings come from
 the piece count where there is one, and from weight at `GRAMS_PER_SERVING`
-otherwise, in [`@catalog/shared/serving`](../packages/shared/src/serving.ts);
-anything derived from weight is marked estimated and shown as an approximation.
+otherwise, in [`@catalog/shared/serving`](../packages/shared/src/serving.ts):
+7 g a cup for roasted coffee, 2 g for instant, by `productKind()` of the
+supplier's name. `packServings()` takes the kind as a required argument, so
+every reader — the sync, the cards, the listing facts, the landings, the
+journal, the wizard, the pack-size script — states it. Anything derived from
+weight is marked estimated and shown as an approximation, and the facts table
+states the dose it assumed (`servingAssumption` in `lib/catalog/format.ts`).
 The sync stores the same function's answer in `products.servings` for sorting,
 so the order of a listing and the figure on a card cannot disagree.
 
@@ -494,7 +518,14 @@ A capsule or pod product names the machines it fits: the system's own
 recognition sentence and up to 12 models (`COMPATIBLE_MACHINE_LIMIT`) from the
 hand-written machine database, each linking to its maker's page in the machine
 finder. Related products are restricted to the same brewing system: "same
-brand" once put a Dolce Gusto capsule under a Nespresso one.
+brand" once put a Dolce Gusto capsule under a Nespresso one. An instant coffee
+has no system: no badge, no "Става за машини" line, no machines, and nothing
+in their place; its related products are other instant coffee.
+
+A category that backs a business section is linked as that section's page
+(`sectionPathForCategory` in `lib/routes.ts`, followed by `categoryHref`), so
+an instant coffee's breadcrumb reads Начало › Кафе за вендинг машини › the
+product, and its facts table's category links there in one hop.
 
 ## Search
 
@@ -514,7 +545,8 @@ Before folding, the term is expanded by
 [`lib/catalog/search-synonyms.ts`](../apps/web/src/lib/catalog/search-synonyms.ts):
 a hand-maintained list of how Bulgarians spell brand and system names, each
 mapped to the form the catalog writes („лаваца" → `lavazza`, "Dolce Gusto" →
-`DG`). Expansion only adds alternatives — the typed term is always one of them —
+`DG`), and the other word for instant coffee („инстантно кафе" → „разтворимо
+кафе", which every instant coffee's name holds). Expansion only adds alternatives — the typed term is always one of them —
 and every alternative goes through the same comparisons. „или" is deliberately
 not an Illy synonym: it is also the word "or", and would turn "кафе или чай" into
 an Illy search.

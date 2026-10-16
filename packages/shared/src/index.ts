@@ -9,5 +9,6 @@ export * from "./text.ts";
 export * from "./url.ts";
 export * from "./weight.ts";
 export * from "./pack-size.ts";
+export * from "./product-kind.ts";
 export * from "./product-name.ts";
 export * from "./product-slug.ts";

@@ -1,3 +1,4 @@
+import { type ProductKind, productKind } from "@catalog/shared";
 import { BREWING_SYSTEMS, type BrewMethod, type BrewingSystem } from "../recommend/systems";
 import { parseIntensity } from "./attributes";
 
@@ -47,19 +48,37 @@ export interface FallbackCopyFacts {
   readonly packUnit?: string | null;
   /** The normalised attribute bag: `intensity`, `strength`, `decaf`, `aromas`. */
   readonly attributes?: Readonly<Record<string, string>> | null;
+  /**
+   * The supplier's name for the product. Read for one thing only, what kind
+   * of coffee it is (`productKind`); none of its words reach the sentence.
+   */
+  readonly sourceName?: string | null;
 }
 
 /**
- * The brewing system a product belongs to, from its categories.
+ * The brewing system a product belongs to, from its categories, and the kind
+ * of coffee it is, from its name.
  *
  * Returns a system only when the categories name exactly one. A product filed
  * under two systems is real data we cannot summarise in one noun, so it falls
  * back to the format they share, and to nothing when they do not share one.
+ *
+ * **Instant coffee has neither, whatever it is filed under.** It is dissolved
+ * in water, not brewed: it fits no capsule system, needs no machine and goes
+ * through no grinder, so even a tin the supplier files under beans is not
+ * "for" the beans' machines. `sourceName` is required for that reason; pass
+ * null only where there is no product, as for a category on its own.
  */
-export function resolveProductFormat(categoryKeys: readonly string[] | null | undefined): {
+export function resolveProductFormat(
+  categoryKeys: readonly string[] | null | undefined,
+  sourceName: string | null,
+): {
   readonly system: BrewingSystem | null;
   readonly method: BrewMethod | null;
+  readonly kind: ProductKind;
 } {
+  const kind = productKind(sourceName);
+  if (kind === "instant") return { system: null, method: null, kind };
   const keys = new Set((categoryKeys ?? []).map((key) => key.trim().toLowerCase()));
   const matched = BREWING_SYSTEMS.filter(
     (system) =>
@@ -68,11 +87,11 @@ export function resolveProductFormat(categoryKeys: readonly string[] | null | un
   );
 
   const [first] = matched;
-  if (!first) return { system: null, method: null };
-  if (matched.length === 1) return { system: first, method: first.method };
+  if (!first) return { system: null, method: null, kind };
+  if (matched.length === 1) return { system: first, method: first.method, kind };
 
   const sameMethod = matched.every((system) => system.method === first.method);
-  return { system: null, method: sameMethod ? first.method : null };
+  return { system: null, method: sameMethod ? first.method : null, kind };
 }
 
 type Agreement = "neuter" | "plural" | "masculine";
@@ -153,10 +172,12 @@ export function packSizeLabel(
  *   [flavoured] <what it is> [без кофеин] [от <brand>] [за <system>]
  *   [в опаковка от <size>][, с интензивност <n> от <max>].
  *
- * „What it is“ comes from the brewing system, because that is the only
- * statement of kind we hold as data. Without one the product is called
- * „продукт“ and not „кафе“: the catalog also carries matcha and cappuccino
- * capsules, and a new category could hold anything.
+ * „What it is“ comes from the brewing system, or, for instant coffee, from
+ * the product's own name, which says „разтворимо кафе“ and is printed on the
+ * tin; those are the only statements of kind we hold as data. Without either
+ * the product is called „продукт“ and not „кафе“: the catalog also carries
+ * matcha and cappuccino capsules, and a new category could hold anything.
+ * Instant coffee is never said to be "for" anything: it needs no machine.
  *
  * Returns null only when there is nothing at all to say — no system, no
  * brand, no size, no attribute. Callers render no sentence in that case
@@ -164,7 +185,10 @@ export function packSizeLabel(
  */
 export function composeFallbackCopy(facts: FallbackCopyFacts): string | null {
   const attributes = facts.attributes ?? {};
-  const { system, method } = resolveProductFormat(facts.categoryKeys);
+  const { system, method, kind } = resolveProductFormat(
+    facts.categoryKeys,
+    facts.sourceName ?? null,
+  );
   const brand = tidy(facts.brandName);
   const pack = packSizeLabel(facts.packValue, facts.packUnit);
   const intensity = parseIntensity(attributes.intensity);
@@ -178,7 +202,10 @@ export function composeFallbackCopy(facts: FallbackCopyFacts): string | null {
   /** Set for capsules only: the system is what the capsule is *for*. */
   let fits: string | null = null;
 
-  if (method === "capsule") {
+  if (kind === "instant") {
+    noun = "разтворимо кафе";
+    agreement = "neuter";
+  } else if (method === "capsule") {
     noun = "капсули";
     agreement = "plural";
     fits = system?.name ?? null;

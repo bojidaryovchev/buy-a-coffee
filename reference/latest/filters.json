@@ -48,7 +48,7 @@
           "value": "biancaffe"
         },
         {
-          "count": 18,
+          "count": 19,
           "label": null,
           "value": "bianchi"
         },
@@ -56,6 +56,11 @@
           "count": 9,
           "label": null,
           "value": "borbone"
+        },
+        {
+          "count": 10,
+          "label": null,
+          "value": "cafe-moreno"
         },
         {
           "count": 9,
@@ -76,6 +81,11 @@
           "count": 4,
           "label": null,
           "value": "eurocaf"
+        },
+        {
+          "count": 7,
+          "label": null,
+          "value": "excelsior"
         },
         {
           "count": 1,
@@ -120,10 +130,15 @@
         {
           "count": 3,
           "label": null,
-          "value": "tezzoro"
+          "value": "ristora"
         },
         {
           "count": 3,
+          "label": null,
+          "value": "tezzoro"
+        },
+        {
+          "count": 4,
           "label": null,
           "value": "vandino"
         },
@@ -265,11 +280,11 @@
         "https://www.kafezona.com/biancaffe/",
         "https://www.kafezona.com/bianchi/",
         "https://www.kafezona.com/borbone/",
+        "https://www.kafezona.com/cafe-moreno/",
         "https://www.kafezona.com/caffitaly/",
         "https://www.kafezona.com/elia/",
         "https://www.kafezona.com/este/",
-        "https://www.kafezona.com/eurocaf/",
-        "https://www.kafezona.com/foodness/"
+        "https://www.kafezona.com/eurocaf/"
       ],
       "urlParam": "category",
       "urlStateObservable": true,
@@ -285,17 +300,17 @@
           "value": "caffitaly"
         },
         {
-          "count": 33,
+          "count": 35,
           "label": null,
           "value": "dolce-gusto"
         },
         {
-          "count": 41,
+          "count": 46,
           "label": null,
           "value": "kafe-dozi"
         },
         {
-          "count": 58,
+          "count": 68,
           "label": null,
           "value": "kafe-na-zyrna"
         },
@@ -308,6 +323,11 @@
           "count": 36,
           "label": null,
           "value": "nespresso"
+        },
+        {
+          "count": 5,
+          "label": null,
+          "value": "vending-zona"
         }
       ]
     }

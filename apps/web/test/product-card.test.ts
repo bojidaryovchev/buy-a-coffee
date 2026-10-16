@@ -61,6 +61,21 @@ describe("ProductCard: what it shows", () => {
     expect(text(root)).toContain("0,35 € на чаша");
   });
 
+  it("says a tin of instant coffee is instant coffee, and claims no system", () => {
+    const root = card({
+      systemId: null,
+      kind: "instant",
+      title: "Ristora Gold",
+      weight: "200 г",
+      servingPrice: { formatted: "≈ 0,07 € на чаша", estimated: true },
+    });
+    expect(root.querySelector("[data-system]")).toBeNull();
+    expect(text(root)).toContain("Разтворимо кафе");
+    expect(text(root)).toContain("≈ 0,07 € на чаша");
+    // A roasted coffee with no system says nothing in that row.
+    expect(text(card({ systemId: null }))).not.toContain("Разтворимо кафе");
+  });
+
   it("sets the name in the sans face, not the display serif", () => {
     const heading = card().querySelector("h3");
     expect(heading?.className).toContain("font-sans");

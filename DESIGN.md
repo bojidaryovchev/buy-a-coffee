@@ -965,6 +965,10 @@ transition-colors">`.
 2. **Body.** `flex flex-1 flex-col p-3 md:p-4`. Rows 2 to 5 are separated by
    `mt-1.5`.
 3. **System badge**, size `sm`. Row height 20 px, kept when there is no badge.
+   Instant coffee fits no system and has no badge; the row says
+   "Разтворимо кафе" in `text-2xs font-semibold text-ink-700` instead — the
+   product's kind, in plain ink, with no system colour and no `data-system`,
+   because it is not a compatibility claim.
 4. **Brand line.** `flex items-center gap-1.5 text-2xs font-semibold
 tracking-[0.06em] uppercase text-ink-500`: brand name (`truncate`), a
    `aria-hidden` "·", then the pack size in `shrink-0 font-normal normal-case
@@ -975,8 +979,8 @@ text-ink-900">` containing the one link of the card, to the product page
    link makes the whole card the target. The text is the product's `title`:
    brand and line, "Bianchi Gusto Forte Espresso". It is the shop's own name
    for the product, never the supplier's wording, and it does not repeat the
-   format or the pack size: the system badge above and the brand line beside it
-   already say both.
+   format or the pack size: the system badge above (for instant coffee, the
+   words in its place) and the brand line beside it already say both.
 6. **Intensity scale**, card variant. Row height 16 px, kept when absent.
 7. **Price block.** `mt-auto pt-3` — pushed to the bottom so prices align
    across a row.
@@ -1603,7 +1607,9 @@ does it fit, what does it cost, how do I get it, then the details.
 **Breadcrumbs** follow the format, not the brand: Начало › Кафе капсули ›
 Капсули за Dolce Gusto › the product's title. The system's step is named as
 its listing is. The brand is linked above the heading and in the facts table
-instead.
+instead. A category that backs a business section is that section's page,
+named as the page is: an instant coffee filed under the source's vending
+section reads Начало › Кафе за вендинг машини › the product's title.
 
 **Top,** `grid gap-8 lg:grid-cols-2 lg:gap-12`, under the breadcrumbs.
 
@@ -1639,7 +1645,9 @@ border border-line bg-well` buttons, `gap-2`, under the well. Selected:
 4. For a capsule or pod, the compatibility line, `mt-3 text-sm text-ink-700`:
    "Става за машини {system}. " and a link "Проверете вашата машина" → the
    machine finder. Wording is "става за" or "съвместими с", never
-   "оригинални".
+   "оригинални". Instant coffee has no system: no badge in row 1, no line
+   here, no "Става за тези машини" section, and nothing in their place — the
+   line under the `h1` ("Разтворимо кафе, 200 г") already says what it is.
 5. Price block, `mt-5`:
    - Price: `text-3xl font-semibold tabular-nums text-ink-900` (Inter).
      Reduced: `text-clay-600`, followed by the old price in `text-lg
@@ -1698,20 +1706,20 @@ panel is `max-w-2xl`.
 Rows, in this fixed order; a row whose value the record does not hold is
 omitted — no dash, no "—", no "няма данни":
 
-| Row              | Value                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Система          | The system badge (`md`), linked.                                                                                       |
-| Интензивност     | The intensity scale, product-page variant.                                                                             |
-| Състав           | "{n}% арабика, {m}% робуста" — only from `arabica_percent`.                                                            |
-| Произход         | `origin`.                                                                                                              |
-| Изпичане         | `roast`.                                                                                                               |
-| Кофеин           | "С кофеин" or "Без кофеин".                                                                                            |
-| Ароматизирано    | "Да" or "Не".                                                                                                          |
-| Опаковка         | Weight or piece count: "1 кг", "16 бр.".                                                                               |
-| Цена на чаша     | As above. When estimated, a second line in `text-xs text-ink-500`: "Изчислено при {GRAMS_PER_SERVING} г кафе на чаша." |
-| Цена за килограм | The unit price, for goods sold by weight.                                                                              |
-| Код              | The product code.                                                                                                      |
-| Категория        | Linked category names.                                                                                                 |
+| Row              | Value                                                                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Система          | The system badge (`md`), linked.                                                                                                                                                                                                           |
+| Интензивност     | The intensity scale, product-page variant.                                                                                                                                                                                                 |
+| Състав           | "{n}% арабика, {m}% робуста" — only from `arabica_percent`.                                                                                                                                                                                |
+| Произход         | `origin`.                                                                                                                                                                                                                                  |
+| Изпичане         | `roast`.                                                                                                                                                                                                                                   |
+| Кофеин           | "С кофеин" or "Без кофеин".                                                                                                                                                                                                                |
+| Ароматизирано    | "Да" or "Не".                                                                                                                                                                                                                              |
+| Опаковка         | Weight or piece count: "1 кг", "16 бр.".                                                                                                                                                                                                   |
+| Цена на чаша     | As above. When estimated, a second line in `text-xs text-ink-500` stating the dose: "Изчислено при 7 г кафе на чаша.", or for instant coffee "Изчислено при 2 г разтворимо кафе на чаша." (`GRAMS_PER_SERVING[kind]`, `servingAssumption`) |
+| Цена за килограм | The unit price, for goods sold by weight.                                                                                                                                                                                                  |
+| Код              | The product code.                                                                                                                                                                                                                          |
+| Категория        | Linked category names.                                                                                                                                                                                                                     |
 
 **Compatibility** (capsules and pods). `h2` "Става за тези машини". The
 system's `recognise` sentence in `text-base text-ink-700`, then up to twelve

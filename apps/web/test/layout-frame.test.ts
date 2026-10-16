@@ -30,9 +30,13 @@ vi.mock("@/lib/catalog/queries", () => ({
   getProductBySlug: async () => null,
   listProducts: async () => ({ items: [] }),
   countPromotions: async () => catalog.promotions,
+  countInstantCoffee: async () => 0,
 }));
 vi.mock("@/lib/catalog/vending", () => ({
   sectionListsProducts: async () => catalog.consumablesListed,
+  getSectionCategory: async () => null,
+  getSectionContents: async () => ({ products: 0, instant: 0, instantPacks: [] }),
+  listVendingBlends: async () => [],
 }));
 vi.mock("@/lib/catalog/landing-queries", async () => {
   const { NO_LANDINGS } = await import("@/lib/catalog/landings");
@@ -568,6 +572,15 @@ describe("llms.txt", () => {
     expect(text).toContain(`(${absoluteUrl("/bg/za-kafemashina")})`);
 
     expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Блог");
+  });
+
+  it("names instant coffee among the formats only while the catalog has some", () => {
+    expect(llmsText(input(UNSET))).toContain(
+      "- Продават се кафе на зърна, капсули и дози (доза-в-опаковка).",
+    );
+    expect(llmsText({ ...input(UNSET), hasInstantCoffee: true })).toContain(
+      "- Продават се кафе на зърна, капсули, дози (доза-в-опаковка) и разтворимо кафе.",
+    );
   });
 
   it("links promotions only while a reduction exists", () => {

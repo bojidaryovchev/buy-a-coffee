@@ -431,7 +431,10 @@ sync after enrichment is still a no-op.
 
 The sync also stores `servings` and `servings_estimated` (cups per pack) from
 `packServings()` in `@catalog/shared`, the same function the storefront
-displays with, so listings can sort by price per cup in SQL.
+displays with, so listings can sort by price per cup in SQL. A pack sold by
+weight is counted at 7 g a cup for roasted coffee and 2 g for instant coffee,
+which `productKind()` recognises by the product's own name („Разтворимо кафе
+…“), never by its category.
 
 **Pack size.** The source states a pack size in the product's name and again
 in a pack field, and the two can disagree. `decidePackSize()` in
@@ -521,7 +524,12 @@ against), and `seed:reference` (the offline catalog for tests and CI).
 `products.json` records each product as it stood when the snapshot was
 exported, so its slugs and pack sizes may predate the shop's own slugs and the
 pack-size rule. `seed:reference` applies both, with the production code, so a
-seeded catalog matches a synced one whatever the snapshot's age.
+seeded catalog matches a synced one whatever the snapshot's age. Two things the
+exporter writes are ours, not observed: `slug` is read from the database it
+runs against (null for a product that database has not synced), and `weight`
+is the size the pack-size rule decided, not the source's pack field — so a
+snapshot exported since the rule shows no pack-size conflict that a synced
+catalog would list.
 
 ## Testing
 
