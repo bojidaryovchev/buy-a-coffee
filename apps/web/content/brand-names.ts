@@ -42,11 +42,15 @@ export const brandDisplayNames: Readonly<Record<string, string>> = {
   amann: "Amann",
   biancaffe: "Biancaffè",
   bianchi: "Bianchi",
+  // Caffè Moreno; "Caffè" is a descriptor here, as for Borbone and Vergnano.
+  "cafe-moreno": "Moreno",
   borbone: "Borbone",
   caffitaly: "Caffitaly",
   elia: "Elia",
   este: "Este",
   eurocaf: "Eurocaf",
+  // Caffè Excelsior, Busca; the name is the brand, "Caffè" the descriptor.
+  excelsior: "Excelsior",
   foodness: "Foodness",
   illy: "illy",
   "julius-meinl": "Julius Meinl",
@@ -55,7 +59,19 @@ export const brandDisplayNames: Readonly<Record<string, string>> = {
   lollocafe: "Lollo Caffè",
   molini: "Molini",
   "rema-caffe": "Rema Caffè",
+  // The wordmark is lower-case; a wordmark's styling is not a spelling.
+  ristora: "Ristora",
   tezzoro: "Tezzoro",
   vandino: "Vandino",
   vergnano: "Vergnano",
 };
+
+/**
+ * Stored slugs that are not a spelling of the brand's source key, mapped to
+ * that key. Pages look a brand's logo and facts up by the stored slug, and
+ * folding case and separators cannot turn `moreno` into `cafe-moreno`, the key
+ * the supplier gives Caffè Moreno. The slug is the catalog's own
+ * (`brands.slug`), not chosen here; if a sync ever changes it, the entry has
+ * to follow.
+ */
+export const brandKeyBySlug: Readonly<Record<string, string>> = { moreno: "cafe-moreno" };

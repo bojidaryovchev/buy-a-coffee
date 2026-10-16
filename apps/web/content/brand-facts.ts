@@ -1,4 +1,5 @@
 import type { BrewMethod } from "@/lib/recommend/systems";
+import { brandKeyBySlug } from "./brand-names";
 
 /**
  * Two facts about a brand that the catalog does not hold: how Bulgarians spell
@@ -73,6 +74,10 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
       "biancaffe.com: an Italian-language site; the footer reads 'P.IVA 00401330659. Torrefattori dal 1932'.",
   },
   bianchi: { cyrillic: "Бианчи" },
+  "cafe-moreno": {
+    italian:
+      "caffemoreno.it: Caffè Moreno SRL, Casoria (Naples), a family business founded in Naples in the 1960s; the bean bags print 'made in Italy'.",
+  },
   borbone: {
     cyrillic: "Борбоне",
     italian: "caffeborbone.com/it-it, the brand's own Italian site.",
@@ -80,6 +85,10 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
   caffitaly: {
     cyrillic: "Кафитали",
     italian: "caffitaly.com: Caffitaly System, an Italian company.",
+  },
+  excelsior: {
+    italian:
+      "torrefazionexcelsior.it: Caffè Excelsior srl, Busca (Cuneo); its 2026 export catalogue lists the six coffees we sell.",
   },
   foodness: { italian: "foodness.it, the brand's own Italian site." },
   illy: { cyrillic: "Или", italian: "illy.com: illycaffè, Trieste." },
@@ -94,6 +103,10 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
   },
   lollocafe: { cyrillic: "Лоло", italian: "lollocaffe.it, the brand's own Italian site." },
   "rema-caffe": { cyrillic: "Рема" },
+  ristora: {
+    italian:
+      "ristora.it: a brand of Prontofoods S.p.A., Montichiari (Brescia); the Bulgarian label names it as the maker, in Italy.",
+  },
   vandino: {
     italian: "vandinocaffe.com calls it an Italian coffee brand, produced and packed in Italy.",
   },
@@ -109,5 +122,6 @@ const NO_FACTS: BrandFacts = {};
 
 /** The facts for a brand, by its slug or source key. Empty for an unknown brand. */
 export function brandFactsFor(brand: { readonly slug: string }): BrandFacts {
-  return FACTS.get(lookupKey(brand.slug)) ?? NO_FACTS;
+  const key = brandKeyBySlug[brand.slug] ?? brand.slug;
+  return FACTS.get(lookupKey(key)) ?? NO_FACTS;
 }

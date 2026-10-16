@@ -42,11 +42,16 @@ const KNOWN_BRAND_KEYS = [
   "caffitaly",
   "vandino",
   "3-bourbons",
+  // Added by the source in October 2026.
+  "cafe-moreno",
+  "excelsior",
+  "ristora",
 ];
 
 /** Names exactly as the source types them, warts included. */
 const AS_TYPED_BY_THE_SOURCE: ReadonlyArray<[name: string, sourceKey: string, shown: string]> = [
   ["LAVAZZA", "lavazza", "Lavazza"],
+  ["MORENO", "cafe-moreno", "Moreno"],
   ["REMA CAFFE", "rema-caffe", "Rema Caffè"],
   ["BORBONE ", "borbone", "Borbone"],
   [" VERGNANO", " vergnano", "Vergnano"],
@@ -60,7 +65,7 @@ const AS_TYPED_BY_THE_SOURCE: ReadonlyArray<[name: string, sourceKey: string, sh
 ];
 
 describe("brand display names", () => {
-  it("has an entry for each of the twenty known brands and nothing else", () => {
+  it("has an entry for each of the twenty-three known brands and nothing else", () => {
     expect(Object.keys(brandDisplayNames).sort()).toEqual([...KNOWN_BRAND_KEYS].sort());
   });
 

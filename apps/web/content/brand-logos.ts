@@ -1,4 +1,5 @@
 import { brandLookupKey } from "../src/lib/catalog/brand-display";
+import { brandKeyBySlug } from "./brand-names";
 
 /**
  * Brand logos: what a page needs to draw one.
@@ -199,17 +200,10 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
   },
 };
 
-/**
- * Stored slugs that are not a spelling of the brand's source key, mapped to
- * that key. Pages look a logo up by the stored slug, and folding case and
- * separators cannot turn `moreno` into `cafe-moreno`, the key the supplier
- * gives Caffè Moreno. The slug is the catalog's own (`brands.slug`), not
- * chosen here; if a sync ever changes it, this entry has to follow.
- */
-const KEY_BY_SLUG: Readonly<Record<string, string>> = { moreno: "cafe-moreno" };
+/* A stored slug that is not a spelling of its source key (`brandKeyBySlug`). */
 
 const LOGOS = new Map(Object.entries(brandLogos).map(([key, logo]) => [brandLookupKey(key), logo]));
-for (const [slug, key] of Object.entries(KEY_BY_SLUG)) {
+for (const [slug, key] of Object.entries(brandKeyBySlug)) {
   const logo = LOGOS.get(brandLookupKey(key));
   if (logo) LOGOS.set(brandLookupKey(slug), logo);
 }
