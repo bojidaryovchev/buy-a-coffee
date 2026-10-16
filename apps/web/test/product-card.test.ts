@@ -76,7 +76,7 @@ describe("ProductCard: what it shows", () => {
     expect(text(card({ systemId: null }))).not.toContain("Разтворимо кафе");
   });
 
-    it("sets the name in the sans face, not the display serif", () => {
+  it("sets the name in the sans face, not the display serif", () => {
     const heading = card().querySelector("h3");
     expect(heading?.className).toContain("font-sans");
     expect(heading?.className).not.toContain("font-display");
