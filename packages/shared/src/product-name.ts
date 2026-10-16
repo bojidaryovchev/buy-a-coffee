@@ -1,6 +1,7 @@
 import { brandDisplayNames, productNameOverrides } from "./storefront-data.ts";
 import { normalizeLabel, slugify } from "./text.ts";
 import { type PackSizeConflict, TRAILING_QUANTITY, decidePackSize } from "./pack-size.ts";
+import { isInstantCoffeeName } from "./product-kind.ts";
 
 /**
  * A product's name, as this shop writes it.
@@ -19,7 +20,9 @@ import { type PackSizeConflict, TRAILING_QUANTITY, decidePackSize } from "./pack
  *     system token, the brand and the pack size are taken out: "Cookies",
  *     "Oro", "Crema e Aroma";
  *   - **format**: the phrase people search for the product's kind, chosen by
- *     the category the product is filed under, never by its name;
+ *     the category the product is filed under, never by its name — with one
+ *     exception, instant coffee, which is a kind of product rather than a
+ *     shelf and is recognised by its name (`product-kind.ts`);
  *   - **quantity**: the pack size, as `decidePackSize` (`pack-size.ts`)
  *     decides it: the pack field's, unless the name states another, and then
  *     the name's. The sync stores a size decided by the same function, so a
@@ -65,7 +68,8 @@ export type ProductFormatId =
   | "lavazza-blue"
   | "a-modo-mio"
   | "caffitaly"
-  | "capsules";
+  | "capsules"
+  | "instant";
 
 export interface ProductFormat {
   readonly id: ProductFormatId;
@@ -221,6 +225,24 @@ const FORMAT_RULES: readonly FormatRule[] = [
   },
 ];
 
+/**
+ * Instant coffee, whatever it is filed under.
+ *
+ * Chosen by the product's own name, before any category is looked at
+ * (`product-kind.ts` says why). No category key: the supplier's vending
+ * section, where the tins are filed today, is navigation and may hold bean
+ * blends tomorrow. Not a capsule, and no system token to strip.
+ */
+const INSTANT: FormatRule = {
+  id: "instant",
+  categoryKeys: [],
+  label: "Разтворимо кафе",
+  listingLabel: "Разтворимо кафе",
+  slug: "raztvorimo-kafe",
+  nameTokens: [],
+  capsule: false,
+};
+
 /** A capsule filed only under the parent category, or under two systems at once. */
 const CAPSULES: FormatRule = {
   id: "capsules",
@@ -248,7 +270,11 @@ function fold(value: string): string {
     .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
-function ruleFor(categoryKeys: readonly string[] | null | undefined): FormatRule | null {
+function ruleFor(
+  categoryKeys: readonly string[] | null | undefined,
+  sourceName?: string | null,
+): FormatRule | null {
+  if (isInstantCoffeeName(sourceName)) return INSTANT;
   const keys = new Set((categoryKeys ?? []).map((key) => key.trim().toLowerCase()));
   const matched = FORMAT_RULES.filter((rule) => rule.categoryKeys.some((key) => keys.has(key)));
   const [first] = matched;
@@ -313,7 +339,8 @@ export function brandDisplayName(brand: {
 /* --- Line --------------------------------------------------------------- */
 
 /** What the supplier opens a name with to say what kind of thing it is. */
-const FORMAT_WORDS = /^(?:кафе\s+на\s+зърна|кафе\s+капсули|кафе\s+дози|капсули|дозети|дози)\s+/iu;
+const FORMAT_WORDS =
+  /^(?:кафе\s+на\s+зърна|кафе\s+капсули|кафе\s+дози|(?:разтворимо|инстантно)\s+кафе|кафе\s+(?:разтворимо|инстантно)|капсули|дозети|дози)\s+/iu;
 
 const CYRILLIC = /\p{Script=Cyrillic}/u;
 
@@ -422,7 +449,7 @@ const SLUG_HEAD_MAX = 72;
 
 export function productName(input: ProductNameInput): ProductName {
   const override = overrideFor(input);
-  const rule = ruleFor(input.categoryKeys);
+  const rule = ruleFor(input.categoryKeys, input.sourceName);
   const parsed = parseLine(input.sourceName, rule, input.brand ?? null);
 
   const hasBrand = Boolean(input.brand?.name || input.brand?.sourceKey);
@@ -490,9 +517,18 @@ export function productSearchName(name: ProductName): string {
   return plain === name.title ? name.title : `${name.title} ${plain}`;
 }
 
-/** The format's listing label for a set of category keys, or null. For breadcrumbs. */
+/**
+ * The format's listing label for a product, or null. For breadcrumbs.
+ *
+ * Null for instant coffee, which has no listing of its own: the crumb is then
+ * the shelf it is filed under, by that shelf's own name, rather than a format
+ * name over a link to some other format's listing. The supplier's name is
+ * passed for that reason; without it, the categories alone decide.
+ */
 export function formatListingLabel(
   categoryKeys: readonly string[] | null | undefined,
+  sourceName?: string | null,
 ): string | null {
-  return ruleFor(categoryKeys)?.listingLabel ?? null;
+  const rule = ruleFor(categoryKeys, sourceName);
+  return rule && rule !== INSTANT ? rule.listingLabel : null;
 }

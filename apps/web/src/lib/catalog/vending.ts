@@ -4,7 +4,12 @@ import { categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import type { CatalogQuery } from "./filters";
 import { getProductBySlug, listProducts } from "./queries";
-import { BUSINESS_SECTIONS, type BusinessSectionId } from "./business-sections";
+import {
+  BUSINESS_SECTIONS,
+  type BusinessSectionId,
+  type SectionContents,
+  sectionContents,
+} from "./business-sections";
 import type { ProductCardView, ProductListResult } from "./types";
 
 /**
@@ -30,6 +35,7 @@ export {
   BUSINESS_SECTIONS,
   type BusinessSection,
   type BusinessSectionId,
+  type SectionContents,
 } from "./business-sections";
 
 /* --- The vending-blend rule --------------------------------------------- */
@@ -93,6 +99,7 @@ function toCardView(product: ProductCardView): ProductCardView {
     weight: product.weight,
     intensity: product.intensity,
     systemId: product.systemId,
+    kind: product.kind,
     servingPrice: product.servingPrice,
     brand: product.brand,
     image: product.image,
@@ -214,6 +221,36 @@ export async function sectionListsProducts(id: BusinessSectionId): Promise<boole
 export interface SectionListing {
   readonly category: SectionCategory;
   readonly result: ProductListResult;
+  /**
+   * What the whole category holds, unfiltered, for the listing's heading and
+   * description: they describe the section, so a visitor narrowing the list
+   * does not change them. Absent in a view assembled by hand.
+   */
+  readonly contents?: SectionContents;
+}
+
+/** What a section's category and its children hold, for the words around the listing. */
+export async function getSectionContents(category: SectionCategory): Promise<SectionContents> {
+  const rows = await db
+    .selectDistinct({
+      id: products.id,
+      name: products.name,
+      weightValue: products.weightValue,
+      weightUnit: products.weightUnit,
+    })
+    .from(products)
+    .innerJoin(productCategories, eq(productCategories.productId, products.id))
+    .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+    .where(
+      and(
+        eq(products.status, "active"),
+        sql`(${categories.slug} = ${category.slug} or exists (
+          select 1 from ${categories} parent
+          where parent.id = ${categories.parentId} and parent.slug = ${category.slug}
+        ))`,
+      ),
+    );
+  return sectionContents(rows);
 }
 
 /**
@@ -234,6 +271,9 @@ export async function getSectionListing(
   const category = await getSectionCategory(id);
   if (!category || category.productCount === 0) return null;
 
-  const result = await listProducts({ query, categorySlug: category.slug });
-  return { category, result };
+  const [result, contents] = await Promise.all([
+    listProducts({ query, categorySlug: category.slug }),
+    getSectionContents(category),
+  ]);
+  return { category, result, contents };
 }

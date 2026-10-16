@@ -29,6 +29,9 @@ const SOURCE_BRANDS = [
   "caffitaly",
   "vandino",
   "3 bourbons",
+  "moreno",
+  "excelsior",
+  "ristora",
 ];
 const SYSTEMS = ["nespresso", "dg", "a modo mio", "lavazza blue", "caffitaly", "дози"];
 
@@ -104,6 +107,16 @@ describe("expandSearchTerm", () => {
     // „дулче густо" folds to the same text as its Latin transliteration.
     expect(expandSearchTerm("dulche gusto")[1]).toBe("dg");
     expect(expandSearchTerm("dolce gusto")[1]).toBe("dg");
+  });
+
+  it("finds instant coffee by the other word for it", () => {
+    expect(expandSearchTerm("инстантно кафе")).toEqual(["инстантно кафе", "разтворимо кафе"]);
+    expect(expandSearchTerm("Инстантно кафе Ristora")).toEqual([
+      "Инстантно кафе Ristora",
+      "разтворимо кафе Ristora",
+    ]);
+    // The supplier's own word needs nothing.
+    expect(expandSearchTerm("разтворимо кафе")).toEqual(["разтворимо кафе"]);
   });
 
   it("covers the Cyrillic aliases machines.ts already has", () => {

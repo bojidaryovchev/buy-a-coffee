@@ -4,6 +4,7 @@ import { getListingFacts, type ListingFacts } from "@/lib/catalog/listing-facts"
 import {
   BUSINESS_SECTIONS,
   getSectionCategory,
+  getSectionContents,
   getSectionListing,
   listVendingBlends,
 } from "@/lib/catalog/vending";
@@ -13,7 +14,7 @@ import { shareMetadata } from "@/lib/seo/share";
 import { href } from "@/lib/routes";
 import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
 import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
-import { vendingCopy } from "../../../../../content/vending";
+import { vendingCopy, vendingMeta } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
 
 /**
@@ -54,16 +55,28 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   ]);
   const cupRange = cupRangeOfRanges(listed.map((facts) => facts.cupRange));
 
-  const description = metaDescription(vendingCopy.metaDescription, cupRange);
+  /*
+   * The title and the opening of the description say what is listed: bean
+   * blends for vending, instant coffee, or both. Instant coffee is recognised
+   * by name (`getSectionContents`).
+   */
+  const contents =
+    category && category.productCount > 0 ? await getSectionContents(category) : null;
+  const meta = vendingMeta({
+    instant: (contents?.instant ?? 0) > 0,
+    beans: blends.length > 0 || (contents !== null && contents.instant < contents.products),
+  });
+  const metaTitle = meta.title;
+  const description = metaDescription(meta.description, cupRange);
 
   return {
-    title: pageTitle(vendingCopy.metaTitle),
+    title: pageTitle(metaTitle),
     description,
     // Filtered and paginated views of the listing consolidate on the clean page.
     alternates: pageAlternates(locale, section.path),
     ...shareMetadata({
       locale,
-      title: vendingCopy.metaTitle,
+      title: metaTitle,
       description,
       path: href(locale, section.path),
     }),

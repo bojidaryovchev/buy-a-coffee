@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decidePackSize, packQuantityLabel } from "../src/pack-size.ts";
-import { productName, type ProductNameInput } from "../src/product-name.ts";
+import { formatListingLabel, productName, type ProductNameInput } from "../src/product-name.ts";
 import { planProductSlugs } from "../src/product-slug.ts";
 import { RESERVED_PRODUCT_SLUGS, productNameOverrides } from "../src/storefront-data.ts";
 import fixture from "./fixtures/product-names.json" with { type: "json" };
@@ -17,7 +17,8 @@ import fixture from "./fixtures/product-names.json" with { type: "json" };
 interface FixtureRecord extends ProductNameInput {
   readonly sourceKey: string;
   readonly wave: string;
-  readonly formerSlug: string;
+  /** The slug the old generator gave it; null for a product that arrived after the move. */
+  readonly formerSlug: string | null;
   readonly expected: {
     readonly brand: string | null;
     readonly line: string;
@@ -30,9 +31,9 @@ interface FixtureRecord extends ProductNameInput {
 const records = fixture as readonly FixtureRecord[];
 
 describe("productName over the whole catalog", () => {
-  it("covers all 187 products", () => {
-    expect(records).toHaveLength(187);
-    expect(new Set(records.map((record) => record.sourceKey)).size).toBe(187);
+  it("covers all 207 products", () => {
+    expect(records).toHaveLength(207);
+    expect(new Set(records.map((record) => record.sourceKey)).size).toBe(207);
   });
 
   it.each(records.map((record) => [record.sourceName, record.sourceKey, record] as const))(
@@ -437,6 +438,78 @@ describe("productName", () => {
 
   it("is deterministic", () => {
     expect(productName(base)).toEqual(productName({ ...base }));
+  });
+});
+
+describe("instant coffee", () => {
+  const tin = {
+    sourceName: "Разтворимо кафе Ristora Gold 0.200кг.",
+    sourceKey: "/ristora-gold-200/#200g",
+    brand: { sourceKey: "ristora", name: "Ristora" },
+    categoryKeys: ["vending-zona"],
+    packValue: "200",
+    packUnit: "g",
+  };
+
+  it("is a format of its own: the brand and the line, then what it is and the size", () => {
+    expect(productName(tin)).toMatchObject({
+      brand: "Ristora",
+      line: "Gold",
+      format: {
+        id: "instant",
+        label: "Разтворимо кафе",
+        listingLabel: "Разтворимо кафе",
+        slug: "raztvorimo-kafe",
+      },
+      title: "Ristora Gold",
+      detail: "Разтворимо кафе, 200 г",
+      full: "Ristora Gold — разтворимо кафе, 200 г",
+      slugBase: "ristora-gold-raztvorimo-kafe-200-g",
+    });
+  });
+
+  it("does not print the brand twice when the name holds nothing else", () => {
+    // Before the format existed this was „Bianchi Bianchi“, with no format line.
+    expect(
+      productName({
+        ...tin,
+        sourceName: "Разтворимо кафе Bianchi 0.200кг.",
+        brand: { sourceKey: "bianchi", name: "BIANCHI" },
+      }),
+    ).toMatchObject({ title: "Bianchi", line: "", slugBase: "bianchi-raztvorimo-kafe-200-g" });
+  });
+
+  it("is recognised by its name, not by the shelf it is filed under", () => {
+    // Filed under beans by mistake, it is still instant coffee …
+    expect(productName({ ...tin, categoryKeys: ["kafe-na-zyrna"] }).format?.id).toBe("instant");
+    // It has no listing of its own, so a breadcrumb names the shelf instead.
+    expect(formatListingLabel(["kafe-na-zyrna"], tin.sourceName)).toBeNull();
+    expect(formatListingLabel(["kafe-na-zyrna"], "Кафе на зърна Moreno Vending 1кг.")).toBe(
+      "Кафе на зърна",
+    );
+    // … and a bean blend filed under the vending section is not.
+    const blend = productName({
+      ...tin,
+      sourceName: "Кафе на зърна Moreno Vending 1кг.",
+      brand: { sourceKey: "cafe-moreno", name: "MORENO" },
+      packValue: "1000",
+    });
+    expect(blend.format).toBeNull();
+    expect(blend.title).toBe("Moreno Vending");
+  });
+
+  it("gives the five tins the addresses the written copy is keyed by", () => {
+    const slugs = records
+      .filter((record) => productName(record).format?.id === "instant")
+      .map((record) => record.expected.slug)
+      .sort();
+    expect(slugs).toEqual([
+      "bianchi-raztvorimo-kafe-200-g",
+      "ristora-gold-raztvorimo-kafe-200-g",
+      "ristora-green-raztvorimo-kafe-200-g",
+      "ristora-red-raztvorimo-kafe-200-g",
+      "vandino-supreme-raztvorimo-kafe-500-g",
+    ]);
   });
 });
 

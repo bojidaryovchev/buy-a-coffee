@@ -166,7 +166,10 @@ suite("catalog:pack-size (integration)", () => {
       servingsEstimated: false,
     });
     expect(
-      pricePerServing(after.currentPrice, packServings(after.weightValue, after.weightUnit)),
+      pricePerServing(
+        after.currentPrice,
+        packServings(after.weightValue, after.weightUnit, "roasted"),
+      ),
     ).toBe("0.5111");
     expect(after.sourceData).toEqual({
       ...TIN.sourceData,

@@ -30,9 +30,13 @@ vi.mock("@/lib/catalog/queries", () => ({
   getProductBySlug: async () => null,
   listProducts: async () => ({ items: [] }),
   countPromotions: async () => catalog.promotions,
+  countInstantCoffee: async () => 0,
 }));
 vi.mock("@/lib/catalog/vending", () => ({
   sectionListsProducts: async () => catalog.consumablesListed,
+  getSectionCategory: async () => null,
+  getSectionContents: async () => ({ products: 0, instant: 0, instantPacks: [] }),
+  listVendingBlends: async () => [],
 }));
 vi.mock("@/lib/catalog/landing-queries", async () => {
   const { NO_LANDINGS } = await import("@/lib/catalog/landings");

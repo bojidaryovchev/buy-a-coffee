@@ -26,7 +26,7 @@
       "name": "Dolce Gusto",
       "parentKey": "kafe-kapsuli",
       "position": 3,
-      "productCount": 33,
+      "productCount": 35,
       "rawSlug": "dolce-gusto",
       "slug": "dolce-gusto",
       "sourceId": "615",
@@ -36,8 +36,8 @@
     {
       "name": "Кафе дози",
       "parentKey": null,
-      "position": 0,
-      "productCount": 41,
+      "position": 1,
+      "productCount": 46,
       "rawSlug": "kafe-dozi",
       "slug": "kafe-dozi",
       "sourceId": "612",
@@ -47,8 +47,8 @@
     {
       "name": "Кафе капсули",
       "parentKey": null,
-      "position": 1,
-      "productCount": 88,
+      "position": 2,
+      "productCount": 90,
       "rawSlug": "kafe-kapsuli",
       "slug": "kapsuli",
       "sourceId": "611",
@@ -58,8 +58,8 @@
     {
       "name": "Кафе на зърна",
       "parentKey": null,
-      "position": 2,
-      "productCount": 58,
+      "position": 3,
+      "productCount": 68,
       "rawSlug": "kafe-na-zyrna",
       "slug": "kafe-na-zarna",
       "sourceId": "608",
@@ -87,9 +87,20 @@
       "sourceId": "614",
       "sourceKey": "nespresso",
       "url": "https://www.kafezona.com/nespresso/"
+    },
+    {
+      "name": "Вендинг Зона",
+      "parentKey": null,
+      "position": 0,
+      "productCount": 5,
+      "rawSlug": "vending-zona",
+      "slug": "vending-zona",
+      "sourceId": "761",
+      "sourceKey": "vending-zona",
+      "url": "https://www.kafezona.com/vending-zona/"
     }
   ],
-  "count": 8,
+  "count": 9,
   "description": "Category taxonomy, including parent/child relationships. `slug` is the storefront's own identifier for the category, allocated at first sync and kept when the source renames it; it is null for a category that has not been synced yet.",
   "schemaVersion": "1.0.0"
 }

@@ -13,7 +13,7 @@ import {
 import { listBrands, listProducts } from "@/lib/catalog/queries";
 import { composeBrandSummary, systemsForCategories } from "@/lib/catalog/brand-summary";
 import { getListingFacts } from "@/lib/catalog/listing-facts";
-import { listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
+import { brandHasInstantCoffee, listBrandCategoryKeys } from "@/lib/catalog/taxonomy";
 import { brandJsonLd, breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import { BrandLogo } from "@/components/catalog/brand-logo";
 import { RelatedLandingsList } from "@/components/catalog/related-landings";
@@ -67,17 +67,21 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   }
   const { brand } = found;
 
-  const [categoryKeys, facts] = await Promise.all([
+  const [categoryKeys, instant, facts] = await Promise.all([
     listBrandCategoryKeys(brand.slug),
+    brandHasInstantCoffee(brand.slug),
     getListingFacts({ kind: "brand", slug: brand.slug }),
   ]);
   const systems = systemsForCategories(categoryKeys);
 
   /* „Кафе Bianchi (Бианчи): капсули и дози“ — the brand the way people
      search for it, then the formats that are actually on the page. */
-  const title = brandTitle(brand, systems);
+  const title = brandTitle(brand, systems, instant);
   // What a cup of this brand costs here, and that ordering is a phone call.
-  const description = metaDescription(brandDescriptionLead(brand, systems), facts.cupRange);
+  const description = metaDescription(
+    brandDescriptionLead(brand, systems, instant),
+    facts.cupRange,
+  );
 
   return {
     title: pageTitle(title),
@@ -101,9 +105,10 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
   const query = parseCatalogQuery(rawParams);
   // One brand, one address: any other slug of it goes there, filters and all.
   if (!found.published) permanentRedirect(brandHref(locale, brand, buildSearchParams(query)));
-  const [result, categoryKeys] = await Promise.all([
+  const [result, categoryKeys, instant] = await Promise.all([
     listProducts({ query, brandSlug: brand.slug }),
     listBrandCategoryKeys(brand.slug),
+    brandHasInstantCoffee(brand.slug),
   ]);
   /*
    * Computed from what is in stock right now, not from the filtered listing:
@@ -111,7 +116,8 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
    * narrows the list below it.
    */
   const systems = systemsForCategories(categoryKeys);
-  const summary = composeBrandSummary(brand.name, systems);
+  // Instant coffee is in no system, so it is said separately.
+  const summary = composeBrandSummary(brand.name, systems, instant);
 
   const path = brandHref(locale, brand);
   const breadcrumbs = listingBreadcrumbs(locale, [

@@ -2,13 +2,13 @@
   "counts": {
     "blog_article": 1,
     "blog_index": 1,
-    "brand": 23,
+    "brand": 25,
     "brand_index": 1,
     "category": 5,
     "home": 1,
     "legal": 2,
     "other": 1,
-    "product": 187,
+    "product": 207,
     "promotion": 1,
     "subcategory": 5
   },
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "count": 23,
+      "count": 25,
       "pageType": "brand",
       "urls": [
         "https://www.kafezona.com/3-bourbons/",
@@ -42,6 +42,7 @@
         "https://www.kafezona.com/elia/",
         "https://www.kafezona.com/este/",
         "https://www.kafezona.com/eurocaf/",
+        "https://www.kafezona.com/excelsior/",
         "https://www.kafezona.com/foodness/",
         "https://www.kafezona.com/garibaldi/",
         "https://www.kafezona.com/illy/",
@@ -53,6 +54,7 @@
         "https://www.kafezona.com/molini/",
         "https://www.kafezona.com/nescafe/",
         "https://www.kafezona.com/rema-caffe/",
+        "https://www.kafezona.com/ristora/",
         "https://www.kafezona.com/tezzoro/",
         "https://www.kafezona.com/vandino/",
         "https://www.kafezona.com/vergnano/"
@@ -99,7 +101,7 @@
       ]
     },
     {
-      "count": 187,
+      "count": 207,
       "pageType": "product",
       "urls": [
         "https://www.kafezona.com/3-bourbons-50/",
@@ -115,6 +117,7 @@
         "https://www.kafezona.com/biancaffe-dek-500/",
         "https://www.kafezona.com/biancaffe-intenso-1/",
         "https://www.kafezona.com/biancaffe-soave-1/",
+        "https://www.kafezona.com/bianchi-200/",
         "https://www.kafezona.com/bianchi-decaf-100/",
         "https://www.kafezona.com/bianchi-dg-forte-espresso-16/",
         "https://www.kafezona.com/bianchi-gold-100/",
@@ -187,6 +190,12 @@
         "https://www.kafezona.com/eurocaf-piacere-oro-green-1/",
         "https://www.kafezona.com/eurocaf-piacere-oro-orange-1/",
         "https://www.kafezona.com/eurocaf-rosso-fuoco-1/",
+        "https://www.kafezona.com/excelsior-emerald-1/",
+        "https://www.kafezona.com/excelsior-extra-mild-1/",
+        "https://www.kafezona.com/excelsior-gold-1/",
+        "https://www.kafezona.com/excelsior-gold/",
+        "https://www.kafezona.com/excelsior-rubin-1/",
+        "https://www.kafezona.com/excelsior-sapphire-1/",
         "https://www.kafezona.com/illy-classico-10/",
         "https://www.kafezona.com/illy-classico-18/",
         "https://www.kafezona.com/illy-classico-200/",
@@ -236,6 +245,15 @@
         "https://www.kafezona.com/molini-napoli-150/",
         "https://www.kafezona.com/molini-torino-1/",
         "https://www.kafezona.com/molini-torino-150/",
+        "https://www.kafezona.com/moreno-aroma-blue-50/",
+        "https://www.kafezona.com/moreno-aroma-espresso-30/",
+        "https://www.kafezona.com/moreno-aroma-top-50/",
+        "https://www.kafezona.com/moreno-dg-aroma-blue-50/",
+        "https://www.kafezona.com/moreno-dg-aroma-espresso-50/",
+        "https://www.kafezona.com/moreno-extra-bar-1/",
+        "https://www.kafezona.com/moreno-super-bar-1/",
+        "https://www.kafezona.com/moreno-vending-1/",
+        "https://www.kafezona.com/moreno-vending-premium-1/",
         "https://www.kafezona.com/nespresso-bianchi-arte-classico-10/",
         "https://www.kafezona.com/nespresso-bianchi-arte-colombia-10/",
         "https://www.kafezona.com/nespresso-bianchi-arte-costa-rica-10/",
@@ -279,16 +297,13 @@
         "https://www.kafezona.com/rema-caffe-intenso-100/",
         "https://www.kafezona.com/rema-caffe-ristretto-25/",
         "https://www.kafezona.com/rema-caffe-supremo-25/",
+        "https://www.kafezona.com/ristora-gold-200/",
+        "https://www.kafezona.com/ristora-green-200/",
+        "https://www.kafezona.com/ristora-red-200/",
         "https://www.kafezona.com/tezzoro-espresso-classic-1/",
         "https://www.kafezona.com/tezzoro-espresso-excellence-1/",
         "https://www.kafezona.com/tezzoro-espresso-excellence-250/",
-        "https://www.kafezona.com/tezzoro-espresso-top-class-1/",
-        "https://www.kafezona.com/vandino-espresso-aroma-1/",
-        "https://www.kafezona.com/vandino-espresso-bar-1/",
-        "https://www.kafezona.com/vandino-espresso-club-1/",
-        "https://www.kafezona.com/vergnano-antica-bottega-1/",
-        "https://www.kafezona.com/vergnano-espresso-1/",
-        "https://www.kafezona.com/vergnano-gran-aroma-1/"
+        "https://www.kafezona.com/tezzoro-espresso-top-class-1/"
       ]
     },
     {

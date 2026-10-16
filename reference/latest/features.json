@@ -18,8 +18,8 @@
       ],
       "id": "category-browsing",
       "implementationNotes": [
-        "8 categories observed, including nested children.",
-        "2 navigation pages list no products at the moment and still render as valid pages."
+        "9 categories observed, including nested children.",
+        "1 navigation page lists no products at the moment and still renders as a valid page."
       ],
       "name": "Category browsing",
       "outputs": [
@@ -37,7 +37,7 @@
       ],
       "id": "vending-zone",
       "implementationNotes": [
-        "It lists no products at the moment, and renders its empty state rather than a 404.",
+        "It lists 5 products.",
         "It is absent from the structured catalog's category list: it is navigation, not a category a product belongs to.",
         "The copy on it is the source's own and is never mirrored."
       ],
@@ -83,12 +83,12 @@
         "https://www.kafezona.com/elia/",
         "https://www.kafezona.com/este/",
         "https://www.kafezona.com/eurocaf/",
-        "https://www.kafezona.com/foodness/",
-        "https://www.kafezona.com/garibaldi/"
+        "https://www.kafezona.com/excelsior/",
+        "https://www.kafezona.com/foodness/"
       ],
       "id": "brand-browsing",
       "implementationNotes": [
-        "20 brands carry products; the index also lists brands with none.",
+        "23 brands carry products; the index also lists brands with none.",
         "Brand pages filter by category, the inverse of category pages, which filter by brand."
       ],
       "name": "Brand browsing",
@@ -280,6 +280,7 @@
       "evidenceUrls": [
         "https://www.kafezona.com/",
         "https://www.kafezona.com/avtor/",
+        "https://www.kafezona.com/blog/",
         "https://www.kafezona.com/blog/kafezona-na-festivala-za-komunikatsiya-i-lichnostno-razvitie/"
       ],
       "id": "newsletter-signup",

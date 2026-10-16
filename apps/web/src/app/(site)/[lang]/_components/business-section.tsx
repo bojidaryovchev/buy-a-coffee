@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GRAMS_PER_SERVING } from "@catalog/shared";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { ContactForm } from "@/components/forms/contact-form";
@@ -55,6 +56,26 @@ export function BusinessSectionView({
   ];
 
   const showBlends = copy.blends !== undefined && blends.length > 0;
+
+  /*
+   * The listing says what it holds. Instant coffee is recognised by each
+   * product's name; while it is all the category holds, the heading is what
+   * it is, and whenever it holds some, the description gives its packs and the
+   * dose its price per cup is counted at — the one figure on the page that is
+   * an assumption, stated where the figure is.
+   */
+  const contents = listing?.contents;
+  const instantCopy = copy.instant && contents && contents.instant > 0 ? copy.instant : null;
+  const listingHeading =
+    instantCopy && contents?.instant === contents?.products
+      ? instantCopy.heading
+      : copy.listing.heading;
+  const listingDescription = instantCopy
+    ? instantCopy.description({
+        packs: contents?.instantPacks ?? [],
+        grams: GRAMS_PER_SERVING.instant,
+      })
+    : copy.listing.description;
   const shownProducts = [...(listing?.result.items ?? []), ...(showBlends ? blends : [])];
   const hasProducts = listing !== null || showBlends;
 
@@ -108,8 +129,8 @@ export function BusinessSectionView({
       {listing && (
         <section className="mb-14">
           <SectionHeading
-            title={copy.listing.heading}
-            {...(copy.listing.description ? { description: copy.listing.description } : {})}
+            title={listingHeading}
+            {...(listingDescription ? { description: listingDescription } : {})}
           />
           <CatalogListing
             locale={locale}

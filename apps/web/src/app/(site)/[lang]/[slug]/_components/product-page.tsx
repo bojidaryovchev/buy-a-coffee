@@ -30,7 +30,15 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import { localeAlternates } from "@/lib/seo/alternates";
-import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
+import {
+  brandHref,
+  categoryHref,
+  href,
+  productHref,
+  routes,
+  sectionPathForCategory,
+} from "@/lib/routes";
+import { consumablesCopy, vendingCopy } from "../../../../../../content/vending";
 
 /**
  * A product page, at `/<locale>/<product slug>`.
@@ -98,7 +106,19 @@ export async function ProductPage({
    * crumb is named as its listing is, so it says "за" where the capsules are
    * made by others to fit the system. The brand is linked above the heading
    * and in the facts table instead.
+   *
+   * A category that backs a business section is published at the section's
+   * page, so its crumb is that page, by that page's name: the instant coffees
+   * filed under the source's vending section read Начало › Кафе за вендинг
+   * машини › the product.
    */
+  const section = primaryCategory ? sectionPathForCategory(primaryCategory) : null;
+  const sectionName =
+    section === routes.vending
+      ? vendingCopy.title
+      : section === routes.consumables
+        ? consumablesCopy.title
+        : null;
   const breadcrumbs = [
     { name: "Начало", href: href(locale, routes.home) },
     ...(primaryCategory?.parent
@@ -107,7 +127,7 @@ export async function ProductPage({
     ...(primaryCategory
       ? [
           {
-            name: product.formatListingLabel ?? primaryCategory.name,
+            name: sectionName ?? product.formatListingLabel ?? primaryCategory.name,
             href: categoryHref(locale, primaryCategory),
           },
         ]
@@ -118,7 +138,10 @@ export async function ProductPage({
   /*
    * The system comes from the product's categories (`systemId` is resolved in
    * the query layer through `BREWING_SYSTEMS`), and the badge links to the one
-   * of those categories that binds it. Nothing here reads the product's name.
+   * of those categories that binds it. Instant coffee has none, whatever it is
+   * filed under: no badge, no "fits" line, no list of machines, and nothing
+   * put in their place — it needs no machine, and the line under the heading
+   * already says what it is.
    */
   const system = getBrewingSystem(product.systemId);
   const systemHref = systemListingHref(locale, product.systemId, product.categories);

@@ -1,5 +1,6 @@
 import { siteConfig, usingPlaceholderBrand } from "@/config/site";
 import {
+  countInstantCoffee,
   countPromotions,
   getCatalogSummary,
   getCategoryTree,
@@ -8,13 +9,18 @@ import {
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
-import { sectionListsProducts } from "@/lib/catalog/vending";
+import {
+  getSectionCategory,
+  getSectionContents,
+  listVendingBlends,
+  sectionListsProducts,
+} from "@/lib/catalog/vending";
 import { listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { categoryNameFor } from "../../../content/category-copy";
 import { landingCopy } from "../../../content/landing-copy";
-import { consumablesCopy, vendingCopy } from "../../../content/vending";
+import { consumablesCopy, vendingCopy, vendingMeta } from "../../../content/vending";
 import { llmsText } from "./body";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { brandHref, categoryHref, href } from "@/lib/routes";
@@ -78,14 +84,38 @@ export async function GET() {
     });
   }
 
-  const [summary, tree, brands, consumablesListed, landings, promotionCount] = await Promise.all([
+  const [
+    summary,
+    tree,
+    brands,
+    consumablesListed,
+    landings,
+    promotionCount,
+    instantCount,
+    vendingCategory,
+    vendingBlends,
+  ] = await Promise.all([
     getCatalogSummary(),
     getCategoryTree(),
     listBrands({ withProductsOnly: true }),
     sectionListsProducts("consumables"),
     getLandingAvailability(),
     countPromotions(),
+    countInstantCoffee(),
+    getSectionCategory("vending"),
+    listVendingBlends(),
   ]);
+  // The vending page is described as the page describes itself.
+  const vendingContents =
+    vendingCategory && vendingCategory.productCount > 0
+      ? await getSectionContents(vendingCategory)
+      : null;
+  const vending = vendingMeta({
+    instant: (vendingContents?.instant ?? 0) > 0,
+    beans:
+      vendingBlends.length > 0 ||
+      (vendingContents !== null && vendingContents.instant < vendingContents.products),
+  });
 
   const locale = DEFAULT_LOCALE;
   const body = llmsText({
@@ -107,12 +137,17 @@ export async function GET() {
     })),
     machineBrandCount: MACHINE_BRANDS.length,
     sections: [
-      { ...vendingCopy, href: href(locale, BUSINESS_SECTIONS.vending.path) },
+      {
+        ...vendingCopy,
+        metaDescription: vending.description,
+        href: href(locale, BUSINESS_SECTIONS.vending.path),
+      },
       ...(consumablesListed
         ? [{ ...consumablesCopy, href: href(locale, BUSINESS_SECTIONS.consumables.path) }]
         : []),
     ].map((copy) => ({ name: copy.title, href: copy.href, description: copy.metaDescription })),
     hasPromotions: promotionCount > 0,
+    hasInstantCoffee: instantCount > 0,
     landings: LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) => ({
       name: landingCopy[id].h1,
       href: href(locale, LANDING_PATHS[id]),

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { GRAMS_PER_SERVING } from "@catalog/shared";
 import { IntensityScale } from "@/components/catalog/intensity-scale";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import { STRENGTH_LABELS, attributeValueLabel } from "@/lib/catalog/attributes";
@@ -152,13 +151,14 @@ export function factRows(product: FactsTableProduct, locale: Locale): readonly F
             <>
               <span className="tabular-nums">{product.servingPrice.formatted}</span>
               {/*
-                "≈" alone does not say what was assumed. A bag of beans holds
-                as many cups as the dose makes it; the dose we counted with is
-                stated, so the figure can be checked.
+                "≈" alone does not say what was assumed. A bag of beans or a
+                tin of instant holds as many cups as the dose makes it; the
+                dose we counted with, which differs by kind, is stated so the
+                figure can be checked.
               */}
-              {product.servingPrice.estimated && (
+              {product.servingPrice.estimated && product.servingPrice.assumption && (
                 <span className="mt-0.5 block text-xs font-normal text-ink-500">
-                  Изчислено при {GRAMS_PER_SERVING} г кафе на чаша.
+                  {product.servingPrice.assumption}
                 </span>
               )}
             </>

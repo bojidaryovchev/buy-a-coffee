@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { createDatabase, type Database } from "@catalog/db";
 import { categories, productCategories, products } from "@catalog/db/schema";
-import { packServings, pricePerServing } from "@catalog/shared";
+import { packServings, pricePerServing, productKind } from "@catalog/shared";
 
 /*
  * `@/lib/db` opens a pool the moment it is imported and throws when there is
@@ -282,6 +282,7 @@ describe.skipIf(!reachable || !hasCatalog)("price per cup against the real catal
     const rows = await db
       .select({
         id: products.id,
+        name: products.name,
         price: products.currentPrice,
         override: products.retailPriceOverride,
         weightValue: products.weightValue,
@@ -294,7 +295,10 @@ describe.skipIf(!reachable || !hasCatalog)("price per cup against the real catal
     return new Map(
       rows.map((row) => [
         row.id,
-        pricePerServing(row.override ?? row.price, packServings(row.weightValue, row.weightUnit)),
+        pricePerServing(
+          row.override ?? row.price,
+          packServings(row.weightValue, row.weightUnit, productKind(row.name)),
+        ),
       ]),
     );
   }
@@ -304,6 +308,7 @@ describe.skipIf(!reachable || !hasCatalog)("price per cup against the real catal
     const rows = await db
       .select({
         slug: products.slug,
+        name: products.name,
         weightValue: products.weightValue,
         weightUnit: products.weightUnit,
         servings: products.servings,
@@ -314,7 +319,7 @@ describe.skipIf(!reachable || !hasCatalog)("price per cup against the real catal
 
     let withServings = 0;
     for (const row of rows) {
-      const computed = packServings(row.weightValue, row.weightUnit);
+      const computed = packServings(row.weightValue, row.weightUnit, productKind(row.name));
       // Compared as numbers of the same scale: "16" and "16.0000" are one value.
       expect(row.servings === null ? null : Number(row.servings), row.slug).toBe(
         computed ? Number(Number(computed.exact).toFixed(4)) : null,

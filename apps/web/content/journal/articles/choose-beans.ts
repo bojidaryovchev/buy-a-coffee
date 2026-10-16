@@ -103,7 +103,7 @@ function priceText(beans: BeanFigures | null, perCup: CupRange | null): Block[] 
         : `В момента кафето на зърна в каталога ни струва от ${cheapest.perKilogram} до ${dearest.perKilogram} за килограм.`,
       ...(perCup
         ? [
-            ` На чаша това прави ${rangeText(perCup)} — приблизително, защото смятаме по ${GRAMS_PER_SERVING} грама на чаша, а колко отива във вашата, зависи от машината.`,
+            ` На чаша това прави ${rangeText(perCup)} — приблизително, защото смятаме по ${GRAMS_PER_SERVING.roasted} грама на чаша, а колко отива във вашата, зависи от машината.`,
           ]
         : []),
     ),
@@ -121,7 +121,7 @@ export const chooseBeans: Article = {
   body: ({ beans, formats, cupCost, landings }) => {
     /* From the shared helper, as in the cup-cost article: the number of cups
        a kilogram holds is the number the wizard would compute for the bag. */
-    const cupsPerKilogram = packServings("1000", "g")?.whole ?? null;
+    const cupsPerKilogram = packServings("1000", "g", "roasted")?.whole ?? null;
     const decaf = beans?.decaf ?? 0;
     const cheapest = landingHref("cheapest", landings);
 
@@ -204,7 +204,7 @@ export const chooseBeans: Article = {
       p(
         ...(cupsPerKilogram
           ? [
-              `При ${GRAMS_PER_SERVING} грама на чаша килограм зърна стига за около ${pluralize(cupsPerKilogram, "чаша", "чаши")}. `,
+              `При ${GRAMS_PER_SERVING.roasted} грама на чаша килограм зърна стига за около ${pluralize(cupsPerKilogram, "чаша", "чаши")}. `,
             ]
           : []),
         "Сметнете за колко време ще ви стигне пакетът, преди да изберете размера. Ако кафето е непознато, започнете с по-малка опаковка, когато има такава.",

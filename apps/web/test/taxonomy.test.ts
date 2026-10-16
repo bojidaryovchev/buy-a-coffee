@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { categoryCopy, categoryCopyFor } from "../content/category-copy";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
+import { sectionPathForCategory } from "@/lib/routes";
 
 interface ReferenceCategory {
   readonly name: string;
@@ -85,6 +86,15 @@ describe("category introductions", () => {
 
   it("covers every category in the reference snapshot", () => {
     for (const category of referenceCategories) {
+      /*
+       * A category that backs a business section never renders as a listing:
+       * it answers 308 to the section's page, whose copy is
+       * `content/vending.ts`. The source's vending section is one (16 October
+       * 2026).
+       */
+      if (sectionPathForCategory({ slug: category.rawSlug, sourceKey: category.sourceKey })) {
+        continue;
+      }
       expect(
         categoryCopyFor({ slug: category.rawSlug, sourceKey: category.sourceKey }),
         `no introduction for ${category.sourceKey}`,

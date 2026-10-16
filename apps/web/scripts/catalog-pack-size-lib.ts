@@ -25,6 +25,7 @@ import {
   parsePackSizeConflict,
   parseWeight,
   pricePerServing,
+  productKind,
   stripTrailingZeros,
 } from "@catalog/shared";
 
@@ -115,7 +116,7 @@ export function plannedPackColumns(name: string, packField: string | null): Pack
   const field = parseWeight(packField);
   const decision = decidePackSize(name, field);
   const size = decision.from === "name" ? decision.named : field;
-  const servings = packServings(size?.value ?? null, size?.unit ?? null);
+  const servings = packServings(size?.value ?? null, size?.unit ?? null, productKind(name));
   return {
     weight: decision.from === "name" ? decision.label : packField,
     weightValue: size?.value ?? null,
@@ -142,8 +143,11 @@ function sameColumns(stored: PackColumns, planned: PackColumns): boolean {
   );
 }
 
-const cupPrice = (price: string | null, columns: PackColumns): string | null =>
-  pricePerServing(price, packServings(plain(columns.weightValue), columns.weightUnit));
+const cupPrice = (name: string, price: string | null, columns: PackColumns): string | null =>
+  pricePerServing(
+    price,
+    packServings(plain(columns.weightValue), columns.weightUnit, productKind(name)),
+  );
 
 /**
  * Read every product and plan what the rule would change.
@@ -205,7 +209,10 @@ export async function planPackSizes(
       packField,
       stored,
       planned,
-      pricePerCup: { stored: cupPrice(row.price, stored), planned: cupPrice(row.price, planned) },
+      pricePerCup: {
+        stored: cupPrice(row.name, row.price, stored),
+        planned: cupPrice(row.name, row.price, planned),
+      },
     });
   }
   return { products: rows.length, changes, conflicts };

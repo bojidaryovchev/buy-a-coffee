@@ -43,6 +43,7 @@ const NBSP = " ";
 const plain = (text: string | null) => text?.replaceAll(NBSP, " ") ?? null;
 
 const row = (price: string | null, value: string | null, unit: string | null): CupRangeRow => ({
+  name: null,
   price,
   currency: "EUR",
   weightValue: value,

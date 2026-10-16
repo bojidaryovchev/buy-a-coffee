@@ -9,7 +9,7 @@
         "https://www.kafezona.com/dg-rema-caffe-intenso-16/",
         "https://www.kafezona.com/nespresso-molini-torino-10/"
       ],
-      "matchCount": 187,
+      "matchCount": 207,
       "notes": null,
       "pageType": "product",
       "pattern": "/{product-slug}/"
@@ -22,7 +22,7 @@
         "https://www.kafezona.com/bianchi/",
         "https://www.kafezona.com/vergnano/"
       ],
-      "matchCount": 23,
+      "matchCount": 25,
       "notes": null,
       "pageType": "brand",
       "pattern": "/{brand-slug}/"

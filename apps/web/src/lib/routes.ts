@@ -177,6 +177,40 @@ export interface CategoryKeys {
   readonly previousSourceKeys?: readonly string[];
 }
 
+/**
+ * The categories that back a business section, by source key or stored slug,
+ * and the section page each is published at instead of a listing of its own.
+ *
+ * Here rather than in `lib/catalog/business-sections.ts`, which reads it, so
+ * that `categoryHref` can follow it without an import cycle: every link to
+ * such a category — a product's breadcrumb and facts table, the typeahead —
+ * goes to the section's page in one hop, not to a slug that answers 308.
+ */
+export const SECTION_CATEGORY_KEYS = {
+  vending: ["vending-zona"],
+  consumables: ["konsumativi"],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+
+const SECTION_PATHS: Readonly<Record<keyof typeof SECTION_CATEGORY_KEYS, CanonicalPath>> = {
+  vending: routes.vending,
+  consumables: routes.consumables,
+};
+
+/** The section page a category is published at, or null for an ordinary category. */
+export function sectionPathForCategory(category: CategoryKeys): CanonicalPath | null {
+  for (const [id, keys] of Object.entries(SECTION_CATEGORY_KEYS) as Array<
+    [keyof typeof SECTION_CATEGORY_KEYS, readonly string[]]
+  >) {
+    if (
+      keys.includes(category.slug) ||
+      (category.sourceKey !== null && keys.includes(category.sourceKey))
+    ) {
+      return SECTION_PATHS[id];
+    }
+  }
+  return null;
+}
+
 /** Appended to a category's stored slug in the one case it would collide with a route. */
 const COLLISION_SUFFIX: Readonly<Record<Locale, string>> = { bg: "kategoriya", en: "category" };
 
@@ -216,6 +250,8 @@ export function categorySlug(locale: Locale, category: CategoryKeys): string {
 }
 
 export function categoryHref(locale: Locale, category: CategoryKeys, query = ""): string {
+  const section = sectionPathForCategory(category);
+  if (section) return href(locale, `${section}${query}`);
   return href(locale, `/${categorySlug(locale, category)}${query}`);
 }
 

@@ -172,16 +172,23 @@ interface BrandNaming {
 export function brandFormatWords(
   brand: BrandNaming,
   systems: readonly Pick<BrewingSystem, "method">[],
+  instant = false,
 ): readonly string[] {
   const owned = brandFactsFor(brand).formatPages ?? [];
   const stocked = FORMAT_ORDER.filter((method) =>
     systems.some((system) => system.method === method),
   );
   return [
-    ...stocked.filter((method) => !owned.includes(method)),
-    ...stocked.filter((method) => owned.includes(method)),
-  ].map((method) => FORMAT_WORD[method]);
+    ...stocked.filter((method) => !owned.includes(method)).map((method) => FORMAT_WORD[method]),
+    // Instant coffee belongs to no system and has no page of its own; after
+    // „Кафе <Brand>:“ the adjective alone reads as the format it is.
+    ...(instant ? [INSTANT_WORD] : []),
+    ...stocked.filter((method) => owned.includes(method)).map((method) => FORMAT_WORD[method]),
+  ];
 }
+
+/** How a title names instant coffee after „Кафе <Brand>:“. */
+const INSTANT_WORD = "разтворимо";
 
 /** „Кафе Bianchi (Бианчи)“: both alphabets where the Cyrillic one is typed. */
 function brandLabel(brand: BrandNaming): string {
@@ -200,8 +207,9 @@ const PER_CUP_TAIL = " — цена на чаша";
 export function brandTitle(
   brand: BrandNaming,
   systems: readonly Pick<BrewingSystem, "method">[],
+  instant = false,
 ): string {
-  const formats = brandFormatWords(brand, systems);
+  const formats = brandFormatWords(brand, systems, instant);
   if (formats.length === 0) return brandLabel(brand);
   const title = `${brandLabel(brand)}: ${listOf(formats)}`;
   // A one-format brand makes a very short title; the per-cup price is what
@@ -213,20 +221,23 @@ export function brandTitle(
 export function brandDescriptionLead(
   brand: BrandNaming,
   systems: readonly Pick<BrewingSystem, "method">[],
+  instant = false,
 ): string {
-  const formats = brandFormatWords(brand, systems);
+  const formats = brandFormatWords(brand, systems, instant);
   return formats.length === 0 ? `Кафе ${brand.name}` : `Кафе ${brand.name}: ${listOf(formats)}`;
 }
 
 /**
  * What a brand makes, for its tile on the brand index: „зърна, дози, капсули
  * за Nespresso и Dolce Gusto“. Capsules are named with their systems, because
- * „капсули“ alone does not tell anyone whether they fit.
+ * „капсули“ alone does not tell anyone whether they fit. `instant` adds
+ * „разтворимо кафе“, which belongs to no system.
  */
-export function brandMakes(systems: readonly BrewingSystem[]): string | null {
+export function brandMakes(systems: readonly BrewingSystem[], instant = false): string | null {
   const parts: string[] = [];
   if (systems.some((system) => system.method === "beans")) parts.push("зърна");
   if (systems.some((system) => system.method === "pod")) parts.push("дози ESE");
+  if (instant) parts.push("разтворимо кафе");
   const capsules = systems.filter((system) => system.method === "capsule");
   if (capsules.length > 0) parts.push(`капсули за ${listOf(capsules.map((s) => s.name))}`);
   return parts.length > 0 ? parts.join(", ") : null;
@@ -252,5 +263,5 @@ export function brandsIndexIntro(brands: readonly BrandNaming[]): string | null 
         : `В момента предлагаме ${count}. Сред тях ${
             italian.length === 1 ? "е италианската" : "са италианските"
           } ${listOf(italian)}.`;
-  return `${first} Под всяка марка пише какво имаме от нея: зърна, дози или капсули, и за коя система са.`;
+  return `${first} Под всяка марка пише какво имаме от нея, а при капсулите — и за коя система са.`;
 }

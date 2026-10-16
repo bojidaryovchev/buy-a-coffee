@@ -260,6 +260,26 @@
     }
   },
   {
+    "sourceKey": "/bianchi-200/#200g",
+    "sourceName": "Разтворимо кафе Bianchi 0.200кг.",
+    "brand": {
+      "sourceKey": "bianchi",
+      "name": "BIANCHI"
+    },
+    "categoryKeys": ["vending-zona"],
+    "packValue": "200",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Bianchi",
+      "line": "",
+      "detail": "Разтворимо кафе, 200 г",
+      "full": "Bianchi — разтворимо кафе, 200 г",
+      "slug": "bianchi-raztvorimo-kafe-200-g"
+    }
+  },
+  {
     "sourceKey": "/bianchi-decaf-100/#100pc",
     "sourceName": "Дозети Bianchi Decaf 100бр.",
     "brand": {
@@ -1700,6 +1720,126 @@
     }
   },
   {
+    "sourceKey": "/excelsior-emerald-1/#1000g",
+    "sourceName": "Кафе на зърна Excelsior Emerald 1кг.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Emerald",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Excelsior Emerald — кафе на зърна, 1 кг",
+      "slug": "excelsior-emerald-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/excelsior-extra-mild-1/#1000g",
+    "sourceName": "Кафе на зърна Excelsior Extra Mild 1кг.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Extra Mild",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Excelsior Extra Mild — кафе на зърна, 1 кг",
+      "slug": "excelsior-extra-mild-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/excelsior-gold-1/#1000g",
+    "sourceName": "Кафе на зърна Excelsior Gold 1кг.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Gold",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Excelsior Gold — кафе на зърна, 1 кг",
+      "slug": "excelsior-gold-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/excelsior-gold/#150pc",
+    "sourceName": "Дозети Excelsior Porto Rico 150бр.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "150",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Porto Rico",
+      "detail": "Кафе дози ESE, 150 бр.",
+      "full": "Excelsior Porto Rico — кафе дози ESE, 150 бр.",
+      "slug": "excelsior-porto-rico-kafe-dozi-150-br"
+    }
+  },
+  {
+    "sourceKey": "/excelsior-rubin-1/#1000g",
+    "sourceName": "Кафе на зърна Excelsior Rubin 1кг.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Rubin",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Excelsior Rubin — кафе на зърна, 1 кг",
+      "slug": "excelsior-rubin-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/excelsior-sapphire-1/#1000g",
+    "sourceName": "Кафе на зърна Excelsior Sapphire 1кг.",
+    "brand": {
+      "sourceKey": "excelsior",
+      "name": "Excelsior"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Excelsior",
+      "line": "Sapphire",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Excelsior Sapphire — кафе на зърна, 1 кг",
+      "slug": "excelsior-sapphire-kafe-na-zarna-1-kg"
+    }
+  },
+  {
     "sourceKey": "/illy-classico-10/#10pc",
     "sourceName": "Капсули Nespresso Illy Classico 10бр.",
     "brand": {
@@ -2680,6 +2820,186 @@
     }
   },
   {
+    "sourceKey": "/moreno-aroma-blue-50/#50pc",
+    "sourceName": "Дозети Moreno Aroma Blue 50 бр.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Aroma Blue",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Moreno Aroma Blue — кафе дози ESE, 50 бр.",
+      "slug": "moreno-aroma-blue-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/moreno-aroma-espresso-30/#30pc",
+    "sourceName": "Дозети Moreno Aroma Espresso 30бр.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "30",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Aroma Espresso",
+      "detail": "Кафе дози ESE, 30 бр.",
+      "full": "Moreno Aroma Espresso — кафе дози ESE, 30 бр.",
+      "slug": "moreno-aroma-espresso-kafe-dozi-30-br"
+    }
+  },
+  {
+    "sourceKey": "/moreno-aroma-top-50/#50pc",
+    "sourceName": "Дозети Moreno Aroma Top 50 бр.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-dozi"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Aroma Top",
+      "detail": "Кафе дози ESE, 50 бр.",
+      "full": "Moreno Aroma Top — кафе дози ESE, 50 бр.",
+      "slug": "moreno-aroma-top-kafe-dozi-50-br"
+    }
+  },
+  {
+    "sourceKey": "/moreno-dg-aroma-blue-50/#50pc",
+    "sourceName": "Капсули DG Moreno Aroma Blue 50бр.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Aroma Blue",
+      "detail": "Капсули за Dolce Gusto, 50 бр.",
+      "full": "Moreno Aroma Blue — капсули за Dolce Gusto, 50 бр.",
+      "slug": "moreno-aroma-blue-kapsuli-dolce-gusto-50-br"
+    }
+  },
+  {
+    "sourceKey": "/moreno-dg-aroma-espresso-50/#50pc",
+    "sourceName": "Капсули DG Moreno Aroma Espresso 50бр.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["dolce-gusto"],
+    "packValue": "50",
+    "packUnit": "pc",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Aroma Espresso",
+      "detail": "Капсули за Dolce Gusto, 50 бр.",
+      "full": "Moreno Aroma Espresso — капсули за Dolce Gusto, 50 бр.",
+      "slug": "moreno-aroma-espresso-kapsuli-dolce-gusto-50-br"
+    }
+  },
+  {
+    "sourceKey": "/moreno-extra-bar-1/#1000g",
+    "sourceName": "Кафе на зърна Moreno Extra Bar 1кг.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Extra Bar",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Moreno Extra Bar — кафе на зърна, 1 кг",
+      "slug": "moreno-extra-bar-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/moreno-super-bar-1/#1000g",
+    "sourceName": "Кафе на зърна Moreno Espresso Bar 1кг.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Espresso Bar",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Moreno Espresso Bar — кафе на зърна, 1 кг",
+      "slug": "moreno-espresso-bar-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/moreno-vending-1/#1000g",
+    "sourceName": "Кафе на зърна Moreno Vending 1кг.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Vending",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Moreno Vending — кафе на зърна, 1 кг",
+      "slug": "moreno-vending-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/moreno-vending-premium-1/#1000g",
+    "sourceName": "Кафе на зърна Moreno Vending Premium 1кг.",
+    "brand": {
+      "sourceKey": "cafe-moreno",
+      "name": "MORENO"
+    },
+    "categoryKeys": ["kafe-na-zyrna"],
+    "packValue": "1000",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Moreno",
+      "line": "Vending Premium",
+      "detail": "Кафе на зърна, 1 кг",
+      "full": "Moreno Vending Premium — кафе на зърна, 1 кг",
+      "slug": "moreno-vending-premium-kafe-na-zarna-1-kg"
+    }
+  },
+  {
     "sourceKey": "/nespresso-bianchi-arte-classico-10/#10pc",
     "sourceName": "Капсули Nespresso Bianchi Caffè Arte Classico 10 бр.",
     "brand": {
@@ -3540,6 +3860,66 @@
     }
   },
   {
+    "sourceKey": "/ristora-gold-200/#200g",
+    "sourceName": "Разтворимо кафе Ristora Gold 0.200кг.",
+    "brand": {
+      "sourceKey": "ristora",
+      "name": "Ristora"
+    },
+    "categoryKeys": ["vending-zona"],
+    "packValue": "200",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Ristora",
+      "line": "Gold",
+      "detail": "Разтворимо кафе, 200 г",
+      "full": "Ristora Gold — разтворимо кафе, 200 г",
+      "slug": "ristora-gold-raztvorimo-kafe-200-g"
+    }
+  },
+  {
+    "sourceKey": "/ristora-green-200/#200g",
+    "sourceName": "Разтворимо кафе Ristora Green 0.200кг.",
+    "brand": {
+      "sourceKey": "ristora",
+      "name": "Ristora"
+    },
+    "categoryKeys": ["vending-zona"],
+    "packValue": "200",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Ristora",
+      "line": "Green",
+      "detail": "Разтворимо кафе, 200 г",
+      "full": "Ristora Green — разтворимо кафе, 200 г",
+      "slug": "ristora-green-raztvorimo-kafe-200-g"
+    }
+  },
+  {
+    "sourceKey": "/ristora-red-200/#200g",
+    "sourceName": "Разтворимо кафе Ristora Red 0.200кг.",
+    "brand": {
+      "sourceKey": "ristora",
+      "name": "Ristora"
+    },
+    "categoryKeys": ["vending-zona"],
+    "packValue": "200",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Ristora",
+      "line": "Red",
+      "detail": "Разтворимо кафе, 200 г",
+      "full": "Ristora Red — разтворимо кафе, 200 г",
+      "slug": "ristora-red-raztvorimo-kafe-200-g"
+    }
+  },
+  {
     "sourceKey": "/tezzoro-espresso-classic-1/#1000g",
     "sourceName": "Кафе на зърна Tezzoro Espresso Classic 1кг.",
     "brand": null,
@@ -3674,6 +4054,26 @@
       "detail": "Кафе на зърна, 1 кг",
       "full": "Vandino Espresso Club — кафе на зърна, 1 кг",
       "slug": "vandino-espresso-club-kafe-na-zarna-1-kg"
+    }
+  },
+  {
+    "sourceKey": "/vandino-supreme-500/#500g",
+    "sourceName": "Разтворимо кафе Vandino Supreme 0.500кг.",
+    "brand": {
+      "sourceKey": "vandino",
+      "name": "VANDINO"
+    },
+    "categoryKeys": ["vending-zona"],
+    "packValue": "500",
+    "packUnit": "g",
+    "wave": "16-october",
+    "formerSlug": null,
+    "expected": {
+      "brand": "Vandino",
+      "line": "Supreme",
+      "detail": "Разтворимо кафе, 500 г",
+      "full": "Vandino Supreme — разтворимо кафе, 500 г",
+      "slug": "vandino-supreme-raztvorimo-kafe-500-g"
     }
   },
   {

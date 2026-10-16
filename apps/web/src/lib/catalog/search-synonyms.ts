@@ -61,6 +61,9 @@ export const BRAND_SYNONYMS: readonly SynonymGroup[] = [
   { canonical: "caffitaly", spellings: [...machineAliases("caffitaly"), "кафи тали"] },
   { canonical: "vandino", spellings: ["вандино"] },
   { canonical: "3 bourbons", spellings: ["3 бурбонс", "3 бурбон", "три бурбонс", "три бурбона"] },
+  { canonical: "moreno", spellings: ["морено", "кафе морено"] },
+  { canonical: "excelsior", spellings: ["екселсиор", "ексцелсиор", "екселсиър"] },
+  { canonical: "ristora", spellings: ["ристора"] },
 ];
 
 export const SYSTEM_SYNONYMS: readonly SynonymGroup[] = [
@@ -83,7 +86,24 @@ export const SYSTEM_SYNONYMS: readonly SynonymGroup[] = [
   { canonical: "дози", spellings: ["ese", "доза", "кафе доза"] },
 ];
 
-export const SEARCH_SYNONYMS: readonly SynonymGroup[] = [...BRAND_SYNONYMS, ...SYSTEM_SYNONYMS];
+/**
+ * Kinds of coffee that are not a system. Instant coffee is „разтворимо кафе“
+ * in every product name the supplier writes, and „инстантно кафе“ is the other
+ * thing Bulgarians call it: measured on 16 October 2026 at 260 searches a
+ * month each (`docs/seo.md` §18).
+ */
+export const KIND_SYNONYMS: readonly SynonymGroup[] = [
+  {
+    canonical: "разтворимо кафе",
+    spellings: ["инстантно кафе", "инстантно", "инстант кафе", "instant coffee"],
+  },
+];
+
+export const SEARCH_SYNONYMS: readonly SynonymGroup[] = [
+  ...BRAND_SYNONYMS,
+  ...SYSTEM_SYNONYMS,
+  ...KIND_SYNONYMS,
+];
 
 /* ------------------------------------------------------------------------ */
 

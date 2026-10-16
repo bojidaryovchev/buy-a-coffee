@@ -6,6 +6,7 @@ import {
   rescale,
   stripTrailingZeros,
 } from "./decimal.ts";
+import type { ProductKind } from "./product-kind.ts";
 
 /**
  * Servings per pack, and price per serving.
@@ -28,14 +29,29 @@ import {
  */
 
 /**
- * Grams of coffee in one serving.
+ * Grams of coffee in one serving, by kind of product.
  *
- * The Italian espresso convention, and what the bean packs in this catalog are
- * sold against. It is deliberately a single constant rather than a per-product
- * field: the source publishes nothing about dose, so a per-product value would
- * be invented precision.
+ * **The one place a dose is decided.** The sync stores servings from it, every
+ * read-time `packServings` divides by it, and every sentence that tells a
+ * customer what a per-cup figure assumes prints it; asking for a dose without
+ * saying which kind of coffee it is for is a type error.
+ *
+ *  - **Roasted coffee, 7 g.** The Italian espresso convention, and what the
+ *    bean packs in this catalog are sold against.
+ *  - **Instant coffee, 2 g.** About a teaspoon, the dose instant coffee is
+ *    commonly measured at: a 200 g tin makes about a hundred cups. At the
+ *    beans' 7 g it would be counted as 28 and priced about four times too dear
+ *    per cup.
+ *
+ * Deliberately a constant per kind rather than a per-product field: the source
+ * publishes nothing about dose, so a per-product value would be invented
+ * precision. Either figure is an assumption, which is why anything counted
+ * from weight is `estimated` and printed with "≈".
  */
-export const GRAMS_PER_SERVING = 7;
+export const GRAMS_PER_SERVING: Readonly<Record<ProductKind, number>> = {
+  roasted: 7,
+  instant: 2,
+};
 
 /** Fraction digits kept on a per-serving price. */
 export const SERVING_PRICE_SCALE = 4;
@@ -50,12 +66,16 @@ export interface PackServings {
    * than read from an explicit piece count. Display must say so.
    */
   readonly estimated: boolean;
+  /**
+   * The dose the count assumed, for the sentence that says so: grams of this
+   * kind of coffee per cup. Null for a piece count, which assumes nothing.
+   */
+  readonly gramsPerServing: number | null;
 }
 
-const SERVING_DIVISOR: Decimal = parseDecimal(String(GRAMS_PER_SERVING));
-
 /**
- * Servings in a pack, from the normalised weight columns.
+ * Servings in a pack, from the normalised weight columns and the kind of
+ * coffee in it (`productKind()` of the supplier's name).
  *
  * Returns null for a pack we cannot reason about — no size, a zero size, or a
  * unit that is not coffee by piece or by weight — rather than guessing.
@@ -63,6 +83,7 @@ const SERVING_DIVISOR: Decimal = parseDecimal(String(GRAMS_PER_SERVING));
 export function packServings(
   weightValue: string | null | undefined,
   weightUnit: string | null | undefined,
+  kind: ProductKind,
 ): PackServings | null {
   if (!weightValue || !weightUnit) return null;
 
@@ -77,14 +98,25 @@ export function packServings(
   if (weightUnit === "pc") {
     const whole = Number(rescale(quantity, 0).unscaled);
     if (!Number.isSafeInteger(whole) || whole <= 0) return null;
-    return { exact: stripTrailingZeros(formatDecimal(quantity)), whole, estimated: false };
+    return {
+      exact: stripTrailingZeros(formatDecimal(quantity)),
+      whole,
+      estimated: false,
+      gramsPerServing: null,
+    };
   }
 
   if (weightUnit === "g") {
-    const servings = divideDecimal(quantity, SERVING_DIVISOR, SERVING_PRICE_SCALE);
+    const grams = GRAMS_PER_SERVING[kind];
+    const servings = divideDecimal(quantity, parseDecimal(String(grams)), SERVING_PRICE_SCALE);
     const whole = Math.floor(Number(formatDecimal(servings)));
     if (!Number.isFinite(whole) || whole <= 0) return null;
-    return { exact: stripTrailingZeros(formatDecimal(servings)), whole, estimated: true };
+    return {
+      exact: stripTrailingZeros(formatDecimal(servings)),
+      whole,
+      estimated: true,
+      gramsPerServing: grams,
+    };
   }
 
   // Millilitres are a syrup or a bottle, not a number of coffees.

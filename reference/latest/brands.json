@@ -29,7 +29,7 @@
     },
     {
       "name": "BIANCHI",
-      "productCount": 18,
+      "productCount": 19,
       "rawSlug": "bianchi",
       "slug": "bianchi",
       "sourceId": "640",
@@ -44,6 +44,15 @@
       "sourceId": "643",
       "sourceKey": "borbone",
       "url": "https://www.kafezona.com/borbone/"
+    },
+    {
+      "name": "MORENO",
+      "productCount": 10,
+      "rawSlug": "cafe-moreno",
+      "slug": "moreno",
+      "sourceId": "783",
+      "sourceKey": "cafe-moreno",
+      "url": "https://www.kafezona.com/cafe-moreno/"
     },
     {
       "name": "CAFFITALY",
@@ -80,6 +89,15 @@
       "sourceId": "635",
       "sourceKey": "eurocaf",
       "url": "https://www.kafezona.com/eurocaf/"
+    },
+    {
+      "name": "Excelsior",
+      "productCount": 7,
+      "rawSlug": "excelsior",
+      "slug": "excelsior",
+      "sourceId": "872",
+      "sourceKey": "excelsior",
+      "url": "https://www.kafezona.com/excelsior/"
     },
     {
       "name": "FoodNess",
@@ -154,6 +172,15 @@
       "url": "https://www.kafezona.com/rema-caffe/"
     },
     {
+      "name": "Ristora",
+      "productCount": 3,
+      "rawSlug": "ristora",
+      "slug": "ristora",
+      "sourceId": "891",
+      "sourceKey": "ristora",
+      "url": "https://www.kafezona.com/ristora/"
+    },
+    {
       "name": "TEZZORO",
       "productCount": 3,
       "rawSlug": "tezzoro",
@@ -164,7 +191,7 @@
     },
     {
       "name": "VANDINO",
-      "productCount": 3,
+      "productCount": 4,
       "rawSlug": "vandino",
       "slug": "vandino",
       "sourceId": "782",
@@ -181,7 +208,7 @@
       "url": "https://www.kafezona.com/vergnano/"
     }
   ],
-  "count": 20,
+  "count": 23,
   "description": "Brands that carry products. `rawSlug` preserves the source slug verbatim, including a leading space on one real brand. `slug` is the storefront's own identifier for the brand, allocated at first sync and frozen; it is null for a brand that has not been synced yet.",
   "schemaVersion": "1.0.0"
 }

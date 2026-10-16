@@ -5,6 +5,7 @@ import {
   type Logger,
   type ProductNameInput,
   packServings,
+  productKind,
   productName,
   productSearchName,
   silentLogger,
@@ -748,7 +749,12 @@ function productColumns(input: {
 }) {
   const { product } = input;
   // Stored so a listing can sort by price per cup; see the column comment.
-  const servings = packServings(product.weight?.value ?? null, product.weight?.unit ?? null);
+  // The dose depends on the kind of coffee, which the name says.
+  const servings = packServings(
+    product.weight?.value ?? null,
+    product.weight?.unit ?? null,
+    productKind(product.name),
+  );
   return {
     hasUrlCollision: product.hasUrlCollision,
     name: product.name,
