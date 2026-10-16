@@ -22,7 +22,12 @@ import { BusinessSectionView } from "@/app/(site)/[lang]/_components/business-se
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import type { ProductCardView, ProductListResult } from "@/lib/catalog/types";
 import type { SectionListing } from "@/lib/catalog/vending";
-import { consumablesCopy, vendingCopy, type BusinessSectionCopy } from "../content/vending";
+import {
+  consumablesCopy,
+  vendingCopy,
+  vendingMeta,
+  type BusinessSectionCopy,
+} from "../content/vending";
 
 /**
  * The two business pages, rendered to HTML without a database.
@@ -149,6 +154,58 @@ describe("vending page", () => {
     // Sorting and filtering stay on this page rather than leaving for the category.
     expect(html).toContain('action="/bg/kafe-za-vending-mashini"');
     expectSoundOutline(html);
+  });
+});
+
+describe("vending page with instant coffee in its category", () => {
+  const tins = (instant: number, products: number): SectionListing => ({
+    ...listing([product({ id: "p-3", slug: "a-tin", name: "A tin" })]),
+    contents: { products, instant, instantPacks: ["200 г", "500 г"] },
+  });
+
+  it("calls the listing what it is, and states the packs and the dose", () => {
+    const html = render({
+      copy: vendingCopy,
+      path: "/kafe-za-vending-mashini",
+      listing: tins(5, 5),
+    });
+    expect(html).toContain(">Разтворимо кафе<");
+    expect(html).not.toContain(vendingCopy.listing.heading);
+    expect(html).toContain(
+      "Опаковките са от 200 г и 500 г. Цената на чаша е приблизителна и е отбелязана с „≈“: смятаме по 2 г разтворимо кафе на чаша.",
+    );
+    expectSoundOutline(html);
+  });
+
+  it("keeps the section's own heading while the category holds something else too", () => {
+    const html = render({
+      copy: vendingCopy,
+      path: "/kafe-za-vending-mashini",
+      listing: tins(5, 7),
+    });
+    expect(html).toContain(vendingCopy.listing.heading);
+    expect(html).toContain("смятаме по 2 г разтворимо кафе на чаша");
+  });
+
+  it("says nothing about instant coffee when the category holds none", () => {
+    const html = render({
+      copy: vendingCopy,
+      path: "/kafe-za-vending-mashini",
+      listing: { ...listing([product()]), contents: { products: 1, instant: 0, instantPacks: [] } },
+    });
+    expect(html).toContain(vendingCopy.listing.heading);
+    expect(html).not.toContain("разтворимо");
+  });
+
+  it("is titled and described by what it lists", () => {
+    expect(vendingMeta({ beans: true, instant: false }).title).toBe(vendingCopy.metaTitle);
+    expect(vendingMeta({ beans: true, instant: true })).toEqual({
+      title: "Кафе за вендинг машини и автомати — на зърна и разтворимо",
+      description: "Кафе на зърна и разтворимо кафе за вендинг машини и автомати",
+    });
+    expect(vendingMeta({ beans: false, instant: true }).title).toBe(
+      "Разтворимо кафе за вендинг машини и автомати",
+    );
   });
 });
 

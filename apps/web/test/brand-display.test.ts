@@ -149,6 +149,18 @@ describe("brand summary", () => {
     expect(composeBrandSummary("Kimbo", [])).toBeNull();
   });
 
+  it("instant coffee, alone and beside the rest", () => {
+    expect(composeBrandSummary("Ristora", [], true)).toEqual({
+      sentence: "От Ristora предлагаме разтворимо кафе.",
+      capsuleNote: null,
+    });
+    expect(
+      composeBrandSummary("Bianchi", systems("ese-pod", "nespresso-original"), true)?.sentence,
+    ).toBe(
+      "От Bianchi предлагаме хартиени дози ESE и разтворимо кафе, както и капсули за Nespresso Original.",
+    );
+  });
+
   it("beans only", () => {
     expect(composeBrandSummary("illy", systems("beans"))).toEqual({
       sentence: "От illy предлагаме кафе на зърна.",

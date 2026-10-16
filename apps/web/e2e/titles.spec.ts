@@ -86,13 +86,15 @@ const LISTINGS: ReadonlyArray<{
   },
   {
     path: BG.brand("bianchi"),
-    title: "Кафе Bianchi (Бианчи): капсули и дози",
+    // Instant coffee is a format the brand is stocked in, though in no system.
+    title: "Кафе Bianchi (Бианчи): капсули, дози и разтворимо",
     h1: "Bianchi",
     trail: ["Начало", "Марки кафе", "Bianchi"],
   },
   {
     path: BG.vending,
-    title: "Кафе за вендинг машини и автомати — смеси на зърна",
+    // Bean blends named Vending, and the instant coffee the source files there.
+    title: "Кафе за вендинг машини и автомати — на зърна и разтворимо",
     h1: "Кафе за вендинг машини",
     trail: ["Начало", "Кафе за вендинг машини"],
   },

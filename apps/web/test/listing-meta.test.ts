@@ -243,6 +243,25 @@ describe("brand titles", () => {
     expect(brandDescriptionLead(amann!, amann!.systems)).toBe("Кафе Amann: зърна");
   });
 
+  it("names instant coffee as a format though it is in no system", () => {
+    const [, bianchi] = BRAND_FIXTURES;
+    expect(brandTitle(bianchi!, bianchi!.systems, true)).toBe(
+      "Кафе Bianchi (Бианчи): капсули, дози и разтворимо",
+    );
+    // A brand that makes nothing else: Ristora, since 16 October.
+    const ristora = { slug: "ristora", name: "Ristora" };
+    expect(brandTitle(ristora, [], true)).toBe("Кафе Ristora: разтворимо — цена на чаша");
+    expect(brandDescriptionLead(ristora, [], true)).toBe("Кафе Ristora: разтворимо");
+    // Lavazza's own-page formats still go last, after it.
+    const [lavazza] = BRAND_FIXTURES;
+    expect(brandFormatWords(lavazza!, lavazza!.systems, true)).toEqual([
+      "дози",
+      "разтворимо",
+      "зърна",
+      "капсули",
+    ]);
+  });
+
   it("names a brand with nothing in stock and no more", () => {
     expect(brandTitle({ slug: "kimbo", name: "Kimbo" }, [])).toBe("Кафе Kimbo (Кимбо)");
     expect(brandDescriptionLead({ slug: "new", name: "New" }, [])).toBe("Кафе New");
@@ -304,6 +323,10 @@ describe("the brand index", () => {
       "капсули за Nespresso Original и Dolce Gusto",
     );
     expect(brandMakes([])).toBeNull();
+    expect(brandMakes([], true)).toBe("разтворимо кафе");
+    expect(brandMakes(systems("ese-pod", "dolce-gusto"), true)).toBe(
+      "дози ESE, разтворимо кафе, капсули за Dolce Gusto",
+    );
   });
 });
 

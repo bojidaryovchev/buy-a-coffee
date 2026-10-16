@@ -9,7 +9,7 @@
  * a `kapsuli` category, a `lavazza` brand, product photographs, brewing
  * systems with products in them — and CI can neither crawl the source nor
  * reach the real database. `reference/latest/` is the one offline copy of that
- * catalog (the October crawl: 187 products, 20 brands, 8 categories), already
+ * catalog (the 16 October crawl: 207 products, 23 brands, 9 categories), already
  * committed. This loads it through the real schema, so the storefront sees
  * what it would see after a sync — including our own slugs, which the
  * snapshot carries for products, categories and brands alike. They are not

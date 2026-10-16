@@ -49,7 +49,8 @@ export const configSchema = z.object({
    *    A product page that failed is offered again after 24 hours, not on the
    *    next run, so a dead URL costs one request a day.
    *  - backfill (`catalog:enrich --apply`, run once): robots.txt, the probe
-   *    and one page per active product without a code, 2 + 187 = 189. It does
+   *    and one page per active product without a code: 2 + 207 = 209 for a
+   *    catalog that has none, as the 207 of 16 October would. It does
    *    not read /search/. `--limit` bounds it.
    *  - ceiling: `maxPages` below bounds a discovery crawl. A sync does not
    *    crawl, so it is never the limit that applies to it.
@@ -62,7 +63,7 @@ export const configSchema = z.object({
    * Spacing: `minDelayMs` is enforced across all workers together, so
    * `concurrency` shortens latency without raising the request rate. Product
    * pages are read one at a time, so the backfill takes at least
-   * 189 x 100 ms, about 19 seconds, and in practice 187 x the source's
+   * 209 x 100 ms, about 21 seconds, and in practice 207 x the source's
    * response time. Image mirroring has its own, separate spacing
    * (`imageMinDelayMs`).
    */

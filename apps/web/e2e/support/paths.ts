@@ -45,6 +45,19 @@ export const BG = {
 } as const;
 
 /**
+ * The five instant coffees of the 16 October snapshot, at the addresses the
+ * name model gives them and the written copy is keyed by. Literal for the same
+ * reason as `BG`.
+ */
+export const INSTANT_COFFEE = [
+  "/bg/bianchi-raztvorimo-kafe-200-g",
+  "/bg/ristora-gold-raztvorimo-kafe-200-g",
+  "/bg/ristora-green-raztvorimo-kafe-200-g",
+  "/bg/ristora-red-raztvorimo-kafe-200-g",
+  "/bg/vandino-supreme-raztvorimo-kafe-500-g",
+] as const;
+
+/**
  * A product card's link. Products and categories share the first level under
  * the locale, so a product link is told apart by where it sits — every
  * product card is an `<article>` — rather than by its prefix.

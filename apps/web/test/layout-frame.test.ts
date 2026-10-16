@@ -574,6 +574,15 @@ describe("llms.txt", () => {
     expect(llmsText({ ...input(UNSET), articles: [] })).not.toContain("## Блог");
   });
 
+  it("names instant coffee among the formats only while the catalog has some", () => {
+    expect(llmsText(input(UNSET))).toContain(
+      "- Продават се кафе на зърна, капсули и дози (доза-в-опаковка).",
+    );
+    expect(llmsText({ ...input(UNSET), hasInstantCoffee: true })).toContain(
+      "- Продават се кафе на зърна, капсули, дози (доза-в-опаковка) и разтворимо кафе.",
+    );
+  });
+
   it("links promotions only while a reduction exists", () => {
     const promotions = `(${absoluteUrl("/bg/promotsii")})`;
     expect(llmsText(input(UNSET))).not.toContain(promotions);
