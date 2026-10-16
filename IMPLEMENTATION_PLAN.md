@@ -141,12 +141,18 @@ steps H6 uses: 187 moved there (production will move 110, because the sync
 creates its 77 new products at their final address), copy matched for 187 of
 187, and a second run changed nothing.
 
-**Where `completion` stands:** 137 commits ahead of `main`, nothing pushed.
-`format:check`, `typecheck` and `lint` are clean; 2,637 unit, 350
-integration and 748 browser tests pass (desktop and mobile, `CI=true`, against
-a production build seeded exactly as CI seeds it); `check:originality` and
-`reference:coverage` pass; `check:launch` fails by design with the business's
-eight open questions. Everything left is in Phase H.
+**16 October.** A fresh crawl of the source found 20 new products (187 → 207),
+three new brands and the first products in its vending section, five of them
+instant coffee. The snapshot, the code, our copy and the logos caught up the
+same day ([J8](#phase-j--bulgarian-urls-brand-logos-and-search-demand)); the
+local catalog was synced with the steps H6 uses and matches the source.
+
+**Where `completion` stands:** 155 commits ahead of `main`, pushed to GitHub,
+where CI passes; `main` is untouched. `format:check`, `typecheck` and `lint` are
+clean; 2,682 unit, 356 integration and 768 browser tests pass (desktop and
+mobile, `CI=true`, against a production build seeded exactly as CI seeds it);
+`check:originality` and `reference:coverage` pass; `check:launch` fails by
+design with the business's eight open questions. Everything left is in Phase H.
 
 Things the first wave found that this plan did not anticipate are marked
 **Found** where they apply.
@@ -771,11 +777,11 @@ passes.
       the source's owner for the catalog use, and the contact address for the
       crawler's user agent. Someone holding real A Modo Mio, Caffitaly and
       Lavazza Blue capsules compares them with the drawings on
-      `/bg/za-kafemashina`. From Phase J: logo files for 3 Bourbons, Este,
-      Eurocaf and Molini, which the source's owner may be able to ask those
-      brands for; which of Eurocaf, Molini, Este, 3 Bourbons and Tezzoro are
-      Italian; and a word to the source about the illy tin it lists as 100
-      pods.
+      `/bg/za-kafemashina`. From Phase J: logo files for Molini (its owner is
+      Rema Caffè, Plovdiv), Eurocaf (the source knows who supplies it) and
+      Excelsior (a transparent file of its plain lockup, from Caffè
+      Excelsior); and a word to the source about the illy tin it still lists
+      as 100 pods.
 - [ ] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.
 - [ ] **H3 · Databases** — create a database branch for previews and point the
@@ -795,19 +801,21 @@ passes.
       HTML rather than a warm cache: photos load, no draft marker, function
       region is Frankfurt.
 - [ ] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
-      production; the numbers must match the rehearsal (86 moved, 79 created, 2
-      missing, 0 unresolved; 5 brands created, 1 brand and 1 category renamed).
+      production; the numbers must match the rehearsal (86 moved, 99 created, 2
+      missing, 0 unresolved; 8 brands created, 1 category created (the vending
+      section), 1 brand and 1 category renamed). Re-run the rehearsal first if
+      the source has changed since 16 October.
       Link the two renamed-and-retitled products with
       `pnpm catalog:link <slug> <new-key> --apply` (the dry run names both; in
       Git Bash prefix the command with `MSYS_NO_PATHCONV=1`, or the leading `/`
-      of the key is rewritten). Then the real run — expect 187 products, 77
+      of the key is rewritten). Then the real run — expect 207 products, 97
       created, 0 missing — followed by `pnpm catalog:verify` and
       `pnpm catalog:enrich --apply`. Then move the old addresses:
       `pnpm --filter @catalog/web catalog:reslug --tsv <file>` and read the
-      plan (110 to move: the 77 new products were created at their final
+      plan (110 to move: the 97 new products were created at their final
       address), then `--apply`, and once more without it (0 to move). Every
       old address answers 308 from then on. Then `pnpm copy:apply`, which is
-      keyed by the new addresses (187 matched, none orphaned; it also writes
+      keyed by the new addresses (207 matched, none orphaned; it also writes
       the 31 stale bodies), a second sync that must change nothing, and a
       hand comparison of ten products against the source. Check the admin's
       sync page: it should list one pack-size conflict, the illy tin, shown
@@ -881,12 +889,16 @@ content only.
     and `Brand.logo` in structured data. Files from the brand's own site, never
     recoloured, each checked against the mark on our packshots, with the
     provenance kept in `content/brand-logo-provenance.ts`.
-  - **Found.** 16 of 20 brands have a usable file; three (Lollo Caffè, Rema
-    Caffè, Vandino) publish only a light logo and sit on a dark tile. None was
-    found for 3 Bourbons, Este, Eurocaf or Molini. The source's owner deals
-    with these brands and may be able to ask them for files. `owner`. The
+  - **Found.** 20 of 23 brands have a usable file; three (Lollo Caffè, Rema
+    Caffè, Vandino) publish only a light logo and sit on a dark tile. A second,
+    wider search found 3 Bourbons on its Facebook page and Este on its owner's
+    site. Eurocaf, Molini and Excelsior are still shown as text: nobody we can
+    identify publishes Eurocaf's pack mark, Molini's only copies are blurred,
+    and Excelsior publishes its mark only inside a navy square. `owner`. The
     brands' own spellings replace the cautious ones: Lollo Caffè, Biancaffè,
-    Rema Caffè.
+    Rema Caffè. The brands page calls a brand Italian only on its own site's or
+    pack's evidence: Este, Elia, Tezzoro and 3 Bourbons turned out to be
+    Bulgarian, and Molini a line of Rema Caffè.
 
 - [x] **J3 · Market and search research · M**
   - Measured Bulgarian demand for every format, system, brand and question
@@ -942,6 +954,23 @@ content only.
     308; the formats article retitled; two new articles, choosing beans and
     arabica against robusta, with every catalog figure computed.
 
+- [x] **J8 · Catch up with the source, 16 October · M**
+  - The reference snapshot replaced with a fresh crawl (250 pages, 207
+    products, 23 brands, 9 categories); our own copy for the 20 new products;
+    logos and origins for Moreno, Excelsior and Ristora (all three Italian);
+    instant coffee as a format of its own: named by its own name, in no
+    brewing system, with a price per cup estimated at 2 g a cup and marked
+    „≈", listed on the vending page. No instant-coffee landing page:
+    „разтворимо кафе" and „инстантно кафе" are about 260 searches a month
+    each, and these are vending tins.
+  - **Found.** The source still lists the illy tin as 100 pods; the snapshot
+    shows 18 because the exporter writes the size the pack-size rule decides.
+    `catalog:verify` flagged every product whose address `catalog:reslug` had
+    moved, although the old address still answers 308: it would have failed
+    every run after launch, and now accepts an address kept in
+    `previous_slugs`. Two of the source's records are stale duplicates of
+    renamed products; the sync keeps the one that matches the page.
+
 **For the runbook.** J4 adds a migration, `0007`, which goes out with H3's,
 and the address move, which is written into H6. The pack-size rule needs no
 step: the first sync that runs this code corrects the record.
@@ -977,7 +1006,7 @@ Where the work is:
 | F     | 9     | 5 M, 4 S                        |
 | G     | 5     | 2 M, 3 S                        |
 | H     | 10    | One sitting, plus waiting on H1 |
-| J     | 7     | 2 L, 5 M                        |
+| J     | 8     | 2 L, 6 M                        |
 
 How the workspace TODO list maps onto this:
 
