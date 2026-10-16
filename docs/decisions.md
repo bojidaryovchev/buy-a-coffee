@@ -300,6 +300,36 @@ answer in `products.servings`, so a listing sorted by price per cup in SQL, the
 wizard's ranking and the figure on the product page cannot contradict each
 other.
 
+**Grams per cup are decided by kind of coffee, in one place: 7 g roasted, 2 g
+instant.** `GRAMS_PER_SERVING` is a table keyed by `ProductKind`, and
+`packServings()` will not count a pack by weight without being told the kind,
+so no caller can fall back to the beans' dose by omission. Divided at 7 g, a
+200 g tin of instant coffee was 28 cups and about four times too dear per cup;
+at 2 g, about a teaspoon, it is 100. Both figures are assumptions, so instant
+coffee's price per cup is an estimate marked „≈“ exactly as the beans' is, and
+the dose is printed wherever the beans' is (`servingAssumption`, the facts
+table, the vending page). The sync stores servings by the same table.
+
+**Instant coffee is recognised by its own name, and belongs to no brewing
+system.** `productKind()` reads „разтворимо кафе“ (or „инстантно кафе“) in
+the supplier's name — the words printed on the tin. Not the category: the
+tins arrived filed under the source's vending section, which is navigation
+and may hold bean blends for vending machines tomorrow, and a category rule
+would then call those blends instant and miss an instant coffee filed
+anywhere else. Instant coffee is dissolved, not brewed: it fits no capsule
+system and needs no machine, so it has no system badge, no "fits machines"
+line, no system facet count, no wizard candidacy and no group on the landing
+pages, which compare cups within a system. One pattern string serves the
+code and the SQL (`INSTANT_COFFEE_PATTERN` over `transliterate` /
+`catalog_translit`), and a test holds the two to the same products. It is a
+format of its own in the shop's name for a product — „Bianchi — разтворимо
+кафе, 200 г“, `bianchi-raztvorimo-kafe-200-g` — and, having no listing of its
+own, no page was built for it: measured on 16 October 2026, „разтворимо кафе“
+and „инстантно кафе“ are 260 searches a month each, and these are vending
+tins, not what those searchers want (`docs/seo.md` §18). It is listed where
+the source files it, on the vending page, and search finds it by either
+word.
+
 **Answers live in the URL and the step is derived from them.** Same reasoning as
 the catalog filters: shareable, bookmarkable, back-button-safe, and working with
 JavaScript off. Deriving the step rather than storing a cursor means an edited

@@ -784,6 +784,23 @@ description, because a page that declares no `openGraph` inherits the
 layout's. Every page now declares its own (`apps/web/src/lib/seo/share.ts`),
 and `og:title` is the page's title without the shop's name.
 
+### Instant coffee (16 October 2026)
+
+The source began to list five tins of instant coffee („Разтворимо кафе …“:
+three Ristora, one Bianchi, one Vandino), filed under its vending section.
+Measured on 16 October 2026 (DataForSEO, Bulgaria, Bulgarian): „разтворимо
+кафе“ 260 a month, „инстантно кафе“ 260 a month, and nothing for instant
+coffee for vending machines. **No landing page was built.** These are 200 g
+and 500 g tins for vending machines and offices, not what someone searching
+for instant coffee at home is after, and five products from three brands
+would be a thin page competing with every supermarket. The
+tins are listed where the source files them, on `kafe-za-vending-mashini`,
+under a heading that says what they are; their own product pages carry the
+term in the name („Bianchi — разтворимо кафе, 200 г“); search finds them by
+both words (`KIND_SYNONYMS` in `apps/web/src/lib/catalog/search-synonyms.ts`).
+The vending page's title adds „на зърна и разтворимо“ while it lists both,
+and keeps its owned term, „кафе за вендинг машини“.
+
 ### Deliberate deviations
 
 - **The shop's name is printed "Buy a Coffee", not "Buy-a-Coffee".** Every
