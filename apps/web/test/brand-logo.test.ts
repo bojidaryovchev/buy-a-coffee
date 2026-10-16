@@ -65,9 +65,24 @@ function intrinsicSize(file: string): { width: number; height: number } {
 describe("brand logos: the data file", () => {
   const entries = Object.entries(brandLogos);
 
-  it("holds eighteen logos and two recorded absences", () => {
-    expect(entries).toHaveLength(18);
-    expect(Object.keys(brandsWithoutLogo).sort()).toEqual(["eurocaf", "molini"]);
+  it("holds twenty logos and three recorded absences", () => {
+    expect(entries).toHaveLength(20);
+    expect(Object.keys(brandsWithoutLogo).sort()).toEqual(["eurocaf", "excelsior", "molini"]);
+  });
+
+  it("accounts for the brands the sync added on 16 October", () => {
+    // Their key and stored slug, as the catalog holds them; the reference
+    // snapshot above may not list them yet.
+    for (const [key, slug] of [
+      ["cafe-moreno", "moreno"],
+      ["ristora", "ristora"],
+    ]) {
+      expect(brandLogoFor(key), key).not.toBeNull();
+      // Pages look a logo up by stored slug: Moreno's is not a spelling of its key.
+      expect(brandLogoFor(slug), slug).toBe(brandLogoFor(key));
+    }
+    expect(brandLogoFor("excelsior")).toBeNull();
+    expect(brandsWithoutLogo.excelsior).toBeDefined();
   });
 
   it("serves every logo from our own origin, from a file that exists, named by its key", () => {
@@ -234,7 +249,7 @@ describe("brand logos: legibility", () => {
     for (const key of ["bianchi", "lollocafe", "vandino", "3-bourbons", "este"]) {
       expect(legibleBrandLogo(key, "line"), key).toBeNull();
     }
-    for (const key of ["lavazza", "illy", "rema-caffe", "kimbo", "vergnano"]) {
+    for (const key of ["lavazza", "illy", "rema-caffe", "kimbo", "vergnano", "moreno", "ristora"]) {
       expect(legibleBrandLogo(key, "line"), key).not.toBeNull();
     }
     expect(legibleBrandLogo("molini", "tile")).toBeNull();

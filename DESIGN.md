@@ -1144,8 +1144,8 @@ a dark tile would swallow, so Este sits on paper. The logo's own white on `ink-9
 fill (illy's and Julius Meinl's red squares, the Vergnano roundel) sit on paper
 as they are.
 
-**Text fallback.** A brand with no logo — none found (Eurocaf, Molini, each
-with the reason recorded), or one the sync added after the file
+**Text fallback.** A brand with no logo — none found or none usable (Eurocaf,
+Excelsior, Molini, each with the reason recorded), or one the sync added after the file
 was written — shows its display name in the same box: `font-display
 font-semibold text-ink-700`, `text-lg` in a tile, clamped to two lines, centred.
 A row of tiles stays even. Where the name is already printed next to the logo

@@ -13,7 +13,9 @@ import { brandLookupKey } from "../src/lib/catalog/brand-display";
  *
  * Keyed by the brand's source key in lower-case kebab form, like
  * `brand-names.ts`; lookup is forgiving about separators and case, so a brand
- * whose storefront slug is `3bourbons` still finds `3-bourbons`. A brand with
+ * whose storefront slug is `3bourbons` still finds `3-bourbons`, and the one
+ * slug that is not a spelling of its key (`moreno`) is listed in `KEY_BY_SLUG`
+ * below. A brand with
  * no entry is shown as text: either nobody found a logo we can use (the
  * reasons are in the provenance file), or the sync added it after this file
  * was written.
@@ -83,6 +85,13 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     format: "png",
     width: 1377,
     height: 474,
+    ground: "light",
+  },
+  "cafe-moreno": {
+    file: "/brand-logos/cafe-moreno.svg",
+    format: "svg",
+    width: 438.58,
+    height: 161.6,
     ground: "light",
   },
   caffitaly: {
@@ -158,6 +167,13 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     height: 63,
     ground: "dark",
   },
+  ristora: {
+    file: "/brand-logos/ristora.png",
+    format: "png",
+    width: 400,
+    height: 123,
+    ground: "light",
+  },
   tezzoro: {
     file: "/brand-logos/tezzoro.png",
     format: "png",
@@ -183,7 +199,20 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
   },
 };
 
+/**
+ * Stored slugs that are not a spelling of the brand's source key, mapped to
+ * that key. Pages look a logo up by the stored slug, and folding case and
+ * separators cannot turn `moreno` into `cafe-moreno`, the key the supplier
+ * gives Caffè Moreno. The slug is the catalog's own (`brands.slug`), not
+ * chosen here; if a sync ever changes it, this entry has to follow.
+ */
+const KEY_BY_SLUG: Readonly<Record<string, string>> = { moreno: "cafe-moreno" };
+
 const LOGOS = new Map(Object.entries(brandLogos).map(([key, logo]) => [brandLookupKey(key), logo]));
+for (const [slug, key] of Object.entries(KEY_BY_SLUG)) {
+  const logo = LOGOS.get(brandLookupKey(key));
+  if (logo) LOGOS.set(brandLookupKey(slug), logo);
+}
 
 /**
  * The logo for a brand, by its source key or storefront slug; null when there
