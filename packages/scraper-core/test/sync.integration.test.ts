@@ -1106,6 +1106,25 @@ describeIntegration("catalog sync (integration)", () => {
     );
   });
 
+  it("accepts a moved product whose slug was moved on purpose, keeping the old one", async () => {
+    await sync(withPhotos(), { skipImages: false });
+    await sync(renamed(withPhotos()), { skipImages: false });
+    const [row] = await db
+      .select({ slug: products.slug })
+      .from(products)
+      .where(eq(products.sourceKey, "/coffee-1-1/#1000g"));
+    // What `catalog:reslug --apply` does: a new slug, the old one kept for its 308.
+    await db
+      .update(products)
+      .set({ slug: "a-new-slug", previousSlugs: [row!.slug] })
+      .where(eq(products.sourceKey, "/coffee-1-1/#1000g"));
+
+    const report = await verifyCatalog(db);
+
+    expect(report.violations.moved).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
   it("counts price-on-request products and fails a price of zero", async () => {
     await sync(
       [

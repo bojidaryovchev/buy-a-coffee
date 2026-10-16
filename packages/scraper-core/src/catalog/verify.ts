@@ -200,6 +200,7 @@ export async function verifyCatalog(db: Database): Promise<CatalogVerifyReport> 
       after: syncChanges.after,
       productId: syncChanges.productId,
       slug: products.slug,
+      previousSlugs: products.previousSlugs,
       descriptionTextOverride: products.descriptionTextOverride,
       descriptionHtmlOverride: products.descriptionHtmlOverride,
     })
@@ -229,7 +230,17 @@ export async function verifyCatalog(db: Database): Promise<CatalogVerifyReport> 
       continue;
     }
     movedIds.add(move.productId);
-    if (expectedSlug !== null && expectedSlug !== move.slug) moved.push(violation("slug_changed"));
+    /*
+     * The address the product had when the source moved it must still reach
+     * it: either it is still the slug, or the slug was moved on purpose
+     * (`catalog:reslug`) and the old one is kept in `previous_slugs`, which
+     * the storefront answers with a 308 to the current one.
+     */
+    const stillReached =
+      expectedSlug === null ||
+      expectedSlug === move.slug ||
+      (move.previousSlugs ?? []).includes(expectedSlug);
+    if (!stillReached) moved.push(violation("slug_changed"));
     if (preserved.descriptionTextOverride && !move.descriptionTextOverride?.trim()) {
       moved.push(violation("text_override_lost"));
     }
@@ -446,7 +457,7 @@ export function formatCatalogVerifyReport(report: CatalogVerifyReport): string {
 
   check(
     violations.moved.length,
-    "every moved product kept its slug and its description overrides",
+    "every moved product is still reached at its address and kept its description overrides",
     "problem(s) with moved products",
   );
   for (const move of violations.moved) {

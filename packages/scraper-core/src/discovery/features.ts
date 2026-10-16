@@ -193,7 +193,9 @@ export function buildFeatureInventory(
         listed === 0
           ? "It lists no products at the moment, and renders its empty state rather than a 404."
           : `It lists ${listed} product${listed === 1 ? "" : "s"}.`,
-        "It is absent from the structured catalog's category list: it is navigation, not a category a product belongs to.",
+        listed === 0
+          ? "It is absent from the structured catalog's category list: it is navigation, not a category a product belongs to."
+          : "Products are filed under it in the structured catalog, like any other category.",
         "The copy on it is the source's own and is never mirrored.",
       ],
     });
