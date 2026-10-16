@@ -36,6 +36,22 @@ import type { BrewMethod } from "@/lib/recommend/systems";
  * (EUROCAF SRL, Druento, Turin, eurocafcaffe.it), but its site lists none of
  * the four coffees we sell and shows a different mark from the one on our
  * packs, so it is not established that it makes them.
+ *
+ * Checked on 16 October 2026 for the three brands the sync added that day, and
+ * established, but not entered yet: an entry here needs the brand's spelling
+ * in `brand-names.ts` first (`test/listing-meta.test.ts`), and Moreno's needs
+ * its stored slug `moreno` to reach its source key `cafe-moreno`, which
+ * `brandFactsFor` cannot do by folding. **Moreno** (`cafe-moreno`): Caffè
+ * Moreno SRL, Casoria, Naples (caffemoreno.it footer); its 2025 catalogue calls
+ * it "un'azienda familiare nata a Napoli negli anni '60", and the bean bags
+ * print "made in Italy". **Excelsior**: Caffè Excelsior srl, Busca, Cuneo
+ * (torrefazionexcelsior.it: "Registro delle imprese di Cuneo"; its 2026 export
+ * catalogue lists all six of our coffees); the packs print "L'espresso
+ * d'autore dal 1966" and "Miscela di caffè torrefatto". **Ristora**: a brand of
+ * Prontofoods S.p.A., Montichiari, Brescia (ristora.it footer); the packs are
+ * in Italian only, and the Bulgarian label (world.openfoodfacts.org, product
+ * 8004990117009) names Prontofood S.p.a., Montichiari as the maker and ЗАГАТО
+ * ООД, Sofia as the importer.
  */
 
 export interface BrandFacts {

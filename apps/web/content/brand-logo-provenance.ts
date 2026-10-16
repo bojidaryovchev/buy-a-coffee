@@ -113,6 +113,15 @@ export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> 
       "Product photo 'Капсули DG Borbone Baileys Cappuccino 16 бр.' (0f5632c4...jpg): CAFFÈ with crown above large BORBONE above NAPOLI - same letterforms, crown and layout (pack prints it white on blue, the logo here is the blue version).",
     note: "The file is the schema.org Organization \"logo\" embedded as a data URI (PNG, 1400x492) in that page's JSON-LD, trimmed of transparent margin. The header logo on the site is white-only; this blue one is the brand's own version for light grounds.",
   },
+  "cafe-moreno": {
+    sourceType: "official-site",
+    sourcePage: "https://caffemoreno.it/",
+    assetUrl: "https://caffemoreno.it/wp-content/uploads/2025/01/Caffe-Moreno-Logo.svg",
+    retrievedAt: "2026-10-16",
+    packagingCheck:
+      'ef9b0281...jpg (Moreno Vending Premium 1kg, a white bag) prints exactly this lockup on a light ground: a small near-black geometric-sans "Caffè" with a grave accent over a heavy condensed red "MORENO". ad522326...jpg (Vending 1kg, gold bag) has the same dark "Caffè"; d4cef941...jpg (Dolce Gusto box), 0774ad6a...jpg (pod box), 5e7f727a... and c97d0096...jpg (Espresso Bar, Extra Bar) and a0dfba3e...jpg (Aroma Espresso pods) print the same letterforms with "Caffè" in white on dark. The packs add the tagline "Il vero espresso napoletano" under the name; the file is the name alone.',
+    note: 'Found through the site\'s own media library; the header shows a white-"Caffè" PNG of the same artwork (cropped-logo-moreno-bianco.png), and the brand\'s shop, caffemorenoshop.it (same VAT number, 03044771214), shows a black-"Caffè" PNG of it. The two class styles were written onto the paths as fill attributes (#1d1d1b, #cd1719) and the ids and layer names removed; it renders pixel for pixel the same. The viewBox was already tight. All nine of our coffees are in the brand\'s 2025 catalogue (https://caffemoreno.it/wp-content/uploads/2025/10/Catalogo-Caffe-Moreno.pdf), the pods as "Aroma Blu". Keyed by the source key `cafe-moreno`; the stored slug `moreno` reaches it through `KEY_BY_SLUG` in `brand-logos.ts`.',
+  },
   caffitaly: {
     sourceType: "official-site",
     sourcePage: "https://caffitaly.com/international/",
@@ -206,6 +215,15 @@ export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> 
       'Photo b32f1fc3... (Arabica Gold pod): red "rema" + white "caffé" wordmark with acute é, same letterforms as the site logo. The site logo additionally has a leaf/bean emblem in a square at the left that the pack does not show.',
     note: 'The only official file (site header and Organization JSON-LD) has a white "caffé", so it is shown on a dark tile, as on the black pod, and never above 63 px tall.',
   },
+  ristora: {
+    sourceType: "official-site",
+    sourcePage: "https://www.ristora.it/",
+    assetUrl: "https://www.ristora.it/wp-content/uploads/2023/06/logo_ristora.png",
+    retrievedAt: "2026-10-16",
+    packagingCheck:
+      '831a1e82...jpg (Gold), d4c59740...jpg (Green) and c912afe9...jpg (Red), the 200 g instant bags: the same glossy red lower-case italic "ristora" with a light rim round every letter, the "t" rising to a sharp point, and the registered mark at the right. The packs set "PROFESSIONAL" between two rules under the name; the file is the name alone, as the site\'s header shows it.',
+    note: "The header logo of ristora.it, the brand's site, published by its owner Prontofoods S.p.A., Montichiari (footer). The 800x260 PNG's transparent margin was trimmed (to 778x239) and the file scaled down losslessly to 400x123, which is still sharp in the largest box at twice the pixel density and about a third of the weight (263 KB to 92 KB); the artwork is otherwise untouched.",
+  },
   tezzoro: {
     sourceType: "official-site",
     sourcePage: "https://tezzoro.com/",
@@ -240,6 +258,11 @@ export const brandsWithoutLogo: Readonly<Record<string, BrandWithoutLogo>> = {
     reason:
       'The owner of the label on our packs (the round "EUROCAF" badge over a bean, "ESPRESSO VENDING"; Crema Vivace, Piacere d\'Oro, Piacere d\'Oro Green, Rosso Fuoco) was not found. Tried: eurocafcaffe.it (EUROCAF SRL, Druento, Turin: its home, vending, brand-history and logo-history pages; its marks are a star-ringed oval, never this badge, and it lists none of these coffees), its ICE agrifood profile, EUROCAF trademark records; Bulgarian sellers coffeprint.bg (Kardzhali), the RiO vending site (introbg.wixsite.com/rio2012coffee, Ruse), 100caffeine.com and bestcoffee.bg, none of which names a maker or publishes the badge (they pair Eurocaf with Eurodrinks instant drinks; ЕВРОДРИНКС ЕООД, Sliven, is registered but shows no link to the coffee); Turkish listings (trendyol, cimri) of Eurocaf Piacere d\'Oro, with no maker named; Facebook and Instagram handles (eurocaf, eurocaf.bg, eurocafbg: none is this brand); seeklogo and other logo libraries (nothing). Web searches in Bulgarian, Italian, English and Turkish.',
     checkedAt: "2026-10-09",
+  },
+  excelsior: {
+    reason:
+      'The brand is found and is right, but it publishes no file of its mark that can be shown as is. Our packs (Gold, Rubin, Sapphire, Emerald, Extra Mild beans and Portorico pods) print a white serif "CAFFÈ / EXCELSIOR" with a tricolour ribbon and "L\'ESPRESSO D\'AUTORE DAL 1966" straight on the bag (navy, red) or in a navy panel (silver bags, the pod). It is Caffè Excelsior srl of Busca, Cuneo: torrefazionexcelsior.it shows the same Gold bag, and its 2026 export catalogue (https://www.torrefazionexcelsior.it/wp-content/uploads/2026/02/CATALOGO-2026-EXPORT.pdf) lists all six of our coffees. Every file it publishes was tried. The site\'s header logo (wp-content/themes/blulab/includes/img/loghi/logo-500x500.gif), the Facebook (facebook.com/caffexcelsior) and Instagram (torrefazione.excelsior) profile pictures and its ICE/CEIP Piemonte and Faire profiles are all this lockup set small inside a navy square: in a 48 px tile or a 69 px brand header the name is about 6 to 8 px tall, a blur, and making it readable would mean cutting the square away. Its online shop\'s SVGs (shop.torrefazionexcelsior.it, brand-caffe-excelsior-shop-new.svg and brand-caffe-excelsior-shop.svg) are the lockup in white on transparent with "The shop" or "SHOP" set under it, a different lockup that we would have to edit. The site\'s 2015 logo-excelsior.gif is a gold version at 226x93, under the 400 px floor. Its WordPress media library holds no other logo; LinkedIn shows a placeholder. Not the Trieste roaster of caffeexcelsior.it (Excelsior Industria Caffè Torrefatto, a lower-case script "excelsior"). Wikimedia Commons, seeklogo, worldvectorlogo and brandsoftheworld have nothing for it. No Bulgarian importer was found. Web searches in Bulgarian, Italian and English. A transparent file of the plain lockup from the brand would settle it.',
+    checkedAt: "2026-10-16",
   },
   molini: {
     reason:
