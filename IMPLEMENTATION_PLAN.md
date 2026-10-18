@@ -818,10 +818,15 @@ passes.
       Vercel's upsert leave the old value on the dropped target — the old
       6-character password stayed on Preview until removed by hand (the plan
       now says so).
-- [ ] **H5 · Ship the code** — push `completion` and let CI run on it first
+- [x] **H5 · Ship the code** — push `completion` and let CI run on it first
       (the two workflows have never run on GitHub). Then merge into `main`. Check the built
       HTML rather than a warm cache: photos load, no draft marker, function
-      region is Frankfurt.
+      region is Frankfurt. **Done 18 October:** CI green and the Preview build
+      READY on `completion` (its first success: every earlier preview had
+      failed against the unmigrated production schema); `main` fast-forwarded
+      to `eae007f` and deployed. Photos load from the Blob store, functions
+      answer from `fra1`; the draft marker is still on Terms and Privacy until
+      H1.
 - [x] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
       production; the numbers must match the rehearsal (86 moved, 99 created, 2
       missing, 0 unresolved; 8 brands created, 1 category created (the vending
@@ -853,7 +858,11 @@ passes.
       sentence until it has copy of its own.
 - [ ] **H7 · Turn on the schedule** — add the workflow's secrets, run it once
       by hand, enable the schedule, and prove the alarm by letting a preview go
-      stale.
+      stale. **Done 18 October except the alarm proof:** secrets
+      `DATABASE_URL` and `BLOB_READ_WRITE_TOKEN`, variables `STORAGE_DRIVER`,
+      `STORAGE_PUBLIC_BASE_URL` and `CRAWL_USER_AGENT` (contact: the shop's
+      contact page); one writing run by hand succeeded (208 unchanged); the
+      schedule is active from `main`.
 - [ ] **H8 · Mail** — `pnpm --filter @catalog/web mail:prune-foreign` (plan-only by default), review, `--export <file>`, then `--apply`.
       Send a real enquiry end to end and answer it from the panel. Confirm SPF
       and DKIM pass; move DMARC off `p=none` once reports are clean.
@@ -866,7 +875,14 @@ passes.
 - [ ] **H10 · Smoke test on production** — a product from each system opens
       with photo, price, price per cup and delivery terms; search finds a brand
       in both alphabets; the wizard completes; a quick order arrives by email
-      and in the panel; the sync page shows a run from today.
+      and in the panel; the sync page shows a run from today. **18 October,
+      all but the order:** a product from each of the seven systems opens with
+      photo, price, price per cup and delivery terms; the sitemap lists 208 of
+      208 products; search finds Lavazza as „lavazza“ and „лаваца“; old URLs
+      answer 308 and land on the new page; an unknown product is a 404; the
+      admin sign-in renders; both crons refuse a request without the secret;
+      ten random prices match the source's own pages; the sync ran today.
+      Left: one real quick order, end to end.
 
 **Rollback:** the previous deployment can be restored instantly; the database
 has the H3 restore point; the schedule can be disabled in one click and nothing
