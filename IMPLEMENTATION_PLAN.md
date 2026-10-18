@@ -147,9 +147,17 @@ instant coffee. The snapshot, the code, our copy and the logos caught up the
 same day ([J8](#phase-j--bulgarian-urls-brand-logos-and-search-demand)); the
 local catalog was synced with the steps H6 uses and matches the source.
 
-**Where `completion` stands:** 155 commits ahead of `main`, pushed to GitHub,
+**18 October.** The owner reviewed the site in a browser. In response: no control
+label or count squeezes or breaks at any width, every touch control is 44 px
+below `lg`, the newsletter is a band above a redesigned footer, every page was
+checked at eight widths from 320 to 1440 px, a brand's logo appears wherever the
+brand is named, the capsule drawings were redrawn to scale from cited
+dimensions (A Modo Mio, Caffitaly and Lavazza Blue had been drawn wrong), and
+each system is marked with our own capsule icon in place of a coloured square.
+
+**Where `completion` stands:** 168 commits ahead of `main`, pushed to GitHub,
 where CI passes; `main` is untouched. `format:check`, `typecheck` and `lint` are
-clean; 2,682 unit, 356 integration and 768 browser tests pass (desktop and
+clean; 2,734 unit, 356 integration and 790 browser tests pass (desktop and
 mobile, `CI=true`, against a production build seeded exactly as CI seeds it);
 `check:originality` and `reference:coverage` pass; `check:launch` fails by
 design with the business's eight open questions. Everything left is in Phase H.
