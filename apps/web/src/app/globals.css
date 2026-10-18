@@ -196,6 +196,15 @@
   }
 
   /*
+   * A phone number is one unit: broken across two lines („+359 897 943 /
+   * 424“) it reads as two numbers, and a reader copying it gets half. Every
+   * `tel:` link, in running text or on its own, keeps its number on one line.
+   */
+  a[href^="tel:"] {
+    white-space: nowrap;
+  }
+
+  /*
    * A single, highly visible focus treatment applied consistently. Removing
    * outlines without an equivalent replacement is the most common way a site
    * becomes unusable by keyboard.

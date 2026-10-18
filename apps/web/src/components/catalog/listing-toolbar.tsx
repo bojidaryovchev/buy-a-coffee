@@ -169,8 +169,11 @@ export function ListingToolbar({
         className="col-start-1 row-start-1 flex min-h-11 items-center text-sm text-ink-500 sm:col-span-full sm:min-h-0 lg:min-h-0"
         aria-live="polite"
       >
-        <span className="font-medium text-ink-900 tabular-nums">{total}</span>{" "}
-        {productsLabel(total)}
+        {/* One inline run: as two flex items the space between them would go. */}
+        <span>
+          <span className="font-medium text-ink-900 tabular-nums">{total}</span>{" "}
+          {productsLabel(total)}
+        </span>
       </p>
 
       {enhanced ? (

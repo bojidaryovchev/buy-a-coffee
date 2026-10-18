@@ -91,9 +91,11 @@ function groupNote(id: LandingId, group: LandingGroupView): string {
   return group.system.summary;
 }
 
+/** A link inside a sentence: part of the running text. */
+const TEXT_LINK = "font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900";
+
 /** A link on a line of its own: a 44 px row below `lg`, a target a finger can hit. */
-const TEXT_LINK =
-  "inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-0";
+const LINE_LINK = `inline-flex min-h-11 items-center lg:min-h-0 ${TEXT_LINK}`;
 
 export async function LandingPage({ locale, id }: { locale: Locale; id: LandingId }) {
   const view = await getLanding(id);
@@ -138,14 +140,14 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
           ))}
           {needsMachine && (
             <p>
-              <Link href={href(locale, routes.machines)} className={TEXT_LINK}>
+              <Link href={href(locale, routes.machines)} className={LINE_LINK}>
                 {landingLabels.findMachine}
               </Link>
             </p>
           )}
           {cupCost && (
             <p>
-              <Link href={href(locale, routes.article(cupCost.slug))} className={TEXT_LINK}>
+              <Link href={href(locale, routes.article(cupCost.slug))} className={LINE_LINK}>
                 {/* By its title, as every other page links an article. */}
                 {cupCost.title}
               </Link>

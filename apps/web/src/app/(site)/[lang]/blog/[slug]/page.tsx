@@ -150,12 +150,12 @@ export default async function JournalArticlePage({ params }: PageProps) {
           <h2 id="journal-more" className="font-display text-xl font-semibold text-ink-900">
             Още от блога
           </h2>
-          <ul className="mt-4 lg:space-y-3">
+          <ul className="mt-4 space-y-1 lg:space-y-3">
             {others.map((entry) => (
               <li key={entry.slug}>
                 <Link
                   href={href(locale, entry.href)}
-                  className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0"
+                  className="inline-flex min-h-11 items-center py-1.5 font-medium text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0 lg:py-0"
                 >
                   {entry.title}
                 </Link>

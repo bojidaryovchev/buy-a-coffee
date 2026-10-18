@@ -284,12 +284,12 @@ export async function CategoryPage({
           </div>
           {/* A row of links standing alone, not running text: each is a 44 px
               row below `lg`, a target a finger can hit. */}
-          <ul className="mt-5 flex flex-wrap gap-x-6 text-sm font-medium lg:gap-y-2">
+          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-1 text-sm font-medium lg:gap-y-2">
             {article && (
               <li>
                 <Link
                   href={href(locale, routes.article(article.slug))}
-                  className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0"
+                  className="inline-flex min-h-11 items-center py-1.5 text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0 lg:py-0"
                 >
                   {article.title}
                 </Link>
@@ -298,7 +298,7 @@ export async function CategoryPage({
             <li>
               <Link
                 href={href(locale, routes.wizard)}
-                className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0"
+                className="inline-flex min-h-11 items-center py-1.5 text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0 lg:py-0"
               >
                 Помощник за избор на кафе
               </Link>

@@ -664,6 +664,10 @@ never the text. Below `sm` a lone full-width action keeps only 12 px of side
 padding (`px-3 sm:px-6` on size `lg`), which is what lets „Намерете кафе за
 вашата машина“ fit at 320 px.
 
+**The Whole Number Rule.** A phone number is one unit: every `tel:` link is
+`white-space: nowrap` (`globals.css`, base layer), in running text too —
+„+359 897 943 / 424“ across two lines reads as two numbers.
+
 **The Meta Rule.** Meta text beside a label — a count, a price, a state —
 never gets a column of its own and never breaks inside (`whitespace-nowrap`).
 Where it goes is decided by the width of the thing it sits in, not the
