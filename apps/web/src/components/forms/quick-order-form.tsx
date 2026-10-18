@@ -127,7 +127,7 @@ export function QuickOrderForm({
             required
             inputMode="tel"
             autoComplete="tel"
-            placeholder="0888 123 456"
+            placeholder="Напр. 0888 123 456"
             aria-invalid={phoneError ? true : undefined}
             aria-describedby={phoneError ? `${phoneId}-error` : undefined}
             className={INPUT_CLASS}

@@ -688,7 +688,9 @@ well draws a rectangle around each one.
 **A brand's logo appears wherever the brand is named as a brand, and never
 marks a system.** A logo is the brand's trademark, shown to identify the
 genuine product: on the brand's page, the brands index, its own products'
-cards and pages, the brand filter and its chips, the typeahead. It is the
+cards and pages, the typeahead. Not in the filters: there a brand is named in
+text like every other filter value, the owner's choice on 18 October after
+seeing logos of every shape in one list. It is the
 brand's own file, checked against the packs, with the provenance recorded, and
 never recoloured; a logo published only in white sits on a dark tile. Where a
 box cannot draw it legibly (a 24 px chip and the five stacked lockups) the name

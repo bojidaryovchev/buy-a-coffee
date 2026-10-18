@@ -916,8 +916,9 @@ checked by `pnpm images:verify --http`.
 
 A brand's own logo is drawn wherever a brand is named as a brand: the brands
 index, the brand page, the home page's brand row, the product page's brand
-line, the brand line of every product card and wizard result, the brand
-filter's options and chips, and the typeahead's brand and product rows. It
+line, the brand line of every product card and wizard result, and the
+typeahead's brand and product rows. The filters name brands in text, like every
+other filter group. It
 never marks a brewing system, which has our own icon instead (above, "The
 capsule drawings"). The standard is `DESIGN.md`, "Brand logo".
 
@@ -930,8 +931,8 @@ capsule drawings"). The standard is `DESIGN.md`, "Brand logo".
   import it.
 - The files are in `apps/web/public/brand-logos/`, served from this origin.
 - [`components/catalog/brand-logo.tsx`](../apps/web/src/components/catalog/brand-logo.tsx)
-  fits a logo into one of seven boxes (`LOGO_BOXES`: tile, header, line,
-  suggestion, card, facet, chip) by area rather than by height, puts a logo
+  fits a logo into one of six boxes (`LOGO_BOXES`: tile, header, line,
+  suggestion, card, chip) by area rather than by height, puts a logo
   published only for dark grounds on an `ink-900` tile, and shows the brand's
   name in text when there is no logo or the box would draw it smaller than it
   can be read — in a 24 px chip that is five stacked lockups, so a chip falls

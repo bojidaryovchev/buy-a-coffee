@@ -48,13 +48,9 @@ export const LOGO_BOXES = {
    */
   card: { width: 88, height: 40 },
   /**
-   * Before the name in a filter's brand option row. As tall as `card`, for
-   * the same lockups; the row grows from 36 to 40 px to hold it.
-   */
-  facet: { width: 72, height: 40 },
-  /**
-   * Before the name in a chip (an active brand filter, a brand available to
-   * order) and in a typeahead product row's second line. A chip is 36 px tall
+   * Before the name in a chip (a brand available to order) and in a
+   * typeahead product row's second line. The filters name brands in text,
+   * like every other filter group. A chip is 36 px tall
    * and cannot give 40: here the stacked lockups show their name alone.
    */
   chip: { width: 72, height: 24 },
@@ -71,7 +67,6 @@ const DARK_PADDING: Record<BrandLogoSize, { readonly x: number; readonly y: numb
   line: { x: 6, y: 2 },
   suggestion: { x: 6, y: 2 },
   card: { x: 6, y: 2 },
-  facet: { x: 6, y: 2 },
   chip: { x: 3, y: 2 },
 };
 
@@ -128,7 +123,6 @@ const TEXT_CLASS: Record<BrandLogoSize, string> = {
   suggestion: "text-sm",
   // Inside a line that may be set in capitals (the card's brand line).
   card: "text-sm normal-case tracking-normal",
-  facet: "text-sm",
   chip: "text-sm",
 };
 

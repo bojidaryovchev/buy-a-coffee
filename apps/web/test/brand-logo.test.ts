@@ -247,7 +247,6 @@ const LEGIBLE_EVERYWHERE: readonly BrandLogoSize[] = [
   "line",
   "suggestion",
   "card",
-  "facet",
 ];
 
 /** Stacked lockups whose name is a thin line under an emblem. */
@@ -532,7 +531,12 @@ const facets: CatalogFacets = {
   categories: [],
 };
 
-describe("brand logos: in the filters", () => {
+/* The filters name brands in text, as every other filter group does: the
+   owner's choice of 18 October, after seeing logos of every shape in one
+   list. Logos stay where a brand is shown as a brand (cards, pages,
+   suggestions). */
+
+describe("brand logos: not in the filters", () => {
   const panel = render(
     createElement(FilterPanel, {
       basePath: "/bg/kafe-kapsuli",
@@ -543,7 +547,7 @@ describe("brand logos: in the filters", () => {
   const rows = (key: string) =>
     Array.from(panel.querySelectorAll<HTMLAnchorElement>(`a[href*='${key}=']`));
 
-  it("puts each brand's logo before its name, decorative, the name kept", () => {
+  it("names each brand in text, with no logo and no empty box", () => {
     const brands = rows("brand");
     expect(brands.map((row) => row.textContent)).toEqual([
       "Lavazza10",
@@ -551,19 +555,7 @@ describe("brand logos: in the filters", () => {
       "Lollo Caffè17",
       "Molini7",
     ]);
-    for (const row of brands.slice(0, 3)) {
-      const logos = brandLogoImages(row);
-      expect(logos, row.textContent ?? "").toHaveLength(1);
-      expect(logos[0]?.getAttribute("alt")).toBe("");
-    }
-    // The `facet` box is tall enough for Lollo's stacked lockup.
-    expect(brandLogoImages(brands[2]!)[0]?.getAttribute("src")).toBe("/brand-logos/lollocafe.png");
-  });
-
-  it("keeps an empty box where a brand has no logo, so the names line up", () => {
-    const blank = rows("brand")[3]!.querySelector<HTMLElement>("[data-brand-logo='none']");
-    expect(blank?.style.width).toBe(`${LOGO_BOXES.facet.width}px`);
-    expect(blank?.getAttribute("aria-hidden")).toBe("true");
+    for (const row of brands) expect(row.querySelector("[data-brand-logo]")).toBeNull();
   });
 
   it("gives a system its icon and never a logo", () => {
@@ -577,35 +569,27 @@ describe("brand logos: in the filters", () => {
   });
 });
 
-describe("brand logos: in the active-filter chips", () => {
+describe("brand logos: not in the active-filter chips", () => {
   const chips = render(
     createElement(ActiveFilterChips, {
       basePath: "/bg/kafe-kapsuli",
       query: parseCatalogQuery({
-        brand: "lavazza,vandino,molini",
+        brand: "lavazza,molini",
         system: "caffitaly",
         strength: "strong",
       }),
-      facets: {
-        ...facets,
-        brands: [...facets.brands, { value: "vandino", label: "Vandino", count: 4 }],
-      },
+      facets,
     }),
   );
   const chip = (label: string) =>
     Array.from(chips.querySelectorAll("a")).find((link) => link.textContent?.startsWith(label));
 
-  it("puts a brand's logo before its name, decorative, where it can be read", () => {
-    const lavazza = chip("Lavazza");
-    expect(brandLogoImages(lavazza!).map((img) => img.getAttribute("alt"))).toEqual([""]);
-    expect(lavazza?.textContent).toBe("Lavazza— премахни филтъра");
-  });
-
-  it("names the brand alone where the logo would be too small, or there is none", () => {
-    for (const label of ["Vandino", "Molini"]) {
+  it("names a selected brand in text", () => {
+    for (const label of ["Lavazza", "Molini"]) {
       expect(chip(label), label).toBeDefined();
       expect(chip(label)?.querySelector("[data-brand-logo]"), label).toBeNull();
     }
+    expect(chip("Lavazza")?.textContent).toBe("Lavazza— премахни филтъра");
   });
 
   it("gives a system chip its icon and never a logo", () => {

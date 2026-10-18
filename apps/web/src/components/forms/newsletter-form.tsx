@@ -100,7 +100,7 @@ export function NewsletterForm({ source }: { source: string }) {
           type="email"
           required
           autoComplete="email"
-          placeholder="name@example.com"
+          placeholder="Вашият имейл адрес"
           aria-invalid={emailError ? true : undefined}
           aria-describedby={describedBy}
           inputMode="email"

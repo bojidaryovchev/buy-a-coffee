@@ -832,8 +832,13 @@ text-paper` with a 2.5 px check mark.
 **Phone.** Fields are full width and stack. `type`, `inputMode` and
 `autoComplete` are always set (`tel`, `email`, `name`).
 
-**Never.** A placeholder used as the label. An error shown by colour alone. A
-field below 16 px text. Validation that exists only in the browser.
+**Placeholders** are Bulgarian and say what to type („Вашият имейл адрес“).
+An example of a format starts with „Напр.“ („Напр. 0888 123 456“), so it is
+never mistaken for a value already filled in.
+
+**Never.** A placeholder used as the label, or one in English. An error shown
+by colour alone. A field below 16 px text. Validation that exists only in the
+browser.
 
 ### Chips
 
@@ -1260,20 +1265,19 @@ owner is also a brand we sell (Lavazza, Caffitaly).
 
 **Boxes.**
 
-| Size         | Box (w × h) | Dark-tile padding (x, y) | Where                                                                                         |
-| ------------ | ----------- | ------------------------ | --------------------------------------------------------------------------------------------- |
-| `tile`       | 160 × 56    | 10, 8                    | Brands index, home page brand row.                                                            |
-| `header`     | 240 × 80    | 14, 10                   | Above the `h1` on a brand page.                                                               |
-| `line`       | 120 × 40    | 6, 2                     | The product page's brand line.                                                                |
-| `suggestion` | 72 × 40     | 6, 2                     | Before the name in the search dropdown's brand rows.                                          |
-| `card`       | 88 × 40     | 6, 2                     | The brand line of a product card and of a wizard result.                                      |
-| `facet`      | 72 × 40     | 6, 2                     | Before the name in a brand filter option.                                                     |
-| `chip`       | 72 × 24     | 3, 2                     | Before the name in a brand chip (active filter, available to order); a typeahead product row. |
+| Size         | Box (w × h) | Dark-tile padding (x, y) | Where                                                                          |
+| ------------ | ----------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `tile`       | 160 × 56    | 10, 8                    | Brands index, home page brand row.                                             |
+| `header`     | 240 × 80    | 14, 10                   | Above the `h1` on a brand page.                                                |
+| `line`       | 120 × 40    | 6, 2                     | The product page's brand line.                                                 |
+| `suggestion` | 72 × 40     | 6, 2                     | Before the name in the search dropdown's brand rows.                           |
+| `card`       | 88 × 40     | 6, 2                     | The brand line of a product card and of a wizard result.                       |
+| `chip`       | 72 × 24     | 3, 2                     | Before the name in a brand chip (available to order); a typeahead product row. |
 
 Forty pixels is the height at which every logo in the catalogue can be read,
 the stacked lockups included (below), so every placement whose layout can give
-it gets 40: the product page, the card, the filter row (which grows from 36 to
-40 px) and the typeahead's brand row (as tall as a product row beside it). A
+it gets 40: the product page, the card and the typeahead's brand row (as tall as
+a product row beside it). A
 chip is 36 px tall and cannot; its 24 px box shows the five stacked lockups as
 their name. The dark-tile padding in the 40 px boxes is 2 px above and below
 because Lollo Caffè's and Vandino's lockups need the rest of the height.
@@ -1329,7 +1333,7 @@ clamped to two lines; centred in a reserved box, in normal case on a card's
 brand line. A row of tiles stays even, and a card's 40 px brand line keeps its
 height. Where the name is already printed next to the logo, the placement
 renders nothing instead (a brand page `h1`, a chip) or keeps an empty box so
-names line up (a filter option, a typeahead brand row).
+names line up (a typeahead brand row).
 
 **Where it appears.**
 
@@ -1342,9 +1346,7 @@ names line up (a filter option, a typeahead brand row).
 | Search typeahead, brand rows   | `suggestion` | Before the name, `alt=""` (the name follows); an empty box with no logo.                                                                                                            |
 | Product card, brand line       | `card`       | Wherever a card is drawn: listings, search, brand pages, landings, related products, home shelves. In place of the name, so `alt` is the name. No logo: the name in its place.      |
 | Wizard result, brand line      | `card`       | As on the product card.                                                                                                                                                             |
-| Filters, brand options         | `facet`      | Between the checkbox and the name, `alt=""`. No logo: an empty box, so the names line up.                                                                                           |
-| Active-filter chip, a brand    | `chip`       | Before the name, `alt=""`. No logo, or one not legible at 24 px: the name alone.                                                                                                    |
-| Brands index, "by order" chips | `chip`       | The brands with no product in stock, as chips: as the active-filter chip.                                                                                                           |
+| Brands index, "by order" chips | `chip`       | The brands with no product in stock, as chips: before the name, `alt=""`; not legible at 24 px: the name alone.                                                                     |
 | Search typeahead, product rows | `chip`       | After the system badge, `alt` the name, then "·" and the pack size. Not legible: the name in text, as before.                                                                       |
 | Structured data                | —            | `logo`, as an absolute URL, on the `Brand` in the Product and brand-page JSON-LD when a logo exists.                                                                                |
 

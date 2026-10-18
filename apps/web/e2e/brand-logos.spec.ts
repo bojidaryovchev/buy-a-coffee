@@ -2,8 +2,9 @@ import { expect, test } from "@playwright/test";
 import { BG } from "./support/paths";
 
 /**
- * A brand's logo wherever the brand is named as a brand (DESIGN.md, "Brand
- * logo"): the card's brand line, the brand filter, the brand chip. And never
+ * A brand's logo where the brand is shown as a brand (DESIGN.md, "Brand
+ * logo"): the card's brand line, pages, suggestions. Not in the filters, which
+ * name brands in text like every other filter group. And never
  * beside a brewing system's name, where our own capsule icon stays: most
  * capsules are third-party, and a system owner's logo there would claim an
  * endorsement. Caffitaly is both a system and a brand, which is why it is the
@@ -36,7 +37,9 @@ test("a card draws its brand's logo, named by its alt, or the name where there i
   expect(box?.height).toBeGreaterThanOrEqual(12);
 });
 
-test("the brand filter and its chip carry the logo; a system keeps its icon", async ({ page }) => {
+test("the brand filter and its chip name brands in text; a system keeps its icon", async ({
+  page,
+}) => {
   // Caffitaly the brand makes Caffitaly capsules, so the listing is not empty.
   await page.goto(`${BG.capsules}?brand=lavazza,caffitaly&system=caffitaly`);
 
@@ -50,7 +53,7 @@ test("the brand filter and its chip carry the logo; a system keeps its icon", as
   const brands = group("Марка");
   expect(await brands.count()).toBeGreaterThan(0);
   for (const option of await brands.all()) {
-    await expect(option.locator("[data-brand-logo]")).toHaveCount(1);
+    await expect(option.locator("[data-brand-logo]")).toHaveCount(0);
   }
   const systems = page.locator("a[aria-pressed][data-system]");
   expect(await systems.count()).toBeGreaterThan(0);
@@ -61,10 +64,10 @@ test("the brand filter and its chip carry the logo; a system keeps its icon", as
 
   const chips = page.getByRole("list", { name: "Активни филтри" });
   const brandChip = chips.getByRole("link", { name: /^Lavazza/ });
-  await expect(brandChip.locator(LOGO)).toHaveAttribute("alt", "");
-  await expect(brandChip.locator(LOGO)).toBeVisible();
-  // Caffitaly twice: the brand's chip has its logo, the system's has none.
-  await expect(chips.locator(`a:not([data-system]) ${LOGO}[src*='caffitaly']`)).toHaveCount(1);
+  await expect(brandChip).toBeVisible();
+  await expect(brandChip.locator("[data-brand-logo]")).toHaveCount(0);
+  // Caffitaly twice: neither the brand's chip nor the system's draws a logo.
+  await expect(chips.locator(LOGO)).toHaveCount(0);
   const systemChip = chips.locator("a[data-system='caffitaly']");
   await expect(systemChip).toBeVisible();
   await expect(systemChip.locator("[data-brand-logo]")).toHaveCount(0);
