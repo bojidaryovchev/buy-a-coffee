@@ -1,24 +1,37 @@
 import { useId } from "react";
 import { cx } from "@/components/ui/primitives";
-import type { BrewingSystem, BrewingSystemId } from "@/lib/recommend/systems";
+import type { BrewingSystem } from "@/lib/recommend/systems";
+import {
+  CAPSULE_OUTLINES,
+  type CapsuleOutline,
+  type DiagramSystemId,
+  sideFeaturePath,
+  sideOutlinePath,
+} from "./capsule-outlines";
+
+export type { DiagramSystemId } from "./capsule-outlines";
 
 /**
  * "Recognise your capsule" drawings.
  *
  * A visitor who does not know which system their machine takes usually has a
  * capsule in their hand, so the useful picture is one they can hold it up to.
- * These are our own schematic line drawings — a side profile, plus a top view
- * where the outline from above is what separates two systems — and are not
- * derived from any manufacturer's artwork.
+ * These are our own line drawings — a side profile, plus a top view where the
+ * outline from above is what separates the system — and are not derived from
+ * any manufacturer's artwork.
  *
  * Three rules keep them honest:
  *
- * - Every drawing uses the same coordinate system, one unit to roughly one
- *   millimetre, and is rendered at the same pixels-per-unit. Relative size is
- *   therefore information: the Dolce Gusto capsule is visibly the widest.
- * - A dimension is printed only where the repository already states it (the
- *   Nespresso rim, the ESE pod). The other proportions are approximate, and a
- *   printed number would claim more than we know.
+ * - The outlines are data, in millimetres (`capsule-outlines.ts`, which says
+ *   where every figure comes from: a patent, a capsule manufacturer's
+ *   dimensioned drawings, retailers' measurements, photographs). Every drawing
+ *   is rendered at the same pixels per millimetre, so relative size is
+ *   information: the Dolce Gusto capsule is the largest, A Modo Mio as wide as
+ *   Lavazza Blue but much shallower.
+ * - A dimension is printed only where it is established and cited there: each
+ *   capsule's rim diameter and height, the ESE pod's 44 mm. The pod's
+ *   thickness and the width of its paper edge are not established, so they
+ *   are drawn but not printed.
  * - Nothing is drawn that we cannot stand behind. In particular no barcode,
  *   logo or surface marking appears on any of them.
  *
@@ -26,17 +39,35 @@ import type { BrewingSystem, BrewingSystemId } from "@/lib/recommend/systems";
  * silhouettes can be compared with one another.
  */
 
-/** Systems that come as a capsule or a pod, and so have a shape to draw. */
-export type DiagramSystemId = Exclude<BrewingSystemId, "beans">;
+/*
+ * The full plate. A side view is SIDE_WIDTH mm wide with the capsule's axis on
+ * SIDE_AXIS, which leaves room on the right for the height dimension of the
+ * widest capsule (Dolce Gusto); a top view is TOP_WIDTH wide, enough for the
+ * ESE pod's paper edge. Side and top together are 136 mm, drawn at 2.35 px per
+ * mm: 320 px, the width of the column the plates sit in.
+ */
+const SIDE_WIDTH = 76;
+const SIDE_AXIS = 30;
+const TOP_WIDTH = 60;
+/** Rendered size of one millimetre, in rem. 0.146875rem is 2.35px. */
+const UNIT_REM = 0.146875;
+/** The rim sits this far down, under the diameter dimension. */
+const RIM_Y = 11;
+/** Room under the drawings for the view labels. */
+const LABEL_SPACE = 8;
+const FONT_SIZE = 4.8;
 
-/** One view occupies a fixed box, so every view shares one scale. */
-const VIEW_WIDTH = 64;
-const VIEW_HEIGHT = 64;
-/** Rendered size of one drawing unit, in rem. 0.15625rem is 2.5px. */
-const UNIT_REM = 0.15625;
+/*
+ * The compact rendering is the side profile alone, in one box shared by every
+ * system: wide enough for the pod's paper edge, tall enough for Dolce Gusto,
+ * every base on the same line. 1.5 px per mm.
+ */
 const COMPACT_UNIT_REM = 0.09375;
-/** The compact variant crops to the side profile alone. */
-const COMPACT_BOX = { x: 3, y: 17, width: 58, height: 39 } as const;
+/** Exported for the test that every outline fits it. */
+export const COMPACT_FRAME = { width: 62, height: 38, axis: 31, base: 37.2 } as const;
+const COMPACT_BOX = { width: COMPACT_FRAME.width, height: COMPACT_FRAME.height } as const;
+const COMPACT_AXIS = COMPACT_FRAME.axis;
+const COMPACT_BASE = COMPACT_FRAME.base;
 
 /*
  * Stroke weights are in screen pixels (the strokes do not scale with the
@@ -67,33 +98,72 @@ const FINE = {
   className: "text-ink-500",
 } as const;
 
-interface DiagramDefinition {
+interface DiagramText {
   /** Accessible name, Bulgarian. */
   readonly label: string;
   /** Accessible description of what the drawing shows, Bulgarian. */
   readonly description: string;
-  /**
-   * Where the drawing starts, in units from the top of the view box. Cropping
-   * the empty space above a short capsule keeps the plate close to its text;
-   * it does not change the scale.
-   */
-  readonly top0: number;
-  /** Side profile, drawn inside one view box with its base on y = 54. */
-  readonly side: React.ReactNode;
-  /** Top view, centred on (32, 29) of its own view box. */
-  readonly top?: React.ReactNode;
-  /** Printed dimensions; left out of the compact rendering. */
-  readonly sideDimension?: React.ReactNode;
-  readonly topDimension?: React.ReactNode;
 }
 
-function DimensionText({ x, y, children }: { x: number; y: number; children: string }) {
+const TEXT: Record<DiagramSystemId, DiagramText> = {
+  "nespresso-original": {
+    label: "Схема на капсула Nespresso Original",
+    description:
+      "Страничен профил в мащаб. Малка капсула с форма на пресечен конус: тънък навит ръб с диаметър 37 мм, права конусна стена и край, който се стеснява стъпаловидно до малко плоско дъно. Височина 28 мм.",
+  },
+  "dolce-gusto": {
+    label: "Схема на капсула Dolce Gusto",
+    description:
+      "Страничен профил в мащаб. Най-широката от капсулите: ръб с диаметър 54 мм, къса права яка под него, стесняващо се надолу тяло и стъпаловидно дъно, което завършва с малък накрайник в средата. Височина 36 мм.",
+  },
+  "a-modo-mio": {
+    label: "Схема на капсула Lavazza A Modo Mio",
+    description:
+      "Страничен профил в мащаб. Широка и плитка капсула: плосък ръб с диаметър 47 мм и ниско тяло с плоско дъно. Височина 17 мм.",
+  },
+  caffitaly: {
+    label: "Схема на капсула Caffitaly",
+    description:
+      "Страничен профил в мащаб. Капсула с тънък ръб с диаметър 45 мм, почти прави стени с жлеб в долната част и заоблено дъно. Височина 27 мм.",
+  },
+  "lavazza-blue": {
+    label: "Схема на капсула Lavazza Blue",
+    description:
+      "Страничен профил в мащаб. Ръб с диаметър 47 мм, колкото на A Modo Mio, над по-дълбоко тяло, което се стеснява надолу към плоско дъно. Височина 26 мм.",
+  },
+  "ese-pod": {
+    label: "Схема на хартиена доза ESE",
+    description:
+      "Страничен профил и изглед отгоре. Плоска кръгла възглавничка от филтърна хартия: пресованото кафе в средата е 44 мм в диаметър, а хартиеният ръб около него е по-широк.",
+  },
+};
+
+export function hasCapsuleDiagram(id: string): id is DiagramSystemId {
+  return Object.hasOwn(CAPSULE_OUTLINES, id);
+}
+
+/** The accessible name a system's drawing carries when it is not decorative. */
+export function capsuleDiagramLabel(id: DiagramSystemId): string {
+  return TEXT[id].label;
+}
+
+function DimensionText({
+  x,
+  y,
+  anchor = "middle",
+  children,
+}: {
+  x: number;
+  y: number;
+  anchor?: "middle" | "start";
+  children: string;
+}) {
   return (
     <text
       x={x}
       y={y}
-      textAnchor="middle"
-      fontSize={4.4}
+      textAnchor={anchor}
+      fontSize={FONT_SIZE}
       fill="currentColor"
       className="text-ink-700"
     >
@@ -103,7 +173,7 @@ function DimensionText({ x, y, children }: { x: number; y: number; children: str
 }
 
 /** A horizontal dimension line with end ticks. */
-function DimensionLine({ from, to, y }: { from: number; to: number; y: number }) {
+function HorizontalDimension({ from, to, y }: { from: number; to: number; y: number }) {
   return (
     <path
       {...FINE}
@@ -112,163 +182,23 @@ function DimensionLine({ from, to, y }: { from: number; to: number; y: number })
   );
 }
 
-const DIAGRAMS: Record<DiagramSystemId, DiagramDefinition> = {
-  "nespresso-original": {
-    label: "Схема на капсула Nespresso Original",
-    description:
-      "Страничен профил и изглед отгоре. Малка капсула с форма на пресечен конус, който се стеснява към заоблен връх, и с тънък ръб с фолио на широкия край. Ръбът е около 37 мм в диаметър.",
-    top0: 9,
-    side: (
-      <>
-        <path
-          {...BODY}
-          d="M47 26.5L43.6 45Q43 49 38.5 52.5Q37 54 35 54H29Q27 54 25.5 52.5Q21 49 20.4 45L17 26.5Z"
-        />
-        <path
-          {...FEATURE}
-          d="M47 26.5L43.6 45Q43 49 38.5 52.5Q37 54 35 54H29Q27 54 25.5 52.5Q21 49 20.4 45L17 26.5"
-        />
-        <path {...OUTLINE} d="M13.5 26H50.5" />
-      </>
-    ),
-    sideDimension: (
-      <>
-        <path {...FINE} d="M13.5 24.5V18.5M50.5 24.5V18.5" strokeDasharray="2 2" />
-        <DimensionLine from={13.5} to={50.5} y={20} />
-        <DimensionText x={32} y={17}>
-          ≈ 37 мм
-        </DimensionText>
-      </>
-    ),
-    top: (
-      <>
-        <circle {...BODY} cx={32} cy={29} r={18.5} />
-        <circle {...FINE} cx={32} cy={29} r={15} />
-      </>
-    ),
-  },
-
-  "dolce-gusto": {
-    label: "Схема на капсула Dolce Gusto",
-    description:
-      "Страничен профил и изглед отгоре. Най-широката от капсулите: ниска пластмасова чашка с почти прави стени, плосък капак от фолио с широк ръб и малък накрайник в средата на дъното.",
-    top0: 0,
-    side: (
-      <>
-        <path
-          {...BODY}
-          d="M57 20L54.5 49Q54.3 52 51.3 52H36.5V54H27.5V52H12.7Q9.7 52 9.5 49L7 20Z"
-        />
-        <path {...FEATURE} d="M5 19.5H59" />
-      </>
-    ),
-    top: (
-      <>
-        <circle {...BODY} cx={32} cy={29} r={27} />
-        <circle {...FEATURE} cx={32} cy={29} r={25} />
-      </>
-    ),
-  },
-
-  "a-modo-mio": {
-    label: "Схема на капсула Lavazza A Modo Mio",
-    description:
-      "Страничен профил. Малка ниска пластмасова капсула с плоско дъно и широк, плътен ръб отгоре, който стърчи встрани от тялото.",
-    top0: 22,
-    side: (
-      <>
-        <path
-          {...BODY}
-          d="M46.5 30V34H45.5L42.5 53Q42.4 54 41.4 54H22.6Q21.6 54 21.5 53L18.5 34H17.5V30Z"
-        />
-        <rect {...FEATURE} x={13} y={28} width={38} height={2} rx={0.6} />
-      </>
-    ),
-  },
-
-  caffitaly: {
-    label: "Схема на капсула Caffitaly",
-    description:
-      "Страничен профил. Пластмасова капсула с форма на чашка със заоблено дъно и почти прави стени, с висок пръстен около горния край.",
-    top0: 22,
-    side: (
-      <>
-        <path {...BODY} d="M49 29L47.5 51Q47.3 54 44.3 54H19.7Q16.7 54 16.5 51L15 29Z" />
-        <rect
-          {...FEATURE}
-          className="fill-paper-raised text-pine-700"
-          x={13}
-          y={24}
-          width={38}
-          height={5}
-          rx={0.8}
-        />
-      </>
-    ),
-  },
-
-  "lavazza-blue": {
-    label: "Схема на капсула Lavazza Blue",
-    description:
-      "Страничен профил. Твърда пластмасова капсула, видимо по-висока от A Modo Mio, с плоско дъно и тесен ръб отгоре.",
-    top0: 16,
-    side: (
-      <>
-        <path {...BODY} d="M48 21.5L45 53Q44.9 54 43.9 54H20.1Q19.1 54 19 53L16 21.5Z" />
-        <path {...FEATURE} d="M48 21.5L45 53Q44.9 54 43.9 54H20.1Q19.1 54 19 53L16 21.5" />
-        <path {...OUTLINE} d="M13.5 20.8H50.5" />
-      </>
-    ),
-  },
-
-  "ese-pod": {
-    label: "Схема на хартиена доза ESE",
-    description:
-      "Страничен профил и изглед отгоре. Плоска кръгла хартиена възглавничка с пресовано кафе в средата и тънък хартиен ръб около него; дозата е 44 мм в диаметър.",
-    top0: 2,
-    side: (
-      <>
-        <path {...OUTLINE} d="M7 49.5H57" />
-        <path
-          {...FEATURE}
-          className="fill-paper-raised text-pine-700"
-          d="M10 49.5Q32 40.5 54 49.5Q32 58.5 10 49.5Z"
-        />
-      </>
-    ),
-    top: (
-      <>
-        <circle {...BODY} cx={32} cy={29} r={25} />
-        <circle {...FEATURE} cx={32} cy={29} r={22} />
-      </>
-    ),
-    topDimension: (
-      <>
-        <DimensionLine from={10} to={54} y={29} />
-        <DimensionText x={32} y={26}>
-          44 мм
-        </DimensionText>
-      </>
-    ),
-  },
-};
-
-export function hasCapsuleDiagram(id: string): id is DiagramSystemId {
-  return Object.hasOwn(DIAGRAMS, id);
+/** A vertical dimension line with end ticks. */
+function VerticalDimension({ x, from, to }: { x: number; from: number; to: number }) {
+  return (
+    <path
+      {...FINE}
+      d={`M${x} ${from}V${to}M${x - 1.5} ${from}H${x + 1.5}M${x - 1.5} ${to}H${x + 1.5}`}
+    />
+  );
 }
 
-/** The accessible name a system's drawing carries when it is not decorative. */
-export function capsuleDiagramLabel(id: DiagramSystemId): string {
-  return DIAGRAMS[id].label;
-}
-
-function ViewLabel({ x, children }: { x: number; children: string }) {
+function ViewLabel({ x, y, children }: { x: number; y: number; children: string }) {
   return (
     <text
       x={x}
-      y={62.5}
+      y={y}
       textAnchor="middle"
-      fontSize={4.4}
+      fontSize={FONT_SIZE}
       fill="currentColor"
       className="text-ink-500"
     >
@@ -277,12 +207,25 @@ function ViewLabel({ x, children }: { x: number; children: string }) {
   );
 }
 
+/** The side silhouette with its feature and bands, axis on x = 0, rim on y = 0. */
+function SideProfile({ outline }: { outline: CapsuleOutline }) {
+  return (
+    <>
+      <path {...BODY} d={sideOutlinePath(outline)} />
+      {outline.bands?.map((band) => (
+        <path key={band.y} {...FINE} d={`M${-band.r} ${band.y}H${band.r}`} />
+      ))}
+      <path {...FEATURE} d={sideFeaturePath(outline)} />
+    </>
+  );
+}
+
 /**
  * The drawing for one system, or nothing for a system with no capsule (beans).
  *
  * `variant="full"` is the field-guide plate: every view, labelled, with the
- * known dimension. `variant="compact"` is the side profile alone, for use
- * inside a link that already names the system.
+ * established dimensions. `variant="compact"` is the side profile alone, for
+ * use inside a link that already names the system.
  *
  * `decorative` hides the drawing from assistive technology. Use it only where
  * the same element already announces the system by name and the drawing would
@@ -301,29 +244,113 @@ export function CapsuleDiagram({
 }) {
   const id = useId();
   if (!hasCapsuleDiagram(system.id)) return null;
-  const diagram = DIAGRAMS[system.id];
-
+  const outline = CAPSULE_OUTLINES[system.id];
+  const text = TEXT[system.id];
   const compact = variant === "compact";
-  const hasTop = !compact && diagram.top !== undefined;
-  const box = compact
-    ? COMPACT_BOX
-    : {
-        x: 0,
-        y: diagram.top0,
-        width: hasTop ? VIEW_WIDTH * 2 : VIEW_WIDTH,
-        height: VIEW_HEIGHT - diagram.top0,
-      };
-  const unit = compact ? COMPACT_UNIT_REM : UNIT_REM;
 
   const titleId = `${id}-title`;
   const descId = `${id}-desc`;
 
+  let box: { width: number; height: number };
+  let unit: number;
+  let views: React.ReactNode;
+
+  if (compact) {
+    box = COMPACT_BOX;
+    unit = COMPACT_UNIT_REM;
+    views = (
+      <g transform={`translate(${COMPACT_AXIS} ${COMPACT_BASE - outline.height.mm})`}>
+        <SideProfile outline={outline} />
+      </g>
+    );
+  } else {
+    const top = outline.top;
+    const topDiameter = top ? top[0]!.r * 2 : 0;
+    /*
+     * Both views stand on one baseline, so a pod's flat profile sits level
+     * with the bottom of its top view.
+     */
+    const base = Math.max(RIM_Y + outline.height.mm, top ? topDiameter + 1 : 0);
+    const rimY = base - outline.height.mm;
+    const rimRadius = outline.profile[0]!.points[1]![0];
+    const labelY = base + 6.5;
+    box = { width: SIDE_WIDTH + (top ? TOP_WIDTH : 0), height: base + LABEL_SPACE };
+    unit = UNIT_REM;
+    /* A capsule's rim diameter is printed over the side view; a pod's on top. */
+    const sideDiameter = !top && outline.diameter.printed;
+    const heightX = SIDE_AXIS + rimRadius + 2.5;
+
+    views = (
+      <>
+        <g>
+          <g transform={`translate(${SIDE_AXIS} ${rimY})`}>
+            <SideProfile outline={outline} />
+          </g>
+          {sideDiameter && (
+            <>
+              <HorizontalDimension
+                from={SIDE_AXIS - rimRadius}
+                to={SIDE_AXIS + rimRadius}
+                y={rimY - 3}
+              />
+              <DimensionText x={SIDE_AXIS} y={rimY - 6}>{`Ø ${sideDiameter}`}</DimensionText>
+            </>
+          )}
+          {outline.height.printed && (
+            <>
+              <VerticalDimension x={heightX} from={rimY} to={base} />
+              <DimensionText
+                x={heightX + 1.8}
+                y={rimY + outline.height.mm / 2 + 1.7}
+                anchor="start"
+              >
+                {outline.height.printed}
+              </DimensionText>
+            </>
+          )}
+          <ViewLabel x={SIDE_AXIS} y={labelY}>
+            отстрани
+          </ViewLabel>
+        </g>
+
+        {top && (
+          <g transform={`translate(${SIDE_WIDTH} 0)`}>
+            {top.map((ring, index) => (
+              <circle
+                key={ring.r}
+                {...(ring.feature ? FEATURE : index === 0 ? BODY : FINE)}
+                cx={TOP_WIDTH / 2}
+                cy={base - topDiameter / 2}
+                r={ring.r}
+              />
+            ))}
+            {outline.diameter.printed && (
+              <>
+                <HorizontalDimension
+                  from={TOP_WIDTH / 2 - outline.diameter.mm / 2}
+                  to={TOP_WIDTH / 2 + outline.diameter.mm / 2}
+                  y={base - topDiameter / 2}
+                />
+                <DimensionText x={TOP_WIDTH / 2} y={base - topDiameter / 2 - 3}>
+                  {outline.diameter.printed}
+                </DimensionText>
+              </>
+            )}
+            <ViewLabel x={TOP_WIDTH / 2} y={labelY}>
+              отгоре
+            </ViewLabel>
+          </g>
+        )}
+      </>
+    );
+  }
+
   return (
     <svg
-      viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+      viewBox={`0 0 ${box.width} ${box.height}`}
       /*
        * A fixed width, not a fluid one: the drawings share a scale only as
-       * long as each is rendered at the same size per unit.
+       * long as each is rendered at the same size per millimetre.
        */
       style={{ width: `${box.width * unit}rem`, aspectRatio: `${box.width} / ${box.height}` }}
       className={cx("block h-auto max-w-full shrink-0 text-ink-700", className)}
@@ -334,24 +361,11 @@ export function CapsuleDiagram({
     >
       {!decorative && (
         <>
-          <title id={titleId}>{diagram.label}</title>
-          <desc id={descId}>{diagram.description}</desc>
+          <title id={titleId}>{text.label}</title>
+          <desc id={descId}>{text.description}</desc>
         </>
       )}
-
-      <g>
-        {diagram.side}
-        {!compact && diagram.sideDimension}
-        {!compact && <ViewLabel x={VIEW_WIDTH / 2}>отстрани</ViewLabel>}
-      </g>
-
-      {hasTop && (
-        <g transform={`translate(${VIEW_WIDTH} 0)`}>
-          {diagram.top}
-          {diagram.topDimension}
-          <ViewLabel x={VIEW_WIDTH / 2}>отгоре</ViewLabel>
-        </g>
-      )}
+      {views}
     </svg>
   );
 }

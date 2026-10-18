@@ -1767,8 +1767,27 @@ text-ink-900` with the title in `font-semibold text-caution`.
   price with price per cup, and a button "Вижте и поръчайте" (`primary` on the
   first card, `secondary` on the others). The first card has `border-pine-500`.
 
+- _Capsule drawings:_ `components/wizard/capsule-diagrams.tsx`, on
+  `/bg/za-kafemashina`, on every machine brand page and (compact) in the
+  system step's options. Our own line drawings, lid up, of each capsule's side
+  profile, plus a top view for the ESE pod, whose flat paper disc is what sets
+  it apart. The outlines are data in millimetres
+  (`components/wizard/capsule-outlines.ts`, with the source of every figure:
+  a patent, a capsule manufacturer's dimensioned drawings, retailers'
+  measurements, photographs), so later icons can be derived from them. Every
+  drawing is at one scale — 2.35 px per mm on the plates, 1.5 px per mm in the
+  compact box that all systems share, bases on one line — so relative size is
+  information. Outline `ink-700`, 1.5 px; the distinguishing part 3 px in
+  `pine-700`; bands and dimension lines 1 px `ink-500`. Dimensions in `ink-700`
+  (rim diameter above, height beside), view labels „отстрани" / „отгоре" in
+  `ink-500`, both 11 px. A plate is at most 320 px wide, the column the pages
+  give it. A dimension is printed only where it is established; the
+  recognition sentence beside the drawing states the same figures.
+
 **Never.** A reason the ranking did not use. A caveat in clay. A progress bar
-that implies a fixed number of steps when the flow can skip them.
+that implies a fixed number of steps when the flow can skip them. A capsule
+drawing traced from a manufacturer's artwork, with a logo or marking, or with
+a dimension we cannot cite.
 
 ### Footer
 
