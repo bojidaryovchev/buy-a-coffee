@@ -1,5 +1,6 @@
 import { useId } from "react";
 import Link from "next/link";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
 
@@ -14,15 +15,24 @@ import { href, routes } from "@/lib/routes";
  * it works with no JavaScript. `accent-pine-900` colours the native control
  * instead of replacing it, which keeps its keyboard and screen-reader
  * behaviour and the global focus ring.
+ *
+ * The form passes its react-hook-form registration, so the box is one of the
+ * values the form's schema sees; it is never what makes a form invalid.
  */
 export function ConsentCheckbox({
   affects,
   needsEmail = false,
+  registration,
+  defaultChecked = false,
 }: {
   /** What the customer might fear ticking it would change. */
   affects: "поръчката" | "съобщението";
   /** Say so when the box only works if an address was given. */
   needsEmail?: boolean;
+  /** `register("newsletterConsent")` from the form. */
+  registration: UseFormRegisterReturn<"newsletterConsent">;
+  /** Ticked only when the page is drawn again after this person ticked it. */
+  defaultChecked?: boolean;
 }) {
   const id = useId();
   const helperId = `${id}-helper`;
@@ -36,8 +46,9 @@ export function ConsentCheckbox({
       >
         <input
           id={id}
-          name="newsletterConsent"
+          {...registration}
           type="checkbox"
+          defaultChecked={defaultChecked}
           aria-describedby={helperId}
           className="mt-0.5 size-5 shrink-0 cursor-pointer accent-pine-900"
         />

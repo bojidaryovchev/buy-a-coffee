@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect } from "react";
 import { replyToRecord, type RecordReplyState } from "@/lib/admin-actions";
+import { recordReplySchema } from "@/lib/forms/admin-schemas";
+import { FieldError } from "@/components/forms/field-error";
 import { TEXTAREA_CLASS } from "@/components/forms/field-styles";
+import { useActionForm } from "@/components/forms/use-schema-form";
 
 /**
  * Answering a stored enquiry, from the screen that shows it.
@@ -20,20 +22,27 @@ import { TEXTAREA_CLASS } from "@/components/forms/field-styles";
  * exists and links to it. The first reply to an enquiry is the moment a record
  * turns into a thread, and the operator should be told where it went rather
  * than discovering later that Поща has grown an entry.
+ *
+ * An empty reply is refused before it is sent, with `recordReplySchema`, the
+ * schema `replyToRecord` checks with; a failed send keeps the typed text.
  */
 
-function Submit() {
-  const { pending } = useFormStatus();
+function Submit({ pending }: { pending: boolean }) {
   return (
     <button
       type="submit"
       disabled={pending}
+      aria-busy={pending || undefined}
       className="min-h-11 rounded-sm bg-pine-700 px-5 py-2.5 text-sm font-semibold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
     >
       {pending ? "Изпраща се..." : "Изпрати"}
     </button>
   );
 }
+
+const fieldErrorsOf = (state: RecordReplyState) => state.fieldErrors;
+
+const INITIAL: RecordReplyState = {};
 
 export function RecordReplyForm({
   recordId,
@@ -46,17 +55,24 @@ export function RecordReplyForm({
   recipient: string;
   sender: string;
 }) {
-  const [state, action] = useActionState<RecordReplyState, FormData>(replyToRecord, {});
-  const form = useRef<HTMLFormElement>(null);
+  const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
+    schema: recordReplySchema,
+    action: replyToRecord,
+    initialState: INITIAL,
+    fieldErrorsOf,
+    defaultValuesOf: () => ({ recordId, kind, body: "" }),
+  });
+  const { register, reset } = form;
 
+  // Cleared on success only; `reset` clears the attachments too.
   useEffect(() => {
-    if (state.sent) form.current?.reset();
-  }, [state]);
+    if (state.sent) reset();
+  }, [state, reset]);
 
   return (
     <form
-      ref={form}
-      action={action}
+      {...formProps}
+      action={formAction}
       className="mt-6 rounded-md border border-line-strong bg-paper-raised p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -68,17 +84,19 @@ export function RecordReplyForm({
         </p>
       </div>
 
-      <input type="hidden" name="recordId" value={recordId} />
-      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" {...register("recordId")} value={recordId} />
+      <input type="hidden" {...register("kind")} value={kind} />
 
       <textarea
         id="body"
-        name="body"
+        {...register("body")}
         rows={7}
         required
         placeholder="Напишете отговора..."
+        {...ariaFor("body", "body")}
         className={`mt-2 ${TEXTAREA_CLASS} leading-relaxed`}
       />
+      <FieldError id="body" message={errorOf("body")} />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <label className="text-sm text-ink-500">
@@ -90,7 +108,7 @@ export function RecordReplyForm({
             className="mt-1 max-w-full text-sm file:mr-3 file:min-h-9 file:rounded-sm file:border file:border-line-strong file:bg-paper file:px-3 file:text-sm file:font-medium"
           />
         </label>
-        <Submit />
+        <Submit pending={pending} />
       </div>
 
       {state.error && (

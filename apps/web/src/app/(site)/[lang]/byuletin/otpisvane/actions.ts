@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { clientFingerprint, createRateLimiter, sharedStore } from "@/lib/rate-limit";
 import { unsubscribeByToken } from "@/lib/forms/unsubscribe";
-import { isPlausibleToken } from "@/lib/forms/unsubscribe-token";
+import { formText, unsubscribeSchema } from "@/lib/forms/schemas";
 import { DEFAULT_LOCALE, isLocale, isShipping, type Locale } from "@/i18n/config";
 import { href, routes } from "@/lib/routes";
 
@@ -44,10 +44,14 @@ export async function unsubscribe(formData: FormData): Promise<void> {
   const limit = await unsubscribeLimiter.check(clientFingerprint(await headers()));
   if (!limit.allowed) redirect(`${PAGE}?status=busy`);
 
-  const token = formData.get("token");
-  if (!isPlausibleToken(token)) redirect(`${PAGE}?status=invalid`);
+  // The schema the button validates with in the browser, so the two agree.
+  const parsed = unsubscribeSchema.safeParse({
+    token: formText(formData, "token"),
+    locale: formText(formData, "locale"),
+  });
+  if (!parsed.success) redirect(`${PAGE}?status=invalid`);
 
-  const outcome = await unsubscribeByToken(token);
+  const outcome = await unsubscribeByToken(parsed.data.token);
   // An address that is already off the list is as good as one just taken off.
   redirect(outcome === "invalid" ? `${PAGE}?status=invalid` : `${PAGE}?status=done`);
 }

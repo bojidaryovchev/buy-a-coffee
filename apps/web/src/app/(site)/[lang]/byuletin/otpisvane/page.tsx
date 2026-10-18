@@ -1,7 +1,7 @@
 import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button } from "@/components/ui/primitives";
+import { UnsubscribeForm } from "@/components/forms/unsubscribe-form";
 import { siteConfig } from "@/config/site";
 import { lookupToken } from "@/lib/forms/unsubscribe";
 import { maskEmail } from "@/lib/forms/unsubscribe-token";
@@ -129,13 +129,7 @@ export default async function UnsubscribePage({
       <p>
         Ще спрем да ви изпращаме бюлетина на този адрес. Не се променя нищо, докато не потвърдите.
       </p>
-      <form action={unsubscribe}>
-        <input type="hidden" name="token" value={token} />
-        <input type="hidden" name="locale" value={locale} />
-        <Button type="submit" size="lg" className="w-full sm:w-auto">
-          Отпиши ме
-        </Button>
-      </form>
+      <UnsubscribeForm token={token} locale={locale} action={unsubscribe} />
     </Shell>
   );
 }

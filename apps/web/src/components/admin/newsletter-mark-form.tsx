@@ -1,34 +1,41 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useId } from "react";
 import { addToNewsletter, type NewsletterMarkState } from "@/lib/admin-actions";
+import { newsletterMarkSchema } from "@/lib/forms/admin-schemas";
 import { OPERATOR_CONSENT_BASES, consentSourceLabel } from "@/lib/forms/consent";
+import { FieldError } from "@/components/forms/field-error";
+import { useActionForm } from "@/components/forms/use-schema-form";
 
 /**
  * "Add to the newsletter", on an enquiry or a message.
  *
  * The choice of how consent was given has no default and is required: the
- * radios start unselected, the browser will not submit without one, and the
- * action refuses a missing or unknown value anyway. An enquiry on its own is
- * not consent to marketing, and the line above the choices says so where the
+ * radios start unselected, pressing the button without one says so under them
+ * (`newsletterMarkSchema`, which the action checks with too), and the action
+ * refuses a missing or unknown value anyway. An enquiry on its own is not
+ * consent to marketing, and the line above the choices says so where the
  * operator reads it.
  *
  * Radios rather than a select: three options, one tap each on a phone.
  */
 
-function Submit() {
-  const { pending } = useFormStatus();
+function Submit({ pending }: { pending: boolean }) {
   return (
     <button
       type="submit"
       disabled={pending}
+      aria-busy={pending || undefined}
       className="min-h-11 rounded-sm border border-line-strong bg-paper-raised px-4 py-2 text-sm font-medium text-ink-900 transition-colors hover:bg-paper-sunken disabled:cursor-not-allowed disabled:text-ink-500"
     >
       {pending ? "Записва се…" : "Запиши в бюлетина"}
     </button>
   );
 }
+
+const fieldErrorsOf = (state: NewsletterMarkState) => state.fieldErrors;
+
+const INITIAL: NewsletterMarkState = {};
 
 export function NewsletterMarkForm({
   recordId,
@@ -42,7 +49,15 @@ export function NewsletterMarkForm({
   /** Where this address already stands, if it is on the list at all. */
   current: { consentAt: Date; consentSource: string | null; unsubscribedAt: Date | null } | null;
 }) {
-  const [state, action] = useActionState<NewsletterMarkState, FormData>(addToNewsletter, {});
+  const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
+    schema: newsletterMarkSchema,
+    action: addToNewsletter,
+    initialState: INITIAL,
+    fieldErrorsOf,
+    defaultValuesOf: () => ({ recordId, kind }),
+  });
+  const { register } = form;
+  const basisId = useId();
 
   const stamp = (at: Date) => at.toISOString().slice(0, 16).replace("T", " ");
 
@@ -100,12 +115,13 @@ export function NewsletterMarkForm({
 
   return (
     <form
-      action={action}
+      {...formProps}
+      action={formAction}
       aria-labelledby={`nl-${recordId}`}
       className="mt-6 rounded-md border border-line bg-paper-raised p-5"
     >
-      <input type="hidden" name="recordId" value={recordId} />
-      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" {...register("recordId")} value={recordId} />
+      <input type="hidden" {...register("kind")} value={kind} />
 
       <h2 id={`nl-${recordId}`} className="text-sm font-semibold text-ink-900">
         Добави в бюлетина
@@ -130,15 +146,17 @@ export function NewsletterMarkForm({
             >
               <input
                 type="radio"
-                name="basis"
+                {...register("basis")}
                 value={value}
                 required
+                {...ariaFor("basis", basisId)}
                 className="size-5 accent-pine-900"
               />
               {label}
             </label>
           ))}
         </div>
+        <FieldError id={basisId} message={errorOf("basis")} />
       </fieldset>
 
       {state.error && (
@@ -148,7 +166,7 @@ export function NewsletterMarkForm({
       )}
 
       <div className="mt-3">
-        <Submit />
+        <Submit pending={pending} />
       </div>
     </form>
   );

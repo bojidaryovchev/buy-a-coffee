@@ -1,19 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect, useId, useState } from "react";
 import { submitOrderInquiry } from "@/lib/forms/actions";
-import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
+import {
+  CHECK_FIELDS_MESSAGE,
+  IDLE_FORM_STATE,
+  orderInquirySchema,
+  type FormState,
+} from "@/lib/forms/schemas";
 import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
 import { ConsentCheckbox } from "@/components/forms/consent-checkbox";
+import { FieldError } from "@/components/forms/field-error";
 import {
-  ERROR_CLASS,
   INPUT_CLASS,
   INPUT_COMPACT_CLASS,
   LABEL_CLASS,
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
+import { useActionForm } from "@/components/forms/use-schema-form";
 import { useAnalytics } from "@/components/analytics-provider";
 import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
@@ -25,8 +30,15 @@ import { href, routes } from "@/lib/routes";
  * phone number and the shop calls back. This reproduces that functional intent
  * with our own UI, our own endpoint and our own database.
  *
+ * Checked in the browser with `orderInquirySchema`, the schema the action
+ * checks with, when the button is pressed (`use-schema-form.ts`). Without
+ * JavaScript it is a plain POST, and the server's answer is drawn in the same
+ * places.
+ *
  * Accessibility details that matter here:
  *   - the error is tied to the input with `aria-describedby` and `aria-invalid`
+ *   - focus goes to the first invalid field, opening the optional fields when
+ *     that is where it is
  *   - the result message is a live region, so it is announced
  *   - the submit button reports its pending state rather than silently doing
  *     nothing on a slow connection
@@ -36,8 +48,7 @@ import { href, routes } from "@/lib/routes";
  * owns its own state. The props are the contract other components rely on —
  * add to them, do not change them.
  */
-function SubmitButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus();
+function SubmitButton({ pending, disabled }: { pending: boolean; disabled: boolean }) {
   return (
     <Button
       type="submit"
@@ -52,6 +63,16 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+const fieldErrorsOf = (state: FormState) =>
+  state.status === "error" ? state.fieldErrors : undefined;
+
+/** What was typed, when the page is drawn from a refusal (no JavaScript). */
+const typedIn = (state: FormState): Record<string, string> =>
+  state.status === "error" ? (state.values ?? {}) : {};
+
+/** The fields inside the disclosure. */
+const OPTIONAL_FIELDS = ["customerName", "quantity", "email", "notes"] as const;
+
 export function QuickOrderForm({
   productSlug,
   disabled = false,
@@ -59,7 +80,36 @@ export function QuickOrderForm({
   productSlug: string;
   disabled?: boolean;
 }) {
-  const [state, formAction] = useActionState(submitOrderInquiry, IDLE_FORM_STATE);
+  const {
+    state,
+    formAction,
+    form: { register },
+    formProps,
+    pending,
+    errorOf,
+    ariaFor,
+    lineFor,
+  } = useActionForm({
+    schema: orderInquirySchema,
+    action: submitOrderInquiry,
+    initialState: IDLE_FORM_STATE,
+    fieldErrorsOf,
+    defaultValuesOf: (drawnWith) => {
+      const typed = typedIn(drawnWith);
+      return {
+        productSlug,
+        phone: typed.phone ?? "",
+        customerName: typed.customerName ?? "",
+        /* A field holds text, whatever the schema makes of it: the box shows
+           what was typed, and the schema's `coerce` reads it as a number. */
+        quantity: (typed.quantity ?? "1") as unknown as number,
+        email: typed.email ?? "",
+        notes: typed.notes ?? "",
+        newsletterConsent: typed.newsletterConsent === "on",
+      };
+    },
+  });
+  const typed = typedIn(state);
   const locale = useLocale();
   const phoneId = useId();
   const nameId = useId();
@@ -67,25 +117,23 @@ export function QuickOrderForm({
   const quantityId = useId();
   const notesId = useId();
   const statusId = useId();
-  const formRef = useRef<HTMLFormElement>(null);
   const analytics = useAnalytics();
 
   useEffect(() => {
     if (state.status === "success") {
-      formRef.current?.reset();
       analytics.track({ name: "quick_order_submitted", productSlug, outcome: "success" });
     } else if (state.status === "error") {
       analytics.track({ name: "quick_order_submitted", productSlug, outcome: "error" });
     }
   }, [state, analytics, productSlug]);
 
-  const phoneError = state.status === "error" ? state.fieldErrors?.phone : undefined;
-  const emailError = state.status === "error" ? state.fieldErrors?.email : undefined;
-  const quantityError = state.status === "error" ? state.fieldErrors?.quantity : undefined;
-  const notesError = state.status === "error" ? state.fieldErrors?.notes : undefined;
-  // A rejected email or note lives inside the closed disclosure; opening it is
-  // the only way the person can see what to fix.
-  const detailsOpen = Boolean(emailError || quantityError || notesError);
+  /* A rejected email or note lives inside the disclosure. When the page is
+     drawn with one (the server's answer, without JavaScript) it is drawn open;
+     with JavaScript, moving focus to the field opens it. Decided once, so that
+     correcting the field does not snap the disclosure shut under the cursor. */
+  const [optionalOpen] = useState(() => OPTIONAL_FIELDS.some((name) => errorOf(name)));
+
+  const formMessage = lineFor(state.status === "error" ? state : undefined, CHECK_FIELDS_MESSAGE);
 
   if (state.status === "success") {
     return (
@@ -98,12 +146,12 @@ export function QuickOrderForm({
 
   return (
     <form
-      ref={formRef}
+      {...formProps}
       action={formAction}
       className="relative rounded-md border border-line bg-paper-raised p-5"
       onFocus={() => analytics.track({ name: "quick_order_started", productSlug })}
     >
-      <input type="hidden" name="productSlug" value={productSlug} />
+      <input type="hidden" {...register("productSlug")} value={productSlug} />
       <HoneypotField />
 
       <p className="font-display text-base font-semibold text-ink-900">Поръчка на една стъпка</p>
@@ -122,27 +170,23 @@ export function QuickOrderForm({
           </label>
           <input
             id={phoneId}
-            name="phone"
+            {...register("phone")}
             type="tel"
             required
             inputMode="tel"
             autoComplete="tel"
             placeholder="Напр. 0888 123 456"
-            aria-invalid={phoneError ? true : undefined}
-            aria-describedby={phoneError ? `${phoneId}-error` : undefined}
+            defaultValue={typed.phone}
+            {...ariaFor("phone", phoneId)}
             className={INPUT_CLASS}
           />
-          {phoneError && (
-            <p id={`${phoneId}-error`} className={ERROR_CLASS}>
-              {phoneError}
-            </p>
-          )}
+          <FieldError id={phoneId} message={errorOf("phone")} />
         </div>
 
-        <SubmitButton disabled={disabled} />
+        <SubmitButton pending={pending} disabled={disabled} />
       </div>
 
-      <details className="group mt-3" open={detailsOpen || undefined}>
+      <details className="group mt-3" open={optionalOpen || undefined}>
         {/*
           A disclosure says that it opens: a chevron that turns when it does.
           The label may take two lines in the narrow column beside the delivery
@@ -170,12 +214,15 @@ export function QuickOrderForm({
             </label>
             <input
               id={nameId}
-              name="customerName"
+              {...register("customerName")}
               type="text"
               autoComplete="name"
               maxLength={120}
+              defaultValue={typed.customerName}
+              {...ariaFor("customerName", nameId)}
               className={INPUT_COMPACT_CLASS}
             />
+            <FieldError id={nameId} message={errorOf("customerName")} />
           </div>
           <div>
             <label htmlFor={quantityId} className={LABEL_CLASS}>
@@ -183,21 +230,16 @@ export function QuickOrderForm({
             </label>
             <input
               id={quantityId}
-              name="quantity"
+              {...register("quantity")}
               type="number"
               min={1}
               max={99}
-              defaultValue={1}
+              defaultValue={typed.quantity ?? 1}
               inputMode="numeric"
-              aria-invalid={quantityError ? true : undefined}
-              aria-describedby={quantityError ? `${quantityId}-error` : undefined}
+              {...ariaFor("quantity", quantityId)}
               className={INPUT_COMPACT_CLASS}
             />
-            {quantityError && (
-              <p id={`${quantityId}-error`} className={ERROR_CLASS}>
-                {quantityError}
-              </p>
-            )}
+            <FieldError id={quantityId} message={errorOf("quantity")} />
           </div>
           <div className="sm:col-span-2">
             <label htmlFor={emailId} className={LABEL_CLASS}>
@@ -205,23 +247,24 @@ export function QuickOrderForm({
             </label>
             <input
               id={emailId}
-              name="email"
+              {...register("email")}
               type="email"
               autoComplete="email"
               inputMode="email"
               maxLength={254}
-              aria-invalid={emailError ? true : undefined}
-              aria-describedby={emailError ? `${emailId}-error` : undefined}
+              defaultValue={typed.email}
+              {...ariaFor("email", emailId)}
               className={INPUT_COMPACT_CLASS}
             />
-            {emailError && (
-              <p id={`${emailId}-error`} className={ERROR_CLASS}>
-                {emailError}
-              </p>
-            )}
+            <FieldError id={emailId} message={errorOf("email")} />
           </div>
           <div className="sm:col-span-2">
-            <ConsentCheckbox affects="поръчката" needsEmail />
+            <ConsentCheckbox
+              affects="поръчката"
+              needsEmail
+              registration={register("newsletterConsent")}
+              defaultChecked={typed.newsletterConsent === "on"}
+            />
           </div>
           <div className="sm:col-span-2">
             <label htmlFor={notesId} className={LABEL_CLASS}>
@@ -229,24 +272,20 @@ export function QuickOrderForm({
             </label>
             <textarea
               id={notesId}
-              name="notes"
+              {...register("notes")}
               rows={3}
               maxLength={1000}
-              aria-invalid={notesError ? true : undefined}
-              aria-describedby={notesError ? `${notesId}-error` : undefined}
+              defaultValue={typed.notes}
+              {...ariaFor("notes", notesId)}
               className={TEXTAREA_CLASS}
             />
-            {notesError && (
-              <p id={`${notesId}-error`} className={ERROR_CLASS}>
-                {notesError}
-              </p>
-            )}
+            <FieldError id={notesId} message={errorOf("notes")} />
           </div>
         </div>
       </details>
 
       <p aria-live="polite" id={statusId} className="mt-3 min-h-6 text-sm">
-        {state.status === "error" && <span className="text-critical">{state.message}</span>}
+        {formMessage && <span className="text-critical">{formMessage}</span>}
       </p>
 
       <p className="mt-1 text-xs text-ink-500">

@@ -1,24 +1,38 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useId } from "react";
 import { submitContactMessage } from "@/lib/forms/actions";
-import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
+import {
+  CHECK_FIELDS_MESSAGE,
+  IDLE_FORM_STATE,
+  contactSchema,
+  type FormState,
+} from "@/lib/forms/schemas";
 import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
 import { ConsentCheckbox } from "@/components/forms/consent-checkbox";
+import { FieldError } from "@/components/forms/field-error";
 import {
-  ERROR_CLASS,
   HELPER_CLASS,
   INPUT_CLASS,
   LABEL_CLASS,
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
+import { useActionForm } from "@/components/forms/use-schema-form";
 import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
+/**
+ * The contact form, and the enquiry form at the foot of the business pages
+ * (the same form with its subject filled in).
+ *
+ * Checked in the browser with `contactSchema`, the schema the action checks
+ * with, when the button is pressed (`use-schema-form.ts`); without JavaScript
+ * it is a plain POST and the server's answer is drawn in the same places, with
+ * what was typed put back.
+ */
+
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <Button
       type="submit"
@@ -40,7 +54,7 @@ function Field({
 }: {
   id: string;
   label: string;
-  error?: string;
+  error?: string | undefined;
   required?: boolean;
   children: React.ReactNode;
 }) {
@@ -56,14 +70,17 @@ function Field({
         )}
       </label>
       {children}
-      {error && (
-        <p id={`${id}-error`} className={ERROR_CLASS}>
-          {error}
-        </p>
-      )}
+      <FieldError id={id} message={error} />
     </div>
   );
 }
+
+const fieldErrorsOf = (state: FormState) =>
+  state.status === "error" ? state.fieldErrors : undefined;
+
+/** What was typed, when the page is drawn from a refusal (no JavaScript). */
+const typedIn = (state: FormState): Record<string, string> =>
+  state.status === "error" ? (state.values ?? {}) : {};
 
 export function ContactForm({
   defaultSubject,
@@ -75,18 +92,39 @@ export function ContactForm({
    */
   defaultSubject?: string;
 } = {}) {
-  const [state, formAction] = useActionState(submitContactMessage, IDLE_FORM_STATE);
+  const {
+    state,
+    formAction,
+    form: { register },
+    formProps,
+    pending,
+    errorOf,
+    ariaFor,
+    lineFor,
+  } = useActionForm({
+    schema: contactSchema,
+    action: submitContactMessage,
+    initialState: IDLE_FORM_STATE,
+    fieldErrorsOf,
+    defaultValuesOf: (drawnWith) => {
+      const typed = typedIn(drawnWith);
+      return {
+        name: typed.name ?? "",
+        email: typed.email ?? "",
+        phone: typed.phone ?? "",
+        subject: typed.subject ?? defaultSubject ?? "",
+        message: typed.message ?? "",
+        newsletterConsent: typed.newsletterConsent === "on",
+      };
+    },
+  });
+  const typed = typedIn(state);
   const locale = useLocale();
   const nameId = useId();
   const emailId = useId();
   const phoneId = useId();
   const subjectId = useId();
   const messageId = useId();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.status === "success") formRef.current?.reset();
-  }, [state]);
 
   if (state.status === "success") {
     return (
@@ -97,105 +135,90 @@ export function ContactForm({
     );
   }
 
-  const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
-  const inputClass = INPUT_CLASS;
+  const formMessage = lineFor(state.status === "error" ? state : undefined, CHECK_FIELDS_MESSAGE);
 
   return (
-    <form ref={formRef} action={formAction} className="relative space-y-4">
+    <form {...formProps} action={formAction} className="relative space-y-4">
       <HoneypotField />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id={nameId}
-          label="Вашето име"
-          required
-          {...(errors.name ? { error: errors.name } : {})}
-        >
+        <Field id={nameId} label="Вашето име" required error={errorOf("name")}>
           <input
             id={nameId}
-            name="name"
+            {...register("name")}
             type="text"
             required
             autoComplete="name"
-            aria-invalid={errors.name ? true : undefined}
-            aria-describedby={errors.name ? `${nameId}-error` : undefined}
-            className={inputClass}
+            defaultValue={typed.name}
+            {...ariaFor("name", nameId)}
+            className={INPUT_CLASS}
           />
         </Field>
 
-        <Field
-          id={emailId}
-          label="Имейл"
-          required
-          {...(errors.email ? { error: errors.email } : {})}
-        >
+        <Field id={emailId} label="Имейл" required error={errorOf("email")}>
           <input
             id={emailId}
-            name="email"
+            {...register("email")}
             type="email"
             required
             inputMode="email"
             autoComplete="email"
-            aria-invalid={errors.email ? true : undefined}
-            aria-describedby={errors.email ? `${emailId}-error` : undefined}
-            className={inputClass}
+            defaultValue={typed.email}
+            {...ariaFor("email", emailId)}
+            className={INPUT_CLASS}
           />
         </Field>
 
-        <Field
-          id={phoneId}
-          label="Телефон (по избор)"
-          {...(errors.phone ? { error: errors.phone } : {})}
-        >
+        <Field id={phoneId} label="Телефон (по избор)" error={errorOf("phone")}>
           <input
             id={phoneId}
-            name="phone"
+            {...register("phone")}
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            aria-invalid={errors.phone ? true : undefined}
-            aria-describedby={errors.phone ? `${phoneId}-error` : undefined}
-            className={inputClass}
+            defaultValue={typed.phone}
+            {...ariaFor("phone", phoneId)}
+            className={INPUT_CLASS}
           />
         </Field>
 
-        <Field id={subjectId} label="Тема (по избор)">
+        <Field id={subjectId} label="Тема (по избор)" error={errorOf("subject")}>
           <input
             id={subjectId}
-            name="subject"
+            {...register("subject")}
             type="text"
             maxLength={160}
-            defaultValue={defaultSubject}
-            className={inputClass}
+            defaultValue={typed.subject ?? defaultSubject}
+            {...ariaFor("subject", subjectId)}
+            className={INPUT_CLASS}
           />
         </Field>
       </div>
 
-      <Field
-        id={messageId}
-        label="Съобщение"
-        required
-        {...(errors.message ? { error: errors.message } : {})}
-      >
+      <Field id={messageId} label="Съобщение" required error={errorOf("message")}>
         <textarea
           id={messageId}
-          name="message"
+          {...register("message")}
           required
           rows={6}
           maxLength={4000}
-          aria-invalid={errors.message ? true : undefined}
-          aria-describedby={errors.message ? `${messageId}-error` : undefined}
+          defaultValue={typed.message}
+          {...ariaFor("message", messageId)}
           className={TEXTAREA_CLASS}
         />
       </Field>
 
-      <ConsentCheckbox affects="съобщението" />
+      <ConsentCheckbox
+        affects="съобщението"
+        registration={register("newsletterConsent")}
+        defaultChecked={typed.newsletterConsent === "on"}
+      />
 
       <p aria-live="polite" className="min-h-6 text-sm">
-        {state.status === "error" && <span className="text-critical">{state.message}</span>}
+        {formMessage && <span className="text-critical">{formMessage}</span>}
       </p>
 
-      <SubmitButton />
+      <SubmitButton pending={pending} />
 
       <p className={HELPER_CLASS}>
         Използваме данните ви само за да отговорим на това съобщение. Вижте нашата{" "}

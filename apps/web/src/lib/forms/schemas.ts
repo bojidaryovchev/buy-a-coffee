@@ -1,18 +1,42 @@
 import { z } from "zod";
+import { isPlausibleToken } from "./unsubscribe-token";
 
 /**
- * Validation schemas shared by the server actions and their tests.
+ * Validation schemas for the storefront's forms: one per form, and the same
+ * object on both sides.
  *
- * Every public write endpoint validates here first. Nothing reaches the
- * database that has not passed through one of these.
+ * The server action validates every submission with it before anything is
+ * stored, and the form validates with it in the browser (react-hook-form, through
+ * `@hookform/resolvers/zod`) before anything is sent. So a rule and its message
+ * exist once: what a person reads under a field is the same sentence whether
+ * the browser found the problem or the server did, and the browser can never
+ * accept something the server refuses or the other way round.
+ *
+ * That is also why this file holds no `server-only` and imports nothing that
+ * does: it is in the client bundle on purpose.
+ *
+ * Every message a person can see is written to say what to do („Въведете…“),
+ * as `DESIGN.md` ("Inputs") asks. Messages for hidden fields are seen only by
+ * someone posting by hand, and say the one useful thing: reload.
  */
 
+/** Digits a phone number must have: 02 123 4567 (Sofia) has nine. */
+const PHONE_MIN_DIGITS = 9;
+/** E.164's ceiling. */
+const PHONE_MAX_DIGITS = 15;
 /**
- * Bulgarian mobile and landline numbers, plus international format.
- * Spaces, dashes and parentheses are accepted because people type them, and
- * are stripped before storage.
+ * What a typed number may contain: an optional leading plus, digits, and the
+ * spaces, dashes, dots and parentheses people type between them. The
+ * separators are stripped before storage.
  */
-const PHONE_PATTERN = /^(?:\+?\d[\d\s\-().]{5,20}\d)$/;
+const PHONE_CHARACTERS = /^\+?[\d\s\-().]+$/;
+
+export const PHONE_MESSAGES = {
+  missing: "Въведете телефонен номер, за да можем да ви се обадим.",
+  characters: "Въведете номера само с цифри, например 0888 123 456.",
+  short: `Въведете телефонен номер с поне ${PHONE_MIN_DIGITS} цифри.`,
+  long: `Въведете телефонен номер с не повече от ${PHONE_MAX_DIGITS} цифри.`,
+} as const;
 
 export function normalizePhone(input: string): string {
   const cleaned = input.replace(/[\s\-().]/g, "");
@@ -21,21 +45,66 @@ export function normalizePhone(input: string): string {
   return cleaned;
 }
 
+/** The one thing wrong with a typed number, or null. In the order a person fixes them. */
+function phoneProblem(value: string): string | null {
+  if (value === "") return PHONE_MESSAGES.missing;
+  if (!PHONE_CHARACTERS.test(value)) return PHONE_MESSAGES.characters;
+  const digits = value.replace(/\D/g, "").length;
+  if (digits < PHONE_MIN_DIGITS) return PHONE_MESSAGES.short;
+  if (digits > PHONE_MAX_DIGITS) return PHONE_MESSAGES.long;
+  return null;
+}
+
 export const phoneSchema = z
   .string()
   .trim()
-  .min(6, "Моля, въведете телефонен номер, за да можем да ви се обадим.")
-  .max(24, "Този телефонен номер изглежда твърде дълъг.")
-  .refine((value) => PHONE_PATTERN.test(value), "Моля, въведете валиден телефонен номер.")
+  .superRefine((value, context) => {
+    const message = phoneProblem(value);
+    if (message) context.addIssue({ code: z.ZodIssueCode.custom, message });
+  })
   .transform(normalizePhone);
+
+/**
+ * A phone number a form may leave empty. Written as one rule rather than a
+ * union with `z.literal("")`: a union that fails reports "Invalid input" on
+ * the server and a member's message in the browser, and the two must read the
+ * same.
+ */
+export const optionalPhoneSchema = z
+  .string()
+  .trim()
+  .superRefine((value, context) => {
+    const message = value === "" ? null : phoneProblem(value);
+    if (message) context.addIssue({ code: z.ZodIssueCode.custom, message });
+  })
+  .transform((value) => (value === "" ? "" : normalizePhone(value)))
+  .optional();
+
+export const EMAIL_MESSAGES = {
+  missing: "Въведете имейл адреса си.",
+  format: "Въведете целия имейл адрес, например ivan@example.com.",
+  long: "Въведете имейл адрес до 254 знака.",
+} as const;
 
 export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(5, "Моля, въведете имейл адреса си.")
-  .max(254, "Този имейл адрес е твърде дълъг.")
-  .email("Моля, въведете валиден имейл адрес.");
+  .min(1, EMAIL_MESSAGES.missing)
+  .max(254, EMAIL_MESSAGES.long)
+  .email(EMAIL_MESSAGES.format);
+
+/** An address a form may leave empty; one rule, for the reason `optionalPhoneSchema` gives. */
+export const optionalEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(254, EMAIL_MESSAGES.long)
+  .refine(
+    (value) => value === "" || z.string().email().safeParse(value).success,
+    EMAIL_MESSAGES.format,
+  )
+  .optional();
 
 /**
  * Honeypot.
@@ -44,6 +113,11 @@ export const emailSchema = z
  * anything else is treated as spam. Cheap, invisible to real users, and it
  * costs nothing in accessibility when the field is properly hidden and
  * excluded from the tab order.
+ *
+ * The browser never validates it: the forms do not register it, so it is not
+ * among the values the browser checks, and it is posted exactly as the page
+ * holds it. Only the server looks, and answers a filled one as if it had
+ * succeeded, so a bot learns nothing.
  */
 export const honeypotSchema = z
   .string()
@@ -52,32 +126,37 @@ export const honeypotSchema = z
 
 /**
  * An HTML checkbox: the browser sends its value when it is ticked and nothing
- * at all when it is not. Anything but a plain "ticked" reads as not ticked, and
- * this never fails — a consent box is optional, so it must not be able to be
- * the reason a form is refused.
+ * at all when it is not, and react-hook-form reports it as `true` or `false`.
+ * Anything but a plain "ticked" reads as not ticked, and this never fails — a
+ * consent box is optional, so it must not be able to be the reason a form is
+ * refused.
  */
 export const checkboxSchema = z.preprocess(
-  (value) => value === "on" || value === "true" || value === "1",
+  (value) => value === true || value === "on" || value === "true" || value === "1",
   z.boolean(),
 );
 
+/** For a field the page fills in itself: only a hand-made post can get it wrong. */
+const RELOAD = "Презаредете страницата и опитайте отново.";
+
+export const QUANTITY_MESSAGES = {
+  number: "Въведете количеството с цифри, от 1 до 99.",
+  low: "Въведете количество поне 1.",
+  high: "Въведете до 99 броя. За по-голяма поръчка ни се обадете.",
+} as const;
+
 export const orderInquirySchema = z.object({
-  productSlug: z.string().trim().min(1).max(200),
+  productSlug: z.string().trim().min(1, RELOAD).max(200, RELOAD),
   phone: phoneSchema,
-  customerName: z.string().trim().max(120).optional().or(z.literal("")),
-  email: z.union([emailSchema, z.literal("")]).optional(),
+  customerName: z.string().trim().max(120, "Съкратете името до 120 знака.").optional(),
+  email: optionalEmailSchema,
   quantity: z.coerce
-    .number()
-    .int()
-    .min(1, "Количеството трябва да е поне 1.")
-    .max(99, "За по-големи поръчки, моля, обадете ни се.")
+    .number({ invalid_type_error: QUANTITY_MESSAGES.number })
+    .int(QUANTITY_MESSAGES.number)
+    .min(1, QUANTITY_MESSAGES.low)
+    .max(99, QUANTITY_MESSAGES.high)
     .default(1),
-  notes: z
-    .string()
-    .trim()
-    .max(1000, "Моля, ограничете бележката до 1000 знака.")
-    .optional()
-    .or(z.literal("")),
+  notes: z.string().trim().max(1000, "Съкратете бележката до 1000 знака.").optional(),
   /** Unticked by default. Only means anything when an email was given. */
   newsletterConsent: checkboxSchema,
   website: honeypotSchema,
@@ -85,33 +164,75 @@ export const orderInquirySchema = z.object({
 
 export const newsletterSchema = z.object({
   email: emailSchema,
-  source: z.string().trim().max(60).optional(),
+  source: z.string().trim().max(60, RELOAD).optional(),
   website: honeypotSchema,
 });
 
+export const CONTACT_MESSAGES = {
+  nameMissing: "Въведете името си.",
+  nameShort: "Въведете името си, поне 2 знака.",
+  messageMissing: "Напишете съобщението си.",
+  messageShort: "Напишете поне 10 знака, за да разберем с какво да помогнем.",
+} as const;
+
 export const contactSchema = z.object({
-  name: z.string().trim().min(2, "Моля, кажете ни името си.").max(120),
+  name: z
+    .string()
+    .trim()
+    .min(1, CONTACT_MESSAGES.nameMissing)
+    .min(2, CONTACT_MESSAGES.nameShort)
+    .max(120, "Съкратете името до 120 знака."),
   email: emailSchema,
-  phone: z.union([phoneSchema, z.literal("")]).optional(),
-  subject: z.string().trim().max(160).optional().or(z.literal("")),
+  phone: optionalPhoneSchema,
+  subject: z.string().trim().max(160, "Съкратете темата до 160 знака.").optional(),
   message: z
     .string()
     .trim()
-    .min(10, "Моля, напишете малко повече, за да можем да помогнем.")
-    .max(4000, "Моля, ограничете съобщението до 4000 знака."),
+    .min(1, CONTACT_MESSAGES.messageMissing)
+    .min(10, CONTACT_MESSAGES.messageShort)
+    .max(4000, "Съкратете съобщението до 4000 знака."),
   newsletterConsent: checkboxSchema,
   website: honeypotSchema,
+});
+
+/**
+ * The unsubscribe button. Both fields are the page's own; a token that cannot
+ * be one of ours is answered with the page that says the link is not active.
+ */
+export const unsubscribeSchema = z.object({
+  token: z.string().refine(isPlausibleToken, "Отворете връзката от писмото отново."),
+  locale: z.string().max(10, RELOAD).optional(),
 });
 
 export type OrderInquiryInput = z.infer<typeof orderInquirySchema>;
 export type NewsletterInput = z.infer<typeof newsletterSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 
+/**
+ * The form-level line when any field is refused. One sentence for the browser
+ * and the server alike; the field messages say what is wrong with each.
+ */
+export const CHECK_FIELDS_MESSAGE = "Поправете отбелязаните полета и изпратете отново.";
+
+/** The newsletter has one field, so its line names it. */
+export const CHECK_EMAIL_MESSAGE = "Поправете имейл адреса и опитайте отново.";
+
 /** Uniform result shape for every form action. */
 export type FormState =
   | { status: "idle" }
   | { status: "success"; message: string }
-  | { status: "error"; message: string; fieldErrors?: Record<string, string> };
+  | {
+      status: "error";
+      message: string;
+      fieldErrors?: Record<string, string>;
+      /**
+       * What was typed, handed back when the server refused it. With
+       * JavaScript the fields never lost it; without, the page is drawn anew
+       * from the server's answer, and this is what puts the text back in the
+       * fields instead of making the person type a whole message again.
+       */
+      values?: Record<string, string>;
+    };
 
 export const IDLE_FORM_STATE: FormState = { status: "idle" };
 
@@ -123,4 +244,31 @@ export function toFieldErrors(error: z.ZodError): Record<string, string> {
     fieldErrors[key] ??= issue.message;
   }
   return fieldErrors;
+}
+
+/**
+ * A text field off a submitted form: "" when it is missing or is not text.
+ *
+ * A browser always sends a text field, empty or not. Only a hand-made post
+ * leaves one out, and reading that as "" lets the schema answer it with the
+ * same Bulgarian sentence as an empty field, instead of zod's English
+ * "Expected string, received null".
+ */
+export function formText(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : "";
+}
+
+/** The named text fields as they were typed, to hand back with an error. */
+export function submittedValues(
+  formData: FormData,
+  names: readonly string[],
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const name of names) {
+    const value = formData.get(name);
+    // Bounded, so a hand-made post cannot make the answer large.
+    if (typeof value === "string") values[name] = value.slice(0, 4000);
+  }
+  return values;
 }

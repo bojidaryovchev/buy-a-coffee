@@ -20,10 +20,14 @@ import { callbackSentence } from "./callback-window";
 import { FORM_CONSENT_SOURCES } from "./consent";
 import { recordConsent } from "./subscribe";
 import {
+  CHECK_EMAIL_MESSAGE,
+  CHECK_FIELDS_MESSAGE,
   type FormState,
   contactSchema,
+  formText,
   newsletterSchema,
   orderInquirySchema,
+  submittedValues,
   toFieldErrors,
 } from "./schemas";
 
@@ -39,10 +43,18 @@ import {
  *                    instances through PostgreSQL, and it fails open: if
  *                    the limiter cannot reach its table the submission
  *                    still goes ahead (see `lib/rate-limit.ts`)
- *   2. validate    — Zod, including the honeypot
+ *   2. validate    — Zod, including the honeypot, with the schema the form
+ *                    itself validates with in the browser (`schemas.ts`), so
+ *                    a refusal here reads exactly as one there. The browser's
+ *                    check is a convenience; this one is the authority, and
+ *                    the only one a page without JavaScript gets
  *   3. persist     — the record is safe before anything else can fail
  *   4. notify      — best effort; a failure here never fails the request
  */
+
+/** The fields handed back with a refusal: what a person typed, never the honeypot. */
+const ORDER_FIELDS = ["phone", "customerName", "email", "quantity", "notes", "newsletterConsent"];
+const CONTACT_FIELDS = ["name", "email", "phone", "subject", "message", "newsletterConsent"];
 
 const GENERIC_ERROR = "Нещо се обърка. Моля, опитайте отново или ни се обадете.";
 const RATE_LIMITED = "Твърде много опити. Моля, изчакайте малко и опитайте отново.";
@@ -155,14 +167,15 @@ export async function submitOrderInquiry(
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = orderInquirySchema.safeParse({
-    productSlug: formData.get("productSlug"),
-    phone: formData.get("phone"),
-    customerName: formData.get("customerName") ?? "",
-    email: formData.get("email") ?? "",
+    productSlug: formText(formData, "productSlug"),
+    phone: formText(formData, "phone"),
+    customerName: formText(formData, "customerName"),
+    email: formText(formData, "email"),
+    // Left out of a post, it is one; sent empty, it is refused as the browser refuses it.
     quantity: formData.get("quantity") ?? 1,
-    notes: formData.get("notes") ?? "",
+    notes: formText(formData, "notes"),
     newsletterConsent: formData.get("newsletterConsent"),
-    website: formData.get("website") ?? "",
+    website: formText(formData, "website"),
   });
 
   if (!parsed.success) {
@@ -172,7 +185,12 @@ export async function submitOrderInquiry(
     if (fieldErrors.website) {
       return { status: "success", message: orderSuccessMessage("Благодарим ви.") };
     }
-    return { status: "error", message: "Моля, проверете отбелязаните полета.", fieldErrors };
+    return {
+      status: "error",
+      message: CHECK_FIELDS_MESSAGE,
+      fieldErrors,
+      values: submittedValues(formData, ORDER_FIELDS),
+    };
   }
 
   const input = parsed.data;
@@ -261,15 +279,20 @@ export async function subscribeToNewsletter(
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = newsletterSchema.safeParse({
-    email: formData.get("email"),
-    source: formData.get("source") ?? "",
-    website: formData.get("website") ?? "",
+    email: formText(formData, "email"),
+    source: formText(formData, "source"),
+    website: formText(formData, "website"),
   });
 
   if (!parsed.success) {
     const fieldErrors = toFieldErrors(parsed.error);
     if (fieldErrors.website) return { status: "success", message: "Благодарим ви за абонамента." };
-    return { status: "error", message: "Моля, проверете имейл адреса си.", fieldErrors };
+    return {
+      status: "error",
+      message: CHECK_EMAIL_MESSAGE,
+      fieldErrors,
+      values: submittedValues(formData, ["email"]),
+    };
   }
 
   try {
@@ -312,20 +335,25 @@ export async function submitContactMessage(
   if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
 
   const parsed = contactSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    phone: formData.get("phone") ?? "",
-    subject: formData.get("subject") ?? "",
-    message: formData.get("message"),
+    name: formText(formData, "name"),
+    email: formText(formData, "email"),
+    phone: formText(formData, "phone"),
+    subject: formText(formData, "subject"),
+    message: formText(formData, "message"),
     newsletterConsent: formData.get("newsletterConsent"),
-    website: formData.get("website") ?? "",
+    website: formText(formData, "website"),
   });
 
   if (!parsed.success) {
     const fieldErrors = toFieldErrors(parsed.error);
     if (fieldErrors.website)
       return { status: "success", message: "Благодарим ви. Ще се свържем с вас." };
-    return { status: "error", message: "Моля, проверете отбелязаните полета.", fieldErrors };
+    return {
+      status: "error",
+      message: CHECK_FIELDS_MESSAGE,
+      fieldErrors,
+      values: submittedValues(formData, CONTACT_FIELDS),
+    };
   }
 
   const input = parsed.data;
