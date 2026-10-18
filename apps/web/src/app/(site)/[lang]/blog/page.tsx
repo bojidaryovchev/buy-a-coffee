@@ -100,7 +100,9 @@ export default async function JournalPage({ params }: PageProps) {
                 <h2 className="mt-1.5 font-display text-xl font-semibold text-ink-900 md:text-2xl">
                   <Link
                     href={href(locale, article.href)}
-                    className="underline-offset-4 hover:text-pine-700 hover:underline"
+                    // Vertical padding on an inline link widens what a finger
+                    // can hit without moving a line of the layout.
+                    className="py-2 underline-offset-4 hover:text-pine-700 hover:underline"
                   >
                     {article.title}
                   </Link>

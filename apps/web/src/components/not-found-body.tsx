@@ -1,3 +1,4 @@
+import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/primitives";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
@@ -24,6 +25,8 @@ export function NotFoundBody({ locale, dict }: { locale: Locale; dict: Dictionar
   const copy = dict.notFound;
   return (
     <div className="shell flex min-h-[60vh] flex-1 flex-col items-center justify-center py-16 text-center">
+      {/* A dead link needs a way on, not an offer: no signup band here. */}
+      <NewsletterBandOff />
       <p aria-hidden className="font-display text-5xl font-semibold text-pine-500">
         404
       </p>

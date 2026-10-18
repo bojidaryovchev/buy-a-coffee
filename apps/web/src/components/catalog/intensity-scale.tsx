@@ -28,7 +28,9 @@ export function IntensityScale({
   if (!raw?.trim()) return null;
 
   const numeral =
-    size === "page" ? "text-sm text-ink-900 tabular-nums" : "text-2xs text-ink-500 tabular-nums";
+    size === "page"
+      ? "text-sm whitespace-nowrap text-ink-900 tabular-nums"
+      : "text-2xs whitespace-nowrap text-ink-500 tabular-nums";
 
   const reading = parseIntensity(raw);
   if (!reading) {
@@ -43,8 +45,25 @@ export function IntensityScale({
   const segments = Array.from({ length: reading.max }, (_, index) => index < reading.value);
 
   return (
-    <span className="inline-flex items-center gap-2">
-      <span aria-hidden className={`flex shrink-0 gap-px ${size === "page" ? "w-30" : "w-16"}`}>
+    /*
+     * On the product page the numeral may drop under the track: in the facts
+     * table's value column on a 320 px phone (about 140 px) the 120 px track
+     * and „9 от 12“ do not fit on one line. The card's row is a fixed 16 px
+     * and its 64 px track always leaves room, so it never wraps.
+     */
+    <span
+      className={`inline-flex items-center gap-x-2 ${size === "page" ? "flex-wrap gap-y-1" : ""}`}
+    >
+      {/*
+        The card's track is 56 px below a 360 px screen and 64 px above it: in
+        a 320 px phone's card, 64 px left „12 от 13“ too little room and it
+        broke onto a second line. Every card on a screen still draws the same
+        track, so the filled lengths stay comparable.
+      */}
+      <span
+        aria-hidden
+        className={`flex shrink-0 gap-px ${size === "page" ? "w-30" : "w-14 min-[360px]:w-16"}`}
+      >
         {segments.map((filled, index) => (
           <span
             key={index}

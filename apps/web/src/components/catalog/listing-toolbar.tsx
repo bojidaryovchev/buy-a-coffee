@@ -28,7 +28,7 @@ import { buttonClasses } from "@/components/ui/primitives";
  */
 
 const FILTER_TRIGGER =
-  "inline-flex min-h-10 w-[calc(50%-0.375rem)] cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-paper-raised px-4 text-sm font-medium text-ink-900 transition-colors hover:bg-paper-sunken sm:w-auto";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-line-strong bg-paper-raised px-4 text-sm font-medium whitespace-nowrap text-ink-900 transition-colors hover:bg-paper-sunken";
 
 function productsLabel(total: number): string {
   return total === 1 ? "продукт" : "продукта";
@@ -150,20 +150,34 @@ export function ListingToolbar({
 
   return (
     /*
-     * Below `lg` this is a two-column grid: the count on the first line, the
-     * filters and the sort control sharing the second. The disclosure spans
-     * both columns of that second line so its panel can open to the full
-     * width, while its summary takes only the left half; the sort form is
-     * placed over the right half of the same row.
+     * Two lines below `lg`, laid out on a grid so that the filters' disclosure
+     * can span the full width (its panel opens under its summary) while its
+     * summary sits in one cell.
+     *
+     *  - On a phone (below `sm`): the count and "Филтри" share the first line,
+     *    the summary pushed right; the sort control has the second to itself.
+     *    A native select shows its chosen option clipped to its own width, and
+     *    at half of a 320 px screen „Най-подходящи“ was cut off; at full width
+     *    the longest option fits.
+     *  - From `sm`: the count on the first line, "Филтри" and the sort control
+     *    sharing the second, the sort form placed over the right of the row
+     *    the disclosure spans.
+     *  - From `lg`: one row; the filters are the rail.
      */
-    <div className="mb-4 grid grid-cols-2 items-start gap-3 lg:flex lg:flex-wrap lg:items-center lg:justify-between">
-      <p className="col-span-full text-sm text-ink-500" aria-live="polite">
-        <span className="font-medium text-ink-900 tabular-nums">{total}</span>{" "}
-        {productsLabel(total)}
+    <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:justify-between">
+      <p
+        className="col-start-1 row-start-1 flex min-h-11 items-center text-sm text-ink-500 sm:col-span-full sm:min-h-0 lg:min-h-0"
+        aria-live="polite"
+      >
+        {/* One inline run: as two flex items the space between them would go. */}
+        <span>
+          <span className="font-medium text-ink-900 tabular-nums">{total}</span>{" "}
+          {productsLabel(total)}
+        </span>
       </p>
 
       {enhanced ? (
-        <div className="col-span-full row-start-2 lg:hidden">
+        <div className="col-start-2 row-start-1 sm:col-span-full sm:col-start-1 sm:row-start-2 lg:hidden">
           <button
             ref={triggerRef}
             type="button"
@@ -177,8 +191,10 @@ export function ListingToolbar({
           </button>
         </div>
       ) : (
-        <details ref={disclosureRef} className="col-span-full row-start-2 lg:hidden">
-          <summary className={`${FILTER_TRIGGER} list-none [&::-webkit-details-marker]:hidden`}>
+        <details ref={disclosureRef} className="col-span-full row-start-1 sm:row-start-2 lg:hidden">
+          <summary
+            className={`${FILTER_TRIGGER} ml-auto flex w-fit list-none sm:ml-0 [&::-webkit-details-marker]:hidden`}
+          >
             <FilterTriggerContent activeCount={activeCount} />
           </summary>
           <div className="mt-3 rounded-md border border-line bg-paper-raised px-4 py-1">
@@ -190,7 +206,7 @@ export function ListingToolbar({
       <form
         method="get"
         action={basePath}
-        className="col-start-2 row-start-2 flex items-center gap-2 sm:justify-self-end"
+        className="col-span-full row-start-2 flex items-center gap-2 sm:col-span-1 sm:col-start-2 sm:justify-self-end"
         onSubmit={(event) => {
           event.preventDefault();
           pushSort(String(new FormData(event.currentTarget).get("sort") ?? "relevance"));
@@ -221,7 +237,7 @@ export function ListingToolbar({
           name="sort"
           defaultValue={query.sort}
           onChange={(event) => pushSort(event.target.value)}
-          className="min-h-10 w-full min-w-0 rounded-sm border border-line-strong bg-paper-raised px-3 text-input text-ink-900 hover:border-ink-500 focus:border-pine-700 sm:w-auto"
+          className="min-h-11 w-full min-w-0 rounded-sm border border-line-strong bg-paper-raised px-3 text-input text-ink-900 hover:border-ink-500 focus:border-pine-700 sm:w-auto lg:min-h-10"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -232,7 +248,7 @@ export function ListingToolbar({
         <noscript>
           <button
             type="submit"
-            className="min-h-10 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm font-medium text-ink-900 hover:bg-paper-sunken"
+            className="min-h-11 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm font-medium whitespace-nowrap text-ink-900 hover:bg-paper-sunken lg:min-h-10"
           >
             Приложи
           </button>

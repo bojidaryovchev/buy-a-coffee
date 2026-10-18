@@ -116,7 +116,7 @@ export function QuickOrderDialog({
             className={buttonClasses({
               variant: "ghost",
               size: "sm",
-              className: "-mt-1 -mr-1 min-h-10 w-10 shrink-0 px-0",
+              className: "-mt-1 -mr-1 min-h-11 w-11 shrink-0 px-0 lg:min-h-10 lg:w-10",
             })}
           >
             <svg

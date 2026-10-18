@@ -98,7 +98,9 @@ export function RecommendationCard({
         )}
 
         <Heading className="mt-1.5 font-sans text-base font-medium tracking-normal text-wrap text-ink-900">
-          <Link href={productPath} className="underline-offset-2 hover:underline">
+          {/* Vertical padding on an inline link widens what a finger can hit
+              without moving a line of the card. */}
+          <Link href={productPath} className="py-3.5 underline-offset-2 hover:underline">
             {product.title ?? product.name}
           </Link>
         </Heading>

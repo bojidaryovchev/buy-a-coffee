@@ -62,7 +62,7 @@ function SystemSquare() {
 function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <details open className="group border-b border-line py-3 last:border-b-0">
-      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-sm text-sm font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-sm text-sm font-semibold text-ink-900 lg:min-h-9 [&::-webkit-details-marker]:hidden">
         {title}
         <svg
           aria-hidden
@@ -105,7 +105,7 @@ function CheckboxLink({
         // toggle, which a plain link would not convey.
         aria-pressed={checked}
         {...(systemId ? { "data-system": systemId } : {})}
-        className="flex min-h-9 items-center gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken"
+        className="flex min-h-11 items-center gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken lg:min-h-9"
       >
         <span
           aria-hidden
@@ -241,7 +241,7 @@ export function FilterPanel({
   return (
     <div>
       {(showTitle || activeCount > 0) && (
-        <div className="flex min-h-9 items-center justify-between gap-3 border-b border-line pb-2">
+        <div className="flex min-h-11 items-center justify-between gap-3 border-b border-line pb-2 lg:min-h-9">
           {showTitle ? (
             <h2 className="font-sans text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
               Филтри
@@ -252,7 +252,7 @@ export function FilterPanel({
           {activeCount > 0 && (
             <Link
               href={hrefFor(basePath, clearFilters(query))}
-              className="text-xs text-pine-700 underline underline-offset-4 hover:text-pine-900"
+              className="inline-flex min-h-11 items-center text-xs whitespace-nowrap text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-9"
             >
               Изчисти всички ({activeCount})
             </Link>
@@ -364,7 +364,7 @@ export function ActiveFilterChips({
             href={`${basePath}${filter.removeSearch}`}
             {...(filter.key === "system" ? { "data-system": filter.value } : {})}
             // Removing a filter is not destructive, so the hover is ink, not red.
-            className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900"
+            className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900 lg:min-h-9"
           >
             {filter.key === "system" && <SystemSquare />}
             {filter.key === "brand" && (
@@ -395,7 +395,7 @@ export function ActiveFilterChips({
         {/* Always visible, unlike the rail's control, which is desktop-only. */}
         <Link
           href={hrefFor(basePath, clearFilters(query))}
-          className="inline-flex min-h-9 items-center px-1 text-sm font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900"
+          className="inline-flex min-h-11 items-center px-1 text-sm font-medium whitespace-nowrap text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-9"
         >
           Изчисти всички
         </Link>

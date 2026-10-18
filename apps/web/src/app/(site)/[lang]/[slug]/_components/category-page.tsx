@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { permanentRedirect } from "next/navigation";
-import { Breadcrumbs } from "@/components/ui/primitives";
+import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { RelatedLandings } from "@/components/catalog/related-landings";
 import { SystemBadge } from "@/components/catalog/system-badge";
@@ -215,26 +215,25 @@ export async function CategoryPage({
              * screen-reader text, which is absolutely positioned and would
              * otherwise escape the scroll container and widen the page.
              */}
-            <ul className="relative -mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+            <ul className="relative -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
               {children.map((child) => (
                 <li key={child.slug} className="shrink-0 snap-start">
-                  <Link
+                  <ChipLink
                     href={categoryHref(locale, child)}
                     {...(child.system ? { "data-system": child.system.id } : {})}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
+                    leading={
+                      child.system && (
+                        <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                      )
+                    }
+                    count={child.productCount}
+                    countLabel=" продукта"
                   >
-                    {child.system && (
-                      <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
-                    )}
                     {/* Named as its own page is — „Капсули за Dolce Gusto“ — so
                         the link says what it leads to, and a coloured square
                         never stands alone. */}
                     {categoryNameFor(child)}
-                    <span className="text-2xs text-ink-300 tabular-nums">
-                      {child.productCount}
-                      <span className="sr-only"> продукта</span>
-                    </span>
-                  </Link>
+                  </ChipLink>
                 </li>
               ))}
             </ul>
@@ -283,12 +282,14 @@ export async function CategoryPage({
               </p>
             ))}
           </div>
-          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
+          {/* A row of links standing alone, not running text: each is a 44 px
+              row below `lg`, a target a finger can hit. */}
+          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-1 text-sm font-medium lg:gap-y-2">
             {article && (
               <li>
                 <Link
                   href={href(locale, routes.article(article.slug))}
-                  className="text-pine-700 underline underline-offset-2 hover:text-pine-900"
+                  className="inline-flex min-h-11 items-center py-1.5 text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0 lg:py-0"
                 >
                   {article.title}
                 </Link>
@@ -297,7 +298,7 @@ export async function CategoryPage({
             <li>
               <Link
                 href={href(locale, routes.wizard)}
-                className="text-pine-700 underline underline-offset-2 hover:text-pine-900"
+                className="inline-flex min-h-11 items-center py-1.5 text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0 lg:py-0"
               >
                 Помощник за избор на кафе
               </Link>

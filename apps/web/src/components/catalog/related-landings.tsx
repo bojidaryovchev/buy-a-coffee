@@ -52,16 +52,25 @@ export function RelatedLandingsList({
 
   return (
     <nav aria-label={relatedCopy.navLabel} className={cx("mt-5", className)}>
-      <ul className="flex max-w-measure flex-wrap gap-x-6 gap-y-1.5 text-sm">
+      <ul className="flex max-w-measure flex-wrap gap-x-6 text-sm lg:gap-y-1.5">
         {links.map((link) => (
-          <li key={link.key} className={cx("text-ink-500", link.note && "basis-full")}>
+          // Below `lg` a link is a 44 px row, a target a finger can hit, and
+          // its note takes the line under it rather than wrapping beside a
+          // row that tall.
+          <li
+            key={link.key}
+            className={cx(
+              "text-ink-500",
+              link.note && "flex basis-full flex-col pb-2 lg:block lg:pb-0",
+            )}
+          >
             <Link
               href={link.href}
-              className="inline-flex min-h-6 items-center font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900"
+              className="inline-flex min-h-11 items-center self-start font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-6"
             >
               {link.label}
             </Link>
-            {link.note && <> — {link.note}</>}
+            {link.note && <span> — {link.note}</span>}
           </li>
         ))}
       </ul>

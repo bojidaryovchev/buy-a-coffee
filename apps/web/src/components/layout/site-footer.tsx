@@ -1,7 +1,6 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { siteConfig, usingPlaceholderBrand } from "@/config/site";
-import { NewsletterForm } from "@/components/forms/newsletter-form";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import type { SiteNavigation } from "@/components/layout/navigation";
 import { Wordmark } from "@/components/layout/wordmark";
@@ -13,18 +12,73 @@ import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_PATHS, NO_LANDINGS, type LandingAvailability } from "@/lib/catalog/landings";
 import { href } from "@/lib/routes";
 
-const COLUMN_HEAD = "text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
-const LINK = "text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline";
+/*
+ * Below `lg` a footer link is a 44 px row, a target a finger can hit; from
+ * `lg` a 28 px one, so a column of twelve stays a short block.
+ */
+const COLUMN_HEAD = "font-sans text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
+const LINK =
+  "flex min-h-11 items-center text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline lg:min-h-7";
 
 function FooterLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <li>
-      {/* The row is 24 px tall whatever the text does, so two links are never
-          closer than a fingertip can tell apart. */}
-      <Link href={href} className={`inline-flex min-h-6 items-center ${LINK}`}>
+    <li className="break-inside-avoid">
+      <Link href={href} className={LINK}>
         {children}
       </Link>
     </li>
+  );
+}
+
+/**
+ * One group of links: a disclosure on a phone, a column from `md`.
+ *
+ * A `<details>`, so it opens and closes without JavaScript, closed by default
+ * so the phone's footer is three rows rather than a screen of links. From `md`
+ * the content is shown whatever the open state
+ * (`md:details-content:[content-visibility:visible]`) and the summary — a
+ * button to a screen reader — is taken away for a plain heading, so a desktop
+ * visitor is never told that a visible column is "collapsed".
+ *
+ * Both swaps are behind one check, `supports-[selector(::details-content)]`:
+ * whether the browser can style the part of a `<details>` that opens. Where it
+ * cannot, the summary stays on every width, so a section is still a disclosure
+ * that opens — never a heading over links nobody can reach. (Written out in
+ * full each time: Tailwind only generates a class it can read in the source.)
+ */
+function FooterSection({
+  title,
+  className,
+  listClassName = "",
+  children,
+}: {
+  title: string;
+  className?: string;
+  listClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <nav aria-label={title} className={className}>
+      <details className="group border-b border-line md:border-b-0 md:details-content:block md:details-content:[content-visibility:visible]">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 md:supports-[selector(::details-content)]:hidden [&::-webkit-details-marker]:hidden">
+          <h2 className={COLUMN_HEAD}>{title}</h2>
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            className="h-4 w-4 shrink-0 text-ink-500 transition-transform group-open:rotate-180"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <h2 className={`hidden ${COLUMN_HEAD} md:supports-[selector(::details-content)]:block`}>
+          {title}
+        </h2>
+        <ul className={`pb-3 md:mt-3 md:pb-0 ${listClassName}`}>{children}</ul>
+      </details>
+    </nav>
   );
 }
 
@@ -64,49 +118,62 @@ export function SiteFooterView({
   const payment = paymentMethods();
   const { capsules, pods, beans, links, locale } = navigation;
   const hours = openingHoursLabel(dict.hours.days);
+  const { legal } = siteConfig;
+  const companyLine: ReadonlyArray<{ text: string; wrap?: boolean }> = [
+    { text: legal.companyName },
+    { text: `${footer.companyId} ${legal.companyId}` },
+    ...(legal.vatId ? [{ text: `${footer.vatId} ${legal.vatId}` }] : []),
+    { text: legal.address, wrap: true },
+  ];
 
   return (
-    <footer className="mt-20 border-t border-line bg-paper-sunken">
-      <div className="shell grid grid-cols-1 gap-x-8 gap-y-10 py-12 sm:grid-cols-2 lg:grid-cols-12">
-        <div className="sm:col-span-2 lg:col-span-3">
-          <Wordmark />
-          <p className="mt-3 max-w-xs text-sm text-ink-500">{dict.site.description}</p>
-          <dl className="mt-5 space-y-1.5 text-sm">
-            <div className="flex gap-2">
-              <dt className="text-ink-500">{footer.phone}</dt>
-              <dd>
-                <a
-                  href={`tel:${siteConfig.contact.phoneHref}`}
-                  className="font-medium text-pine-700 tabular-nums underline-offset-4 hover:underline"
-                >
-                  {siteConfig.contact.phone}
-                </a>
-              </dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="text-ink-500">{footer.email}</dt>
-              <dd className="min-w-0">
-                <a
-                  href={`mailto:${siteConfig.contact.email}`}
-                  className="font-medium break-words text-pine-700 underline-offset-4 hover:underline"
-                >
-                  {siteConfig.contact.email}
-                </a>
-              </dd>
-            </div>
+    <footer className="border-t border-line bg-paper-sunken">
+      <div className="shell py-10 lg:py-12">
+        {/*
+          Two tiers from `md`: who we are and how to reach us, then the links.
+          Five columns side by side left each of them too narrow for its
+          longest item at every width below a wide desktop.
+        */}
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start md:gap-x-12">
+          <div>
+            <Wordmark />
+            <p className="mt-3 max-w-md text-sm text-ink-500">{dict.site.description}</p>
+            <LanguageSwitcher locale={locale} label={dict.language.label} className="mt-4" />
+          </div>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 text-sm">
+            <dt className="text-ink-500">{footer.phone}</dt>
+            <dd>
+              <a
+                href={`tel:${siteConfig.contact.phoneHref}`}
+                className="inline-flex min-h-11 items-center font-medium whitespace-nowrap text-pine-700 tabular-nums underline-offset-4 hover:underline lg:min-h-8"
+              >
+                {siteConfig.contact.phone}
+              </a>
+            </dd>
+            <dt className="text-ink-500">{footer.email}</dt>
+            <dd className="min-w-0">
+              <a
+                href={`mailto:${siteConfig.contact.email}`}
+                className="inline-flex min-h-11 items-center font-medium whitespace-nowrap text-pine-700 underline-offset-4 hover:underline lg:min-h-8"
+              >
+                {siteConfig.contact.email}
+              </a>
+            </dd>
             {hours && (
-              <div className="flex gap-2">
-                <dt className="text-ink-500">{footer.hours}</dt>
-                <dd className="text-ink-700">{hours}</dd>
-              </div>
+              <>
+                <dt className="py-3 text-ink-500 lg:py-1.5">{footer.hours}</dt>
+                <dd className="py-3 whitespace-nowrap text-ink-700 lg:py-1.5">{hours}</dd>
+              </>
             )}
           </dl>
-          <LanguageSwitcher locale={locale} label={dict.language.label} className="mt-5" />
         </div>
 
-        <nav aria-label={footer.shop} className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>{footer.shop}</h2>
-          <ul className="mt-3 space-y-1">
+        <div className="mt-8 border-t border-line md:grid md:grid-cols-3 md:gap-x-8 md:gap-y-8 md:pt-8 lg:grid-cols-4">
+          <FooterSection
+            title={footer.shop}
+            className="md:col-span-3 lg:col-span-2"
+            listClassName="md:columns-3 md:gap-x-8 lg:columns-2"
+          >
             {capsules?.systems.map((system) => (
               <FooterLink key={system.id} href={system.href}>
                 {/* The rail calls the group "Капсули" and names the systems
@@ -140,12 +207,9 @@ export function SiteFooterView({
             {navigation.hasPromotions && (
               <FooterLink href={links.promotions.href}>{links.promotions.label}</FooterLink>
             )}
-          </ul>
-        </nav>
+          </FooterSection>
 
-        <nav aria-label={footer.help} className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>{footer.help}</h2>
-          <ul className="mt-3 space-y-1">
+          <FooterSection title={footer.help}>
             <FooterLink href={links.findByMachine.href}>{links.findByMachine.label}</FooterLink>
             <FooterLink href={links.wizard.href}>{links.wizard.label}</FooterLink>
             <FooterLink href={links.delivery.href}>{links.delivery.label}</FooterLink>
@@ -153,35 +217,22 @@ export function SiteFooterView({
             {navigation.hasJournal && (
               <FooterLink href={links.journal.href}>{links.journal.label}</FooterLink>
             )}
-          </ul>
-        </nav>
+          </FooterSection>
 
-        <nav aria-label={footer.legal} className="lg:col-span-2">
-          <h2 className={COLUMN_HEAD}>{footer.legal}</h2>
-          <ul className="mt-3 space-y-1">
+          <FooterSection title={footer.legal}>
             <FooterLink href={links.terms}>{footer.terms}</FooterLink>
             <FooterLink href={links.privacy}>{footer.privacy}</FooterLink>
             <FooterLink href={links.cookies}>{footer.cookies}</FooterLink>
-          </ul>
-        </nav>
-
-        {siteConfig.features.newsletter && (
-          <div className="sm:col-span-2 lg:col-span-3">
-            <h2 className={COLUMN_HEAD}>{footer.newsletterHeading}</h2>
-            <p className="mt-3 text-sm text-ink-500">{footer.newsletterBody}</p>
-            <div className="mt-3">
-              <NewsletterForm source="footer" />
-            </div>
-          </div>
-        )}
+          </FooterSection>
+        </div>
       </div>
 
       <div className="border-t border-line">
-        <div className="shell flex flex-col gap-x-8 gap-y-2 py-5 text-xs text-ink-500 md:flex-row md:flex-wrap md:items-center md:justify-between">
+        <div className="shell flex flex-col gap-x-8 gap-y-2 py-5 text-xs text-ink-500 md:flex-row md:flex-wrap md:items-baseline md:justify-between">
           <p>
             {fill(footer.copyright, {
               year,
-              owner: siteConfig.legal.isComplete ? siteConfig.legal.companyName : siteConfig.name,
+              owner: legal.isComplete ? legal.companyName : siteConfig.name,
             })}
           </p>
           {payment.length > 0 && (
@@ -191,11 +242,20 @@ export function SiteFooterView({
               })}
             </p>
           )}
-          {siteConfig.legal.isComplete ? (
-            <p>
-              {siteConfig.legal.companyName} · {footer.companyId} {siteConfig.legal.companyId}
-              {siteConfig.legal.vatId ? ` · ${footer.vatId} ${siteConfig.legal.vatId}` : ""} ·{" "}
-              {siteConfig.legal.address}
+          {legal.isComplete ? (
+            /*
+             * One line where it fits, its own line under the two above where
+             * it does not. Every part but the address is unbreakable, so a
+             * narrow screen breaks the line between parts — never inside a
+             * company number — and only the address may run on.
+             */
+            <p className="md:basis-full">
+              {companyLine.map((part, index) => (
+                <Fragment key={index}>
+                  {index > 0 && " · "}
+                  <span className={part.wrap ? undefined : "whitespace-nowrap"}>{part.text}</span>
+                </Fragment>
+              ))}
             </p>
           ) : (
             /*

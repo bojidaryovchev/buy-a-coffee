@@ -62,7 +62,9 @@ export function AnnouncementBar({
           {hours && <span className="text-pine-200">{hours}</span>}
           <a
             href={`tel:${contact.phoneHref}`}
-            className="font-medium underline-offset-4 hover:underline"
+            // `py-3.5` on an inline link: a 44 px target on a tablet, with no
+            // change to the bar's height.
+            className="py-3.5 font-medium whitespace-nowrap underline-offset-4 hover:underline"
           >
             {contact.phone}
           </a>

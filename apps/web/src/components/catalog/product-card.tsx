@@ -47,7 +47,9 @@ export function ProductCard({
 }) {
   const reduced = product.price !== null && product.oldPrice !== null;
   const href = productHref(locale, product);
-  const controlClasses = "relative z-10 mt-3 min-h-10 w-full";
+  // Its height is the `sm` button's: 44 px below `lg`, where a card is touched,
+  // 40 px from `lg` (DESIGN.md, "Product card", row 8).
+  const controlClasses = "relative z-10 mt-3 w-full";
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-md border border-line bg-paper-raised transition-colors focus-within:border-line-strong focus-within:shadow-raise hover:border-line-strong hover:shadow-raise">

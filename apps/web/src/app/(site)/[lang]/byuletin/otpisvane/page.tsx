@@ -1,3 +1,4 @@
+import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/primitives";
@@ -51,12 +52,14 @@ function Shell({
 }) {
   return (
     <div className="shell max-w-xl py-16 md:py-24">
+      {/* Whoever is here is leaving the list: no signup band under it. */}
+      <NewsletterBandOff />
       <h1 className="font-display text-3xl font-semibold text-ink-900">{title}</h1>
       <div className="mt-4 space-y-4 text-base text-ink-700">{children}</div>
       <p className="mt-8 text-sm">
         <Link
           href={href(locale, routes.home)}
-          className="text-pine-700 underline underline-offset-4"
+          className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4"
         >
           Към началото
         </Link>
@@ -108,7 +111,7 @@ export default async function UnsubscribePage({
           Ако още получавате писма от нас, които не искате, пишете ни на{" "}
           <a
             href={`mailto:${siteConfig.contact.email}`}
-            className="text-pine-700 underline underline-offset-4"
+            className="whitespace-nowrap text-pine-700 underline underline-offset-4"
           >
             {siteConfig.contact.email}
           </a>{" "}

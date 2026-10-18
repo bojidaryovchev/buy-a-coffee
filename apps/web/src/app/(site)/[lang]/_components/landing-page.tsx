@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { RelatedLandings } from "@/components/catalog/related-landings";
 import { JsonLd } from "@/components/seo/json-ld";
-import { Breadcrumbs } from "@/components/ui/primitives";
+import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { siteConfig } from "@/config/site";
 import { MACHINE_BRANDS } from "@/content/machines";
 import type { Locale } from "@/i18n/config";
@@ -91,7 +91,11 @@ function groupNote(id: LandingId, group: LandingGroupView): string {
   return group.system.summary;
 }
 
+/** A link inside a sentence: part of the running text. */
 const TEXT_LINK = "font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900";
+
+/** A link on a line of its own: a 44 px row below `lg`, a target a finger can hit. */
+const LINE_LINK = `inline-flex min-h-11 items-center lg:min-h-0 ${TEXT_LINK}`;
 
 export async function LandingPage({ locale, id }: { locale: Locale; id: LandingId }) {
   const view = await getLanding(id);
@@ -136,14 +140,14 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
           ))}
           {needsMachine && (
             <p>
-              <Link href={href(locale, routes.machines)} className={TEXT_LINK}>
+              <Link href={href(locale, routes.machines)} className={LINE_LINK}>
                 {landingLabels.findMachine}
               </Link>
             </p>
           )}
           {cupCost && (
             <p>
-              <Link href={href(locale, routes.article(cupCost.slug))} className={TEXT_LINK}>
+              <Link href={href(locale, routes.article(cupCost.slug))} className={LINE_LINK}>
                 {/* By its title, as every other page links an article. */}
                 {cupCost.title}
               </Link>
@@ -156,22 +160,19 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
             {/* The category pages' row of system chips: one scrolling line on a
                 phone, wrapped from `md`. `relative` contains the chips'
                 screen-reader text, which would otherwise widen the page. */}
-            <ul className="relative -mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+            <ul className="relative -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
               {view.groups.map((group) => (
                 <li key={group.key} className="shrink-0 snap-start">
-                  <a
+                  <ChipLink
                     href={`#${group.key}`}
                     data-system={group.system.id}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
+                    leading={<span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />}
+                    count={group.products.length}
+                    countLabel=" продукта"
                   >
-                    <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
                     {/* The system's own name: a coloured square never stands alone. */}
                     {group.system.name}
-                    <span className="text-2xs text-ink-300 tabular-nums">
-                      {group.products.length}
-                      <span className="sr-only"> продукта</span>
-                    </span>
-                  </a>
+                  </ChipLink>
                 </li>
               ))}
             </ul>
@@ -234,7 +235,7 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
         <p className="mt-2 max-w-measure text-base text-ink-700">{landingLabels.orderBody}</p>
         <a
           href={`tel:${siteConfig.contact.phoneHref}`}
-          className="mt-3 inline-block font-display text-2xl font-semibold text-pine-700 underline-offset-4 hover:underline"
+          className="mt-3 inline-flex min-h-11 items-center font-display text-2xl font-semibold whitespace-nowrap text-pine-700 underline-offset-4 hover:underline"
         >
           {siteConfig.contact.phone}
         </a>

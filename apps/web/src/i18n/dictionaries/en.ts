@@ -97,8 +97,6 @@ export const en: Dictionary = {
     terms: "Terms and conditions",
     privacy: "Privacy",
     cookies: "Cookies",
-    newsletterHeading: "Stay in touch",
-    newsletterBody: "Short notes about what is new on the shelf. Never more than once a month.",
     copyright: "© {year} {owner}. All rights reserved.",
     payment: "Payment: {methods}",
     paymentMethods: {
@@ -109,6 +107,11 @@ export const en: Dictionary = {
     companyId: "Company no.",
     vatId: "VAT no.",
     companyPending: "Company details have not been filled in yet",
+  },
+
+  newsletter: {
+    heading: "New coffees by email",
+    body: "A short note when a new coffee arrives in the shop. Never more than once a month.",
   },
 
   notFound: {

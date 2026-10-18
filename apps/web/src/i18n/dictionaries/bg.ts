@@ -121,8 +121,6 @@ export const bg = {
     terms: "Общи условия",
     privacy: "Поверителност",
     cookies: "Бисквитки",
-    newsletterHeading: "Бъдете в течение",
-    newsletterBody: "Кратки съобщения за новите попълнения. Не повече от веднъж месечно.",
     copyright: "© {year} {owner}. Всички права запазени.",
     payment: "Плащане: {methods}",
     /** The labels `paymentMethods()` prints; a test holds the two together. */
@@ -134,6 +132,12 @@ export const bg = {
     companyId: "ЕИК",
     vatId: "ДДС №",
     companyPending: "Фирмените данни още не са попълнени",
+  },
+
+  /** The signup band above the footer (`components/layout/newsletter-band.tsx`). */
+  newsletter: {
+    heading: "Новите кафета по имейл",
+    body: "Кратко писмо, когато в магазина се появи ново кафе. Не повече от веднъж месечно.",
   },
 
   notFound: {

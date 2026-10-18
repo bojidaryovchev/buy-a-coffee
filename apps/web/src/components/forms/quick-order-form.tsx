@@ -142,9 +142,26 @@ export function QuickOrderForm({
         <SubmitButton disabled={disabled} />
       </div>
 
-      <details className="mt-3" open={detailsOpen || undefined}>
-        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-pine-700 underline-offset-4 hover:underline">
-          Добавете име, имейл или бележка (по избор)
+      <details className="group mt-3" open={detailsOpen || undefined}>
+        {/*
+          A disclosure says that it opens: a chevron that turns when it does.
+          The label may take two lines in the narrow column beside the delivery
+          block, so it wraps between words and keeps „(по избор)“ whole.
+        */}
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm text-pine-700 underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+          <svg
+            aria-hidden
+            viewBox="0 0 16 16"
+            className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>
+            Добавете име, имейл или бележка <span className="whitespace-nowrap">(по избор)</span>
+          </span>
         </summary>
         <div className="mt-1 grid gap-3 sm:grid-cols-2">
           <div>

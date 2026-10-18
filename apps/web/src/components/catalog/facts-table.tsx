@@ -191,9 +191,11 @@ export function factRows(product: FactsTableProduct, locale: Locale): readonly F
           value: product.categories.map((category, index) => (
             <span key={category.slug}>
               {index > 0 && ", "}
+              {/* Vertical padding on an inline link: a 44 px target inside the
+                  row's own height, with no line of the table moved. */}
               <Link
                 href={categoryHref(locale, category)}
-                className="text-pine-700 underline underline-offset-2 hover:no-underline"
+                className="py-3.5 text-pine-700 underline underline-offset-2 hover:no-underline"
               >
                 {category.name}
               </Link>

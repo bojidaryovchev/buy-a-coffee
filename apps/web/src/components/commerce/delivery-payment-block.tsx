@@ -186,7 +186,7 @@ export function DeliveryPaymentBlock({
       <p className="mt-4 text-sm">
         <Link
           href={href(locale, routes.delivery)}
-          className="inline-flex min-h-6 items-center text-pine-700 underline underline-offset-2 hover:no-underline"
+          className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-2 hover:no-underline lg:min-h-6"
         >
           Доставка и плащане
         </Link>
