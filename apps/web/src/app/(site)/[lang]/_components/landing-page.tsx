@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { RelatedLandings } from "@/components/catalog/related-landings";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -166,11 +167,11 @@ export async function LandingPage({ locale, id }: { locale: Locale; id: LandingI
                   <ChipLink
                     href={`#${group.key}`}
                     data-system={group.system.id}
-                    leading={<span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />}
+                    leading={<SystemIcon systemId={group.system.id} />}
                     count={group.products.length}
                     countLabel=" продукта"
                   >
-                    {/* The system's own name: a coloured square never stands alone. */}
+                    {/* The system's own name: its icon never stands alone. */}
                     {group.system.name}
                   </ChipLink>
                 </li>

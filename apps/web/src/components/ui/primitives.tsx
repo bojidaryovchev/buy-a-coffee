@@ -206,7 +206,7 @@ const CHIP_SELECTED = "border-pine-900 bg-pine-900 font-medium text-paper";
  *  - `choice` goes to another listing (a system, a brand) or to a section of
  *    the page. `selected` marks the listing being viewed; `count` follows the
  *    label, and `countLabel` says what it counts to a screen reader;
- *    `leading` goes before the label (a system's square, with `data-system`
+ *    `leading` goes before the label (a system's icon, with `data-system`
  *    on the chip).
  *  - `filter` removes one active filter, and says so to a screen reader.
  *  - `answer` (wizard) goes back to the question that set it; `label` names
@@ -234,7 +234,7 @@ export function ChipLink({
   count?: number;
   /** `choice` only: read after the count by a screen reader (" продукта"). */
   countLabel?: string;
-  /** Before the label, `aria-hidden` by the caller: a system's square. */
+  /** Before the label, `aria-hidden` by the caller: a system's icon. */
   leading?: ReactNode;
   children: ReactNode;
 }) {

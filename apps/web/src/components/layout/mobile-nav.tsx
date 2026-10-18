@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { CloseIcon, MachineIcon, MenuIcon, WizardIcon } from "@/components/layout/icons";
 import type { SiteNavigation } from "@/components/layout/navigation";
 import { Wordmark } from "@/components/layout/wordmark";
@@ -264,7 +265,7 @@ export function MobileNav({
                           {row(
                             system.href,
                             <>
-                              <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                              <SystemIcon systemId={system.id} />
                               <span className="min-w-0 flex-1">{system.name}</span>
                               {count(system.count)}
                             </>,

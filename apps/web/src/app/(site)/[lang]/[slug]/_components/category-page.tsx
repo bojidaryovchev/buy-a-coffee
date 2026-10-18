@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { permanentRedirect } from "next/navigation";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { RelatedLandings } from "@/components/catalog/related-landings";
@@ -221,16 +222,12 @@ export async function CategoryPage({
                   <ChipLink
                     href={categoryHref(locale, child)}
                     {...(child.system ? { "data-system": child.system.id } : {})}
-                    leading={
-                      child.system && (
-                        <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
-                      )
-                    }
+                    leading={child.system && <SystemIcon systemId={child.system.id} />}
                     count={child.productCount}
                     countLabel=" продукта"
                   >
                     {/* Named as its own page is — „Капсули за Dolce Gusto“ — so
-                        the link says what it leads to, and a coloured square
+                        the link says what it leads to, and a system's icon
                         never stands alone. */}
                     {categoryNameFor(child)}
                   </ChipLink>

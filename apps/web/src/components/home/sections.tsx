@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { BrandLogo } from "@/components/catalog/brand-logo";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { ButtonLink, SectionHeading } from "@/components/ui/primitives";
@@ -188,6 +189,8 @@ export function ShopBySystem({
               data-system={system.id}
               className={`${TILE_SHAPE} border-line border-t-(--system) bg-(--system-wash) hover:border-(--system)`}
             >
+              {/* Its capsule, in its colour, above its name (DESIGN.md, "System icon"). */}
+              <SystemIcon systemId={system.id} size="lg" className="mb-3" />
               <h3 className="font-display text-lg font-semibold text-ink-900 md:text-xl">
                 {system.name}
               </h3>

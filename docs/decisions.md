@@ -660,9 +660,22 @@ means anything else; cautions have their own amber `caution` token.
 **Each brewing system has a colour, and it never appears without the system's
 name.** Customers shop by machine, so the system is the first thing a card says,
 and colour makes it quick to scan. But colour alone excludes anyone who cannot
-tell the hues apart, so a swatch, border or legend alone is never enough. The
+tell the hues apart, so an icon, border or legend alone is never enough. The
 colour is applied with `data-system`, because a class assembled from a runtime
 id is a class Tailwind never generates.
+
+**A system is marked by our own drawing of its capsule, not by its owner's
+mark.** The coloured squares told the systems apart by hue alone. The owner's
+logo would be the obvious shape, and it is the one we cannot use: most
+capsules on a system's shelf are made by others to fit it, and Nestlé's or
+Lavazza's mark beside them would claim an endorsement. So the icon is the
+capsule itself, computed from the cited outlines the machine finder draws
+(`capsule-outlines.ts`) rather than drawn by hand: true to each capsule's
+proportions, the same shape a visitor is shown when asked to recognise their
+capsule, and in the system's colour, so it adds a shape to the colour coding
+rather than replacing it. Sixteen pixels is where the seven are told apart;
+twelve in the card's small badge, where „Кафе на зърна“ must still fit on a
+320 px phone. It is decorative and never without the name.
 
 **Intensity is shown on its own scale.** The source states it out of 5, 9, 10,
 12 or 13 depending on the brand. Rescaling to one range would claim a precision
@@ -672,14 +685,20 @@ as equally strong. So it is always "8 от 12", with the scale drawn.
 **Packshots sit on pure white.** The photographs have white grounds; any tinted
 well draws a rectangle around each one.
 
-**A brand's logo appears only where the brand is the subject, and never marks
-a system.** A logo is the brand's trademark, shown to identify the genuine
-product: on the brand's page, the brands index, its own products. It is the
+**A brand's logo appears wherever the brand is named as a brand, and never
+marks a system.** A logo is the brand's trademark, shown to identify the
+genuine product: on the brand's page, the brands index, its own products'
+cards and pages, the brand filter and its chips, the typeahead. It is the
 brand's own file, checked against the packs, with the provenance recorded, and
-never recoloured; a logo published only in white sits on a dark tile. A system
-is named in text by the system badge even where the system's owner is a brand
-on sale, because a logo beside somebody else's compatible capsule would read
-as an endorsement. Four brands have no usable logo and show their name.
+never recoloured; a logo published only in white sits on a dark tile. Where a
+box cannot draw it legibly (a 24 px chip and the five stacked lockups) the name
+is written instead. A system is named in text by the system badge, with our
+own capsule icon, even where the system's owner is a brand on sale (Lavazza,
+Caffitaly), because a logo beside somebody else's compatible capsule would read
+as an endorsement. Three brands have no usable logo — Eurocaf (the label's
+owner was not found), Excelsior (it publishes no file of its mark that can be
+shown as it is) and Molini (its own shop is still behind a password) — each with the reason recorded in
+`content/brand-logo-provenance.ts`, and show their name.
 
 **`@theme static`.** Tailwind normally emits only the theme variables some
 utility uses. The system colours are reached only through `var()` from the

@@ -23,10 +23,10 @@ describe("SystemBadge", () => {
     }
   });
 
-  it("never shows the swatch without the name", () => {
+  it("never shows the icon without the name", () => {
     const markup = html(createElement(SystemBadge, { systemId: "dolce-gusto" }));
-    // The swatch is decorative; the name is the content.
-    expect(markup).toMatch(/aria-hidden="true"[^>]*><\/span><span[^>]*>Dolce Gusto/);
+    // The icon is decorative; the name is the content.
+    expect(markup).toMatch(/<svg aria-hidden="true"[^]*?<\/svg><span[^>]*>Dolce Gusto/);
   });
 
   it("renders nothing for an unknown or absent system", () => {

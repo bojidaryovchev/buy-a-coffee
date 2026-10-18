@@ -363,3 +363,26 @@ describe("WizardNotice", () => {
     expect(markup).not.toContain("caution");
   });
 });
+
+describe("the card's brand line on a narrow phone", () => {
+  it("lets a logo give way to the pack size, on one line", () => {
+    const line = card().querySelector("[data-brand-logo]")!.closest("p")!;
+    expect(line.className).toContain("h-10");
+    expect(line.className).not.toContain("overflow-hidden");
+    expect(line.textContent).toBe("·16 бр.");
+  });
+
+  it("never cuts a written name: the pack size wraps under it, its separator clipped", () => {
+    const root = card({ brand: { slug: "excelsior", name: "Excelsior" }, weight: "150 бр." });
+    const name = root.querySelector("[data-brand-logo='text']")!;
+    expect(name.className).not.toContain("min-w-0");
+    const line = name.closest("p")!;
+    expect(line.className).toContain("overflow-hidden");
+    const wrap = name.parentElement!;
+    expect(wrap.className).toMatch(/-ml-3 .*flex-wrap.*\*:ml-3/);
+    // The "·" sits in the pack size's own margin, hidden from screen readers.
+    const pack = wrap.lastElementChild!;
+    expect(pack.querySelector("[aria-hidden]")?.textContent).toBe("·");
+    expect(pack.textContent).toBe("·150 бр.");
+  });
+});

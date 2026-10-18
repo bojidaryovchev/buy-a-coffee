@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ButtonLink, ReasonBadge, cx } from "@/components/ui/primitives";
-import { BrandLogo } from "@/components/catalog/brand-logo";
+import { BrandPackLine } from "@/components/catalog/product-card";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -85,16 +85,8 @@ export function RecommendationCard({
         )}
 
         {(product.brand || product.weight) && (
-          <p className="mt-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
-            {/* As on the product card: the logo, named by its alt, or the name. */}
-            {product.brand && <BrandLogo brand={product.brand} size="card" inline shrink />}
-            {product.brand && product.weight && <span aria-hidden>·</span>}
-            {product.weight && (
-              <span className="shrink-0 font-normal tracking-normal normal-case tabular-nums">
-                {product.weight}
-              </span>
-            )}
-          </p>
+          /* As on the product card: the logo, named by its alt, or the name. */
+          <BrandPackLine brand={product.brand} weight={product.weight} className="mt-1.5" />
         )}
 
         <Heading className="mt-1.5 font-sans text-base font-medium tracking-normal text-wrap text-ink-900">

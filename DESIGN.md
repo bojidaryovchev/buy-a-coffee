@@ -220,7 +220,8 @@ Three layers carry that, and they must agree:
 **Key characteristics**
 
 - Pine green, cream paper, one gold. Clay appears only where a price was reduced.
-- Seven brewing-system colours, each one always beside the system's name.
+- Seven brewing-system colours, each one always beside the system's name, on
+  our own small drawing of the system's capsule (see "System icon").
 - A serif display face for headings, a sans face for everything a customer reads
   to decide: names, prices, facts.
 - Squared geometry: radii of 2 to 10 px. Nothing is pill-shaped.
@@ -336,6 +337,7 @@ Sanctioned uses of a system colour, and no others:
 | Use                                    | Foreground     | Background      | Lowest measured ratio |
 | -------------------------------------- | -------------- | --------------- | --------------------- |
 | System badge                           | `--system`     | `--system-wash` | 6.39 (Caffitaly)      |
+| System icon (a graphic: 3:1 needed)    | `--system`     | wash or paper   | 6.39 (Caffitaly)      |
 | System name as text on a page or card  | `--system`     | any paper tone  | 6.41 (Caffitaly)      |
 | Solid tile edge or swatch + white text | `paper-raised` | `--system`      | 7.54 (Caffitaly)      |
 | Body text on a system tile             | `ink-900`      | `--system-wash` | 14.06 (beans)         |
@@ -360,7 +362,7 @@ destructive admin action. "Изчерпан" is not an error and is a neutral ba
 This keeps red and clay from ever sitting side by side on a product.
 
 **The Named Colour Rule.** A system colour never appears without the system's
-name in text beside it. A swatch alone, a coloured border alone, a legend
+name in text beside it. A system icon alone, a coloured border alone, a legend
 somewhere else on the page: none of these is enough.
 
 **The White Well Rule.** A packshot sits on `well`. The photographs have white
@@ -851,8 +853,9 @@ inside it; a row of chips wraps between chips, or scrolls.
   system under "Капсули", a machine model on a product page, a system's
   section on a landing. A count follows the label as `text-2xs tabular-nums
 text-ink-300` (`text-pine-200` when selected), with what it counts in
-  `sr-only` (`countLabel`, " продукта"). A system's 8 px square goes before
-  the label (`leading`), with `data-system` on the chip.
+  `sr-only` (`countLabel`, " продукта"). A system's icon, 16 px (see
+  "System icon"), goes before the label (`leading`), with `data-system` on
+  the chip.
 - An active-filter chip is a link that removes one filter. It ends in a 12 px
   "×" icon and `<span class="sr-only">— премахни филтъра</span>`.
 - An answer chip (wizard) links back to the question that set it and ends in
@@ -904,27 +907,38 @@ only carrier of a fact a screen reader needs — it is real text, so it is read.
 Names the brewing system a product belongs to. The most important label in the
 shop: it answers "does this go in my machine?"
 
-**Anatomy.** `<span data-system={id}>`: a 6 px square swatch, then the system's
+**Anatomy.** `<span data-system={id}>`: the system's icon, then the system's
 name.
 
 ```
-[■ Dolce Gusto]
+[◘ Dolce Gusto]
 ```
 
-- _Container:_ `inline-flex max-w-full items-center gap-1.5 rounded-xs
-bg-(--system-wash) px-1.5 text-(--system)`.
-- _Swatch:_ `h-1.5 w-1.5 shrink-0 bg-(--system)`, `aria-hidden`.
+- _Container:_ `inline-flex max-w-full items-center rounded-xs
+bg-(--system-wash) px-1.5 text-(--system)`, `gap-1` at `sm` and `gap-1.5` at
+  `md`.
+- _Icon:_ `SystemIcon` (see "System icon"), `aria-hidden`.
 - _Name:_ `truncate font-semibold`, the system's `name` from
   `BREWING_SYSTEMS`, in its own capitalisation. Never uppercased.
 
-| Size | Min height | Type       | Where                                        |
-| ---- | ---------- | ---------- | -------------------------------------------- |
-| `sm` | 20 px      | `text-2xs` | Product card, typeahead row, recommendation. |
-| `md` | 24 px      | `text-xs`  | Product page, facts table, listing header.   |
+| Size | Min height | Type       | Icon  | Where                                        |
+| ---- | ---------- | ---------- | ----- | -------------------------------------------- |
+| `sm` | 20 px      | `text-2xs` | 12 px | Product card, typeahead row, recommendation. |
+| `md` | 24 px      | `text-xs`  | 16 px | Product page, facts table, listing header.   |
+
+The small badge's icon is 12 px and its gap 4 px because a card on a 320 px
+phone gives the badge 112 px: „Кафе на зърна“ fits beside a 12 px icon and
+would not beside a 14 px one. The longest names („Nespresso Original“,
+„Lavazza A Modo Mio“) truncate there, as they did beside the old square.
 
 **States.** Static on a card (the card is already one link). On the product
-page it is a link to the system's listing: hover adds `underline`, focus shows
-the global ring.
+page and in the facts table it is a link to the system's listing: hover
+underlines the name, focus shows the global ring. The link is a 44 px target
+below `lg` while the badge keeps its 24 px: the link is the badge's
+transparent frame, `min-h-11 lg:min-h-6` on the product page's brand line
+(`target="grow"`), and in a table cell, where growing would push the value
+away from its label, `py-2.5 -my-2.5`, which hands the height back to the
+layout (`target="pad"`).
 
 **Data.** The system is resolved from the product's categories through
 `BREWING_SYSTEMS` (`categorySlugs` and `categorySourceKeys`). A product that
@@ -932,9 +946,70 @@ resolves to no system shows no badge; the row keeps its height on a card.
 
 **Phone.** Same. It truncates with an ellipsis before it wraps.
 
-**Never.** The swatch or the colour without the name. A system owner's logo,
+**Never.** The icon or the colour without the name. A system owner's logo,
 logotype or trade dress. The word "оригинални". A system badge on a product
 whose system was guessed from its name.
+
+### System icon
+
+`SystemIcon` in `components/catalog/system-icon.tsx`; the shapes in
+`components/catalog/system-icons.ts`. The mark before a brewing system's name,
+wherever a system is named as a system: the header's „Капсули по система“
+list and the mobile drawer's, the system badge, system chips (a category's
+subcategories, a landing's sections, a brand page's shelves), the system
+filter options and the system's active-filter chip, and the home page's
+system tiles.
+
+**What it is.** Our own drawing of the system's capsule, never the system
+owner's mark. Most capsules in a system's section are made by others to fit
+it; Nestlé's or Lavazza's logo beside them would claim an endorsement
+(`PRODUCT.md`). The shape is computed from the outlines the machine finder
+draws (`components/wizard/capsule-outlines.ts`, in millimetres, with their
+sources), so the icon and the "recognise your capsule" drawing are the same
+capsule:
+
+- A capsule is its side silhouette, lid up, scaled to the icon's 20-unit width
+  with its own proportions: Nespresso deep and tapering, Dolce Gusto with its
+  stepped base and outlet, A Modo Mio shallow, Caffitaly with its groove,
+  Lavazza Blue a tub with a flat base.
+- The ESE pod is its view from above, the view that tells it apart: the
+  pressed coffee as a disc at its 44 mm, the paper edge as a ring at its own
+  radius.
+- Beans have no outline; their icon is a coffee bean leaning right, its crease
+  cut out, drawn in the same manner.
+
+**Derivation.** On a 20 × 16 grid, one unit a pixel at the 16 px size. A rim
+(0.3 to 0.6 units in the data) is thickened downwards to one unit so it is
+seen; Caffitaly's groove is a one-unit cut through the body; points the eye
+cannot place at this size are dropped (Douglas–Peucker, 0.3 units). Widths,
+heights and the run of every wall are the outline's;
+`test/system-icons.test.ts` checks each icon's height to width against its
+capsule's.
+
+**Colour.** Solid, `fill-(--system)`: the system's solid on its wash (the
+badge, the tile) or on paper (a row, a chip), 6.39:1 at the lowest
+(Caffitaly), against the 3:1 a graphic needs. `data-system` on the element
+that holds the icon and the name sets it, as for the badge.
+
+**Sizes.** Height (the width is five fourths of it, `ICON_BOX`):
+
+| Size | Height | Where                                                               |
+| ---- | ------ | ------------------------------------------------------------------- |
+| `sm` | 12 px  | The small system badge: a card, a typeahead row, a wizard result.   |
+| `md` | 16 px  | Rows, chips, filter options and chips, the `md` badge. The default. |
+| `lg` | 32 px  | A home page system tile, above its name.                            |
+
+Sixteen pixels is where the seven are told apart at 1x by shape before
+colour; at 12 the nozzle, the groove and the ring still show, and below that
+Nespresso, Lavazza Blue and Dolce Gusto run together. The 6 to 8 px the old
+squares took is too small for any shape. In a row the icon is centred on the
+name, so rows of different capsules line up.
+
+**Never.** The system owner's logo, logotype, capsule artwork or trade dress
+in its place. An icon without the system's name beside it, or as a link's only
+content. An icon for a brand: Caffitaly the system gets the icon, Caffitaly
+the brand its logo (see "Brand logo"). A shape redrawn by hand: change the
+outline, with its source, and both drawings follow.
 
 ### Intensity scale
 
@@ -1010,7 +1085,7 @@ from. Two engineers building it from this section must produce the same card.
 │        packshot          │
 │                          │
 ├──────────────────────────┤
-│ [■ Dolce Gusto]          │  2  system badge        20 px
+│ [◘ Dolce Gusto]          │  2  system badge        20 px
 │ [BIANCHI logo] · 16 бр.  │  3  brand · pack        40 px
 │ Bianchi Gusto Forte      │  4  name, up to 3 lines 60 px
 │ Espresso                 │
@@ -1052,6 +1127,11 @@ tracking-[0.06em] uppercase text-ink-500`: the brand's logo at size `card`,
    with no logo shows its name in the logo's place, in `font-display
 font-semibold text-sm text-ink-700`, normal case. Either part may be absent;
    the row keeps 40 px, so cards with and without a logo line up.
+   `BrandPackLine` in `product-card.tsx`, shared with the wizard's result.
+   Nothing on the line is cut off at 320 px: a logo gives way to the pack
+   size (`shrink`); a written name cannot („Excelsio“ names nothing), so there
+   the pack size moves under the name when the two do not fit side by side,
+   and its "·" falls outside the line's clipped box.
 5. **Name.** `<h3 class="line-clamp-3 min-h-[3.75rem] text-sm font-medium
 text-ink-900">` containing the one link of the card, to the product page
    (`productHref`), with `class="after:absolute after:inset-0"`. The stretched
@@ -1270,7 +1350,7 @@ names line up (a filter option, a typeahead brand row).
 
 **Where it does not.** Beside a brewing system's name: the system chips,
 the system filter options and chips, the system badge and the brand page's
-"Сравнете с останалите марки" shelves keep the system's coloured square, even
+"Сравнете с останалите марки" shelves carry the system's icon, even
 for Caffitaly and Lavazza, which are both (see "Never"). Breadcrumbs and
 product names, where the brand is a word in a sentence-like row and the logo
 is a few pixels away. Running text (the brands index introduction, a brand
@@ -1375,7 +1455,7 @@ rounded-md border border-line bg-paper-raised p-2 shadow-float`, two columns:
 - _Left, the systems:_ a heading in the Label style, "Капсули по система", then
   one row per capsule system that has products. Row: `flex min-h-11 items-center
 gap-2.5 rounded-sm px-3 text-sm text-ink-900 hover:bg-paper-sunken`, carrying
-  `data-system`: an 8 px `bg-(--system)` square (`aria-hidden`), the system
+  `data-system`: the system's 16 px icon (`aria-hidden`), the system
   name, and the product count right-aligned in the Count style. Last row: "Всички
   капсули" in `font-medium text-pine-700`.
 - _Right, the way out for someone who does not know their system:_ a
@@ -1424,7 +1504,7 @@ Contents, top to bottom:
 text-ink-500`: "По марка и модел") and "Кое кафе е за вас" ("Няколко въпроса,
    три предложения").
 3. **"Капсули по система"** — a Label-style heading, then one row per system,
-   always expanded (no accordion): 8 px system square, name, count. Then
+   always expanded (no accordion): the system's icon, name, count. Then
    "Всички капсули".
 4. A hairline, then plain rows: **Дози ESE** and **Кафе на зърна**, each with
    its count and only while it has products; any top-level category that
@@ -1511,6 +1591,7 @@ tile that is the machine finder.
 - _System tile:_ `<a data-system={id} class="group flex h-full flex-col
 rounded-md border border-line border-t-4 border-t-(--system)
 bg-(--system-wash) p-4 transition-colors hover:border-(--system)">`.
+  - The system's icon at 32 px, `mb-3`, above the name.
   - Name: Panel title, `text-ink-900`.
   - `summary` from `BREWING_SYSTEMS`: `mt-1 line-clamp-2 text-sm text-ink-700`.
   - Foot, `mt-auto pt-4 flex items-center justify-between`: "{n} продукта" in
@@ -1592,10 +1673,10 @@ Category, brand, promotions and search share `CatalogListing`.
    It is the only link from a listing back to the machine finder.
 5. On a parent listing ("Кафе капсули"): a row of choice chips, one per
    subcategory with products, systems first in `BREWING_SYSTEMS` order. Each
-   carries `data-system`, an 8 px system square, **the listing's own name**
+   carries `data-system`, the system's icon, **the listing's own name**
    ("Капсули за Dolce Gusto", not "Dolce Gusto") and its count. The name is
-   the one a breadcrumb or a footer link gives that listing, so a coloured
-   square never stands beside a bare trade name and one destination has one
+   the one a breadcrumb or a footer link gives that listing, so a system's
+   icon never stands beside a bare trade name and one destination has one
    anchor.
 6. Related pages (`RelatedLandings`), when the page has any: a `nav` of text
    links in `text-sm`, `font-medium text-pine-700 underline`, each a 44 px row
@@ -1621,7 +1702,7 @@ The four landing listings (`app/(site)/[lang]/_components/landing-page.tsx`)
 use the same card and grid with no filter rail, toolbar or pagination:
 breadcrumbs (Начало › the page), `h1`, a short introduction, a row of chips
 that jump to each system's section when there is more than one (each with the
-system's square, name and count), the related pages, then one section per
+system's icon, name and count), the related pages, then one section per
 brewing system — an `h2`, one sentence and its grid, cheapest per cup first.
 
 **Body.** `lg:grid lg:grid-cols-[240px_1fr] lg:gap-8`.
@@ -1634,13 +1715,14 @@ brewing system — an `h2`, one sentence and its grid, cheapest per cup first.
 - Groups, in this order, each a `<details open>` with a `summary` in `text-sm
 font-semibold text-ink-900` and a chevron that rotates when open:
   1. **Система** — on listings that mix systems (search, brand, promotions,
-     "Капсули"). Each option carries `data-system` and shows the 8 px square
-     before the name.
+     "Капсули"). Each option carries `data-system` and shows the system's
+     16 px icon before the name.
   2. **Марка** — hidden on a brand page. Scrolls internally past 8 options
      (`max-h-64 overflow-y-auto`). Each option shows the brand's logo at size
      `facet` (`alt=""`, the name follows) between the checkbox and the name;
      a brand with no logo keeps the empty box, so the names line up. The row
-     grows to the box's 40 px.
+     is the box's 40 px from `lg` (`lg:min-h-10`), and 44 px below it like
+     every other option.
   3. **Интензивност** — the three bands: Слабо, Средно, Силно. Never numerals.
   4. **Кофеин** — С кофеин, Без кофеин.
   5. **Ароматизирано.**
@@ -1671,8 +1753,8 @@ text-2xs` box), then the sort control.
 **Active filters.** Directly under the toolbar: `<ul aria-label="Активни
 филтри" class="mb-4 flex flex-wrap items-center gap-2">` of active-filter
 chips, in the order of the groups above, ending in a text link "Изчисти
-всички". Not rendered when no filter is active. A system chip carries the 8 px
-system square; a brand chip carries the brand's logo at size `chip` (`alt=""`)
+всички". Not rendered when no filter is active. A system chip carries the
+system's icon; a brand chip carries the brand's logo at size `chip` (`alt=""`)
 before its name, or the name alone where there is no logo or it cannot be read
 at that size.
 

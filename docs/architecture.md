@@ -194,9 +194,18 @@ renders it outside every layout. The split also keeps the admin from inheriting
 the storefront layout — the shop layout reads the category tree on every render
 to build the navigation, and its `robots` metadata declares the page indexable.
 The faces are defined once, in `app/fonts.ts`. The shop's frame — skip link,
-announcement bar, header, `<main>`, footer — is `SiteFrame` in
+announcement bar, header, `<main>`, newsletter band, footer — is `SiteFrame` in
 `components/layout/site-frame.tsx`, drawn by the `[lang]` layout and by the
 global 404, so a dead link still has the menu, the search and the phone number.
+The band and the footer sit together under `<main>` in one wrapper
+(`data-frame-foot`) that owns the space above them, so no page sets its own
+bottom margin. The layout renders beside the page and cannot be told by it
+what to draw, so a page switches the band off with a marker,
+`<NewsletterBandOff />` (`components/layout/newsletter-band.tsx`: the
+unsubscribe page, the contact page, the two business sections, the 404), and
+a page that ends on a full-bleed band of its own (the home page's Vending
+Zone) carries `data-ends-on-band`, which closes that space; both are read by
+`:has()` rules in `globals.css`, on the server's own HTML, with no script.
 If the 404's navigation read fails it falls back to the wordmark and the body's
 own links, so a 404 never becomes a 500.
 
@@ -804,6 +813,7 @@ answers in the URL ──▶ hard rules (compatibility, requirements) ──▶ 
 | [`lib/recommend/facts.ts`](../apps/web/src/lib/recommend/facts.ts)                                 | Stated arabica share and roast as soft evidence for the taste answer |
 | [`lib/recommend/summary.ts`](../apps/web/src/lib/recommend/summary.ts)                             | The answer chips, and what clearing an answer implies                |
 | [`@catalog/shared/serving`](../packages/shared/src/serving.ts)                                     | Servings per pack and price per serving, in exact decimals           |
+| [`components/wizard/capsule-outlines.ts`](../apps/web/src/components/wizard/capsule-outlines.ts)   | Each capsule's outline in millimetres, with its sources              |
 | [`components/wizard/capsule-diagrams.tsx`](../apps/web/src/components/wizard/capsule-diagrams.tsx) | The "recognise your capsule" drawings                                |
 
 Two queries serve the whole flow, both in `queries.ts` with everything else:
@@ -824,9 +834,15 @@ actually asked.
 
 **The capsule drawings** are our own schematic line drawings — a side profile,
 and a top view where the outline separates two systems — on one shared scale,
-so relative size is information. A dimension is printed only where the
-repository already states it; the other proportions are approximate, and no
-logo or marking is drawn.
+so relative size is information. The outlines are data, in millimetres, in
+`capsule-outlines.ts`, each figure with its source (a patent, a capsule
+maker's dimensioned drawings, retailers' measurements, photographs); a
+dimension is printed only where it is established, and no logo or marking is
+drawn. The same outlines are the source of the **system icons**
+(`components/catalog/system-icons.ts`, `system-icon.tsx`), the small mark
+before a system's name across the shop: each capsule's side silhouette (the
+ESE pod's view from above) scaled to a 20 × 16 grid, so the icon and the
+drawing cannot disagree. Change an outline and both follow.
 
 ### What it will not do
 
@@ -898,9 +914,12 @@ checked by `pnpm images:verify --http`.
 
 ### Brand logos
 
-A brand's own logo is drawn where the brand is the subject: the brands index,
-the brand page, the home page's brand row, the product page's brand line and
-brand rows in the typeahead. The standard is `DESIGN.md`, "Brand logo".
+A brand's own logo is drawn wherever a brand is named as a brand: the brands
+index, the brand page, the home page's brand row, the product page's brand
+line, the brand line of every product card and wizard result, the brand
+filter's options and chips, and the typeahead's brand and product rows. It
+never marks a brewing system, which has our own icon instead (above, "The
+capsule drawings"). The standard is `DESIGN.md`, "Brand logo".
 
 - [`content/brand-logos.ts`](../apps/web/content/brand-logos.ts) is what a page
   needs to draw one: file, format, intrinsic size, the ground it was drawn for,
@@ -911,10 +930,13 @@ brand rows in the typeahead. The standard is `DESIGN.md`, "Brand logo".
   import it.
 - The files are in `apps/web/public/brand-logos/`, served from this origin.
 - [`components/catalog/brand-logo.tsx`](../apps/web/src/components/catalog/brand-logo.tsx)
-  fits a logo into one of four boxes (`LOGO_BOXES`) by area rather than by
-  height, puts a logo published only for dark grounds on an `ink-900` tile, and
-  shows the brand's name in text when there is no logo or the box would draw it
-  smaller than it can be read.
+  fits a logo into one of seven boxes (`LOGO_BOXES`: tile, header, line,
+  suggestion, card, facet, chip) by area rather than by height, puts a logo
+  published only for dark grounds on an `ink-900` tile, and shows the brand's
+  name in text when there is no logo or the box would draw it smaller than it
+  can be read — in a 24 px chip that is five stacked lockups, so a chip falls
+  back to the name. Three brands have no usable logo (Eurocaf, Excelsior,
+  Molini) and are written out everywhere.
 
 All three tables are keyed by the brand's source key, like
 `content/brand-names.ts`, which holds how each brand is written on the page.

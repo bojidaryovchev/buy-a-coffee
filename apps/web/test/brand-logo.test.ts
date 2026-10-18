@@ -452,8 +452,8 @@ const cardProduct: ProductCardView = {
 const brandLogoImages = (root: Element) =>
   Array.from(root.querySelectorAll<HTMLImageElement>("img[src^='/brand-logos/']"));
 
-/** The 8 px square that marks a brewing system. */
-const SYSTEM_SQUARE = "[class~='bg-(--system)']";
+/** Our own capsule icon, which marks a brewing system (DESIGN.md, "System icon"). */
+const SYSTEM_ICON = "svg[data-system-icon]";
 
 describe("brand logos: on a product card", () => {
   const card = (brand: ProductCardView["brand"]) =>
@@ -510,8 +510,8 @@ describe("brand logos: on a product card", () => {
   });
 });
 
-/* The filters and their chips. A system keeps its coloured square and never
-   gets a logo: most capsules are third-party, and a system owner's logo beside
+/* The filters and their chips. A system keeps its own icon and never gets a
+   logo: most capsules are third-party, and a system owner's logo beside
    them would claim an endorsement (PRODUCT.md). Caffitaly is both a system
    and a brand, which is the case that matters. */
 
@@ -566,13 +566,13 @@ describe("brand logos: in the filters", () => {
     expect(blank?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("gives a system its square and never a logo", () => {
+  it("gives a system its icon and never a logo", () => {
     const systems = rows("system");
     expect(systems).toHaveLength(2);
     for (const row of systems) {
       expect(row.getAttribute("data-system")).toBeTruthy();
       expect(row.querySelector("[data-brand-logo]")).toBeNull();
-      expect(row.querySelector(SYSTEM_SQUARE)).not.toBeNull();
+      expect(row.querySelector(SYSTEM_ICON)).not.toBeNull();
     }
   });
 });
@@ -608,10 +608,10 @@ describe("brand logos: in the active-filter chips", () => {
     }
   });
 
-  it("gives a system chip its square and never a logo", () => {
+  it("gives a system chip its icon and never a logo", () => {
     const caffitaly = chips.querySelector("a[data-system='caffitaly']");
     expect(caffitaly?.querySelector("[data-brand-logo]")).toBeNull();
-    expect(caffitaly?.querySelector(SYSTEM_SQUARE)).not.toBeNull();
+    expect(caffitaly?.querySelector(SYSTEM_ICON)).not.toBeNull();
   });
 });
 
