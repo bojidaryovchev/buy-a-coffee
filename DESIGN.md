@@ -803,7 +803,8 @@ styled as a button that performs an action, or the reverse.
 
 - _Label:_ `mb-1 block text-sm font-medium text-ink-900`. A required field adds
   `<span aria-hidden class="text-critical"> *</span>` and the field carries
-  `required`.
+  `required` — for assistive technology, which announces it; the form's
+  `noValidate` keeps the browser from acting on it (see "Validation").
 - _Field:_ `min-h-12 w-full rounded-sm border border-line-strong bg-paper-raised
 px-3 text-input text-ink-900 placeholder:text-ink-300`. A secondary field
   inside a disclosure may be `min-h-11`. `textarea` adds `py-2`.
@@ -825,9 +826,49 @@ text-paper` with a 2.5 px check mark.
   used on a field.
 - _Invalid:_ `aria-invalid="true"`, `border-critical`, and beneath it
   `<p id="…-error" class="mt-1 text-sm text-critical">` tied by
-  `aria-describedby`. The message says what to do: "Въведете телефонен номер с
-  поне 9 цифри."
+  `aria-describedby` (`FieldError`, `components/forms/field-error.tsx`). The
+  message says what to do: "Въведете телефонен номер с поне 9 цифри."
 - _Disabled:_ `bg-paper-sunken text-ink-500`.
+
+**Validation.** Every form a person fills in — the quick order (product page
+and dialog), the contact form and the enquiry forms built on it, the newsletter
+band, the unsubscribe button and the admin panel's forms — works the same way
+(`components/forms/use-schema-form.ts`):
+
+- _One schema per form,_ in `lib/forms/schemas.ts` (storefront) or
+  `lib/forms/admin-schemas.ts` (panel). The server action validates every
+  submission with it, and the form validates with the same object in the
+  browser (react-hook-form with `@hookform/resolvers/zod`). A rule and its
+  message exist once; a message reads the same whichever side found the
+  problem.
+- _No browser bubbles._ The `<form>` carries `noValidate`. `type`, `required`
+  and `maxLength` stay on the fields for the keyboard, assistive technology and
+  typing, but the browser never stops a submission or shows its own message,
+  in its own language and style, ahead of ours.
+- _On the press._ Pressing the button (or Enter) checks the whole form. Every
+  invalid field shows its message beneath it, the result line says „Поправете
+  отбелязаните полета и изпратете отново.“ (the newsletter, with one field,
+  shows the field's message there), focus moves to the first invalid field in
+  page order — opening the order form's disclosure when that is where it is —
+  and nothing is sent. After that first press a field re-checks as it is
+  corrected, so a message goes away the moment it is fixed. Nothing is checked
+  while a person is still typing for the first time.
+- _The server decides._ A valid form is posted to its server action, which
+  validates again. Its field messages land under the same fields, and focus
+  moves to them; a refusal of the whole request (the rate limit, a product
+  that is gone, a failed send) goes in the form's result line. What was typed
+  stays in the fields.
+- _Without JavaScript_ the form is a plain POST to the same action. The page
+  comes back drawn from the action's answer: the same messages under the same
+  fields, `aria-invalid` set, the disclosure open if the error is inside it, and
+  what was typed put back in the fields.
+- _Messages_ are Bulgarian, polite plural, and say what to do: „Въведете…“,
+  „Напишете…“, „Изберете…“, „Съкратете … до N знака.“ A field the page fills
+  in itself (a product, a token) can only be wrong in a hand-made post, and its
+  message says to reload. The honeypot is never checked in the browser: a bot
+  that fills it is answered by the server as if it had succeeded.
+- _Pending:_ from the press until the answer the button is disabled and
+  `aria-busy`, and a second press sends nothing (see Buttons, Pending).
 
 **Phone.** Fields are full width and stack. `type`, `inputMode` and
 `autoComplete` are always set (`tel`, `email`, `name`).
@@ -838,7 +879,9 @@ never mistaken for a value already filled in.
 
 **Never.** A placeholder used as the label, or one in English. An error shown
 by colour alone. A field below 16 px text. Validation that exists only in the
-browser.
+browser. A browser validation bubble. A rule written twice, once for the
+browser and once for the server. A message that only says something is wrong
+(„Невалиден телефон“) instead of what to do.
 
 ### Chips
 
@@ -1897,7 +1940,9 @@ border border-pine-500 rounded-md p-5`: title "Заявката е получе�
   title, `text-pine-900`), the server's message in `text-sm text-ink-700`. The
   delivery block stays.
 - _Error:_ the field error under the field; a form-level error in the result
-  line as `text-sm text-critical`.
+  line as `text-sm text-critical`. Pressing the button with the phone empty or
+  wrong shows the error there before anything is sent, with focus in the field;
+  an error in the optional fields opens the disclosure (Inputs, "Validation").
 - _Out of stock:_ the submit is replaced by a `caution` notice "В момента е
   изчерпан. Обадете ни се и ще ви кажем кога ще го има." with the phone number.
 - _Product no longer sold:_ the whole panel is replaced by a `caution-100`
@@ -2056,8 +2101,12 @@ server's (`lib/forms/actions.ts`); the consent source stays `footer` („Фор�
 sends, the button is disabled (a second click sends nothing), `aria-busy`,
 and says „Изпраща се…“ at the width it had. Success replaces the form with a
 `role="status"` line in `text-base text-ink-900` on `paper-raised` in a
-`border-pine-500` box; an error shows under the field in `text-critical`. The
-analytics event `newsletter_submitted` records the outcome.
+`border-pine-500` box; an error shows under the field in `text-critical`.
+With JavaScript the address is checked with `newsletterSchema` when the button
+is pressed, and nothing is sent until it passes; without, the server's answer
+says the same thing in the same place and keeps the address in the field
+(Inputs, "Validation"). The analytics event `newsletter_submitted` records the
+outcome of what reached the server.
 
 **Where it is not.** A page renders `<NewsletterBandOff />` (a hidden
 `data-newsletter-off` marker; `globals.css` hides the band with

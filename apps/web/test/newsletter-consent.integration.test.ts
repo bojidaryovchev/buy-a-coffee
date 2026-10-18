@@ -385,7 +385,8 @@ suite("newsletter consent (integration)", () => {
         const fields: Record<string, string> = { recordId: id, kind: "order" };
         if (basis !== undefined) fields.basis = basis;
         const result = await add(fields);
-        expect(result.error, String(basis)).toMatch(/Изберете как/);
+        // Under the choices, where the form shows it when the browser finds it.
+        expect(result.fieldErrors?.basis, String(basis)).toMatch(/Изберете как/);
         expect(result.done).toBeUndefined();
       }
       expect(await subscribers()).toHaveLength(0);

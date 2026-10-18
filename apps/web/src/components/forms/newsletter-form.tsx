@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useId, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect, useId } from "react";
 import { subscribeToNewsletter } from "@/lib/forms/actions";
-import { IDLE_FORM_STATE } from "@/lib/forms/schemas";
+import {
+  CHECK_EMAIL_MESSAGE,
+  IDLE_FORM_STATE,
+  newsletterSchema,
+  type FormState,
+} from "@/lib/forms/schemas";
 import { Button } from "@/components/ui/primitives";
 import { HoneypotField } from "@/components/forms/honeypot-field";
 import { INPUT_CLASS } from "@/components/forms/field-styles";
+import { useActionForm } from "@/components/forms/use-schema-form";
 import { useAnalytics } from "@/components/analytics-provider";
 import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
@@ -15,8 +20,7 @@ import { href, routes } from "@/lib/routes";
 const SUBMIT_LABEL = "Абонирай ме";
 const PENDING_LABEL = "Изпраща се…";
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <Button type="submit" disabled={pending} aria-busy={pending || undefined} className="shrink-0">
       {/*
@@ -40,6 +44,9 @@ function SubmitButton() {
   );
 }
 
+const fieldErrorsOf = (state: FormState) =>
+  state.status === "error" ? state.fieldErrors : undefined;
+
 /**
  * Newsletter signup.
  *
@@ -49,22 +56,40 @@ function SubmitButton() {
  * connects one.
  *
  * It works before any script runs: a plain form posting to a server action,
- * with the field's own `required` and `type="email"`. The field sits beside
- * the button only where the form has room for both and a whole address
- * (`@md`, 28rem of form, decided by the form's own width rather than the
- * window's); narrower, they stack and each takes the full width.
+ * which checks the address with `newsletterSchema` and answers in the line
+ * under the field. With the script, the same schema checks it when the button
+ * is pressed, and nothing is sent until it passes (`use-schema-form.ts`). The
+ * field sits beside the button only where the form has room for both and a
+ * whole address (`@md`, 28rem of form, decided by the form's own width rather
+ * than the window's); narrower, they stack and each takes the full width.
  */
 export function NewsletterForm({ source }: { source: string }) {
-  const [state, formAction] = useActionState(subscribeToNewsletter, IDLE_FORM_STATE);
+  const {
+    state,
+    formAction,
+    form: { register },
+    formProps,
+    pending,
+    errorOf,
+    ariaFor,
+    lineFor,
+  } = useActionForm({
+    schema: newsletterSchema,
+    action: subscribeToNewsletter,
+    initialState: IDLE_FORM_STATE,
+    fieldErrorsOf,
+    defaultValuesOf: (drawnWith) => ({
+      email: drawnWith.status === "error" ? (drawnWith.values?.email ?? "") : "",
+      source,
+    }),
+  });
   const emailId = useId();
   const consentId = `${emailId}-consent`;
-  const formRef = useRef<HTMLFormElement>(null);
   const analytics = useAnalytics();
   const locale = useLocale();
 
   useEffect(() => {
     if (state.status === "success") {
-      formRef.current?.reset();
       analytics.track({ name: "newsletter_submitted", outcome: "success" });
     } else if (state.status === "error") {
       analytics.track({ name: "newsletter_submitted", outcome: "error" });
@@ -82,12 +107,14 @@ export function NewsletterForm({ source }: { source: string }) {
     );
   }
 
-  const emailError = state.status === "error" ? state.fieldErrors?.email : undefined;
-  const describedBy = [emailError ? `${emailId}-error` : null, consentId].filter(Boolean).join(" ");
+  const emailError = errorOf("email");
+  /* One line under the field: the field's own message when it has one, else
+     the form's (a refusal of the whole request, such as the rate limit). */
+  const formMessage = lineFor(state.status === "error" ? state : undefined, CHECK_EMAIL_MESSAGE);
 
   return (
-    <form ref={formRef} action={formAction} className="@container relative">
-      <input type="hidden" name="source" value={source} />
+    <form {...formProps} action={formAction} className="@container relative">
+      <input type="hidden" {...register("source")} value={source} />
       <HoneypotField />
 
       <label htmlFor={emailId} className="sr-only">
@@ -96,27 +123,26 @@ export function NewsletterForm({ source }: { source: string }) {
       <div className="flex flex-col gap-2 @md:flex-row">
         <input
           id={emailId}
-          name="email"
+          {...register("email")}
           type="email"
           required
           autoComplete="email"
           placeholder="Вашият имейл адрес"
-          aria-invalid={emailError ? true : undefined}
-          aria-describedby={describedBy}
+          defaultValue={state.status === "error" ? state.values?.email : undefined}
+          {...ariaFor("email", emailId, consentId)}
           inputMode="email"
           className={`${INPUT_CLASS} min-w-0 @md:flex-1`}
         />
-        <SubmitButton />
+        <SubmitButton pending={pending} />
       </div>
 
       <p aria-live="polite" className="mt-1.5 min-h-5 text-sm">
-        {emailError && (
+        {emailError ? (
           <span id={`${emailId}-error`} className="text-critical">
             {emailError}
           </span>
-        )}
-        {state.status === "error" && !emailError && (
-          <span className="text-critical">{state.message}</span>
+        ) : (
+          formMessage && <span className="text-critical">{formMessage}</span>
         )}
       </p>
 

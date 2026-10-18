@@ -16,8 +16,15 @@ import {
 import { networkFingerprint, sharedStore } from "@/lib/rate-limit";
 import { attemptSignIn, createSignInGuard } from "@/lib/sign-in-guard";
 import { MAIL_THREAD_STATUSES, setThreadStatus, type MailThreadStatus } from "@/lib/mail/store";
-import { INQUIRY_STATUSES, type InquiryStatus } from "@/lib/inquiry-status";
-import { isOperatorConsentBasis } from "@/lib/forms/consent";
+import {
+  loginSchema,
+  newsletterMarkSchema,
+  recordReplySchema,
+  splitErrors,
+  statusChangeSchema,
+  threadReplySchema,
+} from "@/lib/forms/admin-schemas";
+import { formText } from "@/lib/forms/schemas";
 import { operatorSubscribe } from "@/lib/forms/subscribe";
 import { CONVERSATION_CLOSED } from "@/lib/retention";
 import {
@@ -42,6 +49,7 @@ async function requireAdmin(): Promise<boolean> {
 
 /* -- session --------------------------------------------------------------- */
 
+/** `error` is shown under the password field, whichever check refused it. */
 export type LoginState = { error?: string };
 
 /*
@@ -62,7 +70,11 @@ export async function signIn(_prev: LoginState, formData: FormData): Promise<Log
      spending a database round trip on a form that cannot succeed. */
   if (!isAdminConfigured()) return { error: WRONG_PASSWORD };
 
-  const password = String(formData.get("password") ?? "");
+  /* An empty field is refused before the guard: it is not a guess, and says
+     nothing about the password. */
+  const parsed = loginSchema.safeParse({ password: formText(formData, "password") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? WRONG_PASSWORD };
+  const { password } = parsed.data;
 
   const outcome = await attemptSignIn({
     guard: signInGuard,
@@ -94,13 +106,16 @@ export async function signOut(): Promise<void> {
 export async function updateOrderStatus(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
 
-  const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "");
-  if (!id || !INQUIRY_STATUSES.includes(status as InquiryStatus)) return;
+  const parsed = statusChangeSchema.safeParse({
+    id: formText(formData, "id"),
+    status: formText(formData, "status"),
+  });
+  if (!parsed.success) return;
+  const { id, status } = parsed.data;
 
   await db
     .update(orderInquiries)
-    .set({ status: status as InquiryStatus, updatedAt: new Date() })
+    .set({ status, updatedAt: new Date() })
     .where(eq(orderInquiries.id, id));
 
   revalidatePath("/admin/zayavki");
@@ -110,19 +125,22 @@ export async function updateOrderStatus(formData: FormData): Promise<void> {
 export async function updateContactStatus(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
 
-  const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "");
-  if (!id || !INQUIRY_STATUSES.includes(status as InquiryStatus)) return;
+  const parsed = statusChangeSchema.safeParse({
+    id: formText(formData, "id"),
+    status: formText(formData, "status"),
+  });
+  if (!parsed.success) return;
+  const { id, status } = parsed.data;
 
   /* `closed_at` is what retention counts its 12 months from. Set the first
      time the message reaches a closed status (moving from one closed status to
      another keeps the earlier time: the conversation closed then), cleared
      when it is reopened. */
-  const closing = CONVERSATION_CLOSED.includes(status as InquiryStatus);
+  const closing = CONVERSATION_CLOSED.includes(status);
   await db
     .update(contactMessages)
     .set({
-      status: status as InquiryStatus,
+      status,
       closedAt: closing ? sql`coalesce(${contactMessages.closedAt}, now())` : null,
     })
     .where(eq(contactMessages.id, id));
@@ -156,6 +174,8 @@ export async function unsubscribeSubscriber(formData: FormData): Promise<void> {
 
 export type NewsletterMarkState = {
   error?: string;
+  /** Under the field it belongs to: here, the choice of basis. */
+  fieldErrors?: Record<string, string>;
   /** What was recorded, for the confirmation line. */
   done?: "subscribed" | "already_subscribed";
 };
@@ -183,15 +203,13 @@ export async function addToNewsletter(
     return { error: "Сесията е изтекла. Влезте отново и опитайте пак." };
   }
 
-  const id = String(formData.get("recordId") ?? "");
-  const kind = String(formData.get("kind") ?? "");
-  const basis = formData.get("basis");
-
-  if (kind !== "order" && kind !== "contact") return { error: "Непознат вид запис." };
-  if (!id) return { error: "Липсва запис." };
-  if (!isOperatorConsentBasis(basis)) {
-    return { error: "Изберете как е дадено съгласието. Без това не записваме абонамент." };
-  }
+  const parsed = newsletterMarkSchema.safeParse({
+    kind: formText(formData, "kind"),
+    recordId: formText(formData, "recordId"),
+    basis: formText(formData, "basis"),
+  });
+  if (!parsed.success) return splitErrors(parsed.error, ["basis"]);
+  const { kind, recordId: id, basis } = parsed.data;
 
   const [record] =
     kind === "order"
@@ -284,7 +302,12 @@ async function collectFiles(
   return { files };
 }
 
-export type ReplyState = { error?: string; sent?: boolean };
+export type ReplyState = {
+  error?: string;
+  /** Under the field it belongs to: here, the reply's text. */
+  fieldErrors?: Record<string, string>;
+  sent?: boolean;
+};
 
 /**
  * Send a reply, as the shop, in the customer's existing thread.
@@ -298,11 +321,12 @@ export async function replyToThread(_prev: ReplyState, formData: FormData): Prom
     return { error: "Сесията е изтекла. Влезте отново и опитайте пак." };
   }
 
-  const threadId = String(formData.get("threadId") ?? "");
-  const body = String(formData.get("body") ?? "").trim();
-
-  if (!threadId) return { error: "Липсва разговор." };
-  if (!body) return { error: "Отговорът е празен." };
+  const parsed = threadReplySchema.safeParse({
+    threadId: formText(formData, "threadId"),
+    body: formText(formData, "body"),
+  });
+  if (!parsed.success) return splitErrors(parsed.error, ["body"]);
+  const { threadId, body } = parsed.data;
 
   const collected = await collectFiles(formData);
   if ("error" in collected) return { error: collected.error };
@@ -315,7 +339,13 @@ export async function replyToThread(_prev: ReplyState, formData: FormData): Prom
   return { sent: true };
 }
 
-export type RecordReplyState = { error?: string; sent?: boolean; threadId?: string };
+export type RecordReplyState = {
+  error?: string;
+  /** Under the field it belongs to: here, the reply's text. */
+  fieldErrors?: Record<string, string>;
+  sent?: boolean;
+  threadId?: string;
+};
 
 /**
  * Answer a stored order enquiry or contact message, as the shop.
@@ -333,13 +363,13 @@ export async function replyToRecord(
     return { error: "Сесията е изтекла. Влезте отново и опитайте пак." };
   }
 
-  const id = String(formData.get("recordId") ?? "");
-  const kind = String(formData.get("kind") ?? "");
-  const body = String(formData.get("body") ?? "").trim();
-
-  if (kind !== "order" && kind !== "contact") return { error: "Непознат вид запис." };
-  if (!id) return { error: "Липсва запис." };
-  if (!body) return { error: "Отговорът е празен." };
+  const parsed = recordReplySchema.safeParse({
+    kind: formText(formData, "kind"),
+    recordId: formText(formData, "recordId"),
+    body: formText(formData, "body"),
+  });
+  if (!parsed.success) return splitErrors(parsed.error, ["body"]);
+  const { kind, recordId: id, body } = parsed.data;
 
   const record =
     kind === "order"
