@@ -792,25 +792,37 @@ passes.
       Excelsior (a transparent file of its plain lockup, from Caffè
       Excelsior); and a word to the source about the illy tin it still lists
       as 100 pods.
-- [ ] **H2 · Image store** — create it; put its token in the local environment
+- [x] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.
-- [ ] **H3 · Databases** — create a database branch for previews and point the
+      **Done 18 October:** Blob store `buy-a-coffee-images` (public, `fra1`),
+      origin `https://j6xpmlta50zfdxeo.public.blob.vercel-storage.com`; 110 of
+      110 pushed and verified over HTTP, then 215 of 215 after H6.
+- [x] **H3 · Databases** — create a database branch for previews and point the
       Preview `DATABASE_URL` at it; take a restore point of production;
       `pnpm db:migrate` on production (additive, so the running site is
       unaffected). **This must precede H5:** until the rate-limit table exists,
-      the new code refuses admin sign-in.
-- [ ] **H4 · Deployment environment** — first make each local `.env` file
+      the new code refuses admin sign-in. **Done 18 October:** restore point
+      `restore-point-2026-10-18-pre-launch` (no compute); production migrated
+      6 → 8; branch `preview` taken after the migration, and the Preview-only
+      `DATABASE_URL` points at it.
+- [x] **H4 · Deployment environment** — first make each local `.env` file
       declare `DATABASE_URL` once; the tooling now refuses a repeated key. Then
       `pnpm env:push` (read the plan, then `--apply`): image base URL,
       `RATE_LIMIT_SALT`, `CRON_SECRET`, a separate session secret, an admin
       passphrase of at least 12 characters, corrected targets. Remove the two
       variables nothing reads. **This must precede H5:** with a short password
       or no separate session secret, the deployed panel disables itself.
+      **Done 18 October**, with two **Found**: `env:push` wrote secrets as
+      `encrypted`, which would have downgraded the team's `sensitive` ones (it
+      now writes `sensitive`); and narrowing a variable's targets makes
+      Vercel's upsert leave the old value on the dropped target — the old
+      6-character password stayed on Preview until removed by hand (the plan
+      now says so).
 - [ ] **H5 · Ship the code** — push `completion` and let CI run on it first
       (the two workflows have never run on GitHub). Then merge into `main`. Check the built
       HTML rather than a warm cache: photos load, no draft marker, function
       region is Frankfurt.
-- [ ] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
+- [x] **H6 · Catch the catalog up** — `pnpm sync:catalog --dry-run` against
       production; the numbers must match the rehearsal (86 moved, 99 created, 2
       missing, 0 unresolved; 8 brands created, 1 category created (the vending
       section), 1 brand and 1 category renamed). Re-run the rehearsal first if
@@ -829,7 +841,16 @@ passes.
       the 31 stale bodies), a second sync that must change nothing, and a
       hand comparison of ten products against the source. Check the admin's
       sync page: it should list one pack-size conflict, the illy tin, shown
-      as 18 pods.
+      as 18 pods. **Done 18 October:** dry run 86 moved, 100 created, 2
+      missing, 0 unresolved, taxonomy exactly as rehearsed — one more product
+      than the rehearsal because the source gave the Excelsior Porto Rico pods
+      their own page and renamed the old one Excelsior Gold. Real run: 208
+      products, 98 created, 0 missing, 107 photos mirrored to the Blob store.
+      `catalog:verify` passed; enrich read 189 of 189 pages; reslug moved 110
+      (a second plan: 0); copy matched 207 of 207, none orphaned; the second
+      sync changed nothing. One product, Excelsior Gold pods
+      (`excelsior-gold-kafe-dozi-150-br`), still publishes the generated
+      sentence until it has copy of its own.
 - [ ] **H7 · Turn on the schedule** — add the workflow's secrets, run it once
       by hand, enable the schedule, and prove the alarm by letting a preview go
       stale.
