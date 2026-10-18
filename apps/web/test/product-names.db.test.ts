@@ -223,6 +223,8 @@ describe("search", () => {
     expect(row).toMatchObject({
       name: "Lavazza Super Crema — кафе на зърна, 1 кг",
       detail: "Кафе на зърна, 1 кг",
+      // The stored slug, by which the row finds the brand's logo.
+      brandSlug: "lavazza",
     });
     const brands = (await queries!.suggestCatalog("lollo")).brands;
     expect(brands.find((brand) => brand.sourceKey === "lollocafe")?.name).toBe("Lollo Caffè");

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
-import { BrandLogo } from "@/components/catalog/brand-logo";
+import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
 import {
@@ -390,9 +390,7 @@ function SuggestionPanel({
                   <span className="block truncate text-sm text-ink-900">{product.title}</span>
                   <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
                     <SystemBadge systemId={product.systemId} size="sm" />
-                    <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">
-                      {[product.brandName, product.weight].filter(Boolean).join(" · ")}
-                    </span>
+                    <BrandAndWeight product={product} />
                   </span>
                 </span>
 
@@ -460,6 +458,33 @@ function SuggestionPanel({
             )}
           </ul>
         </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * A product row's brand and pack size: the brand's logo, named by its alt,
+ * where it can be read at this size; its name in the line otherwise.
+ */
+function BrandAndWeight({
+  product,
+}: {
+  product: Pick<SearchSuggestions["products"][number], "brandName" | "brandSlug" | "weight">;
+}) {
+  const { brandName, brandSlug, weight } = product;
+  const logo = brandSlug && brandName && legibleBrandLogo(brandSlug, "chip");
+  const text = [logo ? null : brandName, weight].filter(Boolean).join(" · ");
+  return (
+    <>
+      {logo && <BrandLogo brand={{ slug: brandSlug, name: brandName }} size="chip" inline />}
+      {logo && weight && (
+        <span aria-hidden className="text-2xs text-ink-500">
+          ·
+        </span>
+      )}
+      {text && (
+        <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">{text}</span>
       )}
     </>
   );

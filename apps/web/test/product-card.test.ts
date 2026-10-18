@@ -18,6 +18,9 @@ vi.mock("next/image", async () => {
   };
 });
 
+/** The brand's logo on the card's brand line (test/brand-logo.test.ts covers it). */
+const BRAND_LOGO = "[src^='/brand-logos/']";
+
 const INTERACTIVE = "a, button, input, select, textarea, summary, [tabindex], [role='button']";
 
 const product = (overrides: Partial<ProductCardView> = {}): ProductCardView => ({
@@ -134,7 +137,8 @@ describe("ProductCard: what it shows", () => {
 
   it("draws the placeholder, not an image, when there is no photograph", () => {
     const root = card({ image: null });
-    expect(root.querySelector("img")).toBeNull();
+    // The brand's logo is the only image left.
+    expect(root.querySelector(`img:not(${BRAND_LOGO})`)).toBeNull();
     expect(text(root)).toContain("Няма снимка");
     expect(root.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
@@ -281,7 +285,9 @@ describe("ProductGrid", () => {
   });
 
   it("loads only the first images eagerly", () => {
-    const images = Array.from(grid({ priorityCount: 1 }).querySelectorAll("img"));
+    const images = Array.from(
+      grid({ priorityCount: 1 }).querySelectorAll(`img:not(${BRAND_LOGO})`),
+    );
     expect(images.map((image) => image.getAttribute("loading"))).toEqual([null, "lazy", "lazy"]);
   });
 });
