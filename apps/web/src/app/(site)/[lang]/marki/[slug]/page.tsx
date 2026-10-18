@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -201,7 +202,7 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
                   <ChipLink
                     href={shelf.href}
                     data-system={shelf.id}
-                    leading={<span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />}
+                    leading={<SystemIcon systemId={shelf.id} />}
                   >
                     {shelf.name}
                   </ChipLink>

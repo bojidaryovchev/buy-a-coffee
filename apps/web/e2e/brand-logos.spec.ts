@@ -4,7 +4,7 @@ import { BG } from "./support/paths";
 /**
  * A brand's logo wherever the brand is named as a brand (DESIGN.md, "Brand
  * logo"): the card's brand line, the brand filter, the brand chip. And never
- * beside a brewing system's name, where the coloured square stays: most
+ * beside a brewing system's name, where our own capsule icon stays: most
  * capsules are third-party, and a system owner's logo there would claim an
  * endorsement. Caffitaly is both a system and a brand, which is why it is the
  * system checked here.
@@ -36,9 +36,7 @@ test("a card draws its brand's logo, named by its alt, or the name where there i
   expect(box?.height).toBeGreaterThanOrEqual(12);
 });
 
-test("the brand filter and its chip carry the logo; a system keeps its square", async ({
-  page,
-}) => {
+test("the brand filter and its chip carry the logo; a system keeps its icon", async ({ page }) => {
   // Caffitaly the brand makes Caffitaly capsules, so the listing is not empty.
   await page.goto(`${BG.capsules}?brand=lavazza,caffitaly&system=caffitaly`);
 
@@ -54,8 +52,11 @@ test("the brand filter and its chip carry the logo; a system keeps its square", 
   for (const option of await brands.all()) {
     await expect(option.locator("[data-brand-logo]")).toHaveCount(1);
   }
-  for (const option of await page.locator("a[aria-pressed][data-system]").all()) {
+  const systems = page.locator("a[aria-pressed][data-system]");
+  expect(await systems.count()).toBeGreaterThan(0);
+  for (const option of await systems.all()) {
     await expect(option.locator("[data-brand-logo]")).toHaveCount(0);
+    await expect(option.locator("svg[data-system-icon]")).toHaveCount(1);
   }
 
   const chips = page.getByRole("list", { name: "Активни филтри" });
@@ -67,4 +68,5 @@ test("the brand filter and its chip carry the logo; a system keeps its square", 
   const systemChip = chips.locator("a[data-system='caffitaly']");
   await expect(systemChip).toBeVisible();
   await expect(systemChip.locator("[data-brand-logo]")).toHaveCount(0);
+  await expect(systemChip.locator("svg[data-system-icon='caffitaly']")).toBeVisible();
 });

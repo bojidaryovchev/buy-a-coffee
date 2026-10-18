@@ -14,6 +14,7 @@ import {
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS } from "@/lib/catalog/attributes";
 import type { CatalogFacets, FacetValue } from "@/lib/catalog/types";
 import { getBrewingSystem } from "@/lib/recommend/systems";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { cx } from "@/components/ui/primitives";
 import { BrandLogo } from "@/components/catalog/brand-logo";
 
@@ -54,11 +55,6 @@ function hrefFor(basePath: string, query: CatalogQuery): string {
   return `${basePath}${buildSearchParams(query)}`;
 }
 
-/** The 8 px square that goes before a system's name. Never shown without it. */
-function SystemSquare() {
-  return <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />;
-}
-
 function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <details open className="group border-b border-line py-3 last:border-b-0">
@@ -92,7 +88,7 @@ function CheckboxLink({
   checked: boolean;
   label: string;
   count: number;
-  /** Set for a brewing system: colours the square that precedes its name. */
+  /** Set for a brewing system: its icon precedes its name, in its colour. */
   systemId?: string;
   /** Set for a brand (its slug): its logo precedes its name. */
   brand?: string;
@@ -105,7 +101,12 @@ function CheckboxLink({
         // toggle, which a plain link would not convey.
         aria-pressed={checked}
         {...(systemId ? { "data-system": systemId } : {})}
-        className="flex min-h-11 items-center gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken lg:min-h-9"
+        className={cx(
+          "flex min-h-11 items-center gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken",
+          // A brand's row is as tall as its 40 px `facet` logo box from `lg`;
+          // saying so keeps the class honest about the height it renders at.
+          brand ? "lg:min-h-10" : "lg:min-h-9",
+        )}
       >
         <span
           aria-hidden
@@ -128,7 +129,7 @@ function CheckboxLink({
             </svg>
           )}
         </span>
-        {systemId && <SystemSquare />}
+        {systemId && <SystemIcon systemId={systemId} />}
         {/* Decorative: the name follows. With none legible, an empty box, so names align. */}
         {brand && (
           <BrandLogo
@@ -366,7 +367,7 @@ export function ActiveFilterChips({
             // Removing a filter is not destructive, so the hover is ink, not red.
             className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900 lg:min-h-9"
           >
-            {filter.key === "system" && <SystemSquare />}
+            {filter.key === "system" && <SystemIcon systemId={filter.value} />}
             {filter.key === "brand" && (
               <BrandLogo
                 brand={{ slug: filter.value, name: chipLabel(filter, facets) }}

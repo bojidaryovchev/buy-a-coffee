@@ -171,6 +171,7 @@ export async function ProductPage({
         </div>
 
         <div className="min-w-0">
+          {/* Both links are 44 px touch targets below `lg`, so the row is 44 px tall there. */}
           {(system || product.brand) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <SystemBadge systemId={product.systemId} size="md" href={systemHref ?? undefined} />
@@ -181,14 +182,14 @@ export async function ProductPage({
                   // no logo, or one unreadable this small, keeps the name.
                   <Link
                     href={brandHref(locale, product.brand)}
-                    className="inline-flex min-h-6 items-center rounded-xs"
+                    className="inline-flex min-h-11 items-center rounded-xs lg:min-h-6"
                   >
                     <BrandLogo brand={product.brand} size="line" inline />
                   </Link>
                 ) : (
                   <Link
                     href={brandHref(locale, product.brand)}
-                    className="inline-flex min-h-6 items-center text-2xs font-semibold tracking-[0.06em] text-pine-700 uppercase underline-offset-4 hover:underline"
+                    className="inline-flex min-h-11 items-center text-2xs font-semibold tracking-[0.06em] text-pine-700 uppercase underline-offset-4 hover:underline lg:min-h-6"
                   >
                     {product.brand.name}
                   </Link>

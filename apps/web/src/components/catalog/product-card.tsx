@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AvailabilityBadge, Badge, buttonClasses, cx } from "@/components/ui/primitives";
-import { BrandLogo } from "@/components/catalog/brand-logo";
+import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { IntensityScale } from "@/components/catalog/intensity-scale";
@@ -99,15 +99,7 @@ export function ProductCard({
 
         {/* The brand's logo, named by its alt; its name where there is none.
             The row is the `card` box's height, so cards line up either way. */}
-        <p className="mt-1.5 flex h-10 items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
-          {product.brand && <BrandLogo brand={product.brand} size="card" inline shrink />}
-          {product.brand && product.weight && <span aria-hidden>·</span>}
-          {product.weight && (
-            <span className="shrink-0 font-normal tracking-normal normal-case tabular-nums">
-              {product.weight}
-            </span>
-          )}
-        </p>
+        <BrandPackLine brand={product.brand} weight={product.weight} className="mt-1.5 h-10" />
 
         {/*
           The clamp clips whatever leaves the heading's box, the link's focus
@@ -224,5 +216,56 @@ export function ProductGrid({
         </li>
       ))}
     </ul>
+  );
+}
+
+const LINE = "flex items-center text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase";
+const PACK = "shrink-0 font-normal tracking-normal normal-case tabular-nums";
+
+/**
+ * A card's brand line: the brand's logo (or its name), "·", the pack size.
+ * Shared by the product card and the wizard's result. DESIGN.md, "Product
+ * card", row 3.
+ *
+ * Neither part may be cut off on a 320 px phone. A logo gives way to the
+ * pack size, proportions kept (`shrink`). A name cannot — a word cut in half
+ * („Excelsio“) names nothing — so where the brand is written out, the pack
+ * size moves under it instead when the two do not fit side by side. Its "·"
+ * then starts the second line, outside the line's clipped box, so it is not
+ * seen: each part carries a 12 px left margin that the wrapper takes back,
+ * and the separator sits in that margin.
+ */
+export function BrandPackLine({
+  brand,
+  weight,
+  className,
+}: {
+  readonly brand: { readonly slug: string; readonly name: string } | null;
+  readonly weight: string | null;
+  readonly className?: string;
+}) {
+  if (!brand || legibleBrandLogo(brand.slug, "card")) {
+    return (
+      <p className={cx(LINE, "gap-1.5", className)}>
+        {brand && <BrandLogo brand={brand} size="card" inline shrink />}
+        {brand && weight && <span aria-hidden>·</span>}
+        {weight && <span className={PACK}>{weight}</span>}
+      </p>
+    );
+  }
+  return (
+    <p className={cx(LINE, "overflow-hidden", className)}>
+      <span className="-ml-3 flex min-w-0 flex-wrap items-center *:ml-3">
+        <BrandLogo brand={brand} size="card" inline />
+        {weight && (
+          <span className={cx(PACK, "relative")}>
+            <span aria-hidden className="absolute -left-2">
+              ·
+            </span>
+            {weight}
+          </span>
+        )}
+      </span>
+    </p>
   );
 }

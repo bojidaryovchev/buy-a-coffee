@@ -70,6 +70,7 @@ export function factRows(product: FactsTableProduct, locale: Locale): readonly F
               systemId={system.id}
               size="md"
               href={systemListingHref(locale, system.id, product.categories) ?? undefined}
+              target="pad"
             />
           ),
         }

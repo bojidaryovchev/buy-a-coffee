@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { siteConfig } from "@/config/site";
+import { SystemIcon } from "@/components/catalog/system-icon";
 import { SearchField } from "@/components/catalog/search-field";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
 import { MachineIcon } from "@/components/layout/icons";
@@ -212,7 +213,7 @@ function SystemsPanel({
                 data-system={system.id}
                 className="flex min-h-11 items-center gap-2.5 rounded-sm px-3 text-sm text-ink-900 hover:bg-paper-sunken"
               >
-                <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
+                <SystemIcon systemId={system.id} />
                 <span className="min-w-0 flex-1">{system.name}</span>
                 <span className="text-2xs text-ink-300 tabular-nums">
                   {system.count}
