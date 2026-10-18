@@ -141,6 +141,15 @@ const nextConfig: NextConfig = {
      * `not-found.tsx` has no root layout above it to render inside.
      */
     globalNotFound: true,
+    /*
+     * A reply from the admin panel may carry attachments up to
+     * `REPLY_ATTACHMENT_LIMIT` (4 MB, `lib/mail/reply.ts`), which the platform's
+     * own ceiling of about 4.5 MB per request already bounds. Server Actions
+     * refuse anything over 1 MB by default, so without this a 1–4 MB
+     * attachment was turned away before the action ran. The room above 4 MB is
+     * the multipart overhead.
+     */
+    serverActions: { bodySizeLimit: "4.5mb" },
   },
 
   images: {

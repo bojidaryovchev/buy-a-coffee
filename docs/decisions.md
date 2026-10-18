@@ -227,6 +227,19 @@ prices in the dropdown are worth more than the request they cost.
 value pins the retail price without touching the source value, so a markup rule
 can still be derived from the original later.
 
+**Forms validate in the browser with the server's schema, and are sent by
+hand.** Each form has one zod schema, shared by its server action and by
+react-hook-form in the browser, so a message reads the same whichever side
+found the error, and a rule cannot be changed in one place only. The form is
+`noValidate`: the browser's own bubbles, in the browser's language and style,
+never appear. A valid form is posted as its `FormData` from `onSubmit` rather
+than through the `<form action>` alone, which allows validating before
+anything is sent and stops React clearing the fields after a refusal. The
+`action` attribute stays, so a page without JavaScript posts to the same
+action and is answered with the same messages. Rejected: native constraint
+validation (unstyled, untranslatable, inconsistent between browsers) and a
+second, client-only set of rules.
+
 **Quick order is a phone number and a callback**, matching the observed
 behaviour. Rate limit → validate (including a honeypot) → persist → notify. The
 record is safe in the database before any notification is attempted, so a

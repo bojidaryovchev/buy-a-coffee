@@ -153,11 +153,13 @@ below `lg`, the newsletter is a band above a redesigned footer, every page was
 checked at eight widths from 320 to 1440 px, a brand's logo appears wherever the
 brand is named, the capsule drawings were redrawn to scale from cited
 dimensions (A Modo Mio, Caffitaly and Lavazza Blue had been drawn wrong), and
-each system is marked with our own capsule icon in place of a coloured square.
+each system is marked with our own capsule icon in place of a coloured square. The brand filter names brands in text; every placeholder is Bulgarian; every
+form validates with its server schema in the browser through react-hook-form,
+with our own errors on submit and no browser bubbles.
 
-**Where `completion` stands:** 168 commits ahead of `main`, pushed to GitHub,
+**Where `completion` stands:** 172 commits ahead of `main`, pushed to GitHub,
 where CI passes; `main` is untouched. `format:check`, `typecheck` and `lint` are
-clean; 2,734 unit, 356 integration and 790 browser tests pass (desktop and
+clean; 2,793 unit, 356 integration and 810 browser tests pass (desktop and
 mobile, `CI=true`, against a production build seeded exactly as CI seeds it);
 `check:originality` and `reference:coverage` pass; `check:launch` fails by
 design with the business's eight open questions. Everything left is in Phase H.

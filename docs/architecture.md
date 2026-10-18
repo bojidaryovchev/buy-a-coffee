@@ -629,6 +629,20 @@ at a time, so a listing of 24 cards ships 24 small links and no copy of the form
 `showModal()` gives the inert background, Escape and the top layer for free, and
 focus returns to the card's link on close.
 
+**Validation, in the browser and on the server.** Every form (the quick order,
+contact and its enquiry variants, the newsletter band, unsubscribe, and the
+admin's forms) is validated by one zod schema per form
+([`lib/forms/schemas.ts`](../apps/web/src/lib/forms/schemas.ts),
+[`lib/forms/admin-schemas.ts`](../apps/web/src/lib/forms/admin-schemas.ts)),
+used by the server action and, through react-hook-form, by the browser
+([`components/forms/use-schema-form.ts`](../apps/web/src/components/forms/use-schema-form.ts)).
+The form is `noValidate`, so the browser's own bubbles never show; pressing
+the button validates every field, shows our message under each invalid one
+and focuses the first. A valid form is sent by hand as its `FormData`. The
+`<form action>` stays, so without JavaScript the same POST reaches the same
+action, which validates with the same schema and redraws the form with the
+same messages and what was typed. The server is the authority either way.
+
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
 safe in the database before any notification is attempted, so a misconfigured
