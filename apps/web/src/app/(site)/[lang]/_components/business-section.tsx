@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GRAMS_PER_SERVING } from "@catalog/shared";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
+import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { ContactForm } from "@/components/forms/contact-form";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -81,6 +82,9 @@ export function BusinessSectionView({
 
   return (
     <div className="shell pb-16">
+      {/* The enquiry form at the end of the page asks for the newsletter
+          already, as a check box, right above where the band would be. */}
+      <NewsletterBandOff />
       <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
       {shownProducts.length > 0 && (
         <JsonLd

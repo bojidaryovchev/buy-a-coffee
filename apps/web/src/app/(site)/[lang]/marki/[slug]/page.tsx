@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { Breadcrumbs } from "@/components/ui/primitives";
+import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { JsonLd } from "@/components/seo/json-ld";
 import {
@@ -198,14 +198,13 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
             <ul className="mt-2 flex flex-wrap gap-2">
               {shelves.map((shelf) => (
                 <li key={shelf.id}>
-                  <Link
+                  <ChipLink
                     href={shelf.href}
                     data-system={shelf.id}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-raised px-3 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
+                    leading={<span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />}
                   >
-                    <span aria-hidden className="h-2 w-2 shrink-0 bg-(--system)" />
                     {shelf.name}
-                  </Link>
+                  </ChipLink>
                 </li>
               ))}
             </ul>

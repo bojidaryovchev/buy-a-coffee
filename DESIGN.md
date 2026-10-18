@@ -590,7 +590,9 @@ shell; band backgrounds run edge to edge.
 
 **Breakpoints.** Tailwind defaults: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 Designs are specified at 390 px (phone) and 1366 px (desktop) and must not
-scroll horizontally at 320 px.
+scroll horizontally at 320 px. Every page is checked at 320, 360, 390, 414,
+768, 1024, 1280 and 1440 px (see "Checking a layout" below). Below `lg` a
+screen is assumed to be touched: that is where the touch sizes below apply.
 
 **Vertical rhythm.**
 
@@ -606,9 +608,16 @@ scroll horizontally at 320 px.
 Spacing uses the 4 px Tailwind scale. No arbitrary pixel values for spacing.
 
 **Bands.** Sections alternate by tone, not by box: `paper` by default,
-`paper-sunken` for the wizard entry and the footer, `pine-900` for the hero and
-the Vending Zone band, `clay-100` for promotions. Adjacent bands of the same
-tone are separated by a `border-t border-line`.
+`paper-sunken` for the wizard entry and the footer, `paper-raised` for the
+newsletter band, `pine-900` for the hero and the Vending Zone band, `clay-100`
+for promotions. Adjacent bands of the same tone are separated by a
+`border-t border-line`. Two dark bands never stack.
+
+**The frame's foot.** The space between a page and what follows it is the
+frame's: `mt-20` above the newsletter band and the footer, which sit together
+in one wrapper (`data-frame-foot`). A page whose last section is a full-bleed
+band of its own (the home page's Vending Zone, marked `data-ends-on-band`)
+meets the frame edge to edge instead (`globals.css`).
 
 **Grids.**
 
@@ -632,8 +641,46 @@ buttons keep their width while pending. Layout shift is a defect with a budget
 (CLS under 0.1).
 
 **The Min Height Rule.** Controls are sized with `min-h-*` and padding, not a
-fixed `h-*`, so a wrapped label or enlarged text grows the control instead of
-overflowing it.
+fixed `h-*`, so enlarged text grows the control instead of overflowing it.
+
+**The Touch Target Rule.** Below `lg`, everything a finger is meant to hit —
+a button, a chip, a field, a filter row, a footer link, a breadcrumb step, a
+link that stands on a line of its own — is at least 44 px tall: `min-h-11`,
+and its desktop size from `lg` (`lg:min-h-9`, `lg:min-h-10`). A link inside
+running text is exempt (it is part of the sentence). Where a standalone
+inline link cannot grow without moving the text around it (a heading's link,
+a link in a table cell, the announcement bar's phone number), it takes
+vertical padding instead (`py-2` to `py-3.5`): on an inline box padding
+widens what can be hit without moving a line. Not where two such links sit
+on neighbouring lines: their padded boxes would overlap and the lower would
+take the upper's taps.
+
+**The Unbroken Label Rule.** A control's label never wraps: buttons and chips
+are `whitespace-nowrap`. Where a label is longer than the room it is given,
+the control grows, or the layout changes around it — it stacks, takes the
+full width, or (for a label that names a count and a system, „Вижте всички
+35 продукта за Lavazza A Modo Mio“) becomes a text link, which may wrap —
+never the text. Below `sm` a lone full-width action keeps only 12 px of side
+padding (`px-3 sm:px-6` on size `lg`), which is what lets „Намерете кафе за
+вашата машина“ fit at 320 px.
+
+**The Meta Rule.** Meta text beside a label — a count, a price, a state —
+never gets a column of its own and never breaks inside (`whitespace-nowrap`).
+Where it goes is decided by the width of the thing it sits in, not the
+window: the card is a size container (`@container`), and from `@md` (28rem of
+card) the note sits to the right of the label, level with its first line,
+while the label wraps beside it; narrower, it goes under the label on its own
+line. The same card is full width on a phone and half a two-column grid on a
+laptop, so a window breakpoint would get one of the two wrong. The wizard's
+options and toggles and the newsletter form follow it.
+
+**Checking a layout.** A throwaway Playwright script loads every page type at
+the eight widths above and reports, for each: horizontal scroll and the
+element that causes it; text clipped or sticking out of its box; a control
+whose label wraps; a short label or count that breaks; a target under 44 px
+below `lg`; an image drawn at another aspect ratio than its own; text that
+collides with other text. It also saves the screenshots, which are looked at:
+a measurement finds a cut-off „12 от / 13“, not a page that reads badly.
 
 ## Elevation
 
@@ -700,13 +747,14 @@ must never do. "Phone" means below `md` (768 px).
 `Button` and `ButtonLink` in `primitives.tsx`. One shape, six variants.
 
 **Shape.** `inline-flex items-center justify-center gap-2 rounded-sm font-medium
-transition-colors`. Icon, when present, is 16 px and precedes the label.
+whitespace-nowrap transition-colors`. Icon, when present, is 16 px and precedes
+the label. The label never wraps (see "The Unbroken Label Rule").
 
-| Size | Min height       | Padding       | Type        | Use                                               |
-| ---- | ---------------- | ------------- | ----------- | ------------------------------------------------- |
-| `sm` | `min-h-9` 36 px  | `px-3 py-1.5` | `text-sm`   | Section actions, toolbar, card control from `md`. |
-| `md` | `min-h-11` 44 px | `px-5 py-2.5` | `text-base` | Default.                                          |
-| `lg` | `min-h-12` 48 px | `px-6 py-3`   | `text-base` | Hero and order form.                              |
+| Size | Min height                            | Padding             | Type        | Use                                         |
+| ---- | ------------------------------------- | ------------------- | ----------- | ------------------------------------------- |
+| `sm` | `min-h-11` 44 px, `lg:min-h-10` 40 px | `px-3 py-1.5`       | `text-sm`   | Section actions, toolbar, the card control. |
+| `md` | `min-h-11` 44 px                      | `px-5 py-2.5`       | `text-base` | Default.                                    |
+| `lg` | `min-h-12` 48 px                      | `px-3 sm:px-6 py-3` | `text-base` | Hero and order form.                        |
 
 | Variant     | Rest                                                     | Hover                                | Use                                                          |
 | ----------- | -------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
@@ -731,14 +779,16 @@ pine band, and its secondary button must stay dark on white.
   disabled while its form submits keeps its exact width. Not opacity. Prefer not rendering a control that
   can never be used.
 - _Pending:_ the label changes to "Изпраща се…", `aria-busy="true"`, the button
-  is disabled and keeps its width (`min-w-40` on the order button).
+  is disabled and keeps its width (`min-w-40` on the order button; on the
+  newsletter button both labels are laid out in one grid cell and one is
+  `invisible`, so the button is as wide as the longer of the two).
 
 **Phone.** A lone primary or accent action is `w-full`. Two actions stack, the
 main one first.
 
 **Never.** Two `accent` buttons in one viewport. An `accent` button on `paper`
-or `paper-sunken`. A button without a text label, unless it has `aria-label`
-and is at least 40 by 40 px. A `<div>` or `<span>` acting as a button. A link
+or `paper-sunken`. A label on two lines. A button without a text label, unless
+it has `aria-label` and is at least 40 by 40 px (44 by 44 below `lg`). A `<div>` or `<span>` acting as a button. A link
 styled as a button that performs an action, or the reverse.
 
 ### Inputs
@@ -751,6 +801,11 @@ styled as a button that performs an action, or the reverse.
 - _Field:_ `min-h-12 w-full rounded-sm border border-line-strong bg-paper-raised
 px-3 text-input text-ink-900 placeholder:text-ink-300`. A secondary field
   inside a disclosure may be `min-h-11`. `textarea` adds `py-2`.
+- _Disclosure for optional fields_ (the order form's „Добавете име, имейл или
+  бележка (по избор)“): a `summary` in `text-sm text-pine-700`, `min-h-11`,
+  led by a 16 px chevron that turns a quarter when open — a disclosure says
+  that it opens. Its label may take two lines in a narrow column; „(по избор)“
+  stays whole.
 - _Helper:_ `mt-1 text-xs text-ink-500`.
 - _Select:_ the native element with the same classes. No custom listbox.
 - _Checkbox as a link_ (filters): an 18 px box, `rounded-xs border
@@ -776,8 +831,11 @@ field below 16 px text. Validation that exists only in the browser.
 
 ### Chips
 
-Three kinds. All: `inline-flex items-center gap-1.5 rounded-sm border text-sm`,
-`min-h-9` (36 px), `px-3`.
+Three kinds, all `ChipLink` in `primitives.tsx` — no page writes a chip's
+classes by hand. All: `inline-flex items-center gap-1.5 rounded-sm border
+text-sm whitespace-nowrap`, `min-h-11` (44 px) below `lg` and `lg:min-h-9`
+(36 px) from it, `px-3`. A chip is one unit: its label and count never wrap
+inside it; a row of chips wraps between chips, or scrolls.
 
 | Kind          | Rest                                                                         | Hover                         | Selected                                                        |
 | ------------- | ---------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------- |
@@ -785,17 +843,25 @@ Three kinds. All: `inline-flex items-center gap-1.5 rounded-sm border text-sm`,
 | Active filter | `border-line-strong bg-paper-raised text-ink-700`                            | `border-ink-900 text-ink-900` | —                                                               |
 | Answer        | as active filter, with a `label` prefix in `text-2xs uppercase text-ink-500` | same                          | —                                                               |
 
-- A choice chip is a link to another listing: a system under "Капсули", a
-  machine model on a product page. A count follows the label as `text-2xs tabular-nums
-text-ink-300` (`text-pine-200` when selected).
+- A choice chip is a link to another listing, or to a section of the page: a
+  system under "Капсули", a machine model on a product page, a system's
+  section on a landing. A count follows the label as `text-2xs tabular-nums
+text-ink-300` (`text-pine-200` when selected), with what it counts in
+  `sr-only` (`countLabel`, " продукта"). A system's 8 px square goes before
+  the label (`leading`), with `data-system` on the chip.
 - An active-filter chip is a link that removes one filter. It ends in a 12 px
   "×" icon and `<span class="sr-only">— премахни филтъра</span>`.
 - An answer chip (wizard) links back to the question that set it and ends in
   `<span class="sr-only">— промяна на отговора</span>`.
 
-**Phone.** Chips wrap. A row of choice chips longer than two lines becomes a
-single scrolling row (`overflow-x-auto`, `snap-x`), with the selected chip
-scrolled into view by being first in source order.
+**Phone.** Chips wrap. A row of chips longer than two lines — the systems
+under "Капсули", a landing's sections, the wizard's answers — becomes a single
+scrolling row running to the screen's edges: `relative -mx-4 flex snap-x
+scroll-px-4 overflow-x-auto px-4`, each chip `shrink-0 snap-start`. The
+scroll padding is what keeps the first chip off the edge: without it the
+snap pulls the first chip flush against the screen. `relative` contains the
+chips' `sr-only` text, which would otherwise widen the page. The selected chip
+is scrolled into view by being first in source order.
 
 **Never.** A hover that turns a chip red: removing a filter is not destructive.
 A chip that is not a link or a button. A system chip without the system's name.
@@ -886,13 +952,18 @@ text.
 - _Track:_ a flex row of exactly `max` segments, `gap-px`, each `flex-1 h-1.5`.
   The first `value` segments are `bg-pine-700`; the rest are `bg-line`. First
   and last segment carry `rounded-xs` on their outer corners. `aria-hidden`.
-- _Track width is fixed_ per size, whatever the scale: 64 px on a card, 120 px
+- _Track width is fixed_ per size, whatever the scale: 64 px on a card (56 px
+  on a screen narrower than 360 px, where 64 px left „12 от 13“ too little room
+  in a card — every card on the screen still draws the same track), 120 px
   on the product page. The filled length is therefore `value / max` of the same
   width on every product — the fraction is what is comparable, and the fraction
   is what the eye reads — while the number of segments shows which scale the
   brand used.
 - _Numeral:_ `text-2xs tabular-nums text-ink-500` (card), `text-sm text-ink-900`
-  (product page): "8 от 12". Always both numbers, always "от".
+  (product page): "8 от 12". Always both numbers, always "от", never broken
+  (`whitespace-nowrap`). On the product page the numeral may drop under the
+  track where the facts table's value column is narrower than both (a 320 px
+  phone).
 - _Accessible text:_ `<span class="sr-only">Интензивност </span>` before the
   numeral, so it reads "Интензивност 8 от 12".
 
@@ -943,7 +1014,7 @@ from. Two engineers building it from this section must produce the same card.
 │ ▮▮▮▮▮▮▮▮▮▮▯▯ 10 от 12    │  5  intensity           16 px
 │ 5,60 €  ~~6,60 €~~       │  6  price               26 px
 │ 0,35 € на чаша           │  7  price per cup       18 px
-│ [    Бърза поръчка     ] │  8  quick order         40 px
+│ [    Бърза поръчка     ] │  8  quick order      44/40 px
 └──────────────────────────┘
 ```
 
@@ -996,8 +1067,10 @@ class="sr-only">Стара цена </span>`.
 text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша", or
      "≈ 0,12 € на чаша" when estimated from weight. Row height 18 px, kept when
      absent.
-8. **Quick-order control.** `mt-3`. A `secondary` button, `w-full`, `min-h-10`
-   (40 px), `text-sm`, `relative z-10` so it sits above the stretched link.
+8. **Quick-order control.** `mt-3`. A `secondary` button of size `sm`,
+   `w-full`: 44 px below `lg`, where a card is touched, 40 px from `lg`;
+   `text-sm`, `relative z-10` so it sits above the stretched link. „Бърза
+   поръчка“ fits unbroken in a 320 px phone's card.
    Label "Бърза поръчка" plus `<span class="sr-only">: {name}</span>`.
    - It is a link to the product page's `#order`
      (`productHref(locale, product, "#order")`). With JavaScript it opens the
@@ -1196,8 +1269,9 @@ row: `flex min-h-9 items-center justify-center gap-x-6 py-1.5 text-xs`,
   `<strong class="font-semibold text-gold-300">`: "Безплатна доставка за поръчки
   над **49 €**".
 - _Contact_ (`md` and up): opening hours in `text-pine-200`, then the phone
-  number as `<a href="tel:…" class="font-medium underline-offset-4
-hover:underline">`.
+  number as `<a href="tel:…" class="py-3.5 font-medium whitespace-nowrap
+underline-offset-4 hover:underline">` — the padding makes it a 44 px target
+  on a tablet without making the bar taller.
 
 **Content** comes from `siteConfig.commerce` and `siteConfig.contact`. One
 message. **With no free-delivery threshold configured the bar is not rendered
@@ -1227,7 +1301,7 @@ them, plus the border, come to 113 px. (`gap-y-3 py-3` on every width, as this
 section first said, comes to 125 px on a phone and could not meet it.)
 
 - Menu button (phone only), wordmark (links home, `aria-label="{name} —
-начало"`), then the search field taking the remaining width on `md` and up
+начало"`, a `min-h-11` target), then the search field taking the remaining width on `md` and up
   (`max-w-md`, pushed right) and its own full-width second line on a phone.
 - Phone only, right of the wordmark: `<a href="tel:…">Обадете се</a>` in
   `text-sm font-medium text-pine-700`.
@@ -1422,10 +1496,12 @@ phone the list is hidden.
 
 **5. Promotions.** `bg-clay-100`, `border-y border-line`. `SectionHeading`
 "Намалени в момента" with a `secondary` `sm` action "Всички промоции". Four
-cards (`priorityCount={0}`).
+cards (`priorityCount={0}`); three from `md` to `lg`, where the grid has three
+columns and a fourth would sit alone on a row.
 
 **6. New arrivals.** `SectionHeading` "Ново в асортимента", action "Всичко".
-Eight cards; on a phone, four. None is `priority` — the hero holds the LCP
+Eight cards; on a phone, four; from `md` to `lg`, six, so the three-column
+grid ends on a full row. None is `priority` — the hero holds the LCP
 element.
 
 **7. How ordering works.** `SectionHeading` "Поръчката е на една стъпка". Three
@@ -1448,7 +1524,9 @@ its own.
 
 **10. Vending Zone.** `on-pine bg-pine-900 text-paper`, one row: Section title,
 one sentence in `text-pine-200`, the on-pine secondary button. No `accent`
-button here; the hero has the page's gold.
+button here; the hero has the page's gold. It is the page's last section and
+carries `data-ends-on-band`, so the newsletter band meets it edge to edge (see
+"The frame's foot").
 
 **Never.** A carousel or slider. A hero photograph of beans, cups or people. A
 "featured" or "bestseller" row chosen by hand. Review or trust-badge strips. A
@@ -1484,9 +1562,10 @@ Category, brand, promotions and search share `CatalogListing`.
    square never stands beside a bare trade name and one destination has one
    anchor.
 6. Related pages (`RelatedLandings`), when the page has any: a `nav` of text
-   links in `text-sm`, `font-medium text-pine-700 underline`. A link with a
-   note takes a line of its own, the note after it in `text-ink-500`; links
-   without one share a line. A system's shelf links the decaf and
+   links in `text-sm`, `font-medium text-pine-700 underline`, each a 44 px row
+   below `lg`. A link with a note takes a line of its own, the note after it
+   in `text-ink-500` — below `lg` on the line under the link, rather than
+   wrapping beside a row that tall; links without one share a line. A system's shelf links the decaf and
    cheapest-per-cup listings here.
 
 The written introduction is not in the head. It sits **below** the listing, on
@@ -1526,8 +1605,9 @@ font-semibold text-ink-900` and a chevron that rotates when open:
   3. **Интензивност** — the three bands: Слабо, Средно, Силно. Never numerals.
   4. **Кофеин** — С кофеин, Без кофеин.
   5. **Ароматизирано.**
-- An option is a link (works without JavaScript), `flex min-h-9 items-center
-gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken`: the 18 px checkbox,
+- An option is a link (works without JavaScript), `flex min-h-11 items-center
+gap-2.5 rounded-sm px-1 text-sm hover:bg-paper-sunken lg:min-h-9`: the 18 px
+  checkbox,
   the label (`text-ink-700`; `font-medium text-ink-900` when checked), the
   count in the Count style. `aria-pressed` reflects the state.
 - An option with no matching products is not rendered. A group with no options
@@ -1538,12 +1618,13 @@ gap-3`.
 
 - Left: "**{n}** продукта" — the number in `font-medium text-ink-900`, the word
   in `text-sm text-ink-500`; `aria-live="polite"`.
-- Right: the "Филтри" button (below `lg`; `secondary`, `min-h-10`, a filter
+- Right: the "Филтри" button (below `lg`; `secondary`, `min-h-11`, a filter
   icon, and the active count in a `bg-pine-900 text-paper rounded-xs px-1.5
 text-2xs` box), then the sort control.
 - Sort: a visible label "Подреди:" (`text-sm text-ink-500`, hidden below `sm`
-  where it becomes `sr-only`) and a native `select`, `min-h-10`, inside a `GET`
-  form with a submit button in `<noscript>`. Options, in order: Най-подходящи;
+  where it becomes `sr-only`) and a native `select`, `min-h-11` below `lg` and
+  `min-h-10` from it, inside a `GET` form with a submit button in
+  `<noscript>`. Options, in order: Най-подходящи;
   Цена на чаша: ниска към висока; Цена: ниска към висока; Цена: висока към
   ниска; Първо най-новите; Име А–Я; Име Я–А.
   When sorted by price per cup, products with no per-cup figure come last.
@@ -1559,7 +1640,8 @@ system square.
 
 **Pagination.** The `Pagination` primitive: real links, `rel="prev"` and
 `rel="next"`, the current page `bg-pine-900 text-paper` with
-`aria-current="page"`. Items are `min-h-10 min-w-10`.
+`aria-current="page"`. Items are `min-h-11 min-w-11` below `lg`, `min-h-10
+min-w-10` from it; the row wraps rather than widen a narrow page.
 
 **Indexing.** Filtered, sorted and paginated URLs are `noindex` with the
 canonical on the clean first page. New parameters (system, sort by price per
@@ -1576,8 +1658,11 @@ rounded-t-lg bg-paper p-5 shadow-float`, over the scrim. Head: "Филтри"
   (Panel title) and a 44 px close button. Foot, `sticky bottom-0`: a `primary`
   `lg` full-width button "Покажи {n} продукта". Focus is trapped and returns to
   the trigger; Escape and the scrim close it.
-- Toolbar: count on the first line; "Филтри" and the sort select share the
-  second line, each half width.
+- Toolbar, below `sm`: the count and "Филтри" share the first line, the button
+  pushed right; the sort select has the second line to itself, full width. A
+  native select shows its chosen option clipped to its own width, and at half
+  of a 320 px screen „Най-подходящи“ was cut off. From `sm`: the count on the
+  first line, "Филтри" and the sort control sharing the second.
 - The grid stays two columns.
 
 **States.**
@@ -1749,15 +1834,32 @@ answers live in the URL. The page content sits in a `max-w-2xl` column.
 
 - _Progress:_ an ordered list in the Label style. Done steps `text-ink-500`,
   the current step `font-semibold text-pine-900` with `aria-current="step"`,
-  later steps `text-ink-300`.
+  later steps `text-ink-300`. Steps are separated by dots; on a phone the list
+  wraps, and no line starts with a dot: each step's dot hangs in the 16 px gap
+  before it (`gap-x-4`, `-ml-4`) and the list clips what falls outside it, so
+  the dot of a step that begins a line is cut off.
 - _Question:_ `h1`, Page title; a lead in `text-base text-ink-500`.
-- _Option:_ a link, `flex min-h-16 items-baseline justify-between gap-4
-rounded-md border border-line bg-paper-raised p-4`. Label: Panel title.
-  Detail: `mt-1 text-sm text-ink-500`. Hover: `border-pine-500
-bg-paper-sunken`. Selected: `border-pine-500 bg-pine-100`. An option that
-  names a system carries `data-system` and shows the system badge above its
+- _Option:_ a link in an `li` that is a size container (`@container`), `flex
+min-h-16 items-center gap-4 rounded-md border border-line bg-paper-raised
+p-4`: the picture, when there is one, then the text. Label: Panel title.
+  Detail: `mt-1 text-sm text-ink-500`. Note (a count, „36 продукта“): `text-xs
+tabular-nums text-ink-500 whitespace-nowrap`, in sentence case — a count,
+  not an uppercase label. It follows "The Meta Rule": under the label below
+  `@md` of card, on the right of the label's first line from `@md`. Hover:
+  `border-pine-500 bg-paper-sunken`. Selected: `border-pine-500 bg-pine-100`.
+  An option that names a system carries its capsule's drawing before the
   label.
-- _Answers so far:_ answer chips.
+- _Toggle_ (an optional requirement: „Без кофеин“, „Ароматизирано (ванилия,
+  лешник и подобни)“): `ToggleOptionList`, a link back to the same step with
+  the requirement added or removed, `aria-pressed`, in a two-column grid from
+  `sm`. `flex min-h-12 items-center gap-3 rounded-md border px-4 py-3
+text-base`: an 18 px check box drawn as the filters draw theirs (checked
+  `border-pine-900 bg-pine-900 text-paper` with the mark), the label in
+  `text-ink-900` (`font-medium text-pine-900` when on), and its note — the
+  number of products it leaves — by "The Meta Rule". On: `border-pine-500
+bg-pine-100`, as a selected option. The check box says it is on; there is
+  no „избрано“.
+- _Answers so far:_ answer chips; on a phone one scrolling row.
 - _Notice:_ `rounded-md border px-4 py-3 text-sm`. Neutral: `border-line
 bg-paper-sunken text-ink-700`. Caution: `border-caution bg-caution-100
 text-ink-900` with the title in `font-semibold text-caution`.
@@ -1770,11 +1872,79 @@ text-ink-900` with the title in `font-semibold text-caution`.
 **Never.** A reason the ranking did not use. A caveat in clay. A progress bar
 that implies a fixed number of steps when the flow can skip them.
 
+### Newsletter band
+
+`components/layout/newsletter-band.tsx`, drawn by the frame directly above the
+footer on every page that does not switch it off. It replaced the footer's
+fifth column, where a 260 px column left the email field a stub that showed
+„name@“ beside a large button.
+
+**Anatomy.** `<aside aria-labelledby data-newsletter-band class="border-t
+border-line bg-paper-raised">` — the shop's, not the page's, so outside
+`<main>`, and a landmark so it can be reached. Inside the shell, `grid gap-6
+py-10 md:py-12`; from `lg` two columns, `[minmax(0,1fr)_minmax(0,28rem)]`,
+`items-center gap-16`:
+
+- _Left:_ an `h2` in `font-display text-2xl font-semibold text-ink-900`,
+  „Новите кафета по имейл“, and one sentence in `text-base text-ink-700`, max
+  60ch: what is sent and how often (the frame's dictionary, `newsletter`).
+- _Right:_ `NewsletterForm` (`components/forms/newsletter-form.tsx`), max
+  `max-w-xl`: the email field (Inputs, `min-h-12`, `type="email"`,
+  `required`, `autoComplete="email"`, a visually hidden label „Имейл адрес“),
+  and a `primary` button „Абонирай ме“. Side by side from `@md` of form
+  (28rem: room for a whole address and the button), stacked and each full
+  width below. Under them the `aria-live` result line, then the consent line
+  in `text-xs text-ink-500`, tied to the field by `aria-describedby`: „Можете
+  да се отпишете по всяко време. Какво пазим и защо — в политиката за
+  поверителност.“, the last words a link to the privacy page.
+
+**Ground.** `paper-raised`, a step lighter than the page, between hairlines.
+On the home page it follows the Vending Zone band (`pine-900`): it has that
+band's anatomy — heading and sentence left, the action right, stacked on a
+phone — on the opposite ground, so the two read as one family without being
+one thing twice, and two dark bands never stack. It is not `paper-sunken`,
+which would read as part of the footer under it.
+
+**Behaviour.** A real form posting to a server action, so it works without
+JavaScript. The honeypot field, the rate limit and the stored consent are the
+server's (`lib/forms/actions.ts`); the consent source stays `footer` („Формата
+в долната част на сайта“ in the admin panel), which it still is. While it
+sends, the button is disabled (a second click sends nothing), `aria-busy`,
+and says „Изпраща се…“ at the width it had. Success replaces the form with a
+`role="status"` line in `text-base text-ink-900` on `paper-raised` in a
+`border-pine-500` box; an error shows under the field in `text-critical`. The
+analytics event `newsletter_submitted` records the outcome.
+
+**Where it is not.** A page renders `<NewsletterBandOff />` (a hidden
+`data-newsletter-off` marker; `globals.css` hides the band with
+`body:has([data-newsletter-off])`, on the server's own HTML, with no script
+and nothing that moves after load):
+
+- the unsubscribe page — whoever is on it is leaving the list;
+- the contact page, the Vending Zone and the consumables page — each ends on
+  an enquiry form that already asks for this, as a check box, right above
+  where the band would be;
+- the 404 — a visitor who followed a dead link needs a way on, not an offer.
+
+**Never.** The signup back in a footer column. A field narrower than an
+address. A pre-ticked or required consent. A pop-up or a band that follows the
+visitor down the page.
+
 ### Footer
 
 `components/layout/site-footer.tsx`. `bg-paper-sunken`, `border-t
-border-line`. Columns: the wordmark with one sentence and contact details;
-**Магазин**; **Помощ**; legal links; the newsletter form.
+border-line`. Two tiers inside the shell, then the company line.
+
+**Tier 1 — who we are.** From `md` a grid `[minmax(0,1fr)_auto]`: on the left
+the wordmark, one sentence (`text-sm text-ink-500`, max `max-w-md`) and the
+language switcher (nothing while one locale ships); on the right the contact
+details as a `dl` of two columns — Телефон, Имейл, Работно време — with the
+`dt` in `text-ink-500`, the phone and email as `tel:`/`mailto:` links in
+`font-medium text-pine-700`, never broken (`whitespace-nowrap`), and each row
+44 px tall below `lg`. On a phone the two stack.
+
+**Tier 2 — the links**, under a hairline. Three groups, each a `nav` named by
+its heading (Label style, `font-sans`: a heading's default face is Literata):
 
 - **Магазин**, in this order: each capsule system with products, then ESE
   pods, then beans — every one under its listing's own name ("Капсули за
@@ -1785,13 +1955,55 @@ border-line`. Columns: the wordmark with one sentence and contact details;
   Консумативи, Марки, and Промоции while a reduction exists.
 - **Помощ:** Намери по машина, Кое кафе е за вас, Доставка и плащане,
   Контакти, Блог.
+- **Правна информация:** Общи условия, Поверителност, Бисквитки.
 
-The language switcher sits under the contact details and renders nothing while
-one locale ships.
-Column heads in the Label style; links `text-sm text-ink-700 hover:text-ink-900
-hover:underline`. Under a hairline: the company's legal line and the payment
-methods as text, `text-xs text-ink-500`. A notice that legal details are
-incomplete is a `caution` notice, not clay.
+Link: `flex min-h-11 items-center text-sm text-ink-700 hover:text-ink-900
+hover:underline`, `lg:min-h-7`.
+
+| Width       | Tier 2                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------- |
+| Phone       | Each group a `<details>`, closed: a 48 px row with the heading and a chevron that turns.                   |
+| `md`        | `grid-cols-3`: Магазин across all three, its links in three columns; Помощ and Правна информация under it. |
+| `lg` and up | `grid-cols-4`: Магазин across two, its links in two columns; Помощ; Правна информация.                     |
+
+No link wraps from `md` up: at `lg` the shop's two columns are 216 px each
+and its longest name, „Капсули за Lavazza A Modo Mio“, is about 202 px.
+
+**The disclosure.** One `<details>` per group on every width, so a phone
+opens and closes it without JavaScript and the links are in the HTML on every
+width. From `md` its content is shown whatever the open state
+(`md:details-content:[content-visibility:visible]`) and the `summary` — a
+button that a screen reader would call "collapsed" over a visible column —
+gives way to a plain `h2`. Both swaps sit behind one check,
+`supports-[selector(::details-content)]`: in a browser that cannot style the
+opening part of a `<details>`, the summary stays on every width, so a group is
+still a disclosure that opens, never a heading over links nobody can reach.
+
+**The company line.** Under a hairline, `text-xs text-ink-500`: the copyright
+and the payment methods (as text), then the company's legal line, which takes
+a line of its own from `md` (`md:basis-full`). Its parts are joined by " · ";
+every part but the address is `whitespace-nowrap`, so a narrow screen breaks
+the line between parts and never inside a company number, and only the
+address runs on. A notice that legal details are incomplete is a `caution`
+notice, not clay.
+
+**Never.** Five columns side by side. A footer link under 44 px below `lg`. A
+group a phone visitor has to scroll past to reach the next. The newsletter.
+
+### Breadcrumbs
+
+`Breadcrumbs` in `primitives.tsx`, the first thing under the header on every
+page but the home page. `text-xs text-ink-500`, steps separated by a
+`text-ink-300` "/", the current page last in `text-ink-700` with
+`aria-current="page"`.
+
+- _From `lg`:_ one line that wraps, `py-4`.
+- _Below `lg`:_ one line that scrolls sideways, running to the screen's
+  edges, every step a 44 px row (`min-h-11`), so each link is a target and a
+  product's four-step trail does not stack three tall lines above the page.
+  The current page — usually what is cut off at the right — is the `h1`
+  directly below. `py-1` keeps the focus ring inside the scroller; no
+  scrollbar is drawn.
 
 ### Empty state
 
@@ -1973,9 +2185,10 @@ What the specification already does to meet them:
   fallback is the field's own box. Buttons keep their width while pending.
 - **Accessibility.** The contrast table above; one `h1` and ordered headings;
   labelled fields with tied errors; a visible focus ring on every ground;
-  targets of at least 24 by 24 px, 40 px or more for card and toolbar controls
-  and 44 px or more for primary actions; no meaning by colour alone; motion off
-  under `prefers-reduced-motion`.
+  targets of at least 44 px below `lg` ("The Touch Target Rule"), and from
+  `lg` at least 24 by 24 px, 36 px or more for chips and filter rows and 40 px
+  or more for card and toolbar controls; no meaning by colour alone; motion
+  off under `prefers-reduced-motion`.
 
 ## Migration
 

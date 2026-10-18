@@ -339,6 +339,29 @@
     }
   }
 
+  /*
+   * A page where the newsletter band would be noise says so with
+   * `<NewsletterBandOff />` (components/layout/newsletter-band.tsx). The band
+   * belongs to the layout, which renders beside the page and cannot be told
+   * what to draw, so the page's marker hides it here, in CSS, on the server's
+   * own HTML: no script, and nothing that moves after load.
+   *
+   * These two are utilities, not components: the margin they undo is the
+   * `mt-20` utility, and a later layer wins whatever the specificity.
+   */
+  body:has([data-newsletter-off]) [data-newsletter-band] {
+    display: none;
+  }
+
+  /*
+   * A page whose last section is a full-bleed band (the home page's Vending
+   * Zone) meets the frame below it edge to edge: the frame's space above the
+   * footer would otherwise leave a strip of bare page between two bands.
+   */
+  body:has(main [data-ends-on-band]) [data-frame-foot] {
+    margin-top: 0;
+  }
+
   /* A hairline that stays 1 device pixel on high-density screens. */
   .rule {
     border-bottom: 1px solid var(--color-line);

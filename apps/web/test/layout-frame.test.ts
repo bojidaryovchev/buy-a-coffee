@@ -67,6 +67,7 @@ import { GET as llmsRoute } from "@/app/llms.txt/route";
 import { deliveryTermLines, llmsText, type LlmsInput } from "@/app/llms.txt/body";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
 import { buildNavigation, isCurrentSection } from "@/components/layout/navigation";
+import { NewsletterBand, NewsletterBandOff } from "@/components/layout/newsletter-band";
 import { SiteFooter, SiteFooterView } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
@@ -395,6 +396,71 @@ describe("the footer", () => {
   it("uses no clay: nothing here is a reduced price", () => {
     expect(markup()).not.toMatch(/clay-/);
     expect(markup()).not.toMatch(/<h1/);
+  });
+
+  it("no longer holds the newsletter: that is the band above it", () => {
+    expect(markup()).not.toContain("data-newsletter");
+    expect(markup()).not.toContain('name="email"');
+  });
+
+  it("puts each group of links in a disclosure that a phone opens and closes without a script", () => {
+    const rendered = markup();
+    const sections = rendered.match(/<nav aria-label="[^"]+"[^>]*><details/g) ?? [];
+    expect(sections.map((section) => section.match(/aria-label="([^"]+)"/)?.[1])).toEqual([
+      dict.footer.shop,
+      dict.footer.help,
+      dict.footer.legal,
+    ]);
+    // Closed by default, so a phone's footer is three rows; from `md` the
+    // content shows whatever the state, and the summary gives way to a heading
+    // only where the browser can style the opening part.
+    expect(rendered).not.toMatch(/<details[^>]* open/);
+    expect(rendered).toContain("md:details-content:[content-visibility:visible]");
+    expect(rendered).toContain("md:supports-[selector(::details-content)]:hidden");
+    expect(rendered).toContain("md:supports-[selector(::details-content)]:block");
+  });
+
+  it("gives every link a 44 px row below `lg`", () => {
+    const links = renderToStaticMarkup(
+      createElement(SiteFooterView, { navigation: navigation(), dict }),
+    ).match(/<a [^>]*>/g);
+    expect(links?.length).toBeGreaterThan(10);
+    for (const link of links ?? []) expect(link).toContain("min-h-11");
+  });
+
+  it("breaks the company line between its parts, never inside a number", () => {
+    if (!siteConfig.legal.isComplete) return;
+    const rendered = markup();
+    expect(rendered).toContain(
+      `<span class="whitespace-nowrap">${dict.footer.companyId} ${siteConfig.legal.companyId}</span>`,
+    );
+    // The address alone may run on.
+    expect(rendered).toContain(`<span>${siteConfig.legal.address}</span>`);
+  });
+});
+
+describe("the newsletter band", () => {
+  const band = () => html(createElement(NewsletterBand, { dict }));
+
+  it("is a landmark of its own, with a heading, one sentence and the form", () => {
+    const rendered = band();
+    expect(rendered).toMatch(/^<aside aria-labelledby="[^"]+" data-newsletter-band=""/);
+    const id = rendered.match(/aria-labelledby="([^"]+)"/)?.[1];
+    expect(rendered).toContain(`<h2 id="${id}"`);
+    expect(rendered).toContain(dict.newsletter.heading);
+    expect(rendered).toContain(dict.newsletter.body);
+    expect(rendered).toContain("data-newsletter");
+  });
+
+  it("is a light ground, so it never stacks a second dark band under the Vending Zone", () => {
+    expect(band()).toContain("bg-paper-raised");
+    expect(band()).not.toMatch(/bg-pine-900|on-pine|clay-/);
+  });
+
+  it("can be switched off by a page, with a marker the stylesheet reads", () => {
+    expect(html(createElement(NewsletterBandOff))).toBe(
+      '<span data-newsletter-off="" hidden=""></span>',
+    );
   });
 });
 

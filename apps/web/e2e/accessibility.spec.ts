@@ -60,8 +60,8 @@ test("form controls have accessible names", async ({ page }) => {
 
 test("the honeypot field is hidden from assistive technology", async ({ page }) => {
   await page.goto("/bg/kontakti");
-  // Two forms on this page carry a honeypot: the contact form and the footer
-  // newsletter. Both must be hidden; assert on the first.
+  // The contact form's honeypot. (The newsletter band, which carries one too,
+  // is switched off on this page: the form asks for the newsletter itself.)
   const honeypots = page.locator('input[name="website"]');
   expect(await honeypots.count()).toBeGreaterThan(0);
   const honeypot = honeypots.first();

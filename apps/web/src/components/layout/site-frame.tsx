@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
 import { buildNavigation, type SiteNavigation } from "@/components/layout/navigation";
+import { NewsletterBand } from "@/components/layout/newsletter-band";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { siteConfig } from "@/config/site";
@@ -13,7 +14,8 @@ import { countPromotions, getCategoryTree } from "@/lib/catalog/queries";
 import { categoryNameFor } from "../../../content/category-copy";
 
 /**
- * The shop's frame — skip link, announcement bar, header, `<main>`, footer —
+ * The shop's frame — skip link, announcement bar, header, `<main>`, the
+ * newsletter band, footer —
  * shared by the two documents that draw it: the locale's root layout, and the
  * global 404 (`app/global-not-found.tsx`), which bypasses layouts and would
  * otherwise be a page with no way on but its own two buttons.
@@ -66,7 +68,14 @@ export function SiteFrame({
         <main id="main" className="flex-1">
           {children}
         </main>
-        <SiteFooter navigation={navigation} dict={dict} />
+        {/* The space above the footer is the frame's, not each page's: the
+            signup band, when a page shows it, takes it; when it does not, the
+            footer does. A page that ends on a full-bleed band of its own
+            closes it (`data-ends-on-band`, `globals.css`). */}
+        <div data-frame-foot="" className="mt-20">
+          <NewsletterBand dict={dict} />
+          <SiteFooter navigation={navigation} dict={dict} />
+        </div>
       </AnalyticsProvider>
     </>
   );

@@ -287,7 +287,11 @@ export function HomePromotions({
             </ButtonLink>
           }
         />
-        <ProductGrid locale={locale} products={reduced} priorityCount={0} />
+        {/* Four cards; three on a tablet, where the grid has three columns
+            and a fourth would sit alone on a second row. */}
+        <div className="md:max-lg:[&>ul>li:nth-child(n+4)]:hidden">
+          <ProductGrid locale={locale} products={reduced} priorityCount={0} />
+        </div>
       </div>
     </section>
   );
@@ -314,9 +318,11 @@ export function NewArrivals({
           </ButtonLink>
         }
       />
-      {/* Eight cards; four on a phone. `ProductGrid` owns its list, so the
-          second four are hidden from here rather than by a prop it lacks. */}
-      <div className="max-md:[&>ul>li:nth-child(n+5)]:hidden">
+      {/* Eight cards; four on a phone, six on a tablet, where the grid has
+          three columns and eight would leave a row of two. `ProductGrid` owns
+          its list, so the rest are hidden from here rather than by a prop it
+          lacks. */}
+      <div className="max-md:[&>ul>li:nth-child(n+5)]:hidden md:max-lg:[&>ul>li:nth-child(n+7)]:hidden">
         {/* None is a priority image: the hero holds the page's LCP element. */}
         <ProductGrid locale={locale} products={products} priorityCount={0} />
       </div>
@@ -395,7 +401,7 @@ export function HomeBrands({
             stays even. On a phone twenty tiles would stack ten deep, so
             they become one scrolling row; the padding keeps the focus ring
             inside the scroller's clip. */}
-        <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:p-0 lg:grid-cols-6">
+        <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:p-0 lg:grid-cols-6">
           {stocked.map((brand) => (
             <li key={brand.slug} className="shrink-0 snap-start scroll-ml-4">
               <Link
@@ -474,7 +480,12 @@ export function JournalTeaser({
 
 export function VendingBand({ locale }: { readonly locale: Locale }) {
   return (
-    <section className="on-pine bg-pine-900 text-paper">
+    /*
+     * The page's last section, full bleed, so the frame below needs no space
+     * above it: `data-ends-on-band` closes the gap (`globals.css`), and the
+     * newsletter band or the footer meets it edge to edge.
+     */
+    <section data-ends-on-band="" className="on-pine bg-pine-900 text-paper">
       <div className="shell flex flex-col gap-5 py-12 md:flex-row md:items-center md:justify-between md:gap-10 md:py-16">
         <div>
           <h2 className="font-display text-2xl font-semibold md:text-3xl">Вендинг зона</h2>

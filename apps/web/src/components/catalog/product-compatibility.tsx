@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { joinList } from "@/components/commerce/terms";
+import { ChipLink } from "@/components/ui/primitives";
 import { compatibleMachines } from "@/lib/catalog/product-facts";
 import type { BrewingSystem } from "@/lib/recommend/systems";
 import type { Locale } from "@/i18n/config";
@@ -42,12 +43,7 @@ export function ProductCompatibility({
       <ul className="mt-4 flex flex-wrap gap-2">
         {machines.shown.map((machine) => (
           <li key={machine.name}>
-            <Link
-              href={href(locale, machine.href)}
-              className="inline-flex min-h-9 items-center rounded-sm border border-line bg-paper-raised px-3 py-1 text-sm font-medium text-ink-900 transition-colors hover:border-pine-500"
-            >
-              {machine.name}
-            </Link>
+            <ChipLink href={href(locale, machine.href)}>{machine.name}</ChipLink>
           </li>
         ))}
       </ul>
@@ -72,7 +68,7 @@ export function ProductCompatibility({
         )}
         <Link
           href={href(locale, routes.machines)}
-          className="inline-flex min-h-6 items-center text-pine-700 underline underline-offset-2 hover:no-underline"
+          className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-2 hover:no-underline lg:min-h-6"
         >
           Вижте всички машини
         </Link>

@@ -44,7 +44,7 @@ export function LanguageSwitcher({
               href={switchLocalePath(pathname, locale, other)}
               hrefLang={HTML_LANG[other]}
               lang={HTML_LANG[other]}
-              className="inline-flex min-h-6 items-center text-sm font-medium text-pine-700 underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center text-sm font-medium text-pine-700 underline-offset-4 hover:underline lg:min-h-6"
             >
               {LOCALE_LABEL[other]}
             </Link>

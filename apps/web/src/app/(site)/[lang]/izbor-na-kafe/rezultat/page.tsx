@@ -165,12 +165,22 @@ export default async function WizardResultPage({ params, searchParams }: PagePro
         )}
 
         <footer className="mt-12 space-y-4 border-t border-line pt-8">
-          <div className="flex flex-wrap gap-3">
-            <ButtonLink href={categoryHref(locale, systemCategory(system))} variant="secondary">
-              Вижте всички {pluralize(availability[system.id] ?? 0, "продукт", "продукта")} за{" "}
-              {system.name}
-            </ButtonLink>
-            <ButtonLink href={href(locale, wizardHref({}))} variant="ghost">
+          {/*
+            The way to the whole shelf is a link, not a button: its label names
+            the count and the system („… 35 продукта за Lavazza A Modo Mio“),
+            longer than a phone is wide, and a button's label never wraps.
+          */}
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+            <Link
+              href={categoryHref(locale, systemCategory(system))}
+              className="inline-flex min-h-11 items-center text-base font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900"
+            >
+              <span>
+                Вижте всички {pluralize(availability[system.id] ?? 0, "продукт", "продукта")} за{" "}
+                <span className="whitespace-nowrap">{system.name}</span>
+              </span>
+            </Link>
+            <ButtonLink href={href(locale, wizardHref({}))} variant="secondary">
               Започнете отначало
             </ButtonLink>
           </div>

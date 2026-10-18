@@ -7,6 +7,7 @@ import {
   OptionList,
   StepHeading,
   StepProgress,
+  ToggleOptionList,
   WizardNotice,
   type WizardOption,
 } from "@/components/wizard/wizard-ui";
@@ -349,29 +350,16 @@ async function PreferencesStep({ answers, link }: { answers: WizardAnswers; link
       />
 
       {available.length > 0 && (
-        <ul className="mb-8 grid gap-3 sm:grid-cols-2">
-          {available.map((option) => {
-            const selected = answers.requirements.includes(option.value);
-            return (
-              <li key={option.value}>
-                <Link
-                  href={toggleHref(option.value)}
-                  aria-pressed={selected}
-                  className={`flex items-center justify-between gap-3 rounded-md border px-4 py-3 text-sm transition-colors ${
-                    selected
-                      ? "border-pine-500 bg-pine-100 text-pine-900"
-                      : "border-line bg-paper-raised text-ink-700 hover:border-pine-500"
-                  }`}
-                >
-                  <span>{option.label}</span>
-                  <span className="text-2xs tracking-wide text-ink-300 uppercase">
-                    {selected ? "избрано" : pluralize(counts[option.value], "продукт", "продукта")}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mb-8">
+          <ToggleOptionList
+            options={available.map((option) => ({
+              href: toggleHref(option.value),
+              label: option.label,
+              meta: pluralize(counts[option.value], "продукт", "продукта"),
+              selected: answers.requirements.includes(option.value),
+            }))}
+          />
+        </div>
       )}
 
       <h2 className="mb-3 font-display text-lg font-semibold text-ink-900">

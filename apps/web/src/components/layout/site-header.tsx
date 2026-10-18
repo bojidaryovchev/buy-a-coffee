@@ -69,7 +69,7 @@ export function SiteHeader({
 
           <Link
             href={links.home}
-            className="flex shrink-0 items-center gap-2.5"
+            className="flex min-h-11 shrink-0 items-center gap-2.5"
             aria-label={fill(nav.home, { name: siteConfig.name })}
           >
             <Wordmark />
@@ -237,7 +237,7 @@ function SystemsPanel({
         <p className="mt-1.5 text-sm text-ink-700">{nav.unsureBody}</p>
         <Link
           href={findByMachine.href}
-          className="mt-3 inline-flex min-h-6 items-center gap-1 text-sm font-medium text-pine-700 underline underline-offset-4"
+          className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-pine-700 underline underline-offset-4 lg:min-h-6"
         >
           {findByMachine.label} <span aria-hidden>→</span>
         </Link>

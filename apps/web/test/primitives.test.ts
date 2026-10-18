@@ -69,15 +69,26 @@ describe("Button", () => {
   });
 
   it("sizes by minimum height and padding, never a fixed height", () => {
+    // 44 px or more below `lg`, where a screen is touched; `sm` is 40 px from
+    // `lg` (DESIGN.md, "The Touch Target Rule").
     const expected = {
-      sm: ["min-h-9", "px-3", "py-1.5", "text-sm"],
+      sm: ["min-h-11", "lg:min-h-10", "px-3", "py-1.5", "text-sm"],
       md: ["min-h-11", "px-5", "py-2.5", "text-base"],
-      lg: ["min-h-12", "px-6", "py-3", "text-base"],
+      lg: ["min-h-12", "px-3", "sm:px-6", "py-3", "text-base"],
     } as const;
     for (const size of SIZES) {
       const names = classes(html(createElement(Button, { size }, "Изпрати")));
       expect(names).toEqual(expect.arrayContaining([...expected[size]]));
       expect(names.some((name) => /^h-\d/.test(name))).toBe(false);
+    }
+  });
+
+  it("never wraps its label: the layout makes room instead", () => {
+    for (const variant of VARIANTS) {
+      for (const size of SIZES) {
+        const names = classes(html(createElement(Button, { variant, size }, "Изпрати")));
+        expect(names).toContain("whitespace-nowrap");
+      }
     }
   });
 
@@ -202,8 +213,17 @@ describe("ChipLink", () => {
     for (const kind of ["choice", "filter", "answer"] as const) {
       const markup = html(createElement(ChipLink, { href: "/x", kind, children: "Lavazza" }));
       expect(markup).toMatch(/^<a [^>]*href="\/x"/);
+      // A 44 px touch target below `lg`, 36 px from it; one unbroken unit.
       expect(classes(markup)).toEqual(
-        expect.arrayContaining(["min-h-9", "rounded-sm", "border", "px-3", "text-sm"]),
+        expect.arrayContaining([
+          "min-h-11",
+          "lg:min-h-9",
+          "whitespace-nowrap",
+          "rounded-sm",
+          "border",
+          "px-3",
+          "text-sm",
+        ]),
       );
       expect(markup).not.toContain("critical");
     }
@@ -219,6 +239,22 @@ describe("ChipLink", () => {
     expect(html(createElement(ChipLink, { href: "/x", children: "Dolce Gusto" }))).not.toContain(
       "aria-current",
     );
+  });
+
+  it("puts a leading mark before the label and says what the count counts", () => {
+    const markup = html(
+      createElement(ChipLink, {
+        href: "/x",
+        count: 35,
+        countLabel: " продукта",
+        leading: createElement("span", { "aria-hidden": true, className: "square" }),
+        "data-system": "dolce-gusto",
+        children: "Капсули за Dolce Gusto",
+      } as Parameters<typeof ChipLink>[0]),
+    );
+    expect(markup).toContain('data-system="dolce-gusto"');
+    expect(markup.indexOf("square")).toBeLessThan(markup.indexOf("Капсули за Dolce Gusto"));
+    expect(markup).toMatch(/>35<span class="sr-only"> продукта<\/span>/);
   });
 
   it("says what a filter chip and an answer chip do", () => {

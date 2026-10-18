@@ -77,7 +77,9 @@ export default async function CategoriesPage({ params }: PageProps) {
               <h2 className="font-display text-xl font-semibold">
                 <Link
                   href={categoryHref(locale, category)}
-                  className="underline-offset-4 hover:underline"
+                  // Vertical padding on an inline link widens what a finger
+                  // can hit without moving a line of the layout.
+                  className="py-2 underline-offset-4 hover:underline"
                 >
                   {/* Each listing by the name its own page carries. */}
                   {categoryNameFor(category)}
@@ -88,12 +90,12 @@ export default async function CategoriesPage({ params }: PageProps) {
               </p>
 
               {category.children.length > 0 && (
-                <ul className="mt-4 space-y-1.5 border-t border-line pt-4">
+                <ul className="mt-4 border-t border-line pt-4 lg:space-y-1.5">
                   {category.children.map((child) => (
                     <li key={child.slug}>
                       <Link
                         href={categoryHref(locale, child)}
-                        className="flex items-center justify-between text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
+                        className="flex min-h-11 items-center justify-between gap-3 text-sm text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline lg:min-h-0"
                       >
                         {categoryNameFor(child)}
                         <span className="text-2xs text-ink-300">{child.productCount}</span>

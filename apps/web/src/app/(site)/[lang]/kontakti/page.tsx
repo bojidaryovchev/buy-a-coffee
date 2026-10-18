@@ -1,3 +1,4 @@
+import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import type { Metadata } from "next";
 import { Breadcrumbs } from "@/components/ui/primitives";
 import { ContactForm } from "@/components/forms/contact-form";
@@ -27,6 +28,8 @@ export default async function ContactPage({ params }: PageProps) {
   const locale = await localeFrom(params);
   return (
     <div className="shell pb-16">
+      {/* The form below asks for the newsletter already, as a check box. */}
+      <NewsletterBandOff />
       <Breadcrumbs
         items={[
           { name: "Начало", href: href(locale, routes.home) },
@@ -63,7 +66,7 @@ export default async function ContactPage({ params }: PageProps) {
               <dd className="mt-1">
                 <a
                   href={`mailto:${siteConfig.contact.email}`}
-                  className="text-lg text-pine-700 underline-offset-4 hover:underline"
+                  className="inline-flex min-h-11 items-center text-lg whitespace-nowrap text-pine-700 underline-offset-4 hover:underline lg:min-h-0"
                 >
                   {siteConfig.contact.email}
                 </a>
