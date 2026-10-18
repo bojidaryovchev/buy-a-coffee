@@ -3,16 +3,20 @@
  * env-example, so .env.example and the deployed configuration cannot drift.
  *
  *   kind: config   not secret; may carry a committed `value`, pushed as plain
- *         secret   never committed; value comes from .env, pushed encrypted
+ *         secret   never committed; value comes from .env, pushed sensitive
  *         system   set by the platform; documented only
  *         local    development only, never pushed
+ *
+ *   deployOnly  a config var whose committed value is only what env:push
+ *             deploys; env:check does not let it stand in for an unset one.
  *
  *   fromEnv   a config var whose local value is also the production one.
  *             Without it a config var is NOT deployed from .env - this app is
  *             why: its .env.local holds NEXT_PUBLIC_SITE_URL=localhost:3000.
  *
  * The catalog sync job is configured separately and validates itself through
- * loadConfig in packages/scraper-core; it is a Lambda, not a Vercel deploy.
+ * loadConfig in packages/scraper-core; it runs as a GitHub Actions workflow
+ * (.github/workflows/sync.yml), not a Vercel deploy.
  */
 
 export const project = {
@@ -29,7 +33,12 @@ export const vars = [
   {
     name: "DATABASE_URL",
     kind: "secret",
-    targets: PROD_PREVIEW,
+    // Production ONLY. Previews read the Neon branch `preview` (a copy of
+    // production taken at launch, reset from it when it drifts), set by hand
+    // as a separate Preview-only variable. A preview on the production
+    // database would build against a schema it may be ahead of, and write its
+    // test orders into the real ones.
+    targets: PROD,
     required: "always",
     section: "Required",
     example: "postgres://catalog:catalog@localhost:5433/catalog",
@@ -93,7 +102,14 @@ export const vars = [
   {
     name: "NEXT_PUBLIC_IMAGE_BASE_URL",
     kind: "config",
-    // From Terraform's image_public_base_url output; differs per environment.
+    // The public origin of the Vercel Blob store `buy-a-coffee-images`
+    // (store_J6XpMLtA50ZFDXEo, fra1). Public by nature - every product image
+    // URL starts with it - so it is committed, like the site URL. Previews
+    // share it: images are content-addressed and the store only ever grows.
+    value: "https://j6xpmlta50zfdxeo.public.blob.vercel-storage.com",
+    // What env:push deploys, not a default for a machine: env:check still
+    // reports it missing where it is unset (see `resolve` in env-lib).
+    deployOnly: true,
     targets: PROD_PREVIEW,
     required: "production",
     section: "Images",

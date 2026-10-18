@@ -59,6 +59,16 @@ describe("manifest", () => {
     });
   });
 
+  it("deploys the image host from the manifest without letting it stand in locally", () => {
+    const images = spec("NEXT_PUBLIC_IMAGE_BASE_URL");
+    expect(images.deployOnly).toBe(true);
+    expect(resolve(images, "deploy")).toEqual({ value: images.value, source: "manifest" });
+    vi.stubEnv("NEXT_PUBLIC_IMAGE_BASE_URL", "");
+    expect(resolve(images, "local").source).toBe("missing");
+    vi.stubEnv("NEXT_PUBLIC_IMAGE_BASE_URL", "https://cdn.example.com");
+    expect(resolve(images, "local")).toEqual({ value: "https://cdn.example.com", source: "env" });
+  });
+
   it("commits no secret value", () => {
     expect(project.vercelName).toBeTruthy();
     for (const v of vars) if (v.kind === "secret") expect(v.value).toBeUndefined();

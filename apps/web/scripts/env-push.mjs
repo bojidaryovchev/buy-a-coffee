@@ -102,9 +102,12 @@ for (const spec of deployable) {
       key: spec.name,
       value,
       /* `plain` is readable in the dashboard, which is right for values that
-         already ship to every browser. `encrypted` is Vercel's own default for
-         anything typed into the secret field. */
-      type: spec.kind === "secret" ? "encrypted" : "plain",
+         already ship to every browser. A secret is `sensitive`: write-only, so
+         nobody with project access can read it back, and the type the team's
+         existing secrets already carry (pushing `encrypted` would downgrade
+         them). Vercel refuses `sensitive` for the development target, which no
+         secret in the manifest names. */
+      type: spec.kind === "secret" ? "sensitive" : "plain",
       target: spec.targets,
       /* The dashboard stops being an undocumented list of names. */
       comment: clampComment(spec.summary),
@@ -258,11 +261,21 @@ async function main() {
   section("Update", YELLOW, update, ({ spec, entry, source, matches }) => {
     const before = matches[0];
     const targetChanged = !sameTargets(before.target, entry.target);
+    /* Narrowing is not what the upsert does. Vercel writes a new entry for the
+       declared targets and leaves the OLD value on the ones dropped - at launch
+       that left the old admin password on Preview. Removing it is a deletion,
+       which this tool does not do, so it says so instead. */
+    const dropped = [
+      ...new Set(matches.flatMap((m) => m.target ?? []).filter((t) => !entry.target.includes(t))),
+    ];
     return (
       `  ${BOLD}${spec.name}${OFF} ${DIM}[${entry.target.join(", ")}]${OFF} ${label(source)}\n` +
       `    ${mask(spec, entry.value)}` +
       (targetChanged
         ? `\n    ${DIM}targets: ${(before.target ?? []).join(", ") || "none"} -> ${entry.target.join(", ")}${OFF}`
+        : "") +
+      (dropped.length
+        ? `\n    ${YELLOW}${dropped.join(", ")} keeps its current value: remove it there by hand if it should go.${OFF}`
         : "")
     );
   });

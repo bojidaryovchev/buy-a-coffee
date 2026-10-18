@@ -147,7 +147,11 @@ export function resolve(spec, mode = "deploy") {
 
   if (mode === "local") {
     /* Your machine: .env is what actually runs, and the manifest value is the
-       documented default behind it. */
+       documented default behind it - unless the variable says its committed
+       value is only what env:push deploys (`deployOnly`). The image host is
+       one: unset on a laptop is a real state (images come from /media), and
+       on a deployment that lost it, standing in for it would hide the error. */
+    if (spec.deployOnly) return fromEnv ?? { value: undefined, source: "missing" };
     return fromEnv ?? fromManifest ?? { value: undefined, source: "missing" };
   }
 
