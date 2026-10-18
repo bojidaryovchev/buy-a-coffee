@@ -8,6 +8,7 @@ import {
   type WizardAnswers,
 } from "@/lib/recommend/answers";
 import { scoreRecommendations, type RecommendationCandidate } from "@/lib/recommend/score";
+import { answerChips } from "@/lib/recommend/summary";
 import {
   BREWING_SYSTEMS,
   UNSUPPORTED_SYSTEMS,
@@ -181,6 +182,23 @@ describe("withoutAnswer", () => {
     expect(withoutAnswer(answers, "taste").taste).toBeNull();
     expect(withoutAnswer(answers, "taste").volume).toBe("light");
     expect(withoutAnswer(answers, "requirements").requirements).toEqual([]);
+  });
+});
+
+describe("answerChips", () => {
+  it("gives every chip its own href, which the answer summary keys on", () => {
+    // Two requirements make two chips with the same label.
+    const chips = answerChips(
+      parseWizardAnswers({
+        system: "nespresso-original",
+        taste: "intense",
+        volume: "heavy",
+        budget: "cheap",
+        requirements: "decaf,plain",
+      }),
+    );
+    expect(chips.filter((chip) => chip.label === "Изискване")).toHaveLength(2);
+    expect(new Set(chips.map((chip) => chip.href)).size).toBe(chips.length);
   });
 });
 
