@@ -3,9 +3,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   CapsuleDiagram,
+  COMPACT_FRAME,
   capsuleDiagramLabel,
   hasCapsuleDiagram,
 } from "@/components/wizard/capsule-diagrams";
+import {
+  CAPSULE_OUTLINES,
+  halfProfile,
+  sideOutlinePath,
+} from "@/components/wizard/capsule-outlines";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
 
 /**
@@ -75,7 +81,7 @@ describe("capsule diagrams", () => {
     }
   });
 
-  it("prints only the dimensions the system data already states", () => {
+  it("prints the established dimensions, and the recognition text states the same ones", () => {
     const printed = (id: string) =>
       [...render({ system: { id: id as never } }).matchAll(/(\d+)\s*мм<\/text>/g)].map(
         (match) => match[1],
@@ -86,13 +92,77 @@ describe("capsule diagrams", () => {
         expect(system.recognise, `${system.id} prints ${value} мм`).toContain(`${value} мм`);
       }
     }
-    expect(printed("nespresso-original")).toEqual(["37"]);
+    expect(printed("nespresso-original")).toEqual(["37", "28"]);
+    expect(printed("dolce-gusto")).toEqual(["54", "36"]);
+    expect(printed("a-modo-mio")).toEqual(["47", "17"]);
+    expect(printed("caffitaly")).toEqual(["45", "27"]);
+    expect(printed("lavazza-blue")).toEqual(["47", "26"]);
+    /* The pod's thickness is not established, so only its diameter is printed. */
     expect(printed("ese-pod")).toEqual(["44"]);
   });
 
   it("leaves dimensions and view labels out of the compact drawing", () => {
     for (const system of SHAPED) {
       expect(render({ system, variant: "compact", decorative: true })).not.toContain("<text");
+    }
+  });
+
+  it("draws every system at one scale, and the widest plate fits its 320 px column", () => {
+    const size = (html: string) => {
+      const viewBoxWidth = Number(/viewBox="0 0 ([\d.]+) [\d.]+"/.exec(html)?.[1]);
+      const remWidth = Number(/width:([\d.]+)rem/.exec(html)?.[1]);
+      return { pxPerMm: remWidth / viewBoxWidth, px: remWidth * 16 };
+    };
+    for (const variant of ["full", "compact"] as const) {
+      const scales = SHAPED.map((system) => size(render({ system, variant })).pxPerMm);
+      for (const scale of scales) expect(scale).toBeCloseTo(scales[0]!, 6);
+    }
+    for (const system of SHAPED) {
+      expect(size(render({ system })).px, system.id).toBeLessThanOrEqual(320);
+    }
+  });
+
+  it("fits every outline inside the shared compact frame", () => {
+    for (const [id, outline] of Object.entries(CAPSULE_OUTLINES)) {
+      const half = halfProfile(outline);
+      const maxX = Math.max(...half.map(([x]) => x));
+      expect(COMPACT_FRAME.axis - maxX, id).toBeGreaterThanOrEqual(0);
+      expect(COMPACT_FRAME.axis + maxX, id).toBeLessThanOrEqual(COMPACT_FRAME.width);
+      expect(COMPACT_FRAME.base - outline.height.mm, id).toBeGreaterThanOrEqual(0);
+    }
+    expect(COMPACT_FRAME.base).toBeLessThanOrEqual(COMPACT_FRAME.height);
+  });
+});
+
+describe("capsule outlines", () => {
+  it.each(Object.entries(CAPSULE_OUTLINES))(
+    "%s is a closed outline in millimetres",
+    (id, outline) => {
+      const half = halfProfile(outline);
+      /* From the centre of the lid to the centre of the base. */
+      expect(half[0], id).toEqual([0, 0]);
+      expect(half.at(-1), id).toEqual([0, outline.height.mm]);
+      for (const [x, y] of half) {
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(y).toBeGreaterThanOrEqual(0);
+        expect(y).toBeLessThanOrEqual(outline.height.mm);
+      }
+      /* The declared width is the outline's own, so an icon can scale by it. */
+      expect(Math.max(...half.map(([x]) => x)) * 2).toBeCloseTo(outline.width, 6);
+      expect(sideOutlinePath(outline)).toMatch(/^M0 0L.*Z$/);
+      expect(
+        outline.profile.some((run) => run.feature),
+        id,
+      ).toBe(true);
+    },
+  );
+
+  it("prints a figure only as the outline's own measurement, rounded", () => {
+    for (const [id, outline] of Object.entries(CAPSULE_OUTLINES)) {
+      for (const measure of [outline.diameter, outline.height]) {
+        if (!measure.printed) continue;
+        expect(measure.printed, id).toBe(`${Math.round(measure.mm)} мм`);
+      }
     }
   });
 });

@@ -45,9 +45,9 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
   {
     id: "nespresso-original",
     name: "Nespresso Original",
-    summary: "Малки алуминиеви капсули за класическите машини Nespresso.",
+    summary: "Малки капсули с форма на пресечен конус за класическите машини Nespresso.",
     recognise:
-      "Капсулата е малка, с формата на пресечен конус, около 37 мм в диаметър, най-често алуминиева.",
+      "Капсулата е малка, с формата на пресечен конус, който завършва с тесен плосък връх: 37 мм в диаметър при ръба и 28 мм висока. Може да е алуминиева или пластмасова.",
     method: "capsule",
     categorySlugs: ["nespresso"],
     categorySourceKeys: ["nespresso"],
@@ -56,7 +56,8 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     id: "dolce-gusto",
     name: "Dolce Gusto",
     summary: "Големи пластмасови капсули с фолио отгоре.",
-    recognise: "Капсулата е широка и плоска, пластмасова, затворена отгоре със сребристо фолио.",
+    recognise:
+      "Капсулата е голяма и пластмасова: 54 мм в диаметър и 36 мм висока, с фолио отгоре и малък накрайник в средата на дъното.",
     method: "capsule",
     categorySlugs: ["dolce-gusto"],
     categorySourceKeys: ["dolce-gusto"],
@@ -65,7 +66,8 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     id: "a-modo-mio",
     name: "Lavazza A Modo Mio",
     summary: "Капсули за домашните машини на Lavazza.",
-    recognise: "Капсулата е малка и пластмасова, обикновено черна, с широк ръб отгоре.",
+    recognise:
+      "Капсулата е широка и плитка: 47 мм в диаметър при ръба и само 17 мм висока, пластмасова.",
     method: "capsule",
     categorySlugs: ["a-modo-mio"],
     categorySourceKeys: ["a-modo-mio"],
@@ -75,7 +77,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     name: "Caffitaly",
     summary: "Капсули Caffitaly — същият формат работи и в Tchibo Cafissimo и K-fee.",
     recognise:
-      "Капсулата е пластмасова, с прозрачна или бяла основа и лека форма на чашка с пръстен отгоре.",
+      "Капсулата е пластмасова, 45 мм в диаметър и 27 мм висока, с почти прави стени, жлеб в долната част и заоблено дъно. Цветът ѝ зависи от марката и кафето.",
     method: "capsule",
     categorySlugs: ["caffitaly"],
     categorySourceKeys: ["caffitaly"],
@@ -85,7 +87,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     name: "Lavazza Blue",
     summary: "Капсули за професионалните машини Lavazza Blue, най-често в офиси.",
     recognise:
-      "Капсулата е по-голяма и по-твърда от A Modo Mio; машината обикновено носи означение LB.",
+      "Капсулата е пластмасова и широка 47 мм като A Modo Mio, но е по-дълбока — 26 мм — и тялото ѝ се стеснява надолу. Машината обикновено носи означение LB.",
     method: "capsule",
     categorySlugs: ["lavazza-blue"],
     categorySourceKeys: ["lavazza-blue"],
@@ -95,7 +97,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     name: "Дози ESE",
     summary: "Хартиени дози 44 мм за машини с цедка за дози.",
     recognise:
-      "Дозата е плоска хартиена възглавничка с диаметър 44 мм. Пасва на еспресо машина с цедка за дози.",
+      "Дозата е плоска възглавничка от филтърна хартия: кафето в нея е 44 мм в диаметър, а хартиеният ръб около него е по-широк. Пасва на еспресо машина с цедка за дози.",
     method: "pod",
     categorySlugs: ["kafe-dozi"],
     categorySourceKeys: ["kafe-dozi"],

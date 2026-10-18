@@ -91,8 +91,9 @@ export default async function MachinesIndexPage({ params }: PageProps) {
          * a phone and concluding it is the wrong one.
          */}
         <p className="mt-2 max-w-prose text-sm text-ink-500">
-          Рисунките са схематични и в един и същ мащаб помежду си, с капака нагоре. Не са в реален
-          размер на екрана — сравнявайте формата и коя капсула е по-голяма.
+          Рисунките са по публикуваните размери на капсулите, в един и същ мащаб помежду си и с
+          капака нагоре. Не са в реален размер на екрана, затова до тях са дадени размерите в
+          милиметри.
         </p>
         <dl className="mt-6 divide-y divide-line border-y border-line">
           {BREWING_SYSTEMS.map((system) => (
