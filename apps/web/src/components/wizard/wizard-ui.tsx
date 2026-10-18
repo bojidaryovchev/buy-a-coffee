@@ -159,7 +159,9 @@ export function AnswerSummary({
     <section aria-label="Вашите отговори" className="mb-6">
       <ul className="flex flex-wrap gap-2">
         {entries.map((entry) => (
-          <li key={entry.label}>
+          // Not the label: every requirement chip is „Изискване“. What a chip
+          // clears is its own, so its href is.
+          <li key={entry.href}>
             <ChipLink kind="answer" href={entry.href} label={entry.label}>
               {entry.value}
             </ChipLink>

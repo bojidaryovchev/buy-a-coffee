@@ -836,7 +836,13 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
           }
         : null;
     })
-    .filter((image): image is NonNullable<typeof image> => image !== null);
+    .filter((image): image is NonNullable<typeof image> => image !== null)
+    /*
+     * Mirrored objects are named by content hash, so two source URLs serving
+     * the same photograph resolve to one URL. It is shown once: the same
+     * picture twice is not a gallery, and the URL is the gallery's React key.
+     */
+    .filter((image, index, all) => all.findIndex((other) => other.url === image.url) === index);
 
   // `images` already carry resolved URLs, so resolution is disabled here.
   const card = toCard(
