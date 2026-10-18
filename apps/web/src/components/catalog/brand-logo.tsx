@@ -1,7 +1,7 @@
 import { brandLogoFor, type BrandLogo as BrandLogoAsset } from "../../../content/brand-logos";
 
 /**
- * A brand's own logo, where the brand itself is the subject.
+ * A brand's own logo, wherever the brand is named as a brand.
  *
  * Specified in DESIGN.md, "Brand logo". The short version: a logo is the
  * brand's trademark, shown to identify the genuine product, so it is drawn
@@ -29,10 +29,35 @@ export const LOGO_BOXES = {
   tile: { width: 160, height: 56 },
   /** Above the `h1` on a brand page. */
   header: { width: 240, height: 80 },
-  /** The brand line on a product page, beside the system badge. */
-  line: { width: 112, height: 32 },
-  /** Before the name in the search typeahead. */
-  suggestion: { width: 64, height: 28 },
+  /**
+   * The brand line on a product page, beside the system badge. 40 px tall,
+   * like `card`: at 32 the stacked lockups fell back to the name here while
+   * the same brand's cards showed its logo.
+   */
+  line: { width: 120, height: 40 },
+  /**
+   * Before the name in the search typeahead's brand rows; 40 px tall for the
+   * stacked lockups, which makes a brand row as tall as a product row.
+   */
+  suggestion: { width: 72, height: 40 },
+  /**
+   * The brand line of a product card and of a wizard result, in place of the
+   * name. Taller than the line of text it replaces: at 32 px the stacked
+   * lockups (Lollo Caffè, Bianchi, Vandino, 3 Bourbons, Este — a quarter of
+   * the catalogue's products) cannot be read, at 40 they can.
+   */
+  card: { width: 88, height: 40 },
+  /**
+   * Before the name in a filter's brand option row. As tall as `card`, for
+   * the same lockups; the row grows from 36 to 40 px to hold it.
+   */
+  facet: { width: 72, height: 40 },
+  /**
+   * Before the name in a chip (an active brand filter, a brand available to
+   * order) and in a typeahead product row's second line. A chip is 36 px tall
+   * and cannot give 40: here the stacked lockups show their name alone.
+   */
+  chip: { width: 72, height: 24 },
 } as const satisfies Record<string, Size>;
 
 export type BrandLogoSize = keyof typeof LOGO_BOXES;
@@ -41,8 +66,13 @@ export type BrandLogoSize = keyof typeof LOGO_BOXES;
 const DARK_PADDING: Record<BrandLogoSize, { readonly x: number; readonly y: number }> = {
   tile: { x: 10, y: 8 },
   header: { x: 14, y: 10 },
-  line: { x: 6, y: 4 },
-  suggestion: { x: 4, y: 3 },
+  // Thin above and below in the 40 px boxes: the row is the box, and the
+  // stacked Lollo and Vandino lockups need all of it to be read.
+  line: { x: 6, y: 2 },
+  suggestion: { x: 6, y: 2 },
+  card: { x: 6, y: 2 },
+  facet: { x: 6, y: 2 },
+  chip: { x: 3, y: 2 },
 };
 
 /**
@@ -96,6 +126,10 @@ const TEXT_CLASS: Record<BrandLogoSize, string> = {
   header: "text-2xl",
   line: "text-sm",
   suggestion: "text-sm",
+  // Inside a line that may be set in capitals (the card's brand line).
+  card: "text-sm normal-case tracking-normal",
+  facet: "text-sm",
+  chip: "text-sm",
 };
 
 /**
@@ -145,6 +179,7 @@ export function BrandLogo({
   fallback = "text",
   decorative = false,
   inline = false,
+  shrink = false,
   eager = false,
   className = "",
 }: {
@@ -165,6 +200,11 @@ export function BrandLogo({
   readonly decorative?: boolean;
   /** Hug the logo instead of reserving the whole box (a line of text). */
   readonly inline?: boolean;
+  /**
+   * Inline only: give way, proportions kept, when the line is too narrow for
+   * the logo and what follows it (a card's brand line on a 320 px phone).
+   */
+  readonly shrink?: boolean;
   /** Above the fold (the brand page header). */
   readonly eager?: boolean;
   readonly className?: string;
@@ -174,7 +214,7 @@ export function BrandLogo({
 
   // The box: fixed so a row of tiles stays even whatever each one holds.
   const frame = inline
-    ? `flex w-fit max-w-full shrink-0 items-center ${className}`
+    ? `flex w-fit max-w-full ${shrink ? "min-w-0" : "shrink-0"} items-center ${className}`
     : `flex shrink-0 items-center justify-center ${className}`;
   const frameStyle = inline ? undefined : { width: box.width, height: box.height };
 

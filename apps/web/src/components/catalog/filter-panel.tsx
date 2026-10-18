@@ -15,6 +15,7 @@ import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS } from "@/lib/catalog/attr
 import type { CatalogFacets, FacetValue } from "@/lib/catalog/types";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import { cx } from "@/components/ui/primitives";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 
 /**
  * Catalog filters. Specified in DESIGN.md, "Listing page".
@@ -85,6 +86,7 @@ function CheckboxLink({
   label,
   count,
   systemId,
+  brand,
 }: {
   href: string;
   checked: boolean;
@@ -92,6 +94,8 @@ function CheckboxLink({
   count: number;
   /** Set for a brewing system: colours the square that precedes its name. */
   systemId?: string;
+  /** Set for a brand (its slug): its logo precedes its name. */
+  brand?: string;
 }) {
   return (
     <li>
@@ -125,6 +129,15 @@ function CheckboxLink({
           )}
         </span>
         {systemId && <SystemSquare />}
+        {/* Decorative: the name follows. With none legible, an empty box, so names align. */}
+        {brand && (
+          <BrandLogo
+            brand={{ slug: brand, name: label }}
+            size="facet"
+            decorative
+            fallback="blank"
+          />
+        )}
         <span
           className={cx(
             "min-w-0 flex-1 truncate",
@@ -167,6 +180,7 @@ function MultiGroup({
             label={facet.label}
             count={facet.count}
             {...(filterKey === "system" ? { systemId: facet.value } : {})}
+            {...(filterKey === "brand" ? { brand: facet.value } : {})}
           />
         ))}
       </ul>
@@ -353,6 +367,15 @@ export function ActiveFilterChips({
             className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-sm border border-line-strong bg-paper-raised px-3 text-sm text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900"
           >
             {filter.key === "system" && <SystemSquare />}
+            {filter.key === "brand" && (
+              <BrandLogo
+                brand={{ slug: filter.value, name: chipLabel(filter, facets) }}
+                size="chip"
+                inline
+                decorative
+                fallback="none"
+              />
+            )}
             <span className="truncate">{chipLabel(filter, facets)}</span>
             <span className="sr-only">— премахни филтъра</span>
             <svg

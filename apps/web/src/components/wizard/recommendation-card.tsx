@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ButtonLink, ReasonBadge, cx } from "@/components/ui/primitives";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -85,7 +86,8 @@ export function RecommendationCard({
 
         {(product.brand || product.weight) && (
           <p className="mt-1.5 flex items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
-            {product.brand && <span className="truncate">{product.brand.name}</span>}
+            {/* As on the product card: the logo, named by its alt, or the name. */}
+            {product.brand && <BrandLogo brand={product.brand} size="card" inline shrink />}
             {product.brand && product.weight && <span aria-hidden>·</span>}
             {product.weight && (
               <span className="shrink-0 font-normal tracking-normal normal-case tabular-nums">

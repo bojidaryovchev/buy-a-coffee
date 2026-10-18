@@ -147,8 +147,10 @@ export default async function BrandsPage({ params }: PageProps) {
             {notStocked.map((brand) => (
               <li
                 key={brand.slug}
-                className="rounded-sm border border-line bg-paper-sunken px-3 py-1.5 text-sm text-ink-500"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-line bg-paper-sunken px-3 py-1.5 text-sm text-ink-500"
               >
+                {/* Decorative: the name follows. None legible: the name alone. */}
+                <BrandLogo brand={brand} size="chip" inline decorative fallback="none" />
                 {brand.name}
               </li>
             ))}

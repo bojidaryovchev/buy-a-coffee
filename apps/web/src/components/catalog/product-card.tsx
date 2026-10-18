@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AvailabilityBadge, Badge, buttonClasses, cx } from "@/components/ui/primitives";
+import { BrandLogo } from "@/components/catalog/brand-logo";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { IntensityScale } from "@/components/catalog/intensity-scale";
@@ -94,8 +95,10 @@ export function ProductCard({
           )}
         </div>
 
-        <p className="mt-1.5 flex h-4 items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
-          {product.brand && <span className="truncate">{product.brand.name}</span>}
+        {/* The brand's logo, named by its alt; its name where there is none.
+            The row is the `card` box's height, so cards line up either way. */}
+        <p className="mt-1.5 flex h-10 items-center gap-1.5 text-2xs font-semibold tracking-[0.06em] text-ink-500 uppercase">
+          {product.brand && <BrandLogo brand={product.brand} size="card" inline shrink />}
           {product.brand && product.weight && <span aria-hidden>·</span>}
           {product.weight && (
             <span className="shrink-0 font-normal tracking-normal normal-case tabular-nums">

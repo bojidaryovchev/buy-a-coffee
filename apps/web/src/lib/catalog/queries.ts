@@ -738,6 +738,7 @@ export async function suggestCatalog(term: string): Promise<SearchSuggestions> {
         detail: card.detail ?? null,
         systemId: card.systemId,
         brandName: card.brand?.name ?? null,
+        brandSlug: card.brand?.slug ?? null,
         weight: card.weight,
         price: card.price,
         image: card.image,

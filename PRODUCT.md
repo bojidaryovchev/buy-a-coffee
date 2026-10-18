@@ -189,8 +189,10 @@ per cup, and says which.
 hand-written machine database says so. Third-party capsules are "съвместими с"
 a system; they are never presented as made, licensed or endorsed by the
 system's owner, and no logo is ever used to mark a system or compatibility.
-A brand's logo appears only where that brand is the subject (its own page, the
-brand index, its own products), Lavazza's and Caffitaly's included.
+A brand's logo appears wherever that brand is named as a brand (its own page,
+the brand index, its products' cards and pages, the brand filter and its chip,
+the search suggestions), Lavazza's and Caffitaly's included, and never beside a
+system's name, where the system keeps its own marker.
 
 **Intensity is never compared across scales.** The source declares it out of 5,
 9, 10, 12 or 13 depending on the brand. A numeral is always shown with its own

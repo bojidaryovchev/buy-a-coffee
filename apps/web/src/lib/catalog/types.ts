@@ -242,6 +242,8 @@ export interface ProductSuggestion {
   /** The brewing system, as on a card; null when the product belongs to none. */
   readonly systemId: BrewingSystemId | null;
   readonly brandName: string | null;
+  /** The brand's stored slug, which finds its logo. */
+  readonly brandSlug: string | null;
   readonly weight: string | null;
   readonly price: PriceView | null;
   readonly image: ProductImageView | null;

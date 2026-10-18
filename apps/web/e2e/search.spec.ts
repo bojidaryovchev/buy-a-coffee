@@ -202,8 +202,9 @@ test.describe("typeahead", () => {
 
     const options = listbox.getByRole("option");
     expect(await options.count()).toBeGreaterThan(1);
-    // A picture per product is the point of the dropdown, not decoration.
-    await expect(options.first().locator("img")).toBeVisible();
+    // A picture per product is the point of the dropdown, not decoration. (The
+    // other image in the row is the brand's logo.)
+    await expect(options.first().locator("img:not([src^='/brand-logos/'])")).toBeVisible();
     // And the last row always offers the full result set.
     await expect(listbox.getByRole("option", { name: /виж всички/i })).toBeVisible();
   });

@@ -936,7 +936,7 @@ from. Two engineers building it from this section must produce the same card.
 │                          │
 ├──────────────────────────┤
 │ [■ Dolce Gusto]          │  2  system badge        20 px
-│ BIANCHI · 16 бр.         │  3  brand · pack        16 px
+│ [BIANCHI logo] · 16 бр.  │  3  brand · pack        40 px
 │ Bianchi Gusto Forte      │  4  name, up to 3 lines 60 px
 │ Espresso                 │
 │                          │
@@ -969,10 +969,14 @@ transition-colors">`.
    "Разтворимо кафе" in `text-2xs font-semibold text-ink-700` instead — the
    product's kind, in plain ink, with no system colour and no `data-system`,
    because it is not a compatibility claim.
-4. **Brand line.** `flex items-center gap-1.5 text-2xs font-semibold
-tracking-[0.06em] uppercase text-ink-500`: brand name (`truncate`), a
-   `aria-hidden` "·", then the pack size in `shrink-0 font-normal normal-case
-tracking-normal`. Either part may be absent; the row keeps 16 px.
+4. **Brand line.** `flex h-10 items-center gap-1.5 text-2xs font-semibold
+tracking-[0.06em] uppercase text-ink-500`: the brand's logo at size `card`,
+   inline and allowed to shrink (see "Brand logo"; `alt` is the brand's name,
+   which is printed nowhere else on the line), a `aria-hidden` "·", then the
+   pack size in `shrink-0 font-normal normal-case tracking-normal`. A brand
+   with no logo shows its name in the logo's place, in `font-display
+font-semibold text-sm text-ink-700`, normal case. Either part may be absent;
+   the row keeps 40 px, so cards with and without a logo line up.
 5. **Name.** `<h3 class="line-clamp-3 min-h-[3.75rem] text-sm font-medium
 text-ink-900">` containing the one link of the card, to the product page
    (`productHref`), with `class="after:absolute after:inset-0"`. The stretched
@@ -1055,8 +1059,8 @@ which reads as a photograph that failed to load.
 `BrandLogo` in `components/catalog/brand-logo.tsx`; the files in
 `public/brand-logos/`, what a page needs to draw them in `content/brand-logos.ts`,
 and where each came from in `content/brand-logo-provenance.ts` (imported by
-tests only, so it never reaches the browser). A brand's own logo, shown where
-the brand itself is the subject.
+tests only, so it never reaches the browser). A brand's own logo, shown
+wherever the brand is named as a brand, sized for the place.
 
 **Why it exists, and its limit.** A logo is the brand's trademark. We show it
 for one reason: to identify the genuine product the shop sells. So it is the
@@ -1090,22 +1094,37 @@ owner is also a brand we sell (Lavazza, Caffitaly).
   before the file arrives; `loading="lazy"` except on the brand page.
 - _Box:_ the most room a placement gives a logo, fixed per placement (below).
   In a row of tiles the box is reserved whole and the logo centred in it, so
-  every tile is the same size whatever it holds; inline (the product page, the
-  brand page) the frame hugs the logo.
+  every tile is the same size whatever it holds (so are a filter option's and
+  a typeahead brand row's boxes, so the names after them line up); inline (the
+  product page, the brand page, a card's brand line, a chip) the frame hugs the
+  logo.
 - _Dark tile_ (`ground: "dark"`): `bg-ink-900 rounded-sm` around the logo,
   padding per box, never filling the whole box.
 
 **Boxes.**
 
-| Size         | Box (w × h) | Dark-tile padding (x, y) | Where                                   |
-| ------------ | ----------- | ------------------------ | --------------------------------------- |
-| `tile`       | 160 × 56    | 10, 8                    | Brands index, home page brand row.      |
-| `header`     | 240 × 80    | 14, 10                   | Above the `h1` on a brand page.         |
-| `line`       | 112 × 32    | 6, 4                     | The product page's brand line.          |
-| `suggestion` | 64 × 28     | 4, 3                     | Before the name in the search dropdown. |
+| Size         | Box (w × h) | Dark-tile padding (x, y) | Where                                                                                         |
+| ------------ | ----------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| `tile`       | 160 × 56    | 10, 8                    | Brands index, home page brand row.                                                            |
+| `header`     | 240 × 80    | 14, 10                   | Above the `h1` on a brand page.                                                               |
+| `line`       | 120 × 40    | 6, 2                     | The product page's brand line.                                                                |
+| `suggestion` | 72 × 40     | 6, 2                     | Before the name in the search dropdown's brand rows.                                          |
+| `card`       | 88 × 40     | 6, 2                     | The brand line of a product card and of a wizard result.                                      |
+| `facet`      | 72 × 40     | 6, 2                     | Before the name in a brand filter option.                                                     |
+| `chip`       | 72 × 24     | 3, 2                     | Before the name in a brand chip (active filter, available to order); a typeahead product row. |
+
+Forty pixels is the height at which every logo in the catalogue can be read,
+the stacked lockups included (below), so every placement whose layout can give
+it gets 40: the product page, the card, the filter row (which grows from 36 to
+40 px) and the typeahead's brand row (as tall as a product row beside it). A
+chip is 36 px tall and cannot; its 24 px box shows the five stacked lockups as
+their name. The dark-tile padding in the 40 px boxes is 2 px above and below
+because Lollo Caffè's and Vandino's lockups need the rest of the height.
 
 Inside a container narrower than the box (a phone tile), the logo shrinks with
-`max-width: 100%` and keeps its proportions.
+`max-width: 100%` and keeps its proportions. On a card's brand line the logo
+also gives way to the pack size beside it (`shrink`), so on a 320 px phone
+Biancaffè's wordmark narrows instead of pushing "500 г" out of the card.
 
 **The optical rule.** Logos are sized by area, not by one height. At a common
 height a square mark (illy, Julius Meinl, the Vergnano roundel) is a speck
@@ -1128,8 +1147,9 @@ emblem (Bianchi, Lollo Caffè, Vandino), a brushed script under a large numeral
 (3 Bourbons), or a pale gold name that fades at small sizes (Este). Each such
 file records a `minHeight`, judged by eye at 1x: the smallest height at which
 its name can still be read. A placement whose box would draw the logo below
-that shows the name in text instead. Today that is the product line for those
-five brands, and their typeahead rows.
+that shows the name in text instead. Today that is the `chip` box for those
+five brands: their active-filter chips, their chips in "Налични по поръчка" and
+the brand part of their typeahead product rows.
 
 **Grounds.** Most logos are drawn for light grounds and sit on the page's own
 paper or a white tile. A logo the brand publishes only in white — Lollo Caffè,
@@ -1147,10 +1167,12 @@ as they are.
 **Text fallback.** A brand with no logo — none found or none usable (Eurocaf,
 Excelsior, Molini, each with the reason recorded), or one the sync added after the file
 was written — shows its display name in the same box: `font-display
-font-semibold text-ink-700`, `text-lg` in a tile, clamped to two lines, centred.
-A row of tiles stays even. Where the name is already printed next to the logo
-(a brand page `h1`) the placement renders nothing instead; in the typeahead it
-keeps an empty box so names line up.
+font-semibold text-ink-700`, `text-lg` in a tile and `text-sm` elsewhere,
+clamped to two lines; centred in a reserved box, in normal case on a card's
+brand line. A row of tiles stays even, and a card's 40 px brand line keeps its
+height. Where the name is already printed next to the logo, the placement
+renders nothing instead (a brand page `h1`, a chip) or keeps an empty box so
+names line up (a filter option, a typeahead brand row).
 
 **Where it appears.**
 
@@ -1160,16 +1182,24 @@ keeps an empty box so names line up.
 | Brand page header              | `header`     | Logo above the `h1`, eager; the `h1` stays text. No logo: nothing.                                                                                                                  |
 | Home page, brand row           | `tile`       | Logo tiles, one link each to the brand page; `alt` is the name and the count follows in `sr-only`.                                                                                  |
 | Product page, brand line       | `line`       | A small logo linking to the brand page, beside the system badge; `alt` is the name, so it is the link's name. Not legible or absent: the Label-style text link.                     |
-| Search typeahead, brand rows   | `suggestion` | Before the name, `alt=""` (the name follows).                                                                                                                                       |
+| Search typeahead, brand rows   | `suggestion` | Before the name, `alt=""` (the name follows); an empty box with no logo.                                                                                                            |
+| Product card, brand line       | `card`       | Wherever a card is drawn: listings, search, brand pages, landings, related products, home shelves. In place of the name, so `alt` is the name. No logo: the name in its place.      |
+| Wizard result, brand line      | `card`       | As on the product card.                                                                                                                                                             |
+| Filters, brand options         | `facet`      | Between the checkbox and the name, `alt=""`. No logo: an empty box, so the names line up.                                                                                           |
+| Active-filter chip, a brand    | `chip`       | Before the name, `alt=""`. No logo, or one not legible at 24 px: the name alone.                                                                                                    |
+| Brands index, "by order" chips | `chip`       | The brands with no product in stock, as chips: as the active-filter chip.                                                                                                           |
+| Search typeahead, product rows | `chip`       | After the system badge, `alt` the name, then "·" and the pack size. Not legible: the name in text, as before.                                                                       |
 | Structured data                | —            | `logo`, as an absolute URL, on the `Brand` in the Product and brand-page JSON-LD when a logo exists.                                                                                |
 
-**Where it does not.** Product cards, filter lists, active-filter chips,
-breadcrumbs, the footer and the wizard. On a card or a filter the brand is one
-fact among many, set in 11 to 13 px text; a logo there would be drawn at 10 to
-16 px, too small to read, and twenty-four packs already carry the brands'
-colours — a logo per card would make the grid shout. In a breadcrumb or a chip
-the brand is a word in a sentence-like row. In the footer it is not the
-subject. Anywhere a logo would come out smaller than it can be read, it is not
+**Where it does not.** Beside a brewing system's name: the system chips,
+the system filter options and chips, the system badge and the brand page's
+"Сравнете с останалите марки" shelves keep the system's coloured square, even
+for Caffitaly and Lavazza, which are both (see "Never"). Breadcrumbs and
+product names, where the brand is a word in a sentence-like row and the logo
+is a few pixels away. Running text (the brands index introduction, a brand
+summary sentence). The coffee-machine brands (`za-kafemashina`): they make
+the machines a customer already owns, are not brands the shop sells, and have
+no logo here. Anywhere a logo would come out smaller than it can be read, it is not
 shown.
 
 **Never.** Recolour, invert, crop, stretch, redraw, outline or trace a logo.
@@ -1279,8 +1309,10 @@ gap-2.5 rounded-sm px-3 text-sm text-ink-900 hover:bg-paper-sunken`, carrying
 **Search field.** Existing behaviour stays: a real `GET` form to the search
 page (`routes.search`), typeahead layered on top. Field per "Inputs" at `min-h-11`; the submit is a
 `primary` button attached to its right edge. A typeahead product row shows a
-40 px well, the name, the system badge (`sm`) and the price; a brand row shows
-the brand logo at size `suggestion` (`alt=""`), then the name and the count.
+40 px well, the name, the system badge (`sm`), the brand's logo at size `chip`
+(`alt` the name; the name in text where the logo cannot be read at that size),
+the pack size, and the price; a brand row shows the brand logo at size
+`suggestion` (`alt=""`), then the name and the count.
 
 **Phone.** Row 2 is hidden; the menu button opens the drawer. The sticky header
 is two lines — masthead and search — and must not exceed 116 px.
@@ -1522,7 +1554,10 @@ font-semibold text-ink-900` and a chevron that rotates when open:
      "Капсули"). Each option carries `data-system` and shows the 8 px square
      before the name.
   2. **Марка** — hidden on a brand page. Scrolls internally past 8 options
-     (`max-h-64 overflow-y-auto`).
+     (`max-h-64 overflow-y-auto`). Each option shows the brand's logo at size
+     `facet` (`alt=""`, the name follows) between the checkbox and the name;
+     a brand with no logo keeps the empty box, so the names line up. The row
+     grows to the box's 40 px.
   3. **Интензивност** — the three bands: Слабо, Средно, Силно. Never numerals.
   4. **Кофеин** — С кофеин, Без кофеин.
   5. **Ароматизирано.**
@@ -1552,7 +1587,9 @@ text-2xs` box), then the sort control.
 филтри" class="mb-4 flex flex-wrap items-center gap-2">` of active-filter
 chips, in the order of the groups above, ending in a text link "Изчисти
 всички". Not rendered when no filter is active. A system chip carries the 8 px
-system square.
+system square; a brand chip carries the brand's logo at size `chip` (`alt=""`)
+before its name, or the name alone where there is no logo or it cannot be read
+at that size.
 
 **Grid.** `ProductGrid`: 2 columns, 3 from `md`. The first four cards are
 `priority`.
@@ -1763,7 +1800,7 @@ bg-paper-sunken text-ink-700`. Caution: `border-caution bg-caution-100
 text-ink-900` with the title in `font-semibold text-caution`.
 - _Recommendation card:_ the product card's content laid out as a row — a 96 px
   well (128 px from `sm`), then rank "№1" (`text-pine-700`), system badge,
-  brand line, name, reasons, caveat ("Внимание: …" in `text-sm text-caution`),
+  brand line (the logo at size `card`, as on the card), name, reasons, caveat ("Внимание: …" in `text-sm text-caution`),
   price with price per cup, and a button "Вижте и поръчайте" (`primary` on the
   first card, `secondary` on the others). The first card has `border-pine-500`.
 
@@ -1895,8 +1932,8 @@ works.
 - **Do** put the price per cup, or per kilogram, directly under the price.
 - **Do** mark a figure derived from weight with "≈".
 - **Do** let the packshot sit on pure white, unpadded and unframed.
-- **Do** show a brand's own logo where the brand is the subject, and its name
-  in text where it is not.
+- **Do** show a brand's own logo wherever the brand is named as a brand, at
+  a size it can be read at, and its name in text where it cannot.
 - **Do** keep one gold control per viewport, on pine or on a white panel.
 - **Do** keep clay for a price that went down.
 - **Do** reserve the box of anything optional or late, so nothing shifts.

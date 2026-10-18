@@ -5,8 +5,8 @@ import { brandKeyBySlug } from "./brand-names";
  * Brand logos: what a page needs to draw one.
  *
  * A logo is a brand's trademark, shown only to identify the genuine product
- * the shop sells, on the pages where the brand itself is the subject
- * (DESIGN.md, "Brand logo"). Where each file came from, and the check that it
+ * the shop sells, wherever the brand is named as a brand and the logo can be
+ * read (DESIGN.md, "Brand logo"). Where each file came from, and the check that it
  * matches the packs, is recorded in `brand-logo-provenance.ts`, keyed the same
  * way; a test keeps the two files in step. The record lives apart because
  * this file reaches the browser (the search field draws logos) and nothing on
