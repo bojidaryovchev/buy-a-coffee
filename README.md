@@ -566,7 +566,9 @@ four projects from it (`unit`, `integration`, `web-unit`, `web-integration`):
   code paths. With no database reachable they skip, under a banner that says so;
   with `CI` set, an unreachable database fails the run instead.
 - **End-to-end tests** (`apps/web/e2e/`) run Playwright, desktop Chrome and a
-  Pixel 7, against `next start` on port 8765 over a real production build. They
+  Pixel 7, against `next start` on port 8765 over a real production build:
+  395 tests in 18 spec files, each run on both, 790 in all, about three and a
+  half minutes on two workers. They
   open with a canary that the server under test is this app, assert at the
   browser level that nothing is loaded from the source, and drive the wizard with
   JavaScript disabled. The URLs they visit are written out literally in
