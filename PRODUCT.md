@@ -131,8 +131,9 @@ it has products.
 - Reviews, ratings and question-and-answer sections. See below.
 - Prices, discounts or stock that differ from the source's.
 - Loyalty schemes, coupons and countdown promotions.
-- Lifestyle and stock photography. The imagery is the product packshots and our
-  own drawings of capsule shapes.
+- Lifestyle, stock and generated photography. The imagery is the product
+  packshots, cut out, and our own drawings: capsule shapes, beans, steam, cups
+  and crema.
 - A dark theme.
 
 ## Brand
@@ -149,7 +150,9 @@ no shared visual identity, no cross-branding in the interface.
   over a sans body face (Inter), squared geometry with small radii. Deliberately
   unlike the source shop's tan-and-brown, rounded, single-typeface design.
 - **Imagery:** the packs are loud and colourful, so the interface stays quiet
-  and lets them carry the colour.
+  and lets them carry the colour. The atmosphere — warm light, the steam curl
+  from the mark, drawn beans and crema — comes from material, not from more
+  colours.
 - **Legal identity:** the company name, registration number and address appear
   in the footer, the legal pages and structured data, from `siteConfig.legal`.
 
@@ -255,11 +258,13 @@ WCAG 2.2 AA is the working standard, tested rather than asserted.
   primary actions on a phone.
 - Forms label every field, tie each error to its field, and announce the
   result.
-- Motion is limited to state changes and stops entirely under
-  `prefers-reduced-motion`.
+- Motion marks arrival, feedback and progress; the one ambient loop, steam,
+  pauses whenever it cannot be seen. Under `prefers-reduced-motion` everything
+  jumps to its end state, and nothing a customer needs is lost.
 - Bulgarian is declared as the document language, and both typefaces carry
   Cyrillic.
 
-Performance is part of access on a phone: mobile LCP under 2.5 s and CLS under
-0.1 on the home page, a listing and a product page. The budgets and their
-measurements are in `DESIGN.md`.
+Performance is part of access on a phone: mobile LCP under 2.5 s, CLS under 0.1
+and INP under 200 ms on the home page, a listing and a product page. The
+budgets, their measurements and the rules that keep motion inside them are in
+`DESIGN.md`.

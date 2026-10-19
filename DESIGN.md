@@ -43,6 +43,13 @@ colors:
   sys-ese-pod-100: "#e3e8f0"
   sys-beans: "#5d381e"
   sys-beans-100: "#f7e4d4"
+  espresso-900: "#1a120c"
+  espresso-200: "#d9c9b7"
+  illo-crema: "#c7894a"
+  illo-bean-300: "#9a6337"
+  illo-bean-500: "#5a331a"
+  illo-bean-700: "#2c170a"
+  illo-stain: "#7a4a26"
 typography:
   hero:
     fontFamily: "Literata, Georgia, 'Times New Roman', serif"
@@ -204,10 +211,11 @@ to `apps/web/src/`.
 
 ## Overview
 
-**North star: the counter of a well-stocked espresso bar.** The shelf behind the
-counter is loud — twenty brands, every pack a different colour. The counter is
-dark green, the walls are cream, the price list is set in one typeface, and the
-person behind it asks one question first: _what machine do you have?_
+**North star: the counter of a well-stocked espresso bar, lit.** The shelf behind
+the counter is loud — twenty brands, every pack a different colour. The counter
+is dark green under warm light, the walls are cream, a cup steams at one end,
+the price list is set in one typeface, and the person behind it asks one
+question first: _what machine do you have?_
 
 Three layers carry that, and they must agree:
 
@@ -224,11 +232,19 @@ Three layers carry that, and they must agree:
   our own small drawing of the system's capsule (see "System icon").
 - A serif display face for headings, a sans face for everything a customer reads
   to decide: names, prices, facts.
-- Squared geometry: radii of 2 to 10 px. Nothing is pill-shaped.
-- Flat. Structure comes from hairlines and three paper tones. Shadows are for
-  things that float over the page.
+- Squared geometry: radii of 2 to 10 px. No control or container is
+  pill-shaped.
+- Flat. Structure comes from tone, space and hairlines, used sparingly. Shadows
+  are for things that float over the page, and for the pack that stands on it.
 - Every figure a customer compares is tabular and carries its unit.
-- Packshots sit on pure white, because that is what they were photographed on.
+- Packshots are cut out and stand on their well with a soft contact shadow. A
+  pack not yet cut out sits on pure white, as it was photographed (see
+  "Imagery").
+- One drawn motif, the curl from the mark, and a small set of our own drawings
+  — beans, steam, a cup, crema, a cup ring, a spill. Never a photograph of
+  them.
+- Motion marks arrival, feedback and progress, and never costs a Web Vitals
+  budget (see "Motion").
 
 **What was wrong before, and what this fixes.** The first build had no imagery
 on the home page and read closer to a law firm than a coffee shop; the logo was
@@ -236,6 +252,16 @@ gold and brown and shared no colour with a green-and-grey interface; and the
 catalog was organised by product type when customers shop by the machine they
 own. The identity — pine, cream, Literata over Inter, small radii — was coherent
 and stays.
+
+**What was still wrong in October, and what Phase K fixes.** A design review
+after launch found the system sound and three things that read as cheap before
+any styling does: packshots on their own light-grey photo grounds, which drew a
+grey rectangle inside every white well and left packs at random scales; a
+bordered box around nearly everything, so nothing stood out; and no material —
+no light, texture or depth, nothing on the home page that said coffee except
+the words. Phase K (`IMPLEMENTATION_PLAN.md`) cuts the packs out, takes most of
+the boxes away, and adds the material of a cup of coffee — drawn, light and
+fast.
 
 ## Colors
 
@@ -256,7 +282,7 @@ read as one material.
 | `paper`        | `oklch(0.975 0.012 85)` | `#faf6ee` | The page.                                                                                  |
 | `paper-raised` | `oklch(1 0 0)`          | `#ffffff` | Cards, panels, inputs, dropdowns, the drawer.                                              |
 | `paper-sunken` | `oklch(0.945 0.016 85)` | `#f2ece1` | Bands, the footer, neutral badges, hover fill, skeletons, the image placeholder.           |
-| `well`         | `oklch(1 0 0)`          | `#ffffff` | The ground behind a packshot. Equal to `paper-raised` today; a separate name on purpose.   |
+| `well`         | `oklch(1 0 0)`          | `#ffffff` | The ground of a packshot well. Equal to `paper-raised` today; a separate name on purpose.  |
 | `line`         | `oklch(0.885 0.014 80)` | `#ded8cf` | Dividers and the edges of cards and panels. Decorative: carries no meaning by itself.      |
 | `line-strong`  | `oklch(0.62 0.02 75)`   | `#8d8579` | The edge of a control: inputs, selects, checkboxes, secondary buttons, chips. 3:1 or more. |
 
@@ -291,6 +317,20 @@ is `#bb8936`; `gold-500` paints `#bc8a35`.
 | `clay-600` | `oklch(0.47 0.135 40)` | `#963912` | The reduced price, the reduction badge fill, the "Промоции" link.        |
 | `clay-500` | `oklch(0.655 0.14 42)` | `#d67047` | A 1 px rule or border on `paper` or `paper-raised` around reduced goods. |
 | `clay-100` | `oklch(0.94 0.03 45)`  | `#fee5db` | Wash behind the promotions band.                                         |
+
+### Second ground — espresso
+
+Darker and warmer than pine, on the hue of the ink. It exists so that a page
+does not open and close on the same green: pine for the hero, espresso for the
+last dark band.
+
+| Token          | Value                  | Hex       | Role                                                                                     |
+| -------------- | ---------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| `espresso-900` | `oklch(0.19 0.018 58)` | `#1a120c` | The Vending Zone band and the machine-finder tile. Nothing else.                         |
+| `espresso-200` | `oklch(0.845 0.03 72)` | `#d9c9b7` | Secondary text and ghost-button border on `espresso-900`. The `pine-200` of that ground. |
+
+An element on it carries `.on-espresso`, which turns the focus ring to
+`gold-300`, as `.on-pine` does.
 
 ### Status
 
@@ -342,16 +382,33 @@ Sanctioned uses of a system colour, and no others:
 | Solid tile edge or swatch + white text | `paper-raised` | `--system`      | 7.54 (Caffitaly)      |
 | Body text on a system tile             | `ink-900`      | `--system-wash` | 14.06 (beans)         |
 
+### Drawing tones
+
+The colours of our own drawings (see "Imagery") and nothing else.
+
+| Token           | Value                   | Hex       | Role                                                  |
+| --------------- | ----------------------- | --------- | ----------------------------------------------------- |
+| `illo-crema`    | `oklch(0.68 0.11 64)`   | `#c7894a` | Crema, the surface of a cup, warm light.              |
+| `illo-bean-300` | `oklch(0.55 0.093 57)`  | `#9a6337` | A bean's highlight.                                   |
+| `illo-bean-500` | `oklch(0.365 0.068 52)` | `#5a331a` | A bean's body; coffee in a cup.                       |
+| `illo-bean-700` | `oklch(0.23 0.04 51)`   | `#2c170a` | A bean's crease, a dark roast, a spill.               |
+| `illo-stain`    | `oklch(0.457 0.082 56)` | `#7a4a26` | A cup ring and grounds on paper, at 14 to 24 % alpha. |
+
+**The Drawing Tone Rule.** A drawing tone is never text, never a control, never
+a border and never a meaning. It has no rows in the contrast table for the same
+reason the brand logos have none: nothing is read from it.
+
 ### Named rules
 
 **The One Gold Rule.** Gold is a fill under `ink-900`, used for the single most
 important action in a viewport. At most one `gold-500` control is visible at a
 time. Gold is never text on a paper tone: `gold-500` on `paper` measures 2.85:1.
-On `pine-900` it may be text, as `gold-300` (8.09:1).
+On `pine-900` it may be text, as `gold-300` (8.09:1). On `espresso-900` it may
+be text as itself (`gold-500`, 6.00:1) or as `gold-300` (9.82:1).
 
-**The Gold Ground Rule.** The accent button sits on `pine-900` (edge 4.95:1) or
-on `paper-raised` (edge 3.07:1). It never sits directly on `paper` or
-`paper-sunken`, where its edge falls under 3:1.
+**The Gold Ground Rule.** The accent button sits on `pine-900` (edge 4.95:1),
+on `espresso-900` (edge 6.00:1) or on `paper-raised` (edge 3.07:1). It never
+sits directly on `paper` or `paper-sunken`, where its edge falls under 3:1.
 
 **The Clay Means Reduced Rule.** Clay marks a price that went down: the reduced
 price, the reduction badge, the promotions link and band. It is not a caution
@@ -365,8 +422,11 @@ This keeps red and clay from ever sitting side by side on a product.
 name in text beside it. A system icon alone, a coloured border alone, a legend
 somewhere else on the page: none of these is enough.
 
-**The White Well Rule.** A packshot sits on `well`. The photographs have white
-grounds; any tinted ground draws a rectangle around the photograph.
+**The Cut-out Rule.** A pack that has an approved cut-out stands on its well
+with a contact shadow; a pack that has none sits on `well` exactly as it was
+photographed, because any tinted ground draws a rectangle around a photograph.
+See "Imagery". This replaces the White Well Rule, which held while no pack was
+cut out.
 
 **The Measured Contrast Rule.** A text and background pairing is allowed only if
 it is in the table below. Adding one means measuring it and adding the row.
@@ -508,12 +568,26 @@ that nobody measures them again; see "Migration" at the end.
 | `paper-raised`           | `sys-beans`                  | 10.24 | 4.5      | pass   | white text on solid system fill                                                            |
 | `ink-900`                | `sys-beans-100`              | 14.06 | 4.5      | pass   | ink text on system wash                                                                    |
 | `paper-raised`           | `ink-900`                    | 17.36 | 3        | pass   | a white-only brand logo on its dark tile (non-text)                                        |
+| `paper`                  | `espresso-900`               | 17.15 | 4.5      | pass   | text on espresso                                                                           |
+| `paper-raised`           | `espresso-900`               | 18.48 | 4.5      | pass   | white text on espresso                                                                     |
+| `espresso-200`           | `espresso-900`               | 11.43 | 4.5      | pass   | secondary text on espresso                                                                 |
+| `espresso-200`           | `espresso-900`               | 11.43 | 3        | pass   | ghost button border on espresso (non-text)                                                 |
+| `gold-300`               | `espresso-900`               | 9.82  | 4.5      | pass   | eyebrow, links and focus ring on espresso                                                  |
+| `gold-500`               | `espresso-900`               | 6.00  | 4.5      | pass   | gold text on espresso                                                                      |
+| `gold-500`               | `espresso-900`               | 6.00  | 3        | pass   | accent button edge, gold rule or icon on espresso (non-text)                               |
 
 ## Typography
 
 **Display:** Literata, weight 600, `letter-spacing: -0.015em`, `text-wrap:
 balance`. Headings only: `h1`, `h2`, `h3` in page chrome, panel titles, wizard
-option labels.
+option labels. Loaded with its optical-size axis and drawn with
+`font-optical-sizing: auto`, so every heading gets the design made for its
+size: the display cut, finer and higher in contrast, at 40 px and up; the text
+cut in a 20 px panel title. Only the weights in use are loaded.
+
+**Accent:** Literata italic, weight 500, for one phrase on a page: the hero
+title's last words, in `gold-300` on `pine-900`. Nowhere else, never on paper,
+never on a whole sentence.
 
 **Body:** Inter. Everything a customer reads to decide: product names, prices,
 facts, labels, controls, paragraphs.
@@ -708,8 +782,14 @@ Overlays that cover the page (drawer, sheet, dialog) add a scrim of
 Z-order: sticky header 40; dropdown and typeahead 50; drawer, sheet and dialog
 50 with their scrim; skip link 100.
 
+**The contact shadow.** A cut-out pack standing on its well casts a soft
+elliptical shadow at its foot: a radial gradient of `ink-900` at up to 30 %,
+about a seventh of the pack's width tall, with no edge. It is part of the
+picture, not elevation, and it is the only shadow at rest. On a dark ground it
+is black at up to 55 %.
+
 **The No Resting Shadow Rule.** Nothing on the page has a shadow until the
-customer interacts with it.
+customer interacts with it, except a pack's contact shadow.
 
 **The No Nested Cards Rule.** A bordered panel does not go inside a bordered
 panel. Use a hairline divider or a tone step.
@@ -723,25 +803,128 @@ panel. Use a hairline divider or a tone step.
 | `rounded-md` | 6 px   | Cards, packshot wells, panels, tiles, dropdown panels.                     |
 | `rounded-lg` | 10 px  | The top corners of the filter sheet, dialogs. Nothing else.                |
 
-- Nothing is pill-shaped and nothing is circular.
+- No control or container is pill-shaped or circular. Drawings — beans, cups,
+  a cup ring, a spill — keep their natural shapes.
 - Borders are 1 px. The only 2 px strokes are the focus ring, the selected
   gallery thumbnail and the underline of the active navigation item. The only
   thicker stroke is the 4 px system edge on a system tile.
 - Icons are 1.5 to 2 px stroked line drawings on a 16, 20 or 24 px grid, in
   `currentColor`, inline SVG with `aria-hidden`. No icon font, no emoji, no
-  filled or two-tone icons.
+  filled or two-tone icons. Drawings (see "Imagery") are not icons: they are
+  filled, in the drawing tones, and never stand for a control.
 - A selected state swaps fill or border colour. It does not add a ring, grow or
   move.
 
 ## Motion
 
-- Colour, border and background: `transition-colors`, 150 ms.
-- Drawer and sheet: translate plus opacity, 200 ms, `ease-out`.
-- No transform on hover. No image zoom, no lift, no parallax, no autoplay, no
-  carousel that moves by itself.
-- The global rule in `globals.css` reduces every animation and transition to
-  nothing under `prefers-reduced-motion: reduce`. Do not add motion that
-  bypasses it (no JavaScript-driven animation without the same check).
+Motion marks three things and nothing else: **arrival** (a pack set down, a
+section coming into view — once), **feedback** (what the customer did took
+effect) and **progress** (a wait is being worked on). One loop is ambient — the
+steam — and it stops whenever nobody can see it.
+
+| Kind       | What moves                                                                                                    | How                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| State      | Colour, border and background of a control                                                                    | `transition-colors`, 150 ms                                                         |
+| Overlay    | Drawer and sheet                                                                                              | translate and opacity, 200 ms, `ease-out`                                           |
+| Hover      | A pack rises 5 px while its shadow widens and softens; a capsule drawing tips 10°. On devices that hover only | CSS transition, 280 ms, inside `@media (hover: hover)`                              |
+| Arrival    | The hero's packs are set down, beans drop, steam starts — on load, once, within 1.2 s                         | CSS keyframes                                                                       |
+| Arrival    | Tiles and drawings below the fold rise into place as they enter the viewport                                  | CSS scroll-driven animation (`animation-timeline: view()`), inside `@supports`      |
+| Feedback   | A bean arcs from „Добави“ to the header cart, which nudges and counts up                                      | Web Animations API, started after the cart has changed                              |
+| Feedback   | An intensity track fills segment by segment, the first time it is seen                                        | CSS scroll-driven animation                                                         |
+| Feedback   | The cup fills and steams when an order is sent                                                                | CSS keyframes                                                                       |
+| Progress   | The ordering steps' curl draws itself as the section scrolls past                                             | `stroke-dashoffset`, scroll-driven                                                  |
+| Ambient    | Steam over a cup                                                                                              | CSS keyframes, paused off-screen                                                    |
+| Navigation | A card's pack becomes the product page's photograph                                                           | View Transitions API, behind Next's `viewTransition` flag; elsewhere the page swaps |
+
+Where `animation-timeline` is not supported (Firefox, today) the element is
+simply in place: scroll-driven motion is an enhancement, never a condition for
+seeing anything. A scroll-driven element starts from at least 15 % opacity,
+never from nothing.
+
+**Never.** A carousel or marquee that moves by itself, parallax, scroll
+hijacking or a smooth-scroll library, numbers that count up, scrambled text, a
+cursor follower, a video or Lottie hero, an image that zooms, and an animation
+library. Everything here is CSS, the Web Animations API or the View Transitions
+API, and costs no JavaScript on the first load.
+
+### The Web Vitals rules
+
+Each rule names what it protects. They hold for every motion on every page.
+
+- **The Still LCP Rule** (LCP). A page's likely LCP element never starts
+  invisible: Chrome ignores a paint at zero opacity, so a fade-in delays LCP by
+  its own length. Those elements are the hero title and lead, the tallest hero
+  pack, the first card photo of a listing and the product gallery photo. They
+  may move by transform; they never fade.
+- **The Drawn Decoration Rule** (LCP). Decoration is inline SVG or CSS: no
+  request, and never an LCP candidate. A raster decoration, if one is ever
+  added, is lazy, below the fold, `fetchpriority="low"`, in a box of fixed size.
+- **The Compositor Rule** (CLS, INP). Only `transform` and `opacity` are
+  animated, and `stroke-dashoffset` on a drawing of a few hundred pixels.
+  Never `width`, `height`, `top`, `left`, `margin` or `padding`: layout shift
+  counts moved layout, and a transform moves none.
+- **The No Motion Script Above The Fold Rule** (INP, LCP). Motion in the first
+  screen is CSS. JavaScript motion starts on an interaction, after the state it
+  reports has been committed, and imports nothing.
+- **The Unseen Loop Rule** (INP, battery). The steam pauses when it leaves the
+  viewport (an `IntersectionObserver` sets `animation-play-state`) and when the
+  tab is hidden. No other loop exists.
+- **The Instant Not Missing Rule** (access). Under `prefers-reduced-motion:
+reduce` the global rule in `globals.css` stops every animation, and
+  JavaScript checks the same media query: everything jumps to its end state.
+  The cart still counts up, the confirmation still appears, the steam is drawn
+  still.
+- **The Brief Will-change Rule** (memory). `will-change` is set when an
+  animation starts and removed when it ends; never in a stylesheet for an
+  element at rest.
+- **The Measured Rule.** `pnpm measure:budgets` runs before and after every
+  change that adds motion or imagery, against the same build and data, and the
+  numbers go in "Budgets".
+
+## Imagery
+
+Three kinds of image, and no others.
+
+**1. Packshots.** The product's own photographs, the only photographs on the
+storefront.
+
+- **Cut out.** Each photograph is cut out to transparency when it is imported
+  (`tools/cutout`): two background-removal models whose masks are combined, a
+  shape check that fills a cut reaching deep into a pack (a pack is solid; a
+  picture printed on a box fools the models), and the white edge taken out. A
+  cut-out goes live by itself when the two models agree on 99 % of its pixels
+  or more and nothing had to be filled; anything else waits for a person in
+  the admin, and a rejected cut-out is never made again.
+- **Standing.** A cut-out stands on its well, trimmed to its own edges, at one
+  scale for every pack in a grid, with its contact shadow (see "Elevation").
+  The well is `well` fading to `paper-sunken` at its foot, so the pack has
+  something to stand on; on a dark ground it stands on the ground itself.
+- **The fallback.** A pack with no approved cut-out sits on `well` exactly as
+  photographed, as before. Both treatments sit in the same grid and keep the
+  same box: which one a pack gets never moves anything.
+
+**2. Our drawings.** Inline SVG in the drawing tones, `aria-hidden`, a few
+hundred bytes each.
+
+| Drawing    | Where                                                                      |
+| ---------- | -------------------------------------------------------------------------- |
+| The curl   | Steam over every cup; the line joining the ordering steps; a divider       |
+| Beans      | Around the hero's packs; into the cart; beside the beans shelf             |
+| A cup      | The hero; „order sent“                                                     |
+| Crema      | The wizard's entry and its result                                          |
+| A cup ring | Behind the newsletter form; the 404 page                                   |
+| A spill    | Empty states: an empty cart, a search with nothing found, an empty listing |
+| Grounds    | The beans shelf's header; the journal's articles about beans               |
+| Capsules   | Our capsule diagrams and system icons, unchanged (see "System icon")       |
+
+**The curl** is the mark's own: the crease of the bean in the logo rising into
+steam. It is the shop's one graphic device.
+
+**3. Brand logos,** unchanged (see "Brand logo").
+
+**Never.** A photograph of beans, cups, coffee or people; stock or generated
+imagery; a drawing that stands in for a product, shows a brand, or shows a
+system's capsule other than through our diagrams.
 
 ## Components
 
@@ -1707,7 +1890,8 @@ button here; the hero has the page's gold. It is the page's last section and
 carries `data-ends-on-band`, so the newsletter band meets it edge to edge (see
 "The frame's foot").
 
-**Never.** A carousel or slider. A hero photograph of beans, cups or people. A
+**Never.** A carousel or slider. A photograph of beans, cups or people (beans and
+cups are drawn; see "Imagery"). A
 "featured" or "bestseller" row chosen by hand. Review or trust-badge strips. A
 section that shows a heading over nothing. A second gold button below the hero
 within the same viewport as the first.
@@ -2452,10 +2636,14 @@ to files; `test/emails.test.ts` checks the rules above on the rendered HTML.
 - **Do** show an intensity as "8 от 12", with a track of twelve segments.
 - **Do** put the price per cup, or per kilogram, directly under the price.
 - **Do** mark a figure derived from weight with "≈".
-- **Do** let the packshot sit on pure white, unpadded and unframed.
+- **Do** stand a cut-out pack on its well with its contact shadow, and leave a
+  pack that has no cut-out on pure white, unframed.
+- **Do** keep a page's likely LCP element still: it may move, never fade.
+- **Do** draw what decorates — beans, steam, cups — in the drawing tones.
 - **Do** show a brand's own logo wherever the brand is named as a brand, at
   a size it can be read at, and its name in text where it cannot.
-- **Do** keep one gold control per viewport, on pine or on a white panel.
+- **Do** keep one gold control per viewport, on pine, on espresso or on a white
+  panel.
 - **Do** keep clay for a price that went down.
 - **Do** reserve the box of anything optional or late, so nothing shifts.
 - **Do** write every control as a link or a form first.
@@ -2473,13 +2661,18 @@ to files; `test/emails.test.ts` checks the rules above on the rendered HTML.
 - **Don't** use clay for cautions, hovers, taglines or decoration.
 - **Don't** use `critical` outside a form or a destructive action.
 - **Don't** lighten text with opacity. Use the next ink step.
-- **Don't** round anything into a pill or a circle.
-- **Don't** put a shadow on anything at rest, or a bordered panel inside a
-  bordered panel.
-- **Don't** zoom, lift or slide anything on hover.
+- **Don't** round a control or a container into a pill or a circle.
+- **Don't** put a shadow on anything at rest but a pack's contact shadow, or a
+  bordered panel inside a bordered panel.
+- **Don't** zoom or slide anything on hover. Only a pack lifts, and only where
+  there is hover.
 - **Don't** add a carousel, a countdown, a pop-up or a dismissible banner.
-- **Don't** use stock or lifestyle photography, a system owner's logo as the
-  mark of a system, or another product's photograph as a stand-in.
+- **Don't** use stock, lifestyle or generated photography, a photograph of
+  beans or cups, a system owner's logo as the mark of a system, or another
+  product's photograph as a stand-in.
+- **Don't** load an animation library, animate a layout property, or start a
+  loop that runs while nobody can see it.
+- **Don't** use a drawing tone for text, a border or a meaning.
 - **Don't** recolour, crop, stretch or combine a brand's logo, or show one
   smaller than it can be read (see "Brand logo").
 - **Don't** print a rating, a review, a "bestseller" label or any fact about a
@@ -2492,23 +2685,40 @@ to files; `test/emails.test.ts` checks the rules above on the rendered HTML.
 
 ## Budgets
 
-**Lab numbers, not field data.** Measured 9 October 2026 with
-`pnpm measure:budgets` against a local production build on a shared laptop:
-Pixel 7 profile, DevTools "Fast 4G" network, 4× CPU slowdown, five cold runs
-per page, with stand-in photos of the real size. Re-measure on a preview
-deployment before launch; the field numbers arrive through Speed Insights.
+**Lab numbers, not field data.** Measured with `pnpm measure:budgets` against a
+local production build on a shared laptop: Pixel 7 profile, DevTools "Fast 4G"
+network, 4× CPU slowdown, five cold runs per page. The field numbers arrive
+through Speed Insights.
 
-| Page                     | Metric | Budget      | Median    | Worst  | LCP element               |
-| ------------------------ | ------ | ----------- | --------- | ------ | ------------------------- |
-| Home                     | LCP    | under 2.5 s | 1.22 s    | 1.82 s | the hero's lead paragraph |
-| Home                     | CLS    | under 0.1   | 0.000     | 0.000  |                           |
-| Listing (a system)       | LCP    | under 2.5 s | 1.32 s    | 3.02 s | the first card's photo    |
-| Listing (a system)       | CLS    | under 0.1   | 0.000     | 0.000  |                           |
-| Product page             | LCP    | under 2.5 s | 1.46 s    | 1.76 s | the gallery photo         |
-| Product page             | CLS    | under 0.1   | 0.000     | 0.000  |                           |
-| Every page and component | WCAG   | 2.2 AA      | see below |        |                           |
+**19 October 2026, before Phase K** — the baseline every Phase K change is
+measured against. The local catalog with its real photographs (`.storage/`),
+the product the listing's first card links to.
 
-Every median is within budget. The listing's worst run was not: on the
+| Page                     | Metric | Budget       | Median    | Worst  | LCP element               |
+| ------------------------ | ------ | ------------ | --------- | ------ | ------------------------- |
+| Home                     | LCP    | under 2.5 s  | 1.03 s    | 1.14 s | the hero's lead paragraph |
+| Home                     | CLS    | under 0.1    | 0.000     | 0.000  |                           |
+| Home                     | INP    | under 200 ms | 72 ms     | 96 ms  |                           |
+| Listing (a system)       | LCP    | under 2.5 s  | 0.89 s    | 1.13 s | the first card's photo    |
+| Listing (a system)       | CLS    | under 0.1    | 0.000     | 0.000  |                           |
+| Listing (a system)       | INP    | under 200 ms | 88 ms     | 112 ms |                           |
+| Product page             | LCP    | under 2.5 s  | 0.89 s    | 1.10 s | the gallery photo         |
+| Product page             | CLS    | under 0.1    | 0.000     | 0.000  |                           |
+| Product page             | INP    | under 200 ms | 64 ms     | 104 ms |                           |
+| Every page and component | WCAG   | 2.2 AA       | see below |        |                           |
+
+**9 October 2026,** with stand-in photos of the real size:
+
+| Page               | Metric | Budget      | Median | Worst  | LCP element               |
+| ------------------ | ------ | ----------- | ------ | ------ | ------------------------- |
+| Home               | LCP    | under 2.5 s | 1.22 s | 1.82 s | the hero's lead paragraph |
+| Home               | CLS    | under 0.1   | 0.000  | 0.000  |                           |
+| Listing (a system) | LCP    | under 2.5 s | 1.32 s | 3.02 s | the first card's photo    |
+| Listing (a system) | CLS    | under 0.1   | 0.000  | 0.000  |                           |
+| Product page       | LCP    | under 2.5 s | 1.46 s | 1.76 s | the gallery photo         |
+| Product page       | CLS    | under 0.1   | 0.000  | 0.000  |                           |
+
+Every median is within budget. On 9 October the listing's worst run was not: on the
 listing the photo had arrived by about 0.8 s, and paint waited behind long
 main-thread tasks from a 339 KB page, much of it the `srcset` lists of 26
 images. Those lists are now cut to the widths the ~800 px photos can fill
@@ -2524,8 +2734,9 @@ What the specification already does to meet them:
   page, the first row of cards on a listing, the main gallery image on a
   product page. Every other image is lazy. Images come from our own host
   through `next/image` with a `sizes` attribute. Two font families, loaded with
-  `next/font` and `display: swap`. No client component above the fold except
-  the search field and the menu button.
+  `next/font` and `display: swap`. No motion script above the fold (see "The
+  Web Vitals rules"); the client components there are the header's controls,
+  the image wrapper and, on a product page, the gallery and the cart panel.
 - **CLS.** Every image well has an aspect ratio. Optional card rows keep their
   height. The announcement bar cannot be dismissed. The search field's
   fallback is the field's own box. Buttons keep their width while pending.
@@ -2567,3 +2778,19 @@ against the code on 9 October 2026.
   because mail clients resolve no custom property; `test/emails.test.ts`
   fails on a colour in a rendered message that is not in it. `pine-900` is
   unchanged (`#002c1d`).
+
+**Phase K, open on 19 October 2026.** The rules above changed before the code;
+each entry closes with the milestone named in `IMPLEMENTATION_PLAN.md`.
+
+- **Packs on their photo grounds** everywhere: no cut-outs exist yet. K1 makes
+  them, K3 stands them in their wells.
+- **Literata** loads fixed weights, without its optical-size axis or the
+  italic, and loads 400 and 700, which nothing uses. K2.
+- **The header, drawer and footer logo** is a PNG. K2 redraws it as SVG.
+- **No drawings, no motion** beyond colour transitions and the drawer. K2
+  builds the kit and the primitives; K3–K5 put them in place.
+- **`espresso-900` is unused**, and the Vending band and the finder tile are
+  still pine. K4.
+- **A hover transform** already exists, against the rule as it stood: the brand
+  index's arrow (`marki/page.tsx`, `group-hover:translate-x-0.5`). It is
+  allowed by none of the motions above either; K4 removes it.

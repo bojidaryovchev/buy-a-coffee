@@ -74,6 +74,14 @@
   --color-clay-500: oklch(0.655 0.14 42);
   --color-clay-100: oklch(0.94 0.03 45);
 
+  /*
+   * Espresso. The second dark ground, darker and warmer than pine: the Vending
+   * band and the machine-finder tile, so a page does not open and close on the
+   * same green. On it, gold may be text: gold-500 measures 6.00:1.
+   */
+  --color-espresso-900: oklch(0.19 0.018 58); /* paper on it: 17.15 */
+  --color-espresso-200: oklch(0.845 0.03 72); /* secondary text on espresso-900: 11.43 */
+
   --color-line: oklch(0.885 0.014 80);
   /* Bounds a control, so it must reach 3:1 itself: 3.38 / 3.64 / 3.09. */
   --color-line-strong: oklch(0.62 0.02 75);
@@ -105,6 +113,18 @@
   --color-sys-ese-pod-100: oklch(0.93 0.012 255);
   --color-sys-beans: oklch(0.38 0.065 55);
   --color-sys-beans-100: oklch(0.93 0.03 65);
+
+  /*
+   * Drawing tones. The colours of the shop's own drawings — beans, crema, a cup
+   * ring, a spill — and nothing else: never text, never a control, never a
+   * meaning. That is why they have no rows in the contrast table, like the
+   * brand logos. The stain is used at 14 to 24 % alpha.
+   */
+  --color-illo-crema: oklch(0.68 0.11 64);
+  --color-illo-bean-300: oklch(0.55 0.093 57);
+  --color-illo-bean-500: oklch(0.365 0.068 52);
+  --color-illo-bean-700: oklch(0.23 0.04 51);
+  --color-illo-stain: oklch(0.457 0.082 56);
 
   /* --- Type ------------------------------------------------------------ */
   --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
