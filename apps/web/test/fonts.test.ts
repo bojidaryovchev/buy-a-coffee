@@ -94,8 +94,8 @@ function woff2Axes(bytes: Buffer): Array<{ tag: string; min: number; max: number
 }
 
 describe("Inter", () => {
-  it("loads Latin and Cyrillic only: Latin Extended was an 83 KB preload nothing drew", () => {
-    expect(fontsSource).toMatch(/Inter\(\{\s*subsets: \["latin", "cyrillic"\],/);
+  it("keeps Latin Extended: dropping it was measured and made the first paint later", () => {
+    expect(fontsSource).toMatch(/Inter\(\{\s*subsets: \["latin", "latin-ext", "cyrillic"\],/);
   });
 });
 

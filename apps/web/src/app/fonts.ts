@@ -18,14 +18,14 @@ import localFont from "next/font/local";
  * `test/fonts.test.ts` holds the subsets and what is preloaded.
  */
 /**
- * Inter without its Latin Extended subset: `next/font/google` preloads every
- * subset it is given, and that one was 83 KB on every page for characters no
- * product, brand or page text used (checked 19 October 2026). A character from
- * that range would be drawn by the system sans in `--font-sans`, which is
- * close enough for a rare accent.
+ * Inter keeps its Latin Extended subset, although `next/font/google` preloads
+ * it (83 KB) and no page text used it on 19 October 2026. Dropping it was
+ * measured the same day and made the first paint later, not earlier: about
+ * 100 ms of lab LCP on a listing, alternating runs against the same build
+ * with it (`IMPLEMENTATION_PLAN.md`, K2). Fewer bytes are not always sooner.
  */
 const inter = Inter({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
 });
@@ -94,11 +94,33 @@ const literataLatin = localFont({
   ],
 });
 
+/**
+ * The accent: Literata italic 500 with its optical-size axis, for one phrase
+ * on a page — the hero title's last words (DESIGN.md, "Typography"). Cyrillic
+ * only, because the phrase is („с грижа“). Never preloaded, and
+ * `font-display: optional`: a visit that does not have it within a moment
+ * draws the upright face slanted instead and never swaps, so the accent can
+ * neither delay nor shift anything; every visit after has it from cache.
+ */
+const literataItalic = localFont({
+  src: "./fonts/literata-italic-opsz-500-cyrillic.woff2",
+  weight: "500",
+  style: "italic",
+  display: "optional",
+  variable: "--font-literata-italic",
+  adjustFontFallback: false,
+  preload: false,
+  declarations: [
+    { prop: "unicode-range", value: "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116" },
+  ],
+});
+
 export const fontVariables = [
   inter.variable,
   literataCyrillic.variable,
   literataLatinExt.variable,
   literataLatin.variable,
+  literataItalic.variable,
 ].join(" ");
 
 /** The `<body>` every document shares. */
