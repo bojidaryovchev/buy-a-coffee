@@ -57,11 +57,29 @@ export const orderInquiries = pgTable(
     productName: text("product_name"),
     productSlug: text("product_slug"),
 
+    /** The full name. Optional and free-form before 19 October 2026; since then
+        written from `firstName` and `lastName`, so older readers still have it. */
     customerName: text("customer_name"),
     phone: text("phone").notNull(),
     email: text("email"),
     quantity: integer("quantity").notNull().default(1),
     notes: text("notes"),
+
+    /*
+     * Who the order is for and where it goes, so the call back only confirms
+     * it. Required by the form since 19 October 2026; null on older orders.
+     * `deliveryMethod` is `address` (postcode and address set, office null) or
+     * `office` (a courier's office for the customer to collect from: office
+     * set, postcode and address null). `deliveryColumns` in
+     * `apps/web/src/lib/orders/delivery.ts` keeps to that.
+     */
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    deliveryMethod: text("delivery_method"),
+    deliveryCity: text("delivery_city"),
+    deliveryPostcode: text("delivery_postcode"),
+    deliveryAddress: text("delivery_address"),
+    deliveryOffice: text("delivery_office"),
 
     status: inquiryStatusEnum("status").notNull().default("new"),
     sourcePage: text("source_page"),

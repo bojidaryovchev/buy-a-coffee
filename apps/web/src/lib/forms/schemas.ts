@@ -163,6 +163,89 @@ export const orderInquirySchema = z.object({
   website: honeypotSchema,
 });
 
+/* --- Who the order is for, and where it goes ------------------------------- */
+
+/**
+ * Where an order is delivered: to an address, or to a courier's office for the
+ * customer to collect, which is how most people in Bulgaria take a parcel.
+ */
+export const DELIVERY_METHODS = ["address", "office"] as const;
+export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
+
+export const DELIVERY_MESSAGES = {
+  firstName: "Въведете името си.",
+  lastName: "Въведете фамилията си.",
+  nameLong: "Съкратете до 60 знака.",
+  method: "Изберете дали да доставим до адрес или до офис на куриер.",
+  city: "Въведете населеното място.",
+  cityLong: "Съкратете до 80 знака.",
+  postcode: "Въведете пощенския код: 4 цифри, например 4000.",
+  address: "Въведете улица и номер, или квартал, блок, вход и апартамент.",
+  addressLong: "Съкратете адреса до 200 знака.",
+  office: "Напишете кой офис, например „Еконт, Пловдив Център“.",
+  officeLong: "Съкратете до 200 знака.",
+} as const;
+
+/** A Bulgarian postcode: four digits. */
+const POSTCODE = /^\d{4}$/;
+
+/**
+ * Text a person must type. `default("")` makes a field missing from a post read
+ * as empty, so it fails with this message rather than zod's English one.
+ */
+const requiredText = (missing: string, max: number, long: string) =>
+  z.string().trim().min(1, missing).max(max, long).default("");
+
+const isDeliveryMethod = (value: string): value is DeliveryMethod =>
+  (DELIVERY_METHODS as readonly string[]).includes(value);
+
+/**
+ * Everything the courier needs, so the call only confirms the order and never
+ * has to ask for a detail.
+ *
+ * The fields of both delivery methods are always in the shape; which of them
+ * are required depends on the method, so `checkDelivery` decides that. A field
+ * of the method not chosen may hold whatever was typed before switching, and is
+ * dropped when the order is stored (`deliveryColumns` in `lib/orders/delivery`).
+ *
+ * Nothing here can fail with a type error, only with a message. A type error
+ * would stop zod before the object-level check runs, and a person pressing the
+ * button on an empty form must see every missing field at once.
+ */
+export const deliveryShape = {
+  firstName: requiredText(DELIVERY_MESSAGES.firstName, 60, DELIVERY_MESSAGES.nameLong),
+  lastName: requiredText(DELIVERY_MESSAGES.lastName, 60, DELIVERY_MESSAGES.nameLong),
+  deliveryMethod: z.string().trim().default("").refine(isDeliveryMethod, DELIVERY_MESSAGES.method),
+  deliveryCity: requiredText(DELIVERY_MESSAGES.city, 80, DELIVERY_MESSAGES.cityLong),
+  deliveryPostcode: z.string().trim().default(""),
+  deliveryAddress: z.string().trim().max(200, DELIVERY_MESSAGES.addressLong).default(""),
+  deliveryOffice: z.string().trim().max(200, DELIVERY_MESSAGES.officeLong).default(""),
+};
+
+/** The fields the chosen method requires, each reported under its own input. */
+export function checkDelivery(
+  value: {
+    readonly deliveryMethod: string;
+    readonly deliveryPostcode: string;
+    readonly deliveryAddress: string;
+    readonly deliveryOffice: string;
+  },
+  context: z.RefinementCtx,
+): void {
+  const missing = (field: string, message: string) =>
+    context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+  if (value.deliveryMethod === "address") {
+    if (!POSTCODE.test(value.deliveryPostcode))
+      missing("deliveryPostcode", DELIVERY_MESSAGES.postcode);
+    if (value.deliveryAddress === "") missing("deliveryAddress", DELIVERY_MESSAGES.address);
+  } else if (value.deliveryMethod === "office") {
+    if (value.deliveryOffice === "") missing("deliveryOffice", DELIVERY_MESSAGES.office);
+  }
+}
+
+/** Who and where, with the fields the chosen method requires. */
+export const deliverySchema = z.object(deliveryShape).superRefine(checkDelivery);
+
 export const CART_MESSAGES = {
   empty: "Количката е празна. Добавете продукт и изпратете отново.",
   changed: "Количката се промени в друг прозорец. Презаредете страницата и изпратете отново.",
@@ -209,19 +292,25 @@ export const cartLinesSchema = z.preprocess(
 );
 
 /**
- * The cart's order form: the lines, and the same contact fields as the quick
- * order with the same rules — a phone number is all that is required.
+ * The order form: the cart's lines, and who the order is for and where it
+ * goes. A name, a phone number and a delivery are required, so the call back
+ * only confirms the order; an email and a note stay optional.
  */
-export const cartOrderSchema = z.object({
-  lines: cartLinesSchema,
-  phone: phoneSchema,
-  customerName: orderInquirySchema.shape.customerName,
-  email: optionalEmailSchema,
-  notes: orderInquirySchema.shape.notes,
-  /** Unticked by default. Only means anything when an email was given. */
-  newsletterConsent: checkboxSchema,
-  website: honeypotSchema,
-});
+export const cartOrderSchema = z
+  .object({
+    lines: cartLinesSchema,
+    phone: phoneSchema,
+    email: optionalEmailSchema,
+    notes: orderInquirySchema.shape.notes,
+    /** Unticked by default. Only means anything when an email was given. */
+    newsletterConsent: checkboxSchema,
+    website: honeypotSchema,
+  })
+  /* The delivery is checked as its own object, beside the rest rather than
+     inside it. An object-level check is skipped once any field has aborted,
+     and a wrong phone number aborts (its transform does); checked apart,
+     the postcode and the street are reported on the same press as the phone. */
+  .and(deliverySchema);
 
 export const newsletterSchema = z.object({
   email: emailSchema,

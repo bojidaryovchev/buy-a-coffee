@@ -24,12 +24,15 @@ import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
 
 /**
- * The cart's order form: a phone number for everything in the cart.
+ * The order form: who the order is for, how to reach them and where it goes,
+ * for everything in the cart.
  *
- * The quick order's fields and rules (`QuickOrderForm`), with the lines in
- * place of the one product: a hidden field holding the cart as JSON, product
- * ids and quantities only. The schema is the action's (`cartOrderSchema`), so
- * the browser and the server refuse the same things in the same words.
+ * A name, a phone number and a delivery (to an address, or to a courier's
+ * office) are required, so the call back only confirms the order and never has
+ * to ask for a detail. An email and a note stay optional, behind a disclosure.
+ * The cart travels in a hidden field as JSON, product ids and quantities only.
+ * The schema is the action's (`cartOrderSchema`), so the browser and the server
+ * refuse the same things in the same words.
  *
  * Unlike the quick order this form needs JavaScript — the cart it sends is in
  * the browser — and it is only drawn on the cart page, which says so when the
@@ -46,7 +49,22 @@ const fieldErrorsOf = (state: FormState) =>
   state.status === "error" ? state.fieldErrors : undefined;
 
 /** The fields inside the disclosure. */
-const OPTIONAL_FIELDS = ["customerName", "email", "notes"] as const;
+const OPTIONAL_FIELDS = ["email", "notes"] as const;
+
+/** The two ways to receive an order, in the order they are offered. */
+const DELIVERY_CHOICES = [
+  { value: "address", label: "До адрес" },
+  { value: "office", label: "До офис на куриер" },
+] as const;
+
+/** The mark after a required field's label; the field itself carries `required`. */
+function Required() {
+  return (
+    <span aria-hidden="true" className="text-critical">
+      *
+    </span>
+  );
+}
 
 export interface CartOrderLine {
   readonly productId: string;
@@ -69,7 +87,7 @@ export function CartOrderForm({
   const {
     state,
     formAction,
-    form: { register, setValue },
+    form: { register, setValue, watch },
     formProps,
     pending,
     errorOf,
@@ -82,8 +100,14 @@ export function CartOrderForm({
     fieldErrorsOf,
     defaultValuesOf: () => ({
       lines: linesJson,
+      firstName: "",
+      lastName: "",
       phone: "",
-      customerName: "",
+      deliveryMethod: "address",
+      deliveryCity: "",
+      deliveryPostcode: "",
+      deliveryAddress: "",
+      deliveryOffice: "",
       email: "",
       notes: "",
       newsletterConsent: false,
@@ -91,8 +115,14 @@ export function CartOrderForm({
   });
   const locale = useLocale();
   const analytics = useAnalytics();
+  const firstNameId = useId();
+  const lastNameId = useId();
   const phoneId = useId();
-  const nameId = useId();
+  const methodId = useId();
+  const cityId = useId();
+  const postcodeId = useId();
+  const addressId = useId();
+  const officeId = useId();
   const emailId = useId();
   const notesId = useId();
 
@@ -101,6 +131,10 @@ export function CartOrderForm({
   useEffect(() => {
     setValue("lines", linesJson);
   }, [linesJson, setValue]);
+
+  /* Which fields the delivery needs follows the choice; the schema requires the
+     same ones. */
+  const toOffice = watch("deliveryMethod") === "office";
 
   const units = lines.reduce((sum, line) => sum + line.quantity, 0);
   /* Each answer from the server is acted on once, however often the lines
@@ -142,17 +176,49 @@ export function CartOrderForm({
 
       <h2 className="font-display text-lg font-semibold text-ink-900">Изпратете заявката</h2>
       <p className="mt-1 text-sm text-ink-500">
-        Оставете номер и ще ви се обадим, за да потвърдим наличността, крайната сума и доставката.
-        Без регистрация и без плащане на сайта.
+        Попълнете кой поръчва и къде да доставим. Ще ви се обадим само за да потвърдим наличността,
+        крайната сума и доставката. Без регистрация и без плащане на сайта.
       </p>
 
       <div className="mt-4 grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor={firstNameId} className={LABEL_CLASS}>
+              Име <Required />
+            </label>
+            <input
+              id={firstNameId}
+              {...register("firstName")}
+              type="text"
+              required
+              autoComplete="given-name"
+              maxLength={60}
+              {...ariaFor("firstName", firstNameId)}
+              className={INPUT_CLASS}
+            />
+            <FieldError id={firstNameId} message={errorOf("firstName")} />
+          </div>
+          <div>
+            <label htmlFor={lastNameId} className={LABEL_CLASS}>
+              Фамилия <Required />
+            </label>
+            <input
+              id={lastNameId}
+              {...register("lastName")}
+              type="text"
+              required
+              autoComplete="family-name"
+              maxLength={60}
+              {...ariaFor("lastName", lastNameId)}
+              className={INPUT_CLASS}
+            />
+            <FieldError id={lastNameId} message={errorOf("lastName")} />
+          </div>
+        </div>
+
         <div>
           <label htmlFor={phoneId} className={LABEL_CLASS}>
-            Телефонен номер{" "}
-            <span aria-hidden="true" className="text-critical">
-              *
-            </span>
+            Телефонен номер <Required />
           </label>
           <input
             id={phoneId}
@@ -167,6 +233,111 @@ export function CartOrderForm({
           />
           <FieldError id={phoneId} message={errorOf("phone")} />
         </div>
+
+        <fieldset>
+          <legend className={LABEL_CLASS}>
+            Доставка <Required />
+          </legend>
+          <div className="flex flex-col sm:flex-row sm:gap-6">
+            {DELIVERY_CHOICES.map(({ value, label }) => (
+              <label
+                key={value}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-ink-900"
+              >
+                <input
+                  type="radio"
+                  {...register("deliveryMethod")}
+                  value={value}
+                  {...ariaFor("deliveryMethod", methodId)}
+                  className="size-5 accent-pine-900"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <FieldError id={methodId} message={errorOf("deliveryMethod")} />
+        </fieldset>
+
+        <div className={toOffice ? "grid gap-3" : "grid gap-3 sm:grid-cols-[9rem_1fr]"}>
+          {!toOffice && (
+            <div>
+              <label htmlFor={postcodeId} className={LABEL_CLASS}>
+                Пощенски код <Required />
+              </label>
+              <input
+                id={postcodeId}
+                {...register("deliveryPostcode")}
+                type="text"
+                required
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={4}
+                placeholder="Напр. 4000"
+                {...ariaFor("deliveryPostcode", postcodeId)}
+                className={INPUT_CLASS}
+              />
+              <FieldError id={postcodeId} message={errorOf("deliveryPostcode")} />
+            </div>
+          )}
+          <div>
+            <label htmlFor={cityId} className={LABEL_CLASS}>
+              Населено място <Required />
+            </label>
+            <input
+              id={cityId}
+              {...register("deliveryCity")}
+              type="text"
+              required
+              autoComplete={toOffice ? "off" : "address-level2"}
+              maxLength={80}
+              placeholder="Напр. Пловдив"
+              {...ariaFor("deliveryCity", cityId)}
+              className={INPUT_CLASS}
+            />
+            <FieldError id={cityId} message={errorOf("deliveryCity")} />
+          </div>
+        </div>
+
+        {toOffice ? (
+          <div>
+            <label htmlFor={officeId} className={LABEL_CLASS}>
+              Офис на куриер <Required />
+            </label>
+            <input
+              id={officeId}
+              {...register("deliveryOffice")}
+              type="text"
+              required
+              autoComplete="off"
+              maxLength={200}
+              placeholder="Напр. Еконт, Пловдив Център"
+              {...ariaFor("deliveryOffice", officeId, `${officeId}-helper`)}
+              className={INPUT_CLASS}
+            />
+            <p id={`${officeId}-helper`} className="mt-1 text-xs text-ink-500">
+              Куриерът и името или адресът на офиса, от който ще вземете пратката.
+            </p>
+            <FieldError id={officeId} message={errorOf("deliveryOffice")} />
+          </div>
+        ) : (
+          <div>
+            <label htmlFor={addressId} className={LABEL_CLASS}>
+              Адрес <Required />
+            </label>
+            <input
+              id={addressId}
+              {...register("deliveryAddress")}
+              type="text"
+              required
+              autoComplete="street-address"
+              maxLength={200}
+              placeholder="Напр. ул. Иван Вазов 12, ет. 3, ап. 7"
+              {...ariaFor("deliveryAddress", addressId)}
+              className={INPUT_CLASS}
+            />
+            <FieldError id={addressId} message={errorOf("deliveryAddress")} />
+          </div>
+        )}
 
         <Button
           type="submit"
@@ -193,25 +364,10 @@ export function CartOrderForm({
             <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span>
-            Добавете име, имейл или бележка <span className="whitespace-nowrap">(по избор)</span>
+            Добавете имейл или бележка <span className="whitespace-nowrap">(по избор)</span>
           </span>
         </summary>
         <div className="mt-1 grid gap-3">
-          <div>
-            <label htmlFor={nameId} className={LABEL_CLASS}>
-              Вашето име
-            </label>
-            <input
-              id={nameId}
-              {...register("customerName")}
-              type="text"
-              autoComplete="name"
-              maxLength={120}
-              {...ariaFor("customerName", nameId)}
-              className={INPUT_COMPACT_CLASS}
-            />
-            <FieldError id={nameId} message={errorOf("customerName")} />
-          </div>
           <div>
             <label htmlFor={emailId} className={LABEL_CLASS}>
               Имейл
@@ -258,7 +414,7 @@ export function CartOrderForm({
       </p>
 
       <p className="mt-1 text-xs text-ink-500">
-        Използваме номера ви само за да се свържем с вас за тази поръчка. Вижте нашата{" "}
+        Използваме данните ви само за тази поръчка: за да ви се обадим и да я доставим. Вижте нашата{" "}
         <a href={href(locale, routes.privacy)} className="underline underline-offset-2">
           политика за поверителност
         </a>
