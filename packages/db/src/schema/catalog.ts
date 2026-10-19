@@ -14,7 +14,13 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { availabilityEnum, entityStatusEnum, imageStatusEnum, productStatusEnum } from "./enums.ts";
+import {
+  availabilityEnum,
+  cutoutStatusEnum,
+  entityStatusEnum,
+  imageStatusEnum,
+  productStatusEnum,
+} from "./enums.ts";
 import { sourceSites } from "./source.ts";
 
 const now = sql`now()`;
@@ -408,6 +414,54 @@ export const productImages = pgTable(
     index("product_images_product_ordinal_idx").on(table.productId, table.ordinal),
     index("product_images_object_key_idx").on(table.objectKey),
   ],
+);
+
+/** What the cut-out tool's shape check did to a mask (`tools/cutout`). */
+export interface CutoutShape {
+  /** Share of the pack's outline that was enclosed holes, filled. */
+  readonly holes: number;
+  /** Each gap that reached deep into the pack and was filled back. */
+  readonly dents: ReadonlyArray<{ readonly share: number; readonly depth: number }>;
+  /** How nearly the filled pack fills its bounding box; null if nothing was dented. */
+  readonly box: number | null;
+}
+
+/**
+ * A packshot cut out to transparency — DESIGN.md, "Imagery"; Phase K, K1.
+ *
+ * Keyed by the photo's content hash, not by product image: objects are already
+ * de-duplicated by that hash, so a photo two products share is cut once, and a
+ * photo that changes at the source gets a new hash and a new cut-out. The PNG
+ * is content-addressed under `cutouts/` like the photos under `catalog/`.
+ *
+ * Written by `pnpm images:cutout`; `status` is decided there (`auto` when the
+ * two models agreed and nothing was filled, `pending` otherwise) and by the
+ * owner on /admin/snimki. A `rejected` row is what stops the next run from
+ * making the same cut-out again.
+ */
+export const imageCutouts = pgTable(
+  "image_cutouts",
+  {
+    sourceContentHash: text("source_content_hash").primaryKey(),
+    objectKey: text("object_key"),
+    width: integer("width"),
+    height: integer("height"),
+    byteSize: integer("byte_size"),
+    /** Share of pixels on which the two models agreed, 0 to 1. */
+    agreement: numeric("agreement", { precision: 5, scale: 4, mode: "number" }),
+    shape: jsonb("shape").$type<CutoutShape>(),
+    status: cutoutStatusEnum("status").notNull(),
+    /** The models and tool version that made it, for a later re-run. */
+    madeBy: text("made_by"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    /** "owner" when a person decided; null when the tool did. */
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(now),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(now),
+  },
+  (table) => [index("image_cutouts_status_idx").on(table.status)],
 );
 
 export const brandsRelations = relations(brands, ({ many }) => ({

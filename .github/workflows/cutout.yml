@@ -1,0 +1,177 @@
+# Packshot cut-outs, after every sync (Phase K, K1; DESIGN.md, "Imagery").
+#
+# Runs `pnpm images:cutout` (apps/scraper/src/commands-cutout.ts): every active
+# product photo without a cut-out is cut out to transparency by
+# tools/cutout/cutout.py (two BiRefNet models through rembg, combined, and a
+# shape check), stored content-addressed under cutouts/ in the image store,
+# and recorded in image_cutouts. A cut-out the two models agreed on goes live
+# by itself; the rest wait for the owner on /admin/snimki.
+#
+# The Python tool never sees a secret: the Node command runs it with only the
+# environment it needs (cutoutEnvironment), and does every write itself.
+#
+# LOGS ARE PUBLIC (see sync.yml). The job prints content hashes and counts
+# only. Never add a step that echoes the environment, runs with `set -x`, or
+# prints a secret.
+#
+# Configuration (names only, the same as the sync's):
+#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN
+#   variables  STORAGE_DRIVER, STORAGE_PUBLIC_BASE_URL,
+#              CUTOUT_LIMIT (photos per run, default 60; the first backfill
+#              of the whole catalog takes a few runs)
+
+name: Packshot cut-outs
+
+on:
+  workflow_run:
+    workflows: ["Catalog sync"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Photos this run (blank for the default)"
+        type: string
+        required: false
+        default: ""
+      dry_run:
+        description: "List what would be cut, and stop"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Its own group: a cut-out run writes only image_cutouts and new objects under
+# cutouts/, which the sync never touches.
+concurrency:
+  group: catalog-cutout
+  cancel-in-progress: false
+
+jobs:
+  cutout:
+    name: Cut out packshots
+    if: >-
+      !github.event.repository.fork &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Secrets are given only to the step that uses them, never to the job: the
+    # install steps run third-party install scripts.
+    env:
+      NODE_VERSION: "22"
+      PYTHON_VERSION: "3.13"
+      U2NET_HOME: ${{ github.workspace }}/.u2net
+    steps:
+      - name: Check configuration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
+          STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
+          LIMIT: ${{ inputs.limit || vars.CUTOUT_LIMIT }}
+        run: |
+          missing=()
+          [ -n "$DATABASE_URL" ]            || missing+=("secret DATABASE_URL")
+          [ -n "$BLOB_READ_WRITE_TOKEN" ]   || missing+=("secret BLOB_READ_WRITE_TOKEN")
+          [ -n "$STORAGE_DRIVER" ]          || missing+=("variable STORAGE_DRIVER")
+          [ -n "$STORAGE_PUBLIC_BASE_URL" ] || missing+=("variable STORAGE_PUBLIC_BASE_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Cut-outs are not configured::Missing ${missing[*]}."
+            exit 1
+          fi
+          if [ -n "$LIMIT" ] && ! [[ "$LIMIT" =~ ^[1-9][0-9]{0,3}$ ]]; then
+            echo "::error title=Bad input::limit must be a positive whole number."
+            exit 1
+          fi
+          node -e '
+            try {
+              const u = new URL(process.env.DATABASE_URL);
+              for (const v of [decodeURIComponent(u.password), u.hostname]) {
+                if (v) console.log("::add-mask::" + v);
+              }
+            } catch {
+              console.log("::error title=Cut-outs are not configured::DATABASE_URL is not a valid URL.");
+              process.exit(1);
+            }
+          '
+
+      - uses: actions/checkout@v4
+        with:
+          # No GitHub token left in .git/config for anything later to find.
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: tools/cutout/requirements.txt
+
+      # About 1.2 GB of models, fetched once and kept between runs.
+      - name: Restore the models
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.U2NET_HOME }}
+          key: cutout-models-birefnet-general-lite-birefnet-general-v1
+
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          python -m pip install --disable-pip-version-check -r tools/cutout/requirements.txt
+
+      - name: Test the tool
+        working-directory: tools/cutout
+        run: python -m unittest -v test_cutout.py
+
+      - name: Cut out
+        id: cutout
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
+          STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
+          CUTOUT_PYTHON: python
+          LIMIT: ${{ inputs.limit || vars.CUTOUT_LIMIT || '60' }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--limit "$LIMIT")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          set +e
+          pnpm images:cutout "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/cutout.out"
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+
+      - name: Job summary
+        if: always() && steps.cutout.outcome != 'skipped'
+        run: |
+          node - <<'EOF'
+          const fs = require("node:fs");
+          const file = `${process.env.RUNNER_TEMP}/cutout.out`;
+          const out = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+          let result = null, block = null;
+          for (const line of out.split(/\r?\n/)) {
+            if (line === "{") block = [line];
+            else if (block && line === "}") {
+              block.push(line);
+              try { const parsed = JSON.parse(block.join("\n")); if (parsed?.command === "images:cutout") result = parsed; } catch {}
+              block = null;
+            } else if (block) block.push(line);
+          }
+          const lines = ["### Packshot cut-outs", ""];
+          if (result) {
+            lines.push("| Photos | Live (auto) | Waiting on /admin/snimki | Failed, retried next run |", "| --- | --- | --- | --- |");
+            lines.push(`| ${result.candidates} | ${result.auto} | ${result.pending} | ${result.failed} |`);
+          } else {
+            lines.push("No structured result was printed. See the log of the previous step.");
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          EOF

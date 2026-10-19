@@ -85,6 +85,13 @@
       "when": 1792431304035,
       "tag": "0011_order_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792439558565,
+      "tag": "0012_image_cutouts",
+      "breakpoints": true
     }
   ]
 }

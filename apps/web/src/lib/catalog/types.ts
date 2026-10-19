@@ -33,11 +33,26 @@ export interface UnitPriceView {
   readonly formatted: string;
 }
 
+/**
+ * A packshot cut out to transparency and live in the shop (DESIGN.md,
+ * "Imagery"; `image_cutouts` with status `auto` or `approved`).
+ */
+export interface CutoutView {
+  readonly url: string;
+  readonly width: number | null;
+  readonly height: number | null;
+}
+
 export interface ProductImageView {
   readonly url: string;
   readonly alt: string;
   readonly width: number | null;
   readonly height: number | null;
+  /**
+   * The same photo cut out, when one is live. A surface that stands packs in a
+   * `PackWell` uses it; everything else keeps `url`, the photo as it was taken.
+   */
+  readonly cutout?: CutoutView | null;
 }
 
 export interface ProductCardView {

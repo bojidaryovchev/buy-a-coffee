@@ -1,0 +1,8 @@
+# The packshot cut-out tool (tools/cutout/cutout.py), Python 3.13.
+# Pinned to the versions it was measured with on 19 October 2026.
+rembg[cpu]==2.0.85
+onnxruntime==1.31.0
+numpy==2.5.4
+pillow==12.3.0
+scipy==1.18.1
+scikit-image==0.26.0

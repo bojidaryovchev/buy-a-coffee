@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { productImages } from "@catalog/db/schema";
+import { and, eq, isNotNull, ne, sql } from "drizzle-orm";
+import { imageCutouts, productImages } from "@catalog/db/schema";
 import { mapWithConcurrency } from "@catalog/shared";
 import { type StorageDriver, createStorageDriver } from "@catalog/scraper-core";
 import type { Runtime } from "./runtime.ts";
@@ -38,14 +38,23 @@ interface ReferencedObject {
   readonly rows: number;
 }
 
-/** Distinct object keys of active rows, plus the number of active rows with no key. */
+/**
+ * Distinct object keys of active rows, plus the number of active rows with no
+ * key. Cut-outs count too (`image_cutouts`, `cutouts/…`), except a rejected
+ * one, which nothing shows.
+ */
 async function loadReferenced(
   db: ImagesContext["db"],
 ): Promise<{ objects: ReferencedObject[]; withoutKey: number }> {
-  const rows = await db
+  const photos = await db
     .select({ objectKey: productImages.objectKey, mimeType: productImages.mimeType })
     .from(productImages)
     .where(eq(productImages.status, "active"));
+  const cutouts = await db
+    .select({ objectKey: imageCutouts.objectKey, mimeType: sql<string>`'image/png'` })
+    .from(imageCutouts)
+    .where(and(isNotNull(imageCutouts.objectKey), ne(imageCutouts.status, "rejected")));
+  const rows = [...photos, ...cutouts];
 
   const byKey = new Map<string, { mimeType: string | null; rows: number }>();
   let withoutKey = 0;

@@ -946,6 +946,29 @@ The sync has three storage drivers (`packages/scraper-core/src/storage/driver.ts
 is `pnpm images:push --from <driver> --to <driver>` (plan, then `--apply`),
 checked by `pnpm images:verify --http`.
 
+### Cut-outs
+
+Each active photo is also cut out to transparency (Phase K; DESIGN.md,
+"Imagery"). `pnpm images:cutout`
+([`commands-cutout.ts`](../apps/scraper/src/commands-cutout.ts)) reads the
+photos that have no settled cut-out from the store, hands them in a temporary
+directory to [`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (two
+background-removal models through `rembg`, combined, then a shape check), and
+stores each PNG content-addressed under `cutouts/` with a row in
+`image_cutouts`, keyed by the photo's content hash. The Python process gets no
+secret: only the environment it needs to run and find its models
+(`U2NET_HOME`). `.github/workflows/cutout.yml` runs it after each scheduled
+sync with the models cached; locally it needs a Python with
+`tools/cutout/requirements.txt` (`--python` or `CUTOUT_PYTHON`).
+
+A row's `status` decides whether the shop shows it: `auto` and `approved` are
+live, `pending` waits on `/admin/snimki`, `rejected` keeps the white well for
+good, and `failed` is retried up to three times. Every read of a pack image
+joins the live cut-out beside the photo (`ProductImageView.cutout`); a surface
+uses it by drawing the pack through
+[`PackWell`](../apps/web/src/components/catalog/pack-well.tsx), and everything
+else keeps the photo. `images:push` and `images:verify` include the cut-outs.
+
 ### Brand logos
 
 A brand's own logo is drawn wherever a brand is named as a brand: the brands

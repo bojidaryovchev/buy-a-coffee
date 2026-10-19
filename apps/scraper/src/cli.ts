@@ -8,6 +8,7 @@ import {
   commandSync,
 } from "./commands.ts";
 import { runImagesCommand } from "./commands-images.ts";
+import { commandCutout } from "./commands-cutout.ts";
 import { CATALOG_HELP, announceSyncChanges, runCatalogCommand } from "./commands-catalog.ts";
 import { createRuntime } from "./runtime.ts";
 
@@ -114,6 +115,7 @@ Commands:
   images:gc          Report (and optionally delete) unreferenced mirrored images
   images:push        Copy every referenced image from one store to another
   images:verify      Check that every referenced image is in the configured store
+  images:cutout      Cut packshots out to transparency (tools/cutout, Python)
   status             Print catalog counts
   help               Show this message
 
@@ -146,6 +148,12 @@ images:push options:
 
 images:verify options:
   --http                   Also fetch each image's public URL
+
+images:cutout options:
+  --limit <n>              Cut at most N photos (primary photos first)
+  --python <path>          Python with tools/cutout/requirements.txt (default:
+                           CUTOUT_PYTHON, then python); models cache in U2NET_HOME
+  --dry-run                List what would be cut, and stop
 
 A run that writes (sync, discovery or reference without --dry-run; catalog:enrich
 and catalog:link with --apply) refuses to start until CRAWL_USER_AGENT names a
@@ -294,6 +302,20 @@ export async function main(argv: readonly string[]): Promise<number> {
       case "images:push":
       case "images:verify":
         return await runImagesCommand(command, runtime, flags);
+
+      case "images:cutout": {
+        const limit = num(flags, "limit");
+        const python = str(flags, "python");
+        const result = await commandCutout(runtime, {
+          ...(limit !== undefined ? { limit } : {}),
+          ...(python !== undefined ? { python } : {}),
+          dryRun: bool(flags, "dry-run"),
+        });
+        printJson({ command, ...result });
+        // A photo the tool could not cut is retried by the next run; the
+        // run itself still did its job.
+        return EXIT.ok;
+      }
 
       case "status": {
         printJson({ command, ...(await commandStatus(runtime)) });
