@@ -41,8 +41,15 @@ const MAX_AGE_SECONDS = 60 * 60 * 12;
  */
 const secret = (): string => process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
 
-/** Shorter than this, a password is not allowed to guard a deployed panel. */
-export const MIN_ADMIN_PASSWORD_LENGTH = 12;
+/**
+ * Shorter than this, a password is not allowed to guard a deployed panel.
+ *
+ * Six, the owner's decision (19 October 2026): the passphrase is a word they
+ * remember. What stands against guessing it is the attempt limit on sign-in
+ * (`lib/rate-limit.ts`), not its length. The floor still refuses a password of
+ * a few characters.
+ */
+export const MIN_ADMIN_PASSWORD_LENGTH = 6;
 
 type Environment = Readonly<Record<string, string | undefined>>;
 

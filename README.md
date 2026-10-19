@@ -118,7 +118,7 @@ through a Resend webhook and replies **as the shop**, and a sync page
 One password (`ADMIN_PASSWORD`), a separate session secret
 (`ADMIN_SESSION_SECRET`) and a signed cookie. **Unset, the panel is disabled
 rather than defaulted.** On a deployment it also stays disabled while the
-password is shorter than 12 characters or the session secret is missing or
+password is shorter than 6 characters or the session secret is missing or
 equal to the password; the disabled screen names the reason, never a value.
 Sign-in is attempt-limited through the database and refuses when it cannot
 count. See [`docs/architecture.md`](docs/architecture.md#the-admin-panel).

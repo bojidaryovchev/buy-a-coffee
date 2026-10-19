@@ -543,7 +543,7 @@ This is the phase the project exists for. B1–B3 are the critical path.
   - _Done when_ repeated wrong passwords lock out and a correct one afterwards
     still waits out the backoff.
   - **Found — this changes the launch order.** On a deployment the panel now
-    stays disabled unless the password is at least 12 characters and a
+    stays disabled unless the password is at least 6 characters and a
     separate session secret is set, and sign-in is refused until the rate-limit
     table exists. So the password is rotated and the migration applied
     **before** the code ships (H3, H4), not after.
@@ -809,7 +809,7 @@ passes.
       declare `DATABASE_URL` once; the tooling now refuses a repeated key. Then
       `pnpm env:push` (read the plan, then `--apply`): image base URL,
       `RATE_LIMIT_SALT`, `CRON_SECRET`, a separate session secret, an admin
-      passphrase of at least 12 characters, corrected targets. Remove the two
+      password of at least 6 characters, corrected targets. Remove the two
       variables nothing reads. **This must precede H5:** with a short password
       or no separate session secret, the deployed panel disables itself.
       **Done 18 October**, with two **Found**: `env:push` wrote secrets as

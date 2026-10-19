@@ -21,7 +21,7 @@ than exposing anything — but the shop then has no panel on launch day.
 
 - **The admin password and the session secret before the code.** On a
   deployment the new code disables the panel unless `ADMIN_PASSWORD` has at
-  least 12 characters and `ADMIN_SESSION_SECRET` is set and different from it.
+  least 6 characters and `ADMIN_SESSION_SECRET` is set and different from it.
   Set both in the deployment environment (`pnpm env:push`, read the plan, then
   `--apply`) before the code that enforces it is deployed. The disabled screen
   names which condition failed.

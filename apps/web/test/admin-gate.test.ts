@@ -78,16 +78,16 @@ describe("adminGate", () => {
     });
   });
 
-  it("refuses a password shorter than 12 characters in production", async () => {
+  it("refuses a password shorter than 6 characters in production", async () => {
     const { adminGate, MIN_ADMIN_PASSWORD_LENGTH } = await loadAuth();
-    expect(MIN_ADMIN_PASSWORD_LENGTH).toBe(12);
+    expect(MIN_ADMIN_PASSWORD_LENGTH).toBe(6);
 
     const production = { VERCEL_ENV: "production", ADMIN_SESSION_SECRET: SECRET };
-    expect(adminGate({ ...production, ADMIN_PASSWORD: "elevenchars" })).toEqual({
+    expect(adminGate({ ...production, ADMIN_PASSWORD: "parol" })).toEqual({
       enabled: false,
       reason: "short_password",
     });
-    expect(adminGate({ ...production, ADMIN_PASSWORD: "twelve-chars" })).toEqual({ enabled: true });
+    expect(adminGate({ ...production, ADMIN_PASSWORD: "parola" })).toEqual({ enabled: true });
   });
 
   it("refuses production without a separate session secret", async () => {
@@ -123,7 +123,7 @@ describe("adminGate", () => {
 describe("a refused configuration", () => {
   it("logs one clear line saying why, once per process, without the values", async () => {
     vi.stubEnv("VERCEL_ENV", "production");
-    vi.stubEnv("ADMIN_PASSWORD", "tooshort");
+    vi.stubEnv("ADMIN_PASSWORD", "qx7zv");
     vi.stubEnv("ADMIN_SESSION_SECRET", SECRET);
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     const { isAdminConfigured } = await loadAuth();
@@ -136,8 +136,8 @@ describe("a refused configuration", () => {
     const line = String(logged.mock.calls[0]?.[0]);
     expect(JSON.parse(line)).toMatchObject({ msg: "admin.disabled", reason: "short_password" });
     expect(line).toContain("DISABLED");
-    expect(line).toContain("ADMIN_PASSWORD is shorter than 12 characters");
-    expect(line).not.toContain("tooshort");
+    expect(line).toContain("ADMIN_PASSWORD is shorter than 6 characters");
+    expect(line).not.toContain("qx7zv");
     expect(line).not.toContain(SECRET);
   });
 

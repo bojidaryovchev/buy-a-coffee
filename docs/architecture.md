@@ -714,7 +714,7 @@ directly.
 **The production gate** ([`lib/auth.ts`](../apps/web/src/lib/auth.ts)). On a
 deployment — `VERCEL_ENV` is `production` or `preview`, or, off Vercel,
 `NEXT_PUBLIC_ENVIRONMENT` is `production` — the panel also stays disabled unless
-the password is at least 12 characters and `ADMIN_SESSION_SECRET` is set and
+the password is at least 6 characters and `ADMIN_SESSION_SECRET` is set and
 different from it. The disabled screen names which of those is wrong, never a
 value.
 

@@ -158,11 +158,12 @@ export const vars = [
     summary: "Enables the admin panel. Unset means the panel is disabled, not defaulted.",
     // An error in production, where the panel sits on a public URL and a short
     // password is a guessable one; only a warning locally, where it is yours.
+    // 6 is MIN_ADMIN_PASSWORD_LENGTH in src/lib/auth.ts, the owner's choice.
     validate: (v, { isProductionish } = {}) =>
-      v.length < 12
+      v.length < 6
         ? {
             level: isProductionish ? "error" : "warning",
-            message: `Only ${v.length} characters, on a public URL. Use a passphrase of at least 12.`,
+            message: `Only ${v.length} characters, on a public URL. Use at least 6.`,
           }
         : null,
     missing: { level: "note", message: "Admin panel disabled - the safe default." },

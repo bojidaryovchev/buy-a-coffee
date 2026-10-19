@@ -776,11 +776,13 @@ before its closing date was recorded is measured from its creation — earlier
 than its closing, so it can only go a little before its due date, never after.
 
 **The deployed admin panel refuses a weak configuration rather than accepting
-it.** On a deployment the panel is disabled unless the password has at least 12
+it.** On a deployment the panel is disabled unless the password has at least 6
 characters and a separate session secret is set. A cookie signed with the
 password itself is an offline oracle for guessing it, and the password could not
 be rotated without signing everybody out. A panel that silently accepted that
-would be the default nobody revisits.
+would be the default nobody revisits. The floor was 12 until 19 October 2026;
+the owner set it to 6 so the password can be a word they remember, leaving the
+attempt limit on sign-in as the defence against guessing.
 
 ## Legal and operational boundaries
 
