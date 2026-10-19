@@ -25,6 +25,7 @@ public pages. They drift — re-measure before relying on one.
 - [Phase H — Hook-up and launch](#phase-h--hook-up-and-launch)
 - [Phase I — After launch](#phase-i--after-launch)
 - [Phase J — Bulgarian URLs, brand logos and search demand](#phase-j--bulgarian-urls-brand-logos-and-search-demand)
+- [Phase K — Visual direction: the counter, lit](#phase-k--visual-direction-the-counter-lit)
 - [Order and dependencies](#order-and-dependencies)
 - [Not doing](#not-doing)
 - [Appendix: what changed at the source](#appendix-what-changed-at-the-source)
@@ -1029,6 +1030,103 @@ content only.
 **For the runbook.** J4 adds a migration, `0007`, which goes out with H3's,
 and the address move, which is written into H6. The pack-size rule needs no
 step: the first sync that runs this code corrects the record.
+
+## Phase K — Visual direction: the counter, lit
+
+Added on 19 October 2026, after launch. The owner asked for a more premium
+shop: the look of coffee itself and some playful motion, without giving up any
+of the performance budgets. A design review found the foundations sound and
+three things reading as cheap: packshots on their own grey photo grounds inside
+white wells, a bordered box around nearly everything, and no material — no
+light, texture or depth. Like A–G this is code and content. It lands on `k*/…`
+branches and reaches production only after the owner has reviewed a preview.
+
+Decided with the owner on 19 October 2026:
+
+- **Hero ground:** pine, lit — warm light and grain on the green the shop
+  already uses. Espresso is a second dark ground, for the Vending band and the
+  machine-finder tile.
+- **Decoration is drawn, never photographed:** beans, the steam curl from the
+  mark, cups, crema, a cup ring, a spill, as inline SVG in the shop's colours.
+  The only photographs stay the packs.
+- **Packshots are cut out at ingest** by two background-removal models (BiRefNet
+  lite and full, through `rembg`), combined, then a shape check that fills a
+  cut reaching deep into a pack. A cut-out goes live by itself when the two
+  models agree on 99 % of its pixels or more and nothing was filled; anything
+  else waits for a person in the admin. On a sample of 13 packs: 11 automatic,
+  2 flagged and fixed.
+- **Cut-outs are made by a GitHub Actions workflow** chained after each
+  scheduled sync, like the copywriter.
+- **The logo is redrawn as SVG** from `public/logo.png`; the owner signs it off
+  before it replaces the image.
+- **No animation library.** CSS, the Web Animations API and the View
+  Transitions API, under the Web Vitals rules in `DESIGN.md`, "Motion".
+
+- [ ] **K0 · The standard first · M**
+  - A baseline before any change: `measure:budgets`, and every page type at the
+    eight widths.
+  - `DESIGN.md` and `PRODUCT.md` rewritten where they forbid the direction:
+    motion, the white well, resting shadows, circles, hero imagery, the scope of
+    imagery, and the espresso ground and `illo-*` drawing tones with their
+    contrast rows. A component's own specification changes with the code that
+    builds it, in the same commit.
+  - _Done when_ the documents allow everything below and
+    `test/contrast.test.ts` passes with the new tokens.
+
+- [ ] **K1 · Packshot cut-outs · L**
+  - `tools/cutout` (Python): two models, their union, the shape check, the
+    white edge removed, trimmed; PNG out (share cards take only JPEG and PNG),
+    content-addressed under `cutouts/`.
+  - Migration 0012: `image_cutouts`, keyed by the photo's content hash so a
+    photo shared by two products is cut once — object key, size, the models'
+    agreement, what the shape check did, a status (`auto`, `pending`,
+    `approved`, `rejected`) and who decided.
+  - `pnpm images:cutout` for a local run; `.github/workflows/cutout.yml` after
+    each scheduled sync, models cached, secrets only on the steps that need
+    them.
+  - `/admin/snimki`: the original beside the cut-out on cream and on pine;
+    approve, reject, retry. Works without JavaScript, like `/admin/tekstove`.
+  - Every read of a pack image prefers an approved cut-out and falls back to
+    today's white well. `images:push`, `images:verify`, `images:gc`, the email
+    media prefixes and the `/media` rewrite know `cutouts/`.
+  - _Done when_ every active photo has a decision, the storefront shows a
+    cut-out where one is approved and a white well everywhere else, and a
+    rejected cut-out is never made again.
+
+- [ ] **K2 · Foundations · M**
+  - The tokens; a focus ring for espresso; Literata with its optical-size axis
+    (the unused 400 and 700 dropped); the SVG logo; the illustration kit as
+    server components; the CSS motion primitives and the steam's off-screen
+    pause.
+  - _Done when_ nothing has changed on the page but the headings' optical size
+    and the logo, and the budgets have not moved.
+
+- [ ] **K3 · Product surfaces · L**
+  - One `PackWell` for the card, the gallery, the recommendation card, cart
+    lines and the typeahead. The borderless card with „Добави" beside the
+    price and the lift on hover. The intensity track pours; a bean flies to the
+    cart; the card becomes the product page through a view transition, behind
+    Next's experimental flag.
+
+- [ ] **K4 · Home · L**
+  - The still-life hero from cut-out packs (today's shelf while fewer than
+    three are approved), its arrival and the steam. System tiles; the espresso
+    finder tile and Vending band; the wizard entry with the crema cup; the
+    ordering steps joined by the curl; an open brand wall; journal drawings;
+    the cup ring behind the newsletter.
+
+- [ ] **K5 · Everywhere else · M**
+  - Empty states (cart, search, listings), the 404 and the error page with the
+    spill; the „order sent" cup; the wizard result's header; the curl steps on
+    the delivery, Vending and Consumables pages; blog headers.
+
+- [ ] **K6 · Verify and ship · M**
+  - Tests updated and added: reduced motion emulated, the white-well fallback,
+    no animation on an LCP element. The eight-width layout check. A preview for
+    the owner, then production, then Speed Insights field data a week later.
+  - _Done when_ every page's median is within budget and no worse than the K0
+    baseline beyond run-to-run noise (LCP under 2.5 s, CLS under 0.1, INP
+    under 200 ms), and the owner has signed off the preview.
 
 ## Order and dependencies
 
