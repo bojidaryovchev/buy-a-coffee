@@ -12,7 +12,14 @@ import {
   fileKind,
   formatFileSize,
 } from "./components";
-import { markdownToText, parseMarkdown, type Block } from "./markdown";
+import {
+  pairBlocks,
+  type ProductBlocksSnapshot,
+  type ResolvedBlock,
+} from "@/lib/newsletter/product-blocks";
+import { markdownToText, parseMarkdown, type Block, type ProductsBlock } from "./markdown";
+import { emailMediaUrl } from "./media";
+import { ProductCards, productTextLines } from "./product-cards";
 import { renderEmail, type ComposedEmail } from "./render";
 import { shop } from "./theme";
 
@@ -23,7 +30,14 @@ import { shop } from "./theme";
  * `markdown.ts` reads — never HTML from the panel. Images uploaded with it are
  * drawn under the text, in the order they were added; other files are download
  * buttons. Both live on our storage, because Resend's batch endpoint carries
- * no attachments (`lib/newsletter/send.ts`).
+ * no attachments (`lib/newsletter/send.ts`), and both are addressed through
+ * the shop's own domain (`media.ts`), not the storage's.
+ *
+ * A `[[продукти…]]` line in the body draws product cards (`product-cards.tsx`)
+ * from `products`: what the blocks resolved to, which the caller supplies —
+ * read from the catalog for a preview or a test, the campaign's snapshot for
+ * a send. This file never reads the catalog, so drawing the same snapshot
+ * twice draws the same letter. Without it, a block draws nothing.
  *
  * Every copy carries its reader's own unsubscribe link, in the footer with the
  * reason they are receiving it. The same address, as an RFC 8058 one-click
@@ -39,6 +53,8 @@ export interface NewsletterContent {
   /** Markdown-subset source. */
   readonly body: string;
   readonly attachments: readonly NewsletterAttachment[];
+  /** What the body's product blocks resolved to (`lib/newsletter/product-blocks.ts`). */
+  readonly products?: ProductBlocksSnapshot | null;
 }
 
 export interface NewsletterRecipient {
@@ -53,11 +69,15 @@ const TEST_TITLE = "Пробно писмо";
 const TEST_BODY =
   "Абонатите още не са го получили, а връзката за отписване в него не отписва никого.";
 
-/** A hosted file as a download: Blob serves it as an attachment with `?download=1`. */
+/**
+ * A hosted file as a download: Blob serves it as an attachment with
+ * `?download=1`, and the shop's `/media` passes the query on. Through our
+ * own address (`media.ts`).
+ */
 export function downloadUrl(url: string): string {
   const parsed = new URL(url);
   parsed.searchParams.set("download", "1");
-  return parsed.toString();
+  return emailMediaUrl(parsed.toString());
 }
 
 /** What an image shows, or failing that its file name without the extension. */
@@ -70,7 +90,25 @@ function preview(content: NewsletterContent, blocks: readonly Block[]): string {
   return line.slice(0, 140);
 }
 
-function BodyBlocks({ blocks }: { blocks: readonly Block[] }) {
+type Pairs = Map<ProductsBlock, ResolvedBlock | null>;
+
+/** The body's product blocks, each with what it resolved to in this letter. */
+function productPairs(blocks: readonly Block[], content: NewsletterContent): Pairs {
+  return pairBlocks(
+    blocks.filter((block): block is ProductsBlock => block.type === "products"),
+    content.products,
+  );
+}
+
+function BodyBlocks({
+  blocks,
+  pairs,
+  campaign,
+}: {
+  blocks: readonly Block[];
+  pairs: Pairs;
+  campaign: string;
+}) {
   return (
     <>
       {blocks.map((block, index) => {
@@ -96,6 +134,14 @@ function BodyBlocks({ blocks }: { blocks: readonly Block[] }) {
                 ))}
               />
             );
+          case "products":
+            return (
+              <ProductCards
+                key={index}
+                products={pairs.get(block)?.products ?? []}
+                campaign={campaign}
+              />
+            );
         }
       })}
     </>
@@ -110,6 +156,8 @@ export function NewsletterEmail({
   recipient: NewsletterRecipient;
 }) {
   const blocks = parseMarkdown(content.body);
+  const pairs = productPairs(blocks, content);
+  const campaign = content.products?.campaign ?? "";
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
   return (
@@ -123,9 +171,9 @@ export function NewsletterEmail({
         </Callout>
       )}
       <Heading>{content.subject}</Heading>
-      <BodyBlocks blocks={blocks} />
+      <BodyBlocks blocks={blocks} pairs={pairs} campaign={campaign} />
       {images.map((file) => (
-        <ImageBlock key={file.url} src={file.url} alt={imageAlt(file)} />
+        <ImageBlock key={file.url} src={emailMediaUrl(file.url)} alt={imageAlt(file)} />
       ))}
       <AttachmentList
         title="Файлове"
@@ -142,6 +190,8 @@ export function NewsletterEmail({
 /** The plain-text twin: the same message, for a client that shows no HTML. */
 export function newsletterText(content: NewsletterContent, recipient: NewsletterRecipient): string {
   const blocks = parseMarkdown(content.body);
+  const pairs = productPairs(blocks, content);
+  const campaign = content.products?.campaign ?? "";
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
   const legal = shop.legal;
@@ -150,9 +200,9 @@ export function newsletterText(content: NewsletterContent, recipient: Newsletter
     ...(recipient.test ? [`${TEST_TITLE}. ${TEST_BODY}`, ""] : []),
     content.subject,
     "",
-    markdownToText(blocks),
+    markdownToText(blocks, (block) => productTextLines(pairs.get(block)?.products ?? [], campaign)),
     ...(images.length > 0
-      ? ["", "Снимки:", ...images.map((file) => `- ${imageAlt(file)}: ${file.url}`)]
+      ? ["", "Снимки:", ...images.map((file) => `- ${imageAlt(file)}: ${emailMediaUrl(file.url)}`)]
       : []),
     ...(files.length > 0
       ? [

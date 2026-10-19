@@ -113,6 +113,22 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
+            # Say what is wrong with a token without ever printing it. The
+            # runner strips whitespace (a token copied across a wrapped
+            # terminal line picks up line breaks); a wrong prefix or a short
+            # length means the wrong thing was pasted, or only part of it.
+            token="$CLAUDE_CODE_OAUTH_TOKEN"
+            clean="${token//[[:space:]]/}"
+            if [ "$clean" != "$token" ]; then
+              echo "::warning title=Claude token::The secret contains spaces or line breaks (copied across a wrapped line?). They are removed before use."
+            fi
+            case "$clean" in
+              sk-ant-oat*) ;;
+              *) echo "::error title=Claude token::The secret does not look like a token from 'claude setup-token' (those start with sk-ant-oat). Run it again and paste the whole token." ;;
+            esac
+            if [ "${#clean}" -lt 90 ]; then
+              echo "::warning title=Claude token::The secret is only ${#clean} characters long; a full token is longer. Was part of it cut off?"
+            fi
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 

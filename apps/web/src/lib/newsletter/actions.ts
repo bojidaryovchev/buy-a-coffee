@@ -16,7 +16,11 @@ import {
   saveDraft,
   startCampaign,
 } from "./campaigns";
+import { composeCampaign, copyBytes } from "./batch";
+import { LETTER_MAX_BYTES } from "./deliverability";
 import { unsubscribeUrl } from "./links";
+import { blockProblems, describeBlockProblems, type ProductBlocksSnapshot } from "./product-blocks";
+import { resolveLetterProducts } from "./product-source";
 import { resyncActiveSubscribers, type ResyncReport } from "./resync";
 import { newsletterDraftSchema, requireContent, resolveIntent } from "./schemas";
 import { abandonRun, resendBatchClient, runCampaign } from "./send";
@@ -24,7 +28,9 @@ import { abandonRun, resendBatchClient, runCampaign } from "./send";
 /**
  * The newsletter's admin actions: write a draft, send a test of it, send it,
  * pick up a send that stopped, throw a draft away, and copy the list into
- * Resend again.
+ * Resend again. (The composer's product search is a route,
+ * `/api/admin/newsletter/products`: actions run one at a time per page, and a
+ * search must never hold up a save.)
  *
  * Each one checks the session itself. The panel's layout redirects a visitor
  * who is not signed in, but an action is a public endpoint — and these send
@@ -39,6 +45,28 @@ const SESSION_EXPIRED = "Сесията е изтекла. Влезте отно
 const NO_KEY = "Липсва RESEND_API_KEY — от тази инсталация не може да се изпраща.";
 const CHANGED_ELSEWHERE =
   "Черновата е променена в друг раздел или прозорец, след като е отворена тук. Нищо не е записано: копирайте текста, ако ви трябва, и презаредете страницата.";
+const NO_PRODUCTS_READ =
+  "Продуктите в писмото не можаха да бъдат прочетени от каталога. Нищо не е изпратено; опитайте отново след минута.";
+
+/** The letter's products from the catalog as it stands, or null when it could not be read. */
+async function letterProducts(
+  draft: { subject: string; body: string },
+  campaignId: string,
+): Promise<ProductBlocksSnapshot | null> {
+  try {
+    return await resolveLetterProducts(draft);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "newsletter.products_failed",
+        campaignId,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return null;
+  }
+}
 
 export type NewsletterFormState = {
   error?: string;
@@ -127,11 +155,14 @@ export async function submitNewsletter(
     /* A real copy, through the same template, to the shop's own inbox. Its
        unsubscribe link carries no token, so the page it opens unsubscribes
        nobody, and the copy says so at the top. Not on the batch path and not
-       recorded as a delivery: it is not part of the campaign. */
-    const { html, text } = await composeNewsletterEmail(draft, {
-      unsubscribeUrl: unsubscribeUrl("probno"),
-      test: true,
-    });
+       recorded as a delivery: it is not part of the campaign. Its products
+       are the catalog's as it stands, as in the preview. */
+    const products = await letterProducts(draft, id);
+    if (!products) return { savedAt, version, error: NO_PRODUCTS_READ };
+    const { html, text } = await composeNewsletterEmail(
+      { ...draft, products },
+      { unsubscribeUrl: unsubscribeUrl("probno"), test: true },
+    );
     const { Resend } = await import("resend");
     const sent = await new Resend(key).emails.send({
       from: MAIL_FROM,
@@ -161,12 +192,40 @@ export async function submitNewsletter(
 
   /* intent === "send". The number on the confirmation is checked against the
      list as it is now, and the letter against the version just saved; if
-     either moved in between, nothing starts. */
+     either moved in between, nothing starts. The products are read once,
+     here, from the body just saved, and go into the campaign with the start:
+     every copy of the send draws them. */
+  const products = await letterProducts(draft, id);
+  if (!products) return { savedAt, version, error: NO_PRODUCTS_READ };
+
+  /* The products as they are now, not as the owner last saw them: a block
+     that has emptied since, or names something no longer on sale, would put
+     a heading over nothing in every inbox. Nothing starts until it is fixed. */
+  const problems = blockProblems(draft.body, products);
+  if (problems.length > 0) {
+    return {
+      savedAt,
+      version,
+      error: `Изпращането не започна: ${describeBlockProblems(problems)}. Поправете или махнете тези блокове и изпратете отново — заглавие без продукти под него изглежда като грешка.`,
+    };
+  }
+
+  /* And as one reader will get it, measured as Gmail measures it. */
+  const bytes = copyBytes(await composeCampaign({ ...draft, products }));
+  if (bytes > LETTER_MAX_BYTES) {
+    return {
+      savedAt,
+      version,
+      error: `Писмото е около ${Math.round(bytes / 1000)} KB, а Gmail съкращава писмата над около 102 KB и скрива края им — заедно с връзката за отписване. Изпращането не започна: махнете блок с продукти или съкратете текста.`,
+    };
+  }
+
   const confirmed = Number(formText(formData, "confirmCount"));
   const started = await startCampaign(
     id,
     Number.isInteger(confirmed) ? confirmed : -1,
     Number(version),
+    products,
   );
   if (!started.ok) {
     switch (started.reason) {

@@ -11,7 +11,10 @@ import type { NextRequest } from "next/server";
  *
  * In production images come from S3 or a CDN via `NEXT_PUBLIC_IMAGE_BASE_URL`,
  * and this route refuses to serve anything at all — a public file-reading
- * endpoint has no business existing on a production deployment.
+ * endpoint has no business existing on a production deployment. There,
+ * `/media/catalog/…` and `/media/newsletter/…` never reach it: `next.config.ts`
+ * rewrites them to the image store, so mail can name its pictures by the
+ * shop's own address (`src/emails/media.ts`).
  */
 
 const MIME_TYPES: Record<string, string> = {

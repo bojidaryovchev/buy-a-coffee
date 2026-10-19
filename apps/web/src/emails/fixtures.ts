@@ -182,5 +182,181 @@ export const newsletterFixture: NewsletterContent = {
   ],
 };
 
+/** Product photographs on the real store, under `catalog/`, as the sync mirrors them. */
+const CATALOG = "https://j6xpmlta50zfdxeo.public.blob.vercel-storage.com/catalog";
+
+let fixtureProducts = 0;
+
+const product = (
+  slug: string,
+  title: string,
+  detail: string,
+  figures: {
+    price: string | null;
+    oldPrice?: string;
+    discountPercent?: number;
+    perCup: string | null;
+    image?: string | null;
+    /** The photograph's size as the catalog stores it; most are 800 × 800. */
+    size?: { width: number; height: number } | null;
+    availability?: "in_stock" | "out_of_stock" | "preorder" | "unknown";
+  },
+) => ({
+  id: `00000000-0000-4000-8000-${String((fixtureProducts += 1)).padStart(12, "0")}`,
+  slug,
+  path: `/bg/${slug}`,
+  name: `${title} — ${detail.charAt(0).toLowerCase()}${detail.slice(1)}`,
+  title,
+  detail,
+  price: figures.price,
+  oldPrice: figures.oldPrice ?? null,
+  discountPercent: figures.discountPercent ?? null,
+  perCup: figures.perCup,
+  availability: figures.availability ?? ("in_stock" as const),
+  image:
+    figures.image === null
+      ? null
+      : {
+          url: `${CATALOG}/${figures.image ?? "aa/bb/aabb.jpg"}`,
+          alt: title,
+          width: figures.size === null ? null : (figures.size?.width ?? 800),
+          height: figures.size === null ? null : (figures.size?.height ?? 800),
+        },
+});
+
+/**
+ * A newsletter with all three product blocks, and the snapshot a send would
+ * have taken of them: what the letter's cards look like, in every state a
+ * card has — reduced or not, estimated per-cup or counted, sold out, without
+ * a photograph.
+ */
+export const newsletterProductsFixture: NewsletterContent = {
+  subject: "Новите кафета на октомври",
+  preheader: "Три нови марки на зърна, капсули за Dolce Gusto и намаления до 20%.",
+  body: [
+    "Здравейте,",
+    "",
+    "Този месец в магазина пристигнаха три нови марки кафе на зърна и още капсули за Dolce Gusto. Ето какво избрахме за вас — цените са същите като в магазина, а цената на чаша е изчислена от грамажа на пакета.",
+    "",
+    "## Нашият избор",
+    "",
+    "[[продукти: kafe-na-zarna-vandino-espresso-aroma-1kg, kapsuli-dg-rema-caffe-cortado-16-br, kafe-na-zarna-biancaffe-arabica-0-500kg]]",
+    "",
+    "## Ново в магазина",
+    "",
+    "[[нови-продукти: 2]]",
+    "",
+    "## Намалени цени",
+    "",
+    "Намаленията важат, докато има количества. Ако не сте сигурни кое кафе е за вашата машина, обадете ни се — ще ви помогнем да изберете.",
+    "",
+    "[[промоции]]",
+  ].join("\n"),
+  attachments: [],
+  products: {
+    kind: "product-blocks",
+    version: 1,
+    resolvedAt: "2026-10-19T09:30:00.000Z",
+    campaign: "2026-10-novite-kafeta-na-oktomvri",
+    blocks: [
+      {
+        token:
+          "[[продукти: kafe-na-zarna-vandino-espresso-aroma-1kg, kapsuli-dg-rema-caffe-cortado-16-br, kafe-na-zarna-biancaffe-arabica-0-500kg]]",
+        spec: {
+          kind: "picked",
+          slugs: [
+            "kafe-na-zarna-vandino-espresso-aroma-1kg",
+            "kapsuli-dg-rema-caffe-cortado-16-br",
+            "kafe-na-zarna-biancaffe-arabica-0-500kg",
+          ],
+        },
+        products: [
+          product(
+            "kafe-na-zarna-vandino-espresso-aroma-1kg",
+            "Vandino Espresso Aroma",
+            "Кафе на зърна, 1 кг",
+            {
+              price: "15,85 €",
+              perCup: "≈ 0,11 € на чаша",
+              image: "f1/10/f110d45c721286ff7f6b99cbadf5c0a806fbb20401db00003c6a0c70471c6184.jpg",
+              size: { width: 800, height: 1200 },
+            },
+          ),
+          product(
+            "kapsuli-dg-rema-caffe-cortado-16-br",
+            "Rema Caffè Cortado",
+            "Капсули за Dolce Gusto, 16 бр.",
+            {
+              price: "5,90 €",
+              perCup: "0,37 € на чаша",
+              image: "2e/61/2e61dfc3a20f9c7ad2f2c0e439bc78607faa041a4e0068b12148d7631bdd76de.jpg",
+              availability: "out_of_stock",
+            },
+          ),
+          product(
+            "kafe-na-zarna-biancaffe-arabica-0-500kg",
+            "Biancaffe Arabica",
+            "Кафе на зърна, 500 г",
+            {
+              price: null,
+              perCup: null,
+              image: null,
+            },
+          ),
+        ],
+        missing: [],
+      },
+      {
+        token: "[[нови-продукти: 2]]",
+        spec: { kind: "new", limit: 2 },
+        products: [
+          product(
+            "kapsuli-dg-molini-torino-16-br",
+            "Molini Torino",
+            "Капсули за Dolce Gusto, 16 бр.",
+            {
+              price: "4,90 €",
+              perCup: "0,31 € на чаша",
+              image: "e2/df/e2df2d1912b11fdb172e0df6e710f92ed5a3cc64c897096f59e792f2fe7ac155.jpg",
+            },
+          ),
+        ],
+        missing: [],
+      },
+      {
+        token: "[[промоции]]",
+        spec: { kind: "sale", limit: 4 },
+        products: [
+          product(
+            "kafe-na-zarna-eurocaf-crema-vivace-1kg",
+            "Eurocaf Crema Vivace",
+            "Кафе на зърна, 1 кг",
+            {
+              price: "11,04 €",
+              oldPrice: "13,80 €",
+              discountPercent: 20,
+              perCup: "≈ 0,08 € на чаша",
+              image: "ff/58/ff5850f6ef4f116f4e77fab46cdc9ecf4512cdf94202fb1dd50816900cdf4679.jpg",
+            },
+          ),
+          product(
+            "kapsuli-dg-rema-caffe-arabica-gold-16-br",
+            "Rema Caffè Arabica Gold",
+            "Капсули за Dolce Gusto, 16 бр.",
+            {
+              price: "5,49 €",
+              oldPrice: "5,90 €",
+              discountPercent: 6,
+              perCup: "0,34 € на чаша",
+              image: "83/6f/836f5b8b7042f7b73594e4e1d9f605872fbdd567294e56bbb4910d6f247f8182.jpg",
+            },
+          ),
+        ],
+        missing: [],
+      },
+    ],
+  },
+};
+
 /** A token of the real shape: 64 hex characters, the way the database mints them. */
 export const FIXTURE_UNSUBSCRIBE_TOKEN = "0123456789abcdef".repeat(4);

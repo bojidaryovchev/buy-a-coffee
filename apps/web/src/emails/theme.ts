@@ -24,6 +24,7 @@ import { href, routes } from "@/lib/routes";
  *   paper on pine-900 14.13                           the button
  *   pine-900 on pine-100 12.71                        the information callout
  *   ink-900 on caution-100 14.86, caution 6.24        the caution callout
+ *   clay-600 on paper-raised 7.26, and the reverse    a reduced price, its badge
  *
  * Gold appears nowhere as text and as no fill: a letter has no "one most
  * important action" competing with anything, and the mark in the logo already
@@ -44,6 +45,9 @@ export const color = {
   pine100: "#d8f0e5",
   caution: "#794d0b",
   caution100: "#f9edc8",
+  /** Clay means reduced (`DESIGN.md`, "The Clay Means Reduced Rule"): a
+      reduced price and its badge, in a letter's product cards, and nothing else. */
+  clay600: "#963912",
 } as const;
 
 /**

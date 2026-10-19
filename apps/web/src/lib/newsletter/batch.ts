@@ -3,6 +3,7 @@ import type { NewsletterAttachment } from "@catalog/db/schema";
 import { composeNewsletterEmail } from "@/emails/newsletter";
 import { isPlausibleToken } from "@/lib/forms/unsubscribe-token";
 import { listUnsubscribeHeaders, unsubscribeUrl } from "./links";
+import type { ProductBlocksSnapshot } from "./product-blocks";
 import { lettersWord } from "./status";
 
 /**
@@ -41,6 +42,12 @@ export interface CampaignContent {
   readonly preheader: string;
   readonly body: string;
   readonly attachments: readonly NewsletterAttachment[];
+  /**
+   * The products the body's blocks resolved to when the send started — the
+   * campaign's snapshot, never the catalog as it is now, so the hundredth
+   * request and a resume a day later draw the letter the first one did.
+   */
+  readonly products?: ProductBlocksSnapshot | null;
 }
 
 export interface CampaignTemplate {
@@ -49,7 +56,11 @@ export interface CampaignTemplate {
   readonly text: string;
 }
 
-/** The campaign rendered once, with a placeholder where each reader's token goes. */
+/**
+ * The campaign rendered once, with a placeholder where each reader's token
+ * goes. Once per run, from the stored snapshot: the only thing that differs
+ * between two requests of a send is the token.
+ */
 export async function composeCampaign(content: CampaignContent): Promise<CampaignTemplate> {
   const composed = await composeNewsletterEmail(content, {
     unsubscribeUrl: unsubscribeUrl(TOKEN_PLACEHOLDER),
@@ -59,6 +70,21 @@ export async function composeCampaign(content: CampaignContent): Promise<Campaig
     throw new Error("newsletter template carries no unsubscribe link");
   }
   return { subject: content.subject, html: composed.html, text: composed.text };
+}
+
+/** A reader's unsubscribe token: 64 hex characters (`isPlausibleToken`). */
+const TOKEN_LENGTH = 64;
+
+/**
+ * The size of one reader's copy of the HTML, in bytes, as Gmail measures it
+ * before clipping: the campaign's render with a full-length token where the
+ * placeholder is.
+ */
+export function copyBytes(template: Pick<CampaignTemplate, "html">): number {
+  return Buffer.byteLength(
+    template.html.split(TOKEN_PLACEHOLDER).join("0".repeat(TOKEN_LENGTH)),
+    "utf8",
+  );
 }
 
 export interface BatchEmail {

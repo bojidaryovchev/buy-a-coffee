@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { composeNewsletterEmail } from "@/emails/newsletter";
 import { CampaignAutoRefresh, ResumeForm } from "@/components/admin/campaign-progress";
 import { NewsletterComposer } from "@/components/admin/newsletter-composer";
+import { listCapitalisedNames } from "@/lib/catalog/queries";
 import { MAIL_FROM, NOTIFY_TO } from "@/lib/mail/identity";
 import { deleteNewsletter } from "@/lib/newsletter/actions";
 import {
@@ -16,6 +17,7 @@ import {
   listDeliveries,
 } from "@/lib/newsletter/campaigns";
 import { unsubscribeUrl } from "@/lib/newsletter/links";
+import { campaignFiles, campaignSnapshot } from "@/lib/newsletter/product-blocks";
 import {
   CAMPAIGN_STATUS_LABEL,
   CAMPAIGN_STATUS_TONE,
@@ -69,7 +71,10 @@ export default async function AdminCampaignPage({
   if (!campaign) notFound();
 
   if (campaign.status === "draft") {
-    const activeCount = await countActiveSubscribers();
+    const [activeCount, capitalised] = await Promise.all([
+      countActiveSubscribers(),
+      listCapitalisedNames(),
+    ]);
     return (
       <>
         <BackLink />
@@ -101,13 +106,14 @@ export default async function AdminCampaignPage({
             subject: campaign.subject,
             preheader: campaign.preheader,
             body: campaign.body,
-            attachments: campaign.attachments,
+            attachments: campaignFiles(campaign.attachments),
           }}
           activeCount={activeCount}
           sender={MAIL_FROM}
           testRecipient={NOTIFY_TO || null}
           canSend={Boolean(process.env.RESEND_API_KEY)}
           canUpload={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
+          capitalised={capitalised}
         />
       </>
     );
@@ -128,10 +134,19 @@ export default async function AdminCampaignPage({
   const percent = counts.total > 0 ? Math.round((answered / counts.total) * 100) : 100;
 
   /* The message as it went out, drawn by the same template with a link that
-     unsubscribes nobody. */
-  const { html: sentHtml } = await composeNewsletterEmail(campaign, {
-    unsubscribeUrl: unsubscribeUrl("pregled"),
-  });
+     unsubscribes nobody — and with the products and prices of its snapshot,
+     not today's catalog. */
+  const products = campaignSnapshot(campaign.attachments);
+  const { html: sentHtml } = await composeNewsletterEmail(
+    {
+      subject: campaign.subject,
+      preheader: campaign.preheader,
+      body: campaign.body,
+      attachments: campaignFiles(campaign.attachments),
+      products,
+    },
+    { unsubscribeUrl: unsubscribeUrl("pregled") },
+  );
 
   const stats: { label: string; value: number }[] = [
     { label: "Получатели", value: campaign.recipientCount },
@@ -291,6 +306,13 @@ export default async function AdminCampaignPage({
         </h2>
         <p className="mt-1 text-sm text-ink-500">
           Както е изпратено. Всяко копие носи собствената връзка за отписване на получателя.
+          {products && products.blocks.length > 0 && (
+            <>
+              {" "}
+              Продуктите и цените в него са от {utcStamp(new Date(products.resolvedAt))} UTC, когато
+              започна изпращането.
+            </>
+          )}
         </p>
         <div className="mt-3 overflow-hidden rounded-md border border-line bg-paper">
           <iframe

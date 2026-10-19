@@ -8,6 +8,7 @@ import {
   type NewsletterDeliveryStatus,
 } from "@catalog/db/schema";
 import { db } from "@/lib/db";
+import { campaignSnapshot, withSnapshot, type ProductBlocksSnapshot } from "./product-blocks";
 
 /**
  * The newsletter's rows: drafts, campaigns, their recipients, and the
@@ -183,11 +184,17 @@ export type StartOutcome =
  * presses of the button cannot start two sends — and only the version that
  * was confirmed (`version`): a save from another tab in between changes the
  * letter, and that letter has not been confirmed by anybody.
+ *
+ * `products` is what the letter's product blocks resolved to a moment ago,
+ * from that same version's body; it is stored with the campaign in the same
+ * transaction, and every request of the send draws from it
+ * (`ensureProductSnapshot`).
  */
 export async function startCampaign(
   id: string,
   confirmed: number,
   version?: number,
+  products?: ProductBlocksSnapshot,
 ): Promise<StartOutcome> {
   if (!isUuid(id)) return { ok: false, reason: "not_draft" };
   try {
@@ -202,7 +209,7 @@ export async function startCampaign(
             version === undefined ? undefined : atRevision(version),
           ),
         )
-        .returning({ id: newsletterCampaigns.id });
+        .returning({ id: newsletterCampaigns.id, attachments: newsletterCampaigns.attachments });
       if (!claimed) {
         const [current] = await tx
           .select({ status: newsletterCampaigns.status })
@@ -235,7 +242,10 @@ export async function startCampaign(
       const recipients = Array.from(inserted).length;
       await tx
         .update(newsletterCampaigns)
-        .set({ recipientCount: recipients })
+        .set({
+          recipientCount: recipients,
+          ...(products ? { attachments: withSnapshot(claimed.attachments, products) } : {}),
+        })
         .where(eq(newsletterCampaigns.id, id));
       return { ok: true, recipients } as const;
     });
@@ -249,6 +259,41 @@ class StartRefused extends Error {
   constructor(readonly outcome: Exclude<StartOutcome, { ok: true }>) {
     super(outcome.reason);
   }
+}
+
+const SNAPSHOT_ENTRY = sql`'[{"kind":"product-blocks"}]'::jsonb`;
+
+/**
+ * The products every copy of this campaign draws: the snapshot its start
+ * stored. A send that started without one — begun before snapshots existed,
+ * or by a caller that passed none — takes it now, at its first run, and stores
+ * it only if there is still none, so of two runs the first snapshot written
+ * is the one both draw, and every later request and resume draws it too.
+ *
+ * An entry that is there but does not read as a snapshot (a row edited by
+ * hand) draws no products, consistently, rather than being taken again.
+ */
+export async function ensureProductSnapshot(
+  campaign: CampaignRow,
+  resolve: (letter: { subject: string; body: string }) => Promise<ProductBlocksSnapshot>,
+): Promise<ProductBlocksSnapshot | null> {
+  if (campaign.attachments.some((entry) => entry.kind === "product-blocks")) {
+    return campaignSnapshot(campaign.attachments);
+  }
+  const snapshot = await resolve(campaign);
+  const [stored] = await db
+    .update(newsletterCampaigns)
+    .set({ attachments: withSnapshot(campaign.attachments, snapshot) })
+    .where(
+      and(
+        eq(newsletterCampaigns.id, campaign.id),
+        sql`not (${newsletterCampaigns.attachments} @> ${SNAPSHOT_ENTRY})`,
+      ),
+    )
+    .returning({ attachments: newsletterCampaigns.attachments });
+  if (stored) return campaignSnapshot(stored.attachments);
+  const current = await getCampaign(campaign.id);
+  return current ? campaignSnapshot(current.attachments) : null;
 }
 
 /**

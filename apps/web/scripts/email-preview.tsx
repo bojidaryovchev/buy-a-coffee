@@ -89,6 +89,11 @@ await add(
   "Бюлетин, пробно копие",
   composeNewsletterEmail(fixtures.newsletterFixture, { ...recipient, test: true }),
 );
+await add(
+  "newsletter-products",
+  "Бюлетин с продукти",
+  composeNewsletterEmail(fixtures.newsletterProductsFixture, recipient),
+);
 
 for (const preview of previews) {
   writeFileSync(path.join(outDir, `${preview.name}.html`), preview.html);

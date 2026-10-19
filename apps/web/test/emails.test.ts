@@ -10,6 +10,7 @@ import {
   forwardEnvelopeFixture,
   forwardOriginalFixture,
   newsletterFixture,
+  newsletterProductsFixture,
   orderConfirmationFixture,
   orderNotificationFixture,
   replyFixture,
@@ -51,6 +52,7 @@ const letterheads = await Promise.all(
       ["reply", composeReplyEmail(replyFixture, FIXTURE_SIGNATURE)],
       ["newsletter", composeNewsletterEmail(newsletterFixture, recipient)],
       ["newsletter test", composeNewsletterEmail(newsletterFixture, { ...recipient, test: true })],
+      ["newsletter with products", composeNewsletterEmail(newsletterProductsFixture, recipient)],
     ] as const
   ).map(async ([name, composed]) => [name, await composed] as const),
 );
@@ -79,7 +81,13 @@ const visible = (html: string) => html.replace(/<!-- -->/g, "");
 /* The text parts of the shop's own notifications read as they always have —
    summary, link, a line on what this is — and carry no signature: they are
    read by the shop. Everything a customer receives is signed in both parts. */
-const SIGNED_TEXT = new Set(["order confirmation", "reply", "newsletter", "newsletter test"]);
+const SIGNED_TEXT = new Set([
+  "order confirmation",
+  "reply",
+  "newsletter",
+  "newsletter test",
+  "newsletter with products",
+]);
 
 describe.each(letterheads)("%s", (name, { html, text }) => {
   it("declares Bulgarian, so the Bulgarian Cyrillic letterforms are drawn", () => {

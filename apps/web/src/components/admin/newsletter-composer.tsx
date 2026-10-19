@@ -1,7 +1,7 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import type { NewsletterAttachment } from "@catalog/db/schema";
 import { FieldError } from "@/components/forms/field-error";
 import {
@@ -11,7 +11,13 @@ import {
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
 import { useActionForm } from "@/components/forms/use-schema-form";
+import { NewsletterChecklist } from "@/components/admin/newsletter-checklist";
+import { insertBlockLine } from "@/components/admin/newsletter-edits";
+import { NewsletterProductPicker } from "@/components/admin/newsletter-product-picker";
 import { submitNewsletter, type NewsletterFormState } from "@/lib/newsletter/actions";
+import { checkDeliverability } from "@/lib/newsletter/deliverability";
+import type { BlockReport, PreviewResponse } from "@/lib/newsletter/product-blocks";
+import { DEFAULT_BLOCK_PRODUCTS, productTokenLine } from "@/lib/newsletter/tokens";
 import {
   MAX_ATTACHMENTS,
   MAX_UPLOAD_BYTES,
@@ -39,8 +45,15 @@ import {
  *     `/api/admin/newsletter/upload`. Resend's batch sending carries no
  *     attachments, so a file is hosted and linked: a picture is drawn in the
  *     letter, anything else is a download button. The composer says so.
+ *   - Products: a picker that finds them by name, brand or address and puts
+ *     a `[[продукти: …]]` line in the text, and one-press lines for the
+ *     newest products and the reductions (`lib/newsletter/tokens.ts`). The
+ *     letter fills them from the catalog when it is drawn.
  *   - A preview of the real template, rendered on the server a moment after
  *     typing stops, in an iframe with every sandbox restriction on.
+ *   - "Преди изпращане": what is likely to send the letter to spam, worked
+ *     out as the owner types (`lib/newsletter/deliverability.ts`) and repeated
+ *     in the send confirmation. Advice; it blocks nothing.
  *   - Sending behind a second, explicit step that names the number of
  *     recipients. It is a `<details>`, so it works with or without script, and
  *     the action refuses the send if the list has changed since.
@@ -145,6 +158,10 @@ const link: Edit = (text, start, end) => {
   return { text: next, selectionStart: urlStart, selectionEnd: urlStart + "https://".length };
 };
 
+/** The two automatic blocks, as their buttons write them. */
+const NEW_LINE = productTokenLine({ kind: "new", limit: DEFAULT_BLOCK_PRODUCTS });
+const SALE_LINE = productTokenLine({ kind: "sale", limit: DEFAULT_BLOCK_PRODUCTS });
+
 const TOOLS: { label: string; title: string; edit: Edit }[] = [
   { label: "Заглавие", title: "Подзаглавие (## в началото на реда)", edit: prefixLines("## ") },
   { label: "Удебелен", title: "Удебелен текст (**…**)", edit: wrap("**", "удебелен текст") },
@@ -155,6 +172,9 @@ const TOOLS: { label: string; title: string; edit: Edit }[] = [
 
 /* -- the composer ----------------------------------------------------------- */
 
+/** One empty list, so the checks are not recomputed for a new `[]` every render. */
+const NO_NAMES: readonly string[] = [];
+
 export function NewsletterComposer({
   campaign,
   activeCount,
@@ -162,6 +182,7 @@ export function NewsletterComposer({
   testRecipient,
   canSend,
   canUpload,
+  capitalised = NO_NAMES,
 }: {
   campaign: ComposerCampaign;
   activeCount: number;
@@ -169,6 +190,8 @@ export function NewsletterComposer({
   testRecipient: string | null;
   canSend: boolean;
   canUpload: boolean;
+  /** Brand and line names that may be written in capitals (`listCapitalisedNames`). */
+  capitalised?: readonly string[];
 }) {
   const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
     schema: newsletterDraftSchema,
@@ -300,6 +323,11 @@ export function NewsletterComposer({
   const preheader = watch("preheader");
   const body = watch("body");
   const [preview, setPreview] = useState<string>("");
+  /* What the product blocks resolved to at the last preview, and the letter's
+     size, for the checks. Cleared when a preview fails, so the checks and the
+     confirmation never speak from a letter that is no longer the one typed. */
+  const [blockReports, setBlockReports] = useState<readonly BlockReport[] | null>(null);
+  const [previewBytes, setPreviewBytes] = useState<number | null>(null);
   const [previewState, setPreviewState] = useState<"idle" | "loading" | "error">("loading");
   const [previewWidth, setPreviewWidth] = useState<"desktop" | "phone">("desktop");
   useEffect(() => {
@@ -314,10 +342,17 @@ export function NewsletterComposer({
           signal: controller.signal,
         });
         if (!response.ok) throw new Error(await response.text());
-        setPreview(await response.text());
+        const answer = (await response.json()) as PreviewResponse;
+        setPreview(answer.html);
+        setBlockReports(answer.blocks);
+        setPreviewBytes(new TextEncoder().encode(answer.html).length);
         setPreviewState("idle");
       } catch (error) {
-        if (!controller.signal.aborted) setPreviewState("error");
+        if (!controller.signal.aborted) {
+          setBlockReports(null);
+          setPreviewBytes(null);
+          setPreviewState("error");
+        }
         void error;
       }
     }, 600);
@@ -326,6 +361,26 @@ export function NewsletterComposer({
       window.clearTimeout(timer);
     };
   }, [subject, preheader, body, filesJson]);
+
+  /* -- products -- */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const insertLine = (line: string) => apply(insertBlockLine(line));
+
+  /* -- before sending -- */
+  const notes = useMemo(
+    () =>
+      checkDeliverability({
+        subject: subject ?? "",
+        preheader: preheader ?? "",
+        body: body ?? "",
+        images: files.filter((file) => file.kind === "image").length,
+        files: files.filter((file) => file.kind === "file").length,
+        blocks: blockReports,
+        htmlBytes: previewBytes,
+        capitalised,
+      }),
+    [subject, preheader, body, files, blockReports, previewBytes, capitalised],
+  );
 
   /* -- sending -- */
   const openConfirmation = (event: MouseEvent<HTMLElement>) => {
@@ -425,10 +480,59 @@ export function NewsletterComposer({
             {...ariaFor("body", "body", "body-help")}
             className={`${TEXTAREA_CLASS} font-mono leading-relaxed`}
           />
+          <div
+            role="toolbar"
+            aria-label="Продукти"
+            aria-controls="body"
+            className="mt-2 flex flex-wrap items-center gap-1.5"
+          >
+            <span className="mr-1 text-sm text-ink-700">Вмъкни:</span>
+            <button
+              type="button"
+              aria-expanded={pickerOpen}
+              title="Избрани продукти ([[продукти: адрес-1, адрес-2]])"
+              onClick={() => setPickerOpen((open) => !open)}
+              className={`${TOOL_BUTTON} aria-expanded:border-pine-700 aria-expanded:bg-pine-100`}
+            >
+              Продукти…
+            </button>
+            <button
+              type="button"
+              title={`Най-новите продукти от последните 30 дни (${NEW_LINE})`}
+              onClick={() => insertLine(NEW_LINE)}
+              className={TOOL_BUTTON}
+            >
+              Нови продукти
+            </button>
+            <button
+              type="button"
+              title={`Продуктите с най-голямо намаление (${SALE_LINE})`}
+              onClick={() => insertLine(SALE_LINE)}
+              className={TOOL_BUTTON}
+            >
+              Промоции
+            </button>
+          </div>
+          {pickerOpen && (
+            <NewsletterProductPicker
+              onClose={() => setPickerOpen(false)}
+              onInsert={(slugs) => {
+                setPickerOpen(false);
+                insertLine(productTokenLine({ kind: "picked", slugs }));
+              }}
+            />
+          )}
           <p id="body-help" className={HELPER_CLASS}>
             Празен ред — нов абзац. <code>## Заглавие</code>, <code>**удебелен**</code>,{" "}
             <code>*курсив*</code>, <code>[текст](https://…)</code>, <code>- точка от списък</code>.
             Адрес, написан направо, става връзка. HTML не се приема — показва се като текст.
+          </p>
+          <p className={HELPER_CLASS}>
+            Продукти — всеки блок на отделен ред: <code>[[продукти: адрес-1, адрес-2]]</code> (до
+            6), <code>[[нови-продукти]]</code> (от последните 30 дни), <code>[[промоции]]</code>{" "}
+            (най-голямото намаление); число след двоеточие казва колко, напр.{" "}
+            <code>[[промоции: 6]]</code>. Името, цената и снимката са като на сайта; при изпращането
+            се записват и всеки абонат получава едно и също писмо.
           </p>
           <FieldError id="body" message={errorOf("body")} />
         </div>
@@ -527,6 +631,8 @@ export function NewsletterComposer({
           <FieldError id="attachments" message={errorOf("attachments")} />
         </fieldset>
 
+        <NewsletterChecklist id="checklist" notes={notes} />
+
         <div className="flex flex-col gap-4 rounded-md border border-line-strong bg-paper-raised p-4">
           <p className="text-sm text-ink-500">
             Изпраща се от <span className="font-medium text-ink-900">{sender}</span> до активните
@@ -579,6 +685,7 @@ export function NewsletterComposer({
                 {activeCount === 1 ? "активен абонат" : "активни абонати"}. Изпратеното не може да
                 бъде върнато, а след това текстът не може да се променя.
               </p>
+              <NewsletterChecklist id="confirm-checklist" notes={notes} compact />
               <input type="hidden" name="confirmCount" value={activeCount} />
               <div className="mt-3 flex flex-wrap gap-3">
                 <button

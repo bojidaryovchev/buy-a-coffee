@@ -169,6 +169,13 @@ describe("claude CLI arguments", () => {
       CLAUDE_CODE_OAUTH_TOKEN: "token",
     });
   });
+
+  it("strips the line breaks a token picks up when copied out of a terminal", () => {
+    const env = childEnvironment({
+      CLAUDE_CODE_OAUTH_TOKEN: " sk-ant-oat01-abc\n  def\r\nghi \n",
+    });
+    expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("sk-ant-oat01-abcdefghi");
+  });
 });
 
 describe("parseClaudeEnvelope", () => {

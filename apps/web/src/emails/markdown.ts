@@ -22,14 +22,18 @@
  *   [текст](https://…)     a link: http, https and mailto only
  *   https://…              a bare address becomes a link to itself
  *   \*                     a literal character that would otherwise be syntax
+ *   [[промоции]]           a line of its own asking for products: a block the
+ *                          letter fills from the catalog (`lib/newsletter/tokens.ts`)
  *
  * Anything else is text. A link to any other scheme (`javascript:`, `data:`,
  * a relative path) is not a link: its words are kept and the target is
  * dropped, so a typo costs a link and never a hole in the message.
  *
- * Pure and dependency-free: the composer's preview, the sender and the tests
- * all read the same tree.
+ * Pure, and free of anything but the block grammar: the composer's preview,
+ * the sender and the tests all read the same tree.
  */
+
+import { parseProductToken, type ProductToken } from "@/lib/newsletter/tokens";
 
 export type Inline =
   | { type: "text"; value: string }
@@ -41,10 +45,31 @@ export type Inline =
 export type Block =
   | { type: "heading"; level: 2 | 3; children: Inline[] }
   | { type: "paragraph"; children: Inline[] }
-  | { type: "list"; items: Inline[][] };
+  | { type: "list"; items: Inline[][] }
+  /** Products, filled in when the letter is drawn; see `ProductsBlock`. */
+  | ProductsBlock;
 
-/** Long enough for any newsletter worth reading; short enough to stay under
-    Gmail's 102 KB clipping point once it is wrapped in the letterhead. */
+/**
+ * A line that asks for products. The tree carries only what was asked; what
+ * it resolves to is the caller's to supply (`lib/newsletter/product-blocks.ts`),
+ * so this parser stays free of the catalog. A block that cannot be read
+ * (`token.spec` null) is still a block: it draws nothing, rather than print
+ * its brackets to every subscriber.
+ */
+export interface ProductsBlock {
+  type: "products";
+  token: ProductToken;
+}
+
+/**
+ * Long enough for any newsletter worth reading. Not, by itself, what keeps a
+ * letter under Gmail's 102 KB clipping point: product blocks add their cards,
+ * a few KB each, on top of the text. That is held by the cap on a letter's
+ * cards (`MAX_LETTER_PRODUCTS`, `lib/newsletter/tokens.ts`) and by measuring
+ * the rendered letter — the composer warns, and a send refuses to start, past
+ * the limits in `lib/newsletter/deliverability.ts` (`LETTER_WARN_BYTES`,
+ * `LETTER_MAX_BYTES`).
+ */
 export const MAX_BODY_LENGTH = 20_000;
 
 const SAFE_SCHEME = /^(https?:\/\/|mailto:)/i;
@@ -227,6 +252,14 @@ export function parseMarkdown(source: string): Block[] {
       continue;
     }
 
+    const token = parseProductToken(trimmed);
+    if (token) {
+      endParagraph();
+      endList();
+      blocks.push({ type: "products", token });
+      continue;
+    }
+
     const heading = HEADING.exec(trimmed);
     if (heading) {
       endParagraph();
@@ -286,8 +319,16 @@ function inlineText(nodes: readonly Inline[]): string {
  * The same tree as plain text, for the message's text part: a heading on a
  * line of its own, a list as "- " lines, a link as "words (address)" so the
  * address survives a client that shows no HTML.
+ *
+ * A products block is whatever `products` makes of it (the newsletter passes
+ * its resolved lines, counting blocks from 0 in the order they appear), and
+ * nothing without it: the inbox preview line is read from the words alone.
  */
-export function markdownToText(blocks: readonly Block[]): string {
+export function markdownToText(
+  blocks: readonly Block[],
+  products: (block: ProductsBlock, index: number) => string = () => "",
+): string {
+  let productIndex = 0;
   return blocks
     .map((block) => {
       switch (block.type) {
@@ -296,8 +337,11 @@ export function markdownToText(blocks: readonly Block[]): string {
           return inlineText(block.children);
         case "list":
           return block.items.map((item) => `- ${inlineText(item)}`).join("\n");
+        case "products":
+          return products(block, productIndex++);
       }
     })
+    .filter((part) => part !== "")
     .join("\n\n");
 }
 

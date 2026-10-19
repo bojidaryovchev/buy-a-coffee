@@ -33,6 +33,80 @@ function parseImageHost(url: string | undefined): URL | null {
 
 const imageHost = parseImageHost(process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.trim());
 
+/**
+ * `/media/catalog/…` and `/media/newsletter/…`: our image store, from our own
+ * address, for mail.
+ *
+ * A newsletter whose pictures all come from `*.public.blob.vercel-storage.com`
+ * is a message whose images are on a domain that is not the sender's, which
+ * spam filters count against it. So in mail every picture and file of ours is
+ * written as `https://buy-a-coffee.com/media/<key>` (`src/emails/media.ts`),
+ * and this rewrite proxies that path to the store — an external rewrite,
+ * which on Vercel the edge serves itself, without a function.
+ *
+ * The store is the configured image host, the same value `remotePatterns` and
+ * the CSP read: `NEXT_PUBLIC_IMAGE_BASE_URL`, the public base of the Blob
+ * store `buy-a-coffee-images`, which also holds the newsletter's uploads.
+ * `/media/<key>` maps to `<base>/<key>` exactly as `resolveImageUrl` maps a
+ * key to its URL. With no host configured (a laptop) there is no rewrite and
+ * `app/media/[...key]` serves the same paths from disk, as it always has.
+ *
+ * Two prefixes only, the two mail uses, each its own rule, and a key made of
+ * plain segments only — letters, digits, `.`, `_`, `-`, none starting with a
+ * dot — so `/media` cannot be made to fetch anything else from the store:
+ * not `..`, not an encoded `%2F` the store might decode into a slash. Every
+ * key the catalog and the uploads write is of that shape (`catalog/ab/cd/
+ * <hash>.jpg`, `newsletter/<uuid>/<name>-<suffix>.pdf`). Next matches a rule's
+ * source without regard to case and cannot be told otherwise for one rule, so
+ * each destination names its prefix literally, in lower case: `/media/CATALOG/
+ * x` can only ever reach `<base>/catalog/x`. `src/emails/media.ts` writes
+ * addresses by the same rule (`MEDIA_PREFIXES`, `MEDIA_KEY`), and
+ * `test/newsletter-media.test.ts` runs both through Next's own matcher. In
+ * `beforeFiles`, so it is decided before the development route is ever
+ * considered.
+ *
+ * The storefront itself is unchanged: its pages still load photographs from the
+ * store through `next/image` (`remotePatterns`), and `/media` is same-origin,
+ * which `img-src 'self'` already allows.
+ */
+const MEDIA_PREFIXES = ["catalog", "newsletter"] as const;
+/** One path segment of a store key: no slash, no `%`, not starting with a dot. */
+const MEDIA_SEGMENT = "[A-Za-z0-9_-][A-Za-z0-9._-]*";
+const MEDIA_KEY = `${MEDIA_SEGMENT}(?:/${MEDIA_SEGMENT})*`;
+const mediaSource = (prefix: string) => `/media/${prefix}/:key(${MEDIA_KEY})`;
+
+function mediaRewrites(host: URL | null) {
+  if (!host) return [];
+  const base = host.href.replace(/\/+$/, "");
+  return MEDIA_PREFIXES.map((prefix) => ({
+    source: mediaSource(prefix),
+    destination: `${base}/${prefix}/:key`,
+  }));
+}
+
+/**
+ * Caching the proxied files at Vercel's edge, so a newsletter opened by a
+ * thousand readers is not a thousand trips to the store.
+ *
+ * By the store's own `cache-control`, and nothing set here.
+ * `x-vercel-enable-rewrite-caching` tells Vercel to cache an external
+ * rewrite by the upstream's headers (the default only for projects created
+ * after April 2026). Blob answers a file with `public, max-age=31536000` —
+ * right, since a catalog key is the hash of its bytes and an upload carries a
+ * random suffix, so an address never names different bytes — and a missing
+ * file with `public, max-age=0, must-revalidate`, which is not cached. A
+ * `Cache-Control` or `CDN-Cache-Control` set in this file would be set on
+ * every answer, a 404 included, and keep a photograph missing for as long as
+ * it said after it had been uploaded.
+ */
+function mediaHeaders(host: URL | null) {
+  if (!host) return [];
+  return MEDIA_PREFIXES.map((prefix) => ({
+    source: mediaSource(prefix),
+    headers: [{ key: "x-vercel-enable-rewrite-caching", value: "1" }],
+  }));
+}
+
 function remotePatternFor(host: URL | null) {
   if (!host) return [];
   return [
@@ -191,10 +265,13 @@ const nextConfig: NextConfig = {
    * and `/llms.txt` are matched by their own routes first, and before the
    * dynamic `[lang]` segment, which would otherwise take any single segment.
    * The proxy never sees the path: it has an extension.
+   *
+   * `beforeFiles` is `/media` in front of the image store, for mail; see
+   * `mediaRewrites` above. The proxy never sees that path either.
    */
   async rewrites() {
     return {
-      beforeFiles: [],
+      beforeFiles: mediaRewrites(imageHost),
       afterFiles: [{ source: "/:key([a-zA-Z0-9-]{8,128})\\.txt", destination: "/indexnow/:key" }],
       fallback: [],
     };
@@ -233,6 +310,7 @@ const nextConfig: NextConfig = {
         source: "/_not-found",
         headers: [{ key: "X-Robots-Tag", value: "noindex" }],
       },
+      ...mediaHeaders(imageHost),
     ];
   },
 };

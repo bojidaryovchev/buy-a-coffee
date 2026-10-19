@@ -21,7 +21,9 @@ import {
   type BatchEmail,
   type CampaignTemplate,
 } from "./batch";
-import { getCampaign } from "./campaigns";
+import { ensureProductSnapshot, getCampaign } from "./campaigns";
+import { blockProblems, campaignFiles, describeBlockProblems } from "./product-blocks";
+import { resolveLetterProducts } from "./product-source";
 import { lettersPhrase } from "./status";
 
 /**
@@ -59,6 +61,12 @@ import { lettersPhrase } from "./status";
  * The list is ours, not Resend's: who is sent to is decided here, from our
  * table, and somebody who unsubscribed after the snapshot is skipped at their
  * turn.
+ *
+ * ONE LETTER. The message is rendered once per run, with a placeholder for
+ * each reader's unsubscribe token (`composeCampaign`), from the campaign's
+ * stored product snapshot (`ensureProductSnapshot`) and never from the catalog
+ * as it is now: a resume draws the same products at the same prices as the
+ * first request did.
  *
  * TIME. The run is started in `after()` by the action that started or resumed
  * the campaign, so it has that function's lifetime (`maxDuration`, 300 s, on
@@ -144,7 +152,26 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
 
   let template: CampaignTemplate;
   try {
-    template = await composeCampaign(campaign);
+    const products = await ensureProductSnapshot(campaign, resolveLetterProducts);
+    /* Every block the body draws must be in the snapshot, with products: one
+       that cannot be read, or a block left with nothing, stops the run rather
+       than send its heading over nothing. A start that went through the
+       composer was checked the same way; this is for every other road in. */
+    const problems = blockProblems(campaign.body, products);
+    if (problems.length > 0) {
+      await finish(
+        campaignId,
+        `Изпращането спря, без да тръгне нито едно писмо повече: продуктите в писмото не могат да бъдат показани (${describeBlockProblems(problems)}).`,
+      );
+      return { status: "stopped", requests: 0, reason: "products" };
+    }
+    template = await composeCampaign({
+      subject: campaign.subject,
+      preheader: campaign.preheader,
+      body: campaign.body,
+      attachments: campaignFiles(campaign.attachments),
+      products,
+    });
   } catch (error) {
     await finish(campaignId, `Писмото не може да бъде съставено: ${message(error)}`);
     return { status: "stopped", requests: 0, reason: "template" };

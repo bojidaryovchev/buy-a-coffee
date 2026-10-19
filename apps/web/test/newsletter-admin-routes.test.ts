@@ -19,9 +19,21 @@ vi.mock("@vercel/blob/client", () => blob);
 const campaigns = vi.hoisted(() => ({ allSubscribers: vi.fn() }));
 vi.mock("@/lib/newsletter/campaigns", () => campaigns);
 
+/* The catalog, as the preview reads a draft's product blocks from it and the
+   picker searches it. */
+const productSource = vi.hoisted(() => ({ resolveLetterProducts: vi.fn() }));
+vi.mock("@/lib/newsletter/product-source", () => productSource);
+const catalog = vi.hoisted(() => ({ searchProductCards: vi.fn(async () => [] as unknown[]) }));
+vi.mock("@/lib/catalog/queries", () => catalog);
+
+const { newsletterProductsFixture } = await import("@/emails/fixtures");
 const upload = await import("@/app/api/admin/newsletter/upload/route");
 const preview = await import("@/app/api/admin/newsletter/preview/route");
 const csv = await import("@/app/(admin)/admin/(panel)/byuletin/abonati.csv/route");
+const products = await import("@/app/api/admin/newsletter/products/route");
+
+const searchRequest = (term: string) =>
+  new Request(`http://localhost/api/admin/newsletter/products?q=${encodeURIComponent(term)}`);
 
 const tokenRequest = (pathname = "newsletter/c1/ceni.pdf") =>
   new Request("http://localhost/api/admin/newsletter/upload", {
@@ -33,11 +45,11 @@ const tokenRequest = (pathname = "newsletter/c1/ceni.pdf") =>
     }),
   });
 
-const previewRequest = () =>
+const previewRequest = (body = "Текст") =>
   new Request("http://localhost/api/admin/newsletter/preview", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ subject: "Тема", preheader: "", body: "Текст", attachments: "[]" }),
+    body: JSON.stringify({ subject: "Тема", preheader: "", body, attachments: "[]" }),
   });
 
 beforeEach(() => {
@@ -63,6 +75,12 @@ describe("without a session", () => {
     const response = await preview.POST(previewRequest());
     expect(response.status).toBe(401);
     expect(await response.text()).not.toContain("<html");
+  });
+
+  it("searches no products", async () => {
+    const response = await products.GET(searchRequest("lavazza"));
+    expect(response.status).toBe(401);
+    expect(catalog.searchProductCards).not.toHaveBeenCalled();
   });
 
   it("exports no list", async () => {
@@ -111,9 +129,89 @@ describe("with a session", () => {
   it("renders the real template for the preview", async () => {
     const response = await preview.POST(previewRequest());
     expect(response.status).toBe(200);
-    const html = await response.text();
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    const { html, blocks } = (await response.json()) as { html: string; blocks: unknown[] };
     expect(html).toContain('lang="bg"');
     expect(html).toContain("Тема");
+    expect(blocks).toEqual([]);
+    // A draft without a product block never reaches the catalog.
+    expect(productSource.resolveLetterProducts).not.toHaveBeenCalled();
+  });
+
+  it("draws a draft's product blocks from the catalog, and reports what they resolved to", async () => {
+    productSource.resolveLetterProducts.mockResolvedValue({
+      ...newsletterProductsFixture.products,
+      blocks: [
+        newsletterProductsFixture.products!.blocks[2],
+        { token: "[[нови-продукти]]", spec: { kind: "new", limit: 4 }, products: [], missing: [] },
+      ],
+    });
+    const body = "Текст\n\n[[промоции]]\n\n[[нови-продукти]]";
+    const response = await preview.POST(previewRequest(body));
+    expect(response.status).toBe(200);
+    expect(productSource.resolveLetterProducts).toHaveBeenCalledWith({ subject: "Тема", body });
+    const { html, blocks } = (await response.json()) as {
+      html: string;
+      blocks: { token: string; products: unknown[] }[];
+    };
+    expect(html).toContain("Eurocaf Crema Vivace");
+    expect(blocks.map((block) => [block.token, block.products.length])).toEqual([
+      ["[[промоции]]", 2],
+      ["[[нови-продукти]]", 0],
+    ]);
+  });
+
+  it("says so, rather than drawing a letter without its products, when the catalog cannot be read", async () => {
+    productSource.resolveLetterProducts.mockRejectedValue(new Error("connection refused"));
+    const response = await preview.POST(previewRequest("[[промоции]]"));
+    expect(response.status).toBe(503);
+  });
+
+  it("searches products for the picker, with what the picker shows of each", async () => {
+    catalog.searchProductCards.mockResolvedValue([
+      {
+        id: "p1",
+        slug: "kafe-na-zarna-lavazza-oro-1kg",
+        name: "Lavazza Qualità Oro — кафе на зърна, 1 кг",
+        title: "Lavazza Qualità Oro",
+        detail: "Кафе на зърна, 1 кг",
+        price: { amount: "27.90", currency: "EUR", formatted: "27,90 €" },
+        oldPrice: null,
+        discountPercent: null,
+        availability: "in_stock",
+        weight: "1 кг",
+        intensity: null,
+        systemId: null,
+        servingPrice: null,
+        brand: null,
+        image: { url: "https://store.example/catalog/a.jpg", alt: "", width: 800, height: 800 },
+        shortDescription: null,
+      },
+    ]);
+    const response = await products.GET(searchRequest(" lavazza "));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(catalog.searchProductCards).toHaveBeenCalledWith(" lavazza ", 20);
+    expect(await response.json()).toEqual({
+      products: [
+        {
+          slug: "kafe-na-zarna-lavazza-oro-1kg",
+          title: "Lavazza Qualità Oro",
+          detail: "Кафе на зърна, 1 кг",
+          price: "27,90 €",
+          oldPrice: null,
+          image: "https://store.example/catalog/a.jpg",
+          soldOut: false,
+        },
+      ],
+    });
+  });
+
+  it("says so when the search fails, rather than answer with nothing", async () => {
+    catalog.searchProductCards.mockRejectedValue(new Error("connection refused"));
+    const response = await products.GET(searchRequest("lavazza"));
+    expect(response.status).toBe(500);
+    expect(((await response.json()) as { error: string }).error).toMatch(/Търсенето не успя/);
   });
 
   it("exports the active list for Excel in Bulgarian, with formulas defused", async () => {

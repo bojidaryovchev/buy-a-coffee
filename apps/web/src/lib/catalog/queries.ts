@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
 import {
@@ -1204,6 +1204,152 @@ export async function listProductCardsByIds(
 
   const images = await loadPrimaryImages(rows.map((row) => row.id));
   return new Map(rows.map((row) => [row.id, toCard(row, images.get(row.id))]));
+}
+
+/* -- products in the newsletter --------------------------------------------- */
+
+/*
+ * The newsletter's product blocks (`lib/newsletter/product-blocks.ts`) draw
+ * the same card every listing draws, from the same row mapping — `toCard`, so
+ * the same name, the same price and old price, the same price per cup and the
+ * same photograph as the product page. The reads below choose WHICH
+ * products; nothing about how one is shown is decided outside this file.
+ */
+
+/** A genuine reduction, as the promotions listing counts one. */
+const isReduced = sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`;
+
+/**
+ * What an automatic block offers: something a reader can order. A sold-out
+ * product stays on the site, where it says so; a letter that announces it as
+ * new or reduced is advertising what cannot be bought.
+ */
+const isOrderable = ne(products.availability, "out_of_stock");
+
+async function cardsFor(rows: unknown): Promise<readonly ProductCardView[]> {
+  const typed = rows as ProductRow[];
+  const images = await loadPrimaryImages(typed.map((row) => row.id));
+  return typed.map((row) => toCard(row, images.get(row.id)));
+}
+
+/**
+ * Cards for the products these slugs name, keyed by slug: a hand-picked
+ * block. Current slugs, products on sale; a slug that names nothing on sale
+ * is simply absent, and the block skips it.
+ */
+export async function listProductCardsBySlugs(
+  slugs: readonly string[],
+): Promise<ReadonlyMap<string, ProductCardView>> {
+  const wanted = [...new Set(slugs)].filter((slug) => slug.length > 0 && slug.length <= 200);
+  if (wanted.length === 0) return new Map();
+  const cards = await cardsFor(
+    await db
+      .select(productColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(and(isVisible, inArray(products.slug, wanted))),
+  );
+  return new Map(cards.map((card) => [card.slug, card]));
+}
+
+/**
+ * The newest products first seen since `since`, newest first — the home
+ * page's "new arrivals" order — leaving out what cannot be ordered.
+ */
+export async function listNewProductCards(options: {
+  readonly since: Date;
+  readonly limit: number;
+}): Promise<readonly ProductCardView[]> {
+  return cardsFor(
+    await db
+      .select(productColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(and(isVisible, isOrderable, gte(products.firstSeenAt, options.since)))
+      .orderBy(desc(products.firstSeenAt), asc(products.name), asc(products.id))
+      .limit(options.limit),
+  );
+}
+
+/**
+ * Products with a genuine reduction, the biggest first — by the share of the
+ * old price taken off, then by the amount — with the price layer the
+ * promotions listing uses (`retail_* ?? source`). Not what cannot be ordered.
+ */
+export async function listReducedProductCards(options: {
+  readonly limit: number;
+}): Promise<readonly ProductCardView[]> {
+  return cardsFor(
+    await db
+      .select(productColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(and(isVisible, isOrderable, isReduced))
+      .orderBy(
+        sql`(${retailOldPrice} - ${retailPrice}) / nullif(${retailOldPrice}, 0) desc`,
+        sql`${retailOldPrice} - ${retailPrice} desc`,
+        asc(products.name),
+        asc(products.id),
+      )
+      .limit(options.limit),
+  );
+}
+
+/**
+ * The newsletter composer's product picker: products on sale matching a
+ * name, a brand or a slug, best first, as the typeahead ranks them. The slug
+ * is matched as typed, so an address copied from the site finds its product.
+ */
+export async function searchProductCards(
+  term: string,
+  limit = 12,
+): Promise<readonly ProductCardView[]> {
+  const trimmed = term.trim();
+  if (trimmed.length < MIN_SUGGESTION_TERM_LENGTH) return [];
+  const slugPattern = `%${trimmed.toLowerCase().replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+  return cardsFor(
+    await db
+      .select(productColumns)
+      .from(products)
+      .leftJoin(brands, eq(products.brandId, brands.id))
+      .where(
+        and(
+          isVisible,
+          or(searchMatch(trimmed), sql`${products.slug} like ${slugPattern} escape '\\'`),
+        ),
+      )
+      .orderBy(...suggestionRank(trimmed), asc(products.name), asc(products.id))
+      .limit(limit),
+  );
+}
+
+/**
+ * The names a newsletter subject may write in capitals without shouting
+ * (`lib/newsletter/deliverability.ts`): every brand the shop carries — stored
+ * as the supplier writes them, often in capitals ("LAVAZZA", "REMA CAFFE") —
+ * and the Latin-script words of the products' names, which is where the
+ * lines live ("A Modo Mio", "Crema e Aroma", "Gold Selection").
+ *
+ * The supplier's names are read here for their words only, for the owner's
+ * own panel; nothing from them is ever shown. Their Cyrillic words are left
+ * out: those are the descriptions ("Капсули", "Кафе на зърна"), and a subject
+ * written "КАФЕ НА ЗЪРНА" is shouting. Two small reads of short columns.
+ */
+export async function listCapitalisedNames(): Promise<readonly string[]> {
+  const [brandRows, productRows] = await Promise.all([
+    db.select({ name: brands.name }).from(brands).where(eq(brands.status, "active")),
+    db.select({ name: products.name }).from(products).where(isVisible),
+  ]);
+  const words = new Set<string>();
+  for (const { name } of brandRows) {
+    for (const word of name.split(/[^\p{L}\p{N}]+/u)) if (word.length >= 2) words.add(word);
+  }
+  for (const { name } of productRows) {
+    for (const word of name.split(/[^\p{L}\p{N}]+/u)) {
+      if (word.length >= 2 && /^[\p{Script=Latin}]+$/u.test(word)) words.add(word);
+    }
+  }
+  return [...words].sort();
 }
 
 /** A product as an order needs it: what the customer sees, and what the owner orders by. */

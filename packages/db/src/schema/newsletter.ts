@@ -103,6 +103,25 @@ export interface NewsletterAttachment {
   alt?: string;
 }
 
+/**
+ * The products a campaign's `[[…]]` blocks resolved to when its send started:
+ * names, prices and photographs, frozen, so every request of the send — and
+ * every resume, an hour or a day later — draws the same letter.
+ *
+ * Kept as one entry of `attachments` rather than a column of its own, so it
+ * needed no migration. It is not a file: the template draws only entries of
+ * kind `image` and `file`, and only a campaign that has left `draft` holds
+ * one. Its fields are the storefront's (`lib/newsletter/product-blocks.ts`,
+ * which validates them on the way out); here it is only told apart.
+ */
+export type NewsletterProductBlocks = {
+  kind: "product-blocks";
+  [field: string]: unknown;
+};
+
+/** What `newsletter_campaigns.attachments` holds: files, and once sending starts, the products. */
+export type NewsletterCampaignAttachment = NewsletterAttachment | NewsletterProductBlocks;
+
 export const newsletterCampaigns = pgTable(
   "newsletter_campaigns",
   {
@@ -117,7 +136,8 @@ export const newsletterCampaigns = pgTable(
      * at send time by the same code that drew the preview.
      */
     body: text("body").notNull().default(""),
-    attachments: jsonb("attachments").$type<NewsletterAttachment[]>().notNull().default([]),
+    /** The files, and from the start of a send its products (`NewsletterProductBlocks`). */
+    attachments: jsonb("attachments").$type<NewsletterCampaignAttachment[]>().notNull().default([]),
     /**
      * Counts the draft's saves. The composer is drawn with it and sends it
      * back with every press, and a save or a send is refused unless it still

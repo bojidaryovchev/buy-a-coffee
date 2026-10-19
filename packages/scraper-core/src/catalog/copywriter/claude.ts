@@ -141,11 +141,21 @@ const PASSED_THROUGH = new Set([
   "ANTHROPIC_API_KEY",
 ]);
 
+/**
+ * Credentials never contain whitespace, but a token pasted out of a terminal
+ * often does: `claude setup-token` prints one long line that the terminal
+ * wraps, and copying it picks up the line breaks - which the API then refuses
+ * as "Invalid bearer token".
+ */
+const CREDENTIALS = new Set(["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"]);
+
 export function childEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const passed: NodeJS.ProcessEnv = {};
-  for (const [name, value] of Object.entries(env)) {
+  for (const [name, raw] of Object.entries(env)) {
+    const key = name.toUpperCase();
+    const value = raw !== undefined && CREDENTIALS.has(key) ? raw.replace(/\s+/g, "") : raw;
     // Windows spells some of these in mixed case ("Path", "SystemRoot").
-    if (value !== undefined && value !== "" && PASSED_THROUGH.has(name.toUpperCase())) {
+    if (value !== undefined && value !== "" && PASSED_THROUGH.has(key)) {
       passed[name] = value;
     }
   }
@@ -196,8 +206,9 @@ export function parseClaudeEnvelope(stdout: string): {
   }
   if (envelope.is_error === true || (envelope.subtype && envelope.subtype !== "success")) {
     const said = String(envelope.result ?? "").slice(0, 2000);
+    const kind = envelope.subtype && envelope.subtype !== "success" ? ` (${envelope.subtype})` : "";
     throw new ClaudeRunError(
-      `Claude run did not succeed (${String(envelope.subtype ?? "error")})`,
+      `Claude run failed${kind}: ${said.split("\n")[0]?.slice(0, 200) || "no message"}`,
       said,
       // Out of turns is this batch's doing, whatever the last message said.
       envelope.subtype === "error_max_turns" ? "batch" : classifyFailure(said),
