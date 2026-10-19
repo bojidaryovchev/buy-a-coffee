@@ -118,6 +118,11 @@ export interface SiteConfig {
   readonly name: string;
   readonly shortName: string;
   readonly tagline: string;
+  /**
+   * The tagline's last words, set in the italic accent in the hero
+   * (DESIGN.md, "Typography"). Must end the tagline; null for none.
+   */
+  readonly taglineAccent: string | null;
   readonly description: string;
   readonly locale: string;
   readonly currency: string;
@@ -235,6 +240,7 @@ export const siteConfig: SiteConfig = {
   name: "Buy a Coffee",
   shortName: "Buy a Coffee",
   tagline: "Кафе, подбрано с грижа",
+  taglineAccent: "с грижа",
   description:
     "Кафе на зърна, капсули и дози от марки, които си заслужават. Поръчка на една стъпка — ние ви звъним, за да потвърдим.",
   // The shop sells only in Bulgaria: all customer-facing copy is Bulgarian.

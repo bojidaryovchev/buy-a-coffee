@@ -1,3 +1,4 @@
+import { CupRing } from "@/components/illustrations/drawings";
 import { NewsletterBandOff } from "@/components/layout/newsletter-band";
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/primitives";
@@ -24,9 +25,12 @@ import { href, routes } from "@/lib/routes";
 export function NotFoundBody({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const copy = dict.notFound;
   return (
-    <div className="shell flex min-h-[60vh] flex-1 flex-col items-center justify-center py-16 text-center">
+    <div className="shell relative isolate flex min-h-[60vh] flex-1 flex-col items-center justify-center overflow-hidden py-16 text-center">
       {/* A dead link needs a way on, not an offer: no signup band here. */}
       <NewsletterBandOff />
+      {/* A cup was here and is gone: its ring on the paper behind the number
+          (DESIGN.md, "Imagery"). Drawn and decorative. */}
+      <CupRing className="pointer-events-none absolute top-6 left-1/2 -z-10 h-56 w-56 -translate-x-1/2 rotate-12 md:h-72 md:w-72" />
       <p aria-hidden className="font-display text-5xl font-semibold text-pine-500">
         404
       </p>

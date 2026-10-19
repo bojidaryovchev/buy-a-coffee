@@ -520,6 +520,40 @@
     }
   }
 
+  /*
+   * Below the fold, tied to the scroll (DESIGN.md, "Motion"): a tile or a
+   * drawing rises into place as it enters the viewport, from 15 % opacity —
+   * never from nothing — and the ordering steps' curl draws itself. Where
+   * scroll-driven animation is not supported, both are simply there.
+   */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal-on-scroll {
+        animation: reveal-rise linear both;
+        animation-timeline: view();
+        animation-range: entry 5% entry 80%;
+      }
+      .draw-on-scroll {
+        stroke-dasharray: 1;
+        animation: draw-line linear both;
+        animation-timeline: view();
+        animation-range: entry 20% cover 45%;
+      }
+    }
+  }
+
+  /* A system tile's capsule tips out of its tile on hover. */
+  .tile-capsule {
+    transform-origin: 50% 80%;
+    transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @media (hover: hover) {
+    .group:hover .tile-capsule,
+    .group:focus-visible .tile-capsule {
+      transform: translateY(-3px) rotate(-10deg);
+    }
+  }
+
   @media (hover: hover) {
     :where(.group:hover, .group:focus-within) .pack-lift .pack-stand {
       transform: translateY(-5px);
@@ -597,6 +631,26 @@
   100% {
     transform: translateY(0) rotate(var(--r, 0deg));
     opacity: 1;
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0.15;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 

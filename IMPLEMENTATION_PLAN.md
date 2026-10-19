@@ -1062,7 +1062,7 @@ Decided with the owner on 19 October 2026:
 - **No animation library.** CSS, the Web Animations API and the View
   Transitions API, under the Web Vitals rules in `DESIGN.md`, "Motion".
 
-- [ ] **K0 · The standard first · M**
+- [x] **K0 · The standard first · M**
   - A baseline before any change: `measure:budgets`, and every page type at the
     eight widths.
   - `DESIGN.md` and `PRODUCT.md` rewritten where they forbid the direction:
@@ -1072,8 +1072,14 @@ Decided with the owner on 19 October 2026:
     builds it, in the same commit.
   - _Done when_ the documents allow everything below and
     `test/contrast.test.ts` passes with the new tokens.
+  - **Found.** The baseline was first measured without the photographs: the
+    worktree had no `.storage/`, so every LCP element was text. With them:
+    home 1.03 s, a listing 0.89 s, a product 0.89 s (median, Pixel 7, Fast 4G,
+    4× CPU), CLS 0, INP 64–88 ms. A single run on this shared laptop moves by
+    up to 80 ms between identical builds (an A/A test said so), so every
+    comparison since alternates the two builds, 12 to 18 runs each.
 
-- [ ] **K1 · Packshot cut-outs · L**
+- [x] **K1 · Packshot cut-outs · L**
   - `tools/cutout` (Python): two models, their union, the shape check, the
     white edge removed, trimmed; PNG out (share cards take only JPEG and PNG),
     content-addressed under `cutouts/`.
@@ -1092,33 +1098,64 @@ Decided with the owner on 19 October 2026:
   - _Done when_ every active photo has a decision, the storefront shows a
     cut-out where one is approved and a white well everywhere else, and a
     rejected cut-out is never made again.
+  - **Found.** A single model is fooled by a picture printed on a box; two
+    models fail on different boxes, and their agreement (99.8 % or more on
+    every good cut, about 50 % on the two bad ones) is what flags a pack for a
+    person. Locally the two models take about 20 s a photo on the CPU, so the
+    first production backfill of about 207 photos is a few workflow runs at
+    the default limit of 60. Early syncs recorded no `mime_type`; the command
+    reads the format from the bytes. The whole local catalog, 110 photos,
+    came out 90 `auto` and 20 `pending`, none failed. onnxruntime's CPU
+    arena committed 36 GB at the first photo, more than a 16 GB runner has;
+    without it the tool holds 7 to 9 GB and writes the same bytes. Production:
+    migration 0012 before the code, then the workflow by hand until the
+    backlog is cut.
 
-- [ ] **K2 · Foundations · M**
+- [x] **K2 · Foundations · M**
   - The tokens; a focus ring for espresso; Literata with its optical-size axis
     (the unused 400 and 700 dropped); the SVG logo; the illustration kit as
     server components; the CSS motion primitives and the steam's off-screen
     pause.
   - _Done when_ nothing has changed on the page but the headings' optical size
     and the logo, and the budgets have not moved.
+  - **Found.** `next/font/google` loads an extra axis only with the whole
+    weight range (167 KB), so Literata is self-hosted at 600 with its
+    optical-size axis (75 KB against 58 KB). Measured alone it costs nothing
+    (908 ms against 908 ms). Dropping Inter's unused Latin Extended preload,
+    tried on the way, made the first paint later and was withdrawn. The SVG
+    logo overlaps the PNG 99.2 % on the gold and 97.6 % on the brown; it
+    waits for the owner's sign-off. `owner`
 
-- [ ] **K3 · Product surfaces · L**
+- [x] **K3 · Product surfaces · L**
   - One `PackWell` for the card, the gallery, the recommendation card, cart
     lines and the typeahead. The borderless card with „Добави" beside the
     price and the lift on hover. The intensity track pours; a bean flies to the
     cart; the card becomes the product page through a view transition, behind
     Next's experimental flag.
+  - **Deferred: the view transition.** Next 16.3 has no switch for it and
+    React's `ViewTransition` exists only in the canary build Next bundles. The
+    rest of the motion does not depend on it; revisit when it is stable.
 
-- [ ] **K4 · Home · L**
+- [x] **K4 · Home · L**
   - The still-life hero from cut-out packs (today's shelf while fewer than
     three are approved), its arrival and the steam. System tiles; the espresso
     finder tile and Vending band; the wizard entry with the crema cup; the
     ordering steps joined by the curl; an open brand wall; journal drawings;
     the cup ring behind the newsletter.
+  - **Found.** An SVG left at `w-auto` takes its width from its viewBox and
+    ignores `right`: the steps' curl ran past the last square into the
+    margin, and sat low enough to cross a sentence, until it was given a
+    width and the squares' middle line. A wall drawn as 1 px gaps over a
+    line-coloured ground shows that ground as a grey block wherever the last
+    row is short; each cell draws its own ring instead. A cup ring with a wide
+    soft rim reads as a plate; it is a thin band and a broken edge.
 
-- [ ] **K5 · Everywhere else · M**
+- [x] **K5 · Everywhere else · M**
   - Empty states (cart, search, listings), the 404 and the error page with the
     spill; the „order sent" cup; the wizard result's header; the curl steps on
     the delivery, Vending and Consumables pages; blog headers.
+  - The 404 has the cup ring rather than the spill: a cup was here and is
+    gone.
 
 - [ ] **K6 · Verify and ship · M**
   - Tests updated and added: reduced motion emulated, the white-well fallback,

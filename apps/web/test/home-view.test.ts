@@ -254,13 +254,17 @@ describe("home page: order and outline", () => {
     }, 0);
   });
 
-  it("keeps every pine band inside .on-pine, so focus stays visible on it", () => {
-    const bands = markup.match(/<section\b[^>]*\bbg-pine-900\b[^>]*>/g) ?? [];
-    // The hero and the Vending Zone.
-    expect(bands).toHaveLength(2);
-    for (const band of bands) expect(band).toContain("on-pine");
-    // The finder tile is pine inside a paper section, so its own item carries it.
-    expect(markup).toMatch(/<li class="on-pine"><a[^>]*href="\/bg\/za-kafemashina"/);
+  it("marks every dark band so focus stays visible on it: pine opens, espresso closes", () => {
+    const pine = markup.match(/<section\b[^>]*\bbg-pine-900\b[^>]*>/g) ?? [];
+    // The hero only: the page no longer closes on the green it opened with.
+    expect(pine).toHaveLength(1);
+    for (const band of pine) expect(band).toContain("on-pine");
+    const espresso = markup.match(/<section\b[^>]*\bbg-espresso-900\b[^>]*>/g) ?? [];
+    // The Vending Zone.
+    expect(espresso).toHaveLength(1);
+    for (const band of espresso) expect(band).toContain("on-espresso");
+    // The finder tile is espresso inside a paper section, so its own item carries it.
+    expect(markup).toMatch(/<li class="on-espresso"><a[^>]*href="\/bg\/za-kafemashina"/);
   });
 });
 

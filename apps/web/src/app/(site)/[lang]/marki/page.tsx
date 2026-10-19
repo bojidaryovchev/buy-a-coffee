@@ -123,10 +123,7 @@ export default async function BrandsPage({ params }: PageProps) {
                   {makes && <p className="mt-1.5 text-xs text-ink-500">{makes}</p>}
                   <p className="mt-auto pt-1 text-xs font-medium text-pine-700 tabular-nums">
                     {brand.productCount} {brand.productCount === 1 ? "продукт" : "продукта"}
-                    <span
-                      aria-hidden
-                      className="ml-1.5 inline-block transition-transform group-hover:translate-x-0.5"
-                    >
+                    <span aria-hidden className="ml-1.5 inline-block">
                       →
                     </span>
                   </p>

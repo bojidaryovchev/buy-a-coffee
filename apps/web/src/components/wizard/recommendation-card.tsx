@@ -2,13 +2,12 @@ import Link from "next/link";
 import { ButtonLink, ReasonBadge, cx } from "@/components/ui/primitives";
 import { BrandPackLine } from "@/components/catalog/product-card";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
-import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
-import { ProductImage } from "@/components/catalog/product-image";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import { toPerServingView } from "@/lib/catalog/format";
 import type { ScoredRecommendation } from "@/lib/recommend/score";
 import type { Locale } from "@/i18n/config";
 import { productHref } from "@/lib/routes";
+import { PackWell } from "@/components/catalog/pack-well";
 
 /**
  * A recommendation, with its reasons.
@@ -56,21 +55,14 @@ export function RecommendationCard({
         emphasis ? "border-pine-500" : "border-line",
       )}
     >
-      <div className="relative aspect-square w-24 shrink-0 self-start overflow-hidden rounded-md border border-line bg-well sm:w-32">
-        {product.image ? (
-          <ProductImage
-            src={product.image.url}
-            alt={product.image.alt || product.name}
-            fill
-            sizes={IMAGE_SIZES.thumb}
-            className="object-contain"
-            placeholderLabel="from-sm"
-          />
-        ) : (
-          /* At 96 px the words do not fit; they return with the wider well. */
-          <ImagePlaceholder label="from-sm" />
-        )}
-      </div>
+      {/* At 96 px the placeholder's words do not fit; they return with the wider well. */}
+      <PackWell
+        image={product.image}
+        alt={product.image?.alt || product.name}
+        sizes={IMAGE_SIZES.thumb}
+        placeholderLabel="from-sm"
+        className="aspect-square w-24 shrink-0 self-start rounded-md sm:w-32"
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {(rank !== undefined || product.systemId) && (

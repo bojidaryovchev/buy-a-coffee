@@ -33,6 +33,7 @@ export function PackWell({
   lift = false,
   className,
   children,
+  placeholderLabel = true,
 }: {
   readonly image: ProductImageView | null;
   readonly alt: string;
@@ -44,13 +45,15 @@ export function PackWell({
   readonly className?: string;
   /** Overlays: badges in a corner. */
   readonly children?: ReactNode;
+  /** Whether the placeholder prints „Няма снимка“; see `ImagePlaceholder`. */
+  readonly placeholderLabel?: boolean | "from-sm";
 }) {
   const loading = priority ? undefined : ("lazy" as const);
 
   if (!image) {
     return (
       <div className={cx("relative overflow-hidden bg-paper-sunken", className)}>
-        <ImagePlaceholder />
+        <ImagePlaceholder label={placeholderLabel} />
         {children}
       </div>
     );
@@ -67,6 +70,7 @@ export function PackWell({
           sizes={sizes}
           priority={priority}
           loading={loading}
+          placeholderLabel={placeholderLabel}
           className="object-contain"
         />
         {children}
@@ -117,6 +121,7 @@ export function PackWell({
           sizes={sizes}
           priority={priority}
           loading={loading}
+          placeholderLabel={placeholderLabel}
           className="object-contain object-bottom"
         />
       </span>

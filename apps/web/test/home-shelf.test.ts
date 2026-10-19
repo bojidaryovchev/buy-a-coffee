@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   HERO_SHELF_MIN,
   HERO_SHELF_SIZE,
+  STILL_LIFE_MIN,
+  STILL_LIFE_SIZE,
   selectHeroShelf,
+  selectHeroStillLife,
   type HeroShelfCandidate,
 } from "@/lib/catalog/home-shelf";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
@@ -126,5 +129,65 @@ describe("selectHeroShelf", () => {
       "dolce-gusto-2",
       "beans-1",
     ]);
+  });
+});
+
+describe("selectHeroStillLife", () => {
+  /** A candidate whose photo has a live cut-out of the given proportions. */
+  function cut(systemId: BrewingSystemId, width: number, height: number, rank = 1) {
+    const base = candidate(systemId, rank);
+    return {
+      ...base,
+      image: { ...base.image, cutout: { url: `/media/cutouts/${base.id}.png`, width, height } },
+    };
+  }
+
+  it("needs three packs with cut-outs; fewer leaves the shelf of photographs", () => {
+    expect(selectHeroStillLife([cut("beans", 300, 600), cut("ese-pod", 500, 480)])).toEqual([]);
+    // Photographs alone never make a still life, however many.
+    expect(selectHeroStillLife(catalog(ALL, 3))).toEqual([]);
+    expect(selectHeroStillLife(catalog(ALL, 3)).length).toBeLessThan(STILL_LIFE_MIN);
+  });
+
+  it("places by shape: tallest in the centre, widest front right", () => {
+    const packs = selectHeroStillLife([
+      cut("nespresso-original", 300, 560), // tall box
+      cut("dolce-gusto", 520, 500), // wide pouch
+      cut("beans", 280, 640), // tallest: a bag
+      cut("ese-pod", 400, 420),
+    ]);
+    expect(packs).toHaveLength(STILL_LIFE_SIZE);
+    const at = (slot: string) => packs.find((pack) => pack.slot === slot)!;
+    expect(at("centre").systemId).toBe("beans");
+    expect(at("front-right").systemId).toBe("dolce-gusto");
+    expect(at("back").systemId).toBe("nespresso-original");
+    expect(at("front-left").systemId).toBe("ese-pod");
+    // The centre stands tallest and in front of the pack behind it.
+    expect(at("centre").box.height).toBeGreaterThan(at("back").box.height);
+    expect(at("centre").box.z).toBeGreaterThan(at("back").box.z);
+  });
+
+  it("keeps every pack on the stage, its width from its own proportions", () => {
+    const packs = selectHeroStillLife([
+      cut("beans", 280, 640),
+      cut("dolce-gusto", 900, 300), // very wide: capped by its slot's width
+      cut("ese-pod", 400, 420),
+    ]);
+    for (const pack of packs) {
+      expect(pack.box.left).toBeGreaterThanOrEqual(0);
+      expect(pack.box.left + pack.box.width).toBeLessThanOrEqual(100.01);
+      const ratio = pack.cutout.width / pack.cutout.height;
+      expect(pack.box.width / pack.box.height).toBeCloseTo(ratio, 1);
+    }
+  });
+
+  it("is the same still life for the same catalog, in any order", () => {
+    const items = [
+      cut("beans", 280, 640),
+      cut("dolce-gusto", 520, 500),
+      cut("nespresso-original", 300, 560),
+      cut("ese-pod", 400, 420),
+    ];
+    expect(selectHeroStillLife(reordered(items))).toEqual(selectHeroStillLife(items));
   });
 });

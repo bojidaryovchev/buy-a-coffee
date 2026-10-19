@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { cx } from "@/components/ui/primitives";
+
+/** Class names, joined; kept here so the primitives can draw these without an import cycle. */
+const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
 
 /**
  * Holds an ambient loop — the steam — and pauses it whenever it is off-screen.

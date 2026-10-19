@@ -1,6 +1,8 @@
 import { useId } from "react";
-import { cx } from "@/components/ui/primitives";
 import { Ambient } from "./ambient";
+
+/** Class names, joined; kept here so the primitives can draw these without an import cycle. */
+const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
 
 /**
  * Our own drawings — DESIGN.md, "Imagery". Inline SVG in the drawing tones
@@ -238,23 +240,26 @@ export function Crema({ className }: DrawingProps) {
 export function CupRing({ className }: DrawingProps) {
   return (
     <svg {...svgProps("cup-ring", "0 0 200 200", className)}>
-      <circle cx="100" cy="100" r="74" className="fill-illo-stain/5" />
+      {/* As coffee dries: a faint wash inside, the colour gathered at the
+          rim — a thin band and a crisper, broken edge — never a soft wide rim,
+          which reads as a plate. */}
+      <circle cx="100" cy="100" r="76" className="fill-illo-stain/4" />
       <circle
         cx="100"
         cy="100"
-        r="76"
+        r="75"
         fill="none"
-        strokeWidth="8"
-        className="stroke-illo-stain/15"
+        strokeWidth="3"
+        className="stroke-illo-stain/12"
       />
       <circle
-        cx="102"
-        cy="98"
+        cx="101"
+        cy="99"
         r="77"
         fill="none"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeDasharray="170 30 95 22 150 18"
-        className="stroke-illo-stain/25"
+        className="stroke-illo-stain/30"
       />
       <path
         d="M32 126C44 162 92 184 132 172"

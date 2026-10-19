@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Spill } from "@/components/illustrations/drawings";
 import { siteConfig } from "@/config/site";
 import { Button, ButtonLink } from "@/components/ui/primitives";
 import { ERROR_COPY } from "@/i18n/error-copy";
@@ -42,6 +43,8 @@ export default function ErrorBoundary({
 
   return (
     <div className="shell flex min-h-[60vh] flex-col items-center justify-center py-16 text-center">
+      {/* Something went over, and it is not the customer's doing (DESIGN.md, "Error"). */}
+      <Spill className="mb-6 h-16 w-auto md:h-20" />
       <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-4xl">{copy.title}</h1>
       <p className="mt-3 max-w-md text-base text-ink-500">{copy.body}</p>
 

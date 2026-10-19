@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { Spill } from "@/components/illustrations/drawings";
 
 /**
  * Shared UI primitives.
@@ -25,7 +26,8 @@ export function cx(...values: Array<string | false | null | undefined>): string 
  * white card can sit on a pine band, and its secondary button must stay dark
  * on white.
  */
-export type ButtonVariant = "primary" | "accent" | "secondary" | "ghost" | "danger" | "on-pine";
+export type ButtonVariant =
+  "primary" | "accent" | "secondary" | "ghost" | "danger" | "on-pine" | "on-espresso";
 export type ButtonSize = "sm" | "md" | "lg";
 
 /*
@@ -50,6 +52,8 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   ghost: "text-ink-700 hover:bg-paper-sunken hover:text-ink-900",
   danger: "bg-critical text-paper hover:bg-critical/90",
   "on-pine": "border border-pine-200 text-paper hover:bg-pine-700",
+  // The ghost button on espresso: its edge turns gold on hover (9.82:1).
+  "on-espresso": "border border-espresso-200 text-paper hover:border-gold-300",
 };
 
 /*
@@ -293,26 +297,17 @@ export function EmptyState({
   description?: string;
   action?: ReactNode;
   /**
-   * A 40 px line drawing in `text-ink-300`, `aria-hidden`, when the search
-   * glass is not what is empty (the cart draws a cart).
+   * A drawing in place of the spill, `aria-hidden`, when something other than
+   * "nothing here" is the point.
    */
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-md border border-dashed border-line-strong bg-paper-raised px-6 py-12 text-center md:py-16">
-      {icon ?? (
-        <svg
-          aria-hidden
-          viewBox="0 0 48 48"
-          className="mb-4 h-10 w-10 text-ink-300"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <circle cx="21" cy="21" r="13" />
-          <path d="M31 31l10 10" strokeLinecap="round" />
-        </svg>
-      )}
+    // A tone step, not a box (Phase K): the white panel on the page, the spilt
+    // coffee over the words — playful exactly where the copy has to say no
+    // (DESIGN.md, "Imagery").
+    <div className="flex flex-col items-center rounded-md bg-paper-raised px-6 py-12 text-center md:py-16">
+      {icon ?? <Spill className="mb-5 h-16 w-auto md:h-20" />}
       <h2 className="font-display text-lg font-semibold text-ink-900 md:text-xl">{title}</h2>
       {description && <p className="mt-2 max-w-sm text-sm text-ink-500">{description}</p>}
       {action && <div className="mt-6">{action}</div>}

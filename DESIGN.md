@@ -292,7 +292,7 @@ The anchor. Structure, primary actions, links and focus.
 
 | Token      | Value                   | Hex       | Role                                                                                       |
 | ---------- | ----------------------- | --------- | ------------------------------------------------------------------------------------------ |
-| `pine-900` | `oklch(0.26 0.055 165)` | `#002c1d` | Announcement bar, hero band, Vending Zone band, primary button, selected chip and page.    |
+| `pine-900` | `oklch(0.26 0.055 165)` | `#002c1d` | Announcement bar, hero band, primary button, selected chip and page.                       |
 | `pine-700` | `oklch(0.38 0.075 165)` | `#0b4f38` | Link text, price per cup, the focus ring, primary-button hover, filled intensity segments. |
 | `pine-500` | `oklch(0.5 0.09 165)`   | `#237356` | Hover and selected borders. Not a fill.                                                    |
 | `pine-200` | `oklch(0.86 0.045 165)` | `#b7dbca` | Secondary text and ghost-button border on `pine-900`. Never on paper.                      |
@@ -614,23 +614,23 @@ The token scale in `globals.css` is the only one. Root size is 16 px.
 
 ### Hierarchy
 
-| Role                   | Classes                                                                           | Where                                                |
-| ---------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Hero title             | `font-display text-3xl md:text-5xl font-semibold leading-[1.1]`                   | Home `h1` only.                                      |
-| Page title             | `font-display text-2xl md:text-4xl font-semibold`                                 | `h1` on listing, product, wizard, content pages.     |
-| Section title          | `font-display text-2xl md:text-3xl font-semibold`                                 | `h2` (the `SectionHeading` primitive).               |
-| Panel title            | `font-display text-lg md:text-xl font-semibold`                                   | `h2`/`h3` inside a panel, tile or empty state.       |
-| Lead                   | `text-lg text-ink-700`, max 60ch                                                  | One paragraph under a page or hero title.            |
-| Body                   | `text-base text-ink-700`, max `--container-measure` (68ch)                        | Paragraphs, descriptions.                            |
-| Product name (card)    | `font-sans text-sm font-medium text-ink-900`                                      | `h3` in a product card.                              |
-| Price                  | `text-lg font-semibold tabular-nums text-ink-900`                                 | Card.                                                |
-| Price, product page    | `text-3xl font-semibold tabular-nums text-ink-900` (Inter, not Literata)          | Product page.                                        |
-| Price per cup / per kg | `text-xs font-medium tabular-nums text-pine-700` (card), `text-sm` (product page) | Directly under the price.                            |
-| Control                | `text-base font-medium` (`text-sm` at size `sm`)                                  | Buttons, navigation links.                           |
-| Field text             | `text-input`                                                                      | `input`, `select`, `textarea`.                       |
-| Meta                   | `text-xs text-ink-500`                                                            | Captions, helper text, breadcrumbs.                  |
-| Label                  | `text-2xs font-semibold tracking-[0.06em] uppercase text-ink-500`                 | Eyebrows, brand line, badge text, table group heads. |
-| Count                  | `text-2xs tabular-nums text-ink-300`                                              | Facet and navigation counts.                         |
+| Role                   | Classes                                                                            | Where                                                |
+| ---------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Hero title             | `font-display text-3xl md:text-6xl font-semibold leading-[1.08] md:leading-[1.04]` | Home `h1` only; 64 px from `md`.                     |
+| Page title             | `font-display text-2xl md:text-4xl font-semibold`                                  | `h1` on listing, product, wizard, content pages.     |
+| Section title          | `font-display text-2xl md:text-3xl font-semibold`                                  | `h2` (the `SectionHeading` primitive).               |
+| Panel title            | `font-display text-lg md:text-xl font-semibold`                                    | `h2`/`h3` inside a panel, tile or empty state.       |
+| Lead                   | `text-lg text-ink-700`, max 60ch                                                   | One paragraph under a page or hero title.            |
+| Body                   | `text-base text-ink-700`, max `--container-measure` (68ch)                         | Paragraphs, descriptions.                            |
+| Product name (card)    | `font-sans text-sm font-medium text-ink-900`                                       | `h3` in a product card.                              |
+| Price                  | `text-lg font-semibold tabular-nums text-ink-900`                                  | Card.                                                |
+| Price, product page    | `text-3xl font-semibold tabular-nums text-ink-900` (Inter, not Literata)           | Product page.                                        |
+| Price per cup / per kg | `text-xs font-medium tabular-nums text-pine-700` (card), `text-sm` (product page)  | Directly under the price.                            |
+| Control                | `text-base font-medium` (`text-sm` at size `sm`)                                   | Buttons, navigation links.                           |
+| Field text             | `text-input`                                                                       | `input`, `select`, `textarea`.                       |
+| Meta                   | `text-xs text-ink-500`                                                             | Captions, helper text, breadcrumbs.                  |
+| Label                  | `text-2xs font-semibold tracking-[0.06em] uppercase text-ink-500`                  | Eyebrows, brand line, badge text, table group heads. |
+| Count                  | `text-2xs tabular-nums text-ink-300`                                               | Facet and navigation counts.                         |
 
 ### Named rules
 
@@ -685,9 +685,10 @@ Spacing uses the 4 px Tailwind scale. No arbitrary pixel values for spacing.
 
 **Bands.** Sections alternate by tone, not by box: `paper` by default,
 `paper-sunken` for the wizard entry and the footer, `paper-raised` for the
-newsletter band, `pine-900` for the hero and the Vending Zone band, `clay-100`
-for promotions. Adjacent bands of the same tone are separated by a
-`border-t border-line`. Two dark bands never stack.
+newsletter band (a faint cup ring behind its heading), `pine-900` for the hero,
+`espresso-900` for the Vending Zone band, `clay-100` for promotions. Adjacent
+bands of the same tone are separated by a `border-t border-line`. Two dark
+bands never stack.
 
 **The frame's foot.** The space between a page and what follows it is the
 frame's: `mt-20` above the newsletter band and the footer, which sit together
@@ -1803,15 +1804,19 @@ empty shell or a placeholder message.
 | 7   | How ordering works | `paper`        | Explain the cart and the call back, in three steps.                        |
 | 8   | Brands             | `paper`        | A route in for the customer who shops by brand.                            |
 | 9   | Journal            | `paper-sunken` | Latest articles. Only when there are any.                                  |
-| 10  | Vending Zone       | `pine-900`     | Send the business buyer to the page written for them. Only when it exists. |
+| 10  | Vending Zone       | `espresso-900` | Send the business buyer to the page written for them. Only when it exists. |
 
-**1. Hero.** `<section class="on-pine bg-pine-900 text-paper">`, shell, `grid
-gap-8 py-10 md:grid-cols-12 md:items-center md:py-16`.
+**1. Hero.** `<section class="hero-lit on-pine relative isolate overflow-hidden
+bg-pine-900 text-paper">`, shell, `grid gap-8 py-10 md:grid-cols-12
+md:items-center md:py-16`. `.hero-lit` draws warm light falling on the green
+from the right and a fine grain over it, in CSS (`globals.css`).
 
 - _Text, `md:col-span-6`:_
   - Eyebrow, Label style in `text-gold-300`: "{brands} марки · {products}
     продукта", both counted from the database.
-  - `h1`, Hero title: the shop's tagline.
+  - `h1`, Hero title: the shop's tagline, its last words
+    (`siteConfig.taglineAccent`, „с грижа“) in the italic accent
+    (`font-accent font-medium italic text-gold-300`; see "Typography").
   - Lead in `text-pine-200`, max 48ch: one sentence on what is sold and how
     ordering works.
   - Actions, `mt-6 flex flex-wrap gap-3`: an `accent` button, size `lg`,
@@ -1820,7 +1825,24 @@ gap-8 py-10 md:grid-cols-12 md:items-center md:py-16`.
   - Under them, `mt-4 text-sm text-pine-200`: "Не знаете каква система е
     машината ви? " and a `text-gold-300 underline` link "Намерете я по марка и
     модел" → the machine finder.
-- _Shelf, `md:col-span-6`:_ six real packshots in a `grid grid-cols-3 gap-3`.
+- _Still life, `md:col-span-6`,_ while at least three packs have live
+  cut-outs (`selectHeroStillLife` in `lib/catalog/home-shelf.ts`): up to four
+  packs, chosen by the shelf's rule below, standing together on a square stage
+  with no surface and no straight edge — a soft pool of shade (`.hero-floor`)
+  grounds them. Places go by shape: the most upright pack in the centre, the
+  widest in front on the right, the next most upright behind on the left, the
+  last in front on the left, each turned a few degrees, its width from its own
+  proportions, with a contact shadow at its foot. Seven drawn beans lie round
+  their feet and a glass of espresso steams on the right (see "Imagery").
+  Each pack is a link to its product, `alt` the product name. The centre pack
+  is the one preloaded image (`fetchPriority="high"`); the rest are lazy.
+  - _Arrival,_ once, in CSS: each pack is set down (18 px, 0.8 s, staggered
+    80 ms), its shadow spreads, the glass follows, the beans drop. The centre
+    pack moves without fading ("The Still LCP Rule"); title and lead never
+    move. The steam loops while on screen.
+  - _Phone:_ under the text, a square stage up to 440 px wide.
+- _Shelf, `md:col-span-6`,_ while fewer than three cut-outs are live: six real
+  packshots in a `grid grid-cols-3 gap-3`.
   Each is a link to its product: a `aspect-square rounded-md bg-well` well with
   the image `object-contain`, `alt` the product name. Selection is
   deterministic and from data — the newest product with a photograph in each
@@ -1844,28 +1866,32 @@ facts: the strip is omitted.
 grid: one tile per system with products, in `BREWING_SYSTEMS` order, and a last
 tile that is the machine finder.
 
-- _System tile:_ `<a data-system={id} class="group flex h-full flex-col
-rounded-md border border-line border-t-4 border-t-(--system)
-bg-(--system-wash) p-4 transition-colors hover:border-(--system)">`.
-  - The system's icon at 32 px, `mb-3`, above the name.
-  - Name: Panel title, `text-ink-900`.
+- _System tile:_ `<a data-system={id} class="group reveal-on-scroll flex
+h-full flex-col rounded-md bg-(--system-wash) p-4 transition-colors">`. No
+  border and no coloured rule: the wash is the tile. Tiles rise into place as
+  the row scrolls into view (see "Motion").
+  - The system's capsule at 40 px (`tile-capsule`), `mb-3`, above the name; on
+    hover it tips out of the tile, 10°.
+  - Name: Panel title, `text-ink-900`, underlined on hover.
   - `summary` from `BREWING_SYSTEMS`: `mt-1 line-clamp-2 text-sm text-ink-700`.
   - Foot, `mt-auto pt-4 flex items-center justify-between`: "{n} продукта" in
     `text-xs font-semibold tabular-nums text-(--system)`, and "→"
     (`aria-hidden`).
-- _Finder tile:_ `bg-pine-900 text-paper` (inside `.on-pine`), same shape,
-  title "Не знаете системата?", line "Намерете машината си по марка и модел."
-  in `text-pine-200`, foot "Намери по машина →" in `text-gold-300`. Always
-  shown, always last.
+- _Finder tile:_ `bg-espresso-900 text-paper` (inside `.on-espresso`), same
+  shape, title "Не знаете системата?", line "Намерете машината си по марка и
+  модел." in `text-espresso-200`, foot "Намери по машина →" in
+  `text-gold-300`. Always shown, always last.
 - _Phone:_ two columns; the summary clamps to two lines.
 
 **4. Wizard entry.** A band, `bg-paper-sunken`. Inside the shell, one
-`bg-gold-100 rounded-md p-6 md:p-8` panel, `md:grid md:grid-cols-2 md:gap-10`.
-Left: Section title "Кое кафе е за вас?", a paragraph ("Няколко въпроса и три
-предложения — с причините за всяко."), and a `primary` button "Започнете" →
-the wizard. Right: the wizard's step labels (`STEP_LABELS`) as a numbered list,
-each numeral in a 24 px `bg-gold-500 text-ink-900 rounded-xs` square. On a
-phone the list is hidden.
+`bg-gold-100 rounded-md p-6 md:p-8` panel, `md:grid
+md:grid-cols-[1fr_auto_auto] md:gap-10`. Left: Section title "Кое кафе е за
+вас?", a paragraph ("Няколко въпроса и три предложения — с причините за
+всяко."), and a `primary` button "Започнете" → the wizard. Middle: the crema
+drawing, 144 px, rising in with the scroll (see "Imagery"). Right: the wizard's
+step labels (`STEP_LABELS`) as a numbered list, each numeral in a 24 px
+`bg-gold-500 text-ink-900 rounded-xs` square. On a phone the drawing and the
+list are hidden.
 
 **5. Promotions.** `bg-clay-100`, `border-y border-line`. `SectionHeading`
 "Намалени в момента" with a `secondary` `sm` action "Всички промоции". Four
@@ -1878,25 +1904,37 @@ grid ends on a full row. None is `priority` — the hero holds the LCP
 element.
 
 **7. How ordering works.** `SectionHeading` "Поръчката е на една стъпка". Three
-steps in `grid gap-4 md:grid-cols-3`, each a `rounded-md border border-line
-bg-paper-raised p-5` panel: a 28 px `bg-gold-500 text-ink-900 rounded-xs`
-numeral, then one sentence in `text-base text-ink-900`. Under the grid, in
+steps, no boxes: each a 56 px `rounded-md bg-paper-raised` square holding its
+24 px line icon in `text-pine-700` (cart, form, phone), its 24 px
+`bg-gold-500 text-ink-900 rounded-xs` numeral on the square's corner, and one
+sentence in `text-base text-ink-900` — beside the square on a phone, under it
+from `md` (`md:grid-cols-3`, centred). From `md` the curl from the mark joins
+the three squares (`gold-600`, 2.5 px) and draws itself as the section scrolls
+past (`draw-on-scroll`; see "Motion"). The sentences are „Сложете в
+количката кафето, което искате.“, „Оставете име, телефон и къде да
+доставим.“ and „Звъним ви, за да потвърдим и да уговорим доставката.“ Under the grid, in
 `text-sm text-ink-500`: "Без регистрация и без плащане на сайта. Предпочитате
 да говорим?" and the phone number as a `text-pine-700 underline` link.
 
 **8. Brands.** `SectionHeading` "Марките, които предлагаме", action "Всички
-марки". One tile per brand with products: a `rounded-md border border-line
-bg-paper-raised p-3` link holding the brand logo at size `tile` (see "Brand
-logo") — or, with no logo, the name in the same box — and the product count in
-`sr-only`. From `md` a `grid-cols-4` grid, `lg:grid-cols-6`, `gap-3`; on a
+марки". An open wall of logos: from `md` a `grid-cols-4` grid,
+`lg:grid-cols-6`, with no box round each cell — only hairlines between them
+(`gap-px`, each cell `bg-paper` with a 1 px `ring-line`, the outer rings
+clipped, so a short last row ends open).
+Each cell is a link, at least 80 px tall, holding the brand logo at size
+`tile` (see "Brand logo") — or, with no logo, the name in the same cell — and
+the product count in `sr-only`; hover lifts the cell to `paper-raised`. On a
 phone one scrolling row.
 
-**9. Journal.** `SectionHeading` "От блога". Up to three article cards: title
-(Panel title), date (Meta), one-line summary. No image unless the article has
-its own.
+**9. Journal.** `SectionHeading` "От блога". Up to three article cards, a
+tone step and no border (`bg-paper-raised` on the sunken band): the article's
+drawing, 80 px tall (`ArticleDrawing`, chosen by its subject; see "Imagery"),
+the date (Meta), the title (Panel title, underlined on hover), a one-line
+summary.
 
-**10. Vending Zone.** `on-pine bg-pine-900 text-paper`, one row: Section title,
-one sentence in `text-pine-200`, the on-pine secondary button. No `accent`
+**10. Vending Zone.** `on-espresso bg-espresso-900 text-paper`, one row:
+Section title, one sentence in `text-espresso-200`, the `on-espresso` button.
+On espresso so the page does not close on the green it opened with. No `accent`
 button here; the hero has the page's gold. It is the page's last section and
 carries `data-ends-on-band`, so the newsletter band meets it edge to edge (see
 "The frame's foot").
@@ -2255,8 +2293,8 @@ the sitemap). Breadcrumbs, the `h1` "Количка", then:
   left, the sum and the form on the right (`lg:sticky lg:top-44`). On a phone
   the same order, stacked.
 - _Lines:_ one `rounded-md border border-line bg-paper-raised` list, rows
-  divided by `divide-line`, `p-4`. A row: a 64 px well (`sm:` 80 px, `bg-well
-border border-line rounded-sm`, the packshot `object-contain`), then the
+  divided by `divide-line`, `p-4`. A row: a 64 px `PackWell` (`sm:` 80 px,
+  `rounded-sm`; the pack standing where a cut-out is live), then the
   title as a link (`text-sm font-medium`, `sm:text-base`), the detail line in
   `text-sm text-ink-500`, the availability badge when it is not "В
   наличност", the unit price "5,60 € за брой" and the price per cup in
@@ -2290,11 +2328,13 @@ text-caution` line counts them. They are left out of the sum and the order.
   го напишете, ще ви изпратим потвърждение със заявката.", the newsletter
   consent, the note), the result line, and the privacy sentence.
 - _Sent:_ the page becomes a `role="status"` panel, `bg-pine-100 border
-border-pine-500 rounded-md p-5`: "Заявката е получена" (`text-pine-900`),
+border-pine-500 rounded-md p-5`, with the espresso glass from `sm` beside the
+  words, filling once and then steaming — the shop's one celebration, and
+  decoration only (see "Motion"): "Заявката е получена" (`text-pine-900`),
   "Референция: A1B2C3D4", the server's sentence about when we will call; then
   "Какво поискахте" with the lines, the phone, and a `secondary` link home.
   The cart is emptied.
-- _Empty:_ `EmptyState` with a 40 px cart: "Количката е празна", "Изберете
+- _Empty:_ `EmptyState`, with its spill: "Количката е празна", "Изберете
   кафе от каталога и го добавете тук — или ни се обадете и ще поръчаме
   заедно.", `primary` "Към каталога" and `secondary` "Намери по машина".
 - _Loading_ and _failed:_ the skeleton of the lines (see "Loading"); if the
@@ -2346,7 +2386,7 @@ bg-pine-100`, as a selected option. The check box says it is on; there is
 bg-paper-sunken text-ink-700`. Caution: `border-caution bg-caution-100
 text-ink-900` with the title in `font-semibold text-caution`.
 - _Recommendation card:_ the product card's content laid out as a row — a 96 px
-  well (128 px from `sm`), then rank "№1" (`text-pine-700`), system badge,
+  `PackWell` (128 px from `sm`), then rank "№1" (`text-pine-700`), system badge,
   brand line (the logo at size `card`, as on the card), name, reasons, caveat ("Внимание: …" in `text-sm text-caution`),
   price with price per cup, and a button "Вижте и поръчайте" (`primary` on the
   first card, `secondary` on the others). The first card has `border-pine-500`.
@@ -2400,7 +2440,7 @@ py-10 md:py-12`; from `lg` two columns, `[minmax(0,1fr)_minmax(0,28rem)]`,
   поверителност.“, the last words a link to the privacy page.
 
 **Ground.** `paper-raised`, a step lighter than the page, between hairlines.
-On the home page it follows the Vending Zone band (`pine-900`): it has that
+On the home page it follows the Vending Zone band (`espresso-900`): it has that
 band's anatomy — heading and sentence left, the action right, stacked on a
 phone — on the opposite ground, so the two read as one family without being
 one thing twice, and two dark bands never stack. It is not `paper-sunken`,
@@ -2512,17 +2552,18 @@ page but the home page. `text-xs text-ink-500`, steps separated by a
 
 ### Empty state
 
-`EmptyState` in `primitives.tsx`. `flex flex-col items-center rounded-md border
-border-dashed border-line-strong bg-paper-raised px-6 py-12 text-center
-md:py-16`.
+`EmptyState` in `primitives.tsx`. `flex flex-col items-center rounded-md
+bg-paper-raised px-6 py-12 text-center md:py-16`: a tone step, no border.
 
-- A 40 px line icon in `text-ink-300`, `aria-hidden`.
+- The spill, 64 px tall (80 px from `md`), drawn and `aria-hidden` (see
+  "Imagery"): playful exactly where the copy has to say no. A caller may pass
+  another drawing when something other than "nothing here" is the point.
 - Title: `h2`, Panel title. Says what is true: "Няма продукти с тези филтри".
 - Description: `mt-2 max-w-sm text-sm text-ink-500`. Says what to do next.
 - One action, `mt-6`; at most two.
 
-**Never.** "Упс", an illustration of a sad cup, an apology without a next step,
-an empty state with no way out.
+**Never.** "Упс", a cup with a face, an apology without a next step, an empty
+state with no way out.
 
 ### Loading
 
@@ -2572,7 +2613,8 @@ the shop's frame (header, search, footer) and always in Bulgarian; and
 `app/(site)/[lang]/not-found.tsx`, for a `notFound()` thrown inside a page.
 Shell, `min-h-[60vh]`, centred column, `py-16`.
 
-1. "404" — `font-display text-5xl font-semibold text-pine-500`, `aria-hidden`.
+1. "404" — `font-display text-5xl font-semibold text-pine-500`, `aria-hidden`,
+   over the faint ring a cup left on the paper (see "Imagery").
 2. `h1`, Page title: "Тази страница я няма".
 3. `text-base text-ink-500`, max 28rem: "Може адресът да е сгрешен или
    продуктът да е спрян."
@@ -2584,12 +2626,14 @@ Shell, `min-h-[60vh]`, centred column, `py-16`.
 
 `app/(site)/[lang]/error.tsx`. Same layout as not found, without the numeral.
 
-1. `h1`: "Нещо се обърка".
-2. "Не е от вас. Опитайте пак след малко или ни се обадете."
-3. Actions: `primary` "Опитайте отново" (calls `reset`); `secondary` "Към
+1. The spill, 64 px tall (80 px from `md`), drawn and `aria-hidden` (see
+   "Imagery"): something did go over, and it is not the customer's doing.
+2. `h1`: "Нещо се обърка".
+3. "Не е от вас. Опитайте пак след малко или ни се обадете."
+4. Actions: `primary` "Опитайте отново" (calls `reset`); `secondary` "Към
    началната страница".
-4. The phone number as a `tel:` link.
-5. When there is a digest: "Референция: {digest}" in `text-xs text-ink-300`.
+5. The phone number as a `tel:` link.
+6. When there is a digest: "Референция: {digest}" in `text-xs text-ink-300`.
 
 **Never.** A stack trace, an error class name or an English message. An error
 page with no phone number: the customer came to order, and the phone still
@@ -2793,15 +2837,17 @@ against the code on 9 October 2026.
 **Phase K, open on 19 October 2026.** The rules above changed before the code;
 each entry closes with the milestone named in `IMPLEMENTATION_PLAN.md`.
 
-- **Packs on their photo grounds** everywhere: no cut-outs exist yet. K1 makes
-  them, K3 stands them in their wells.
-- **Literata** loads fixed weights, without its optical-size axis or the
-  italic, and loads 400 and 700, which nothing uses. K2.
-- **The header, drawer and footer logo** is a PNG. K2 redraws it as SVG.
-- **No drawings, no motion** beyond colour transitions and the drawer. K2
-  builds the kit and the primitives; K3–K5 put them in place.
-- **`espresso-900` is unused**, and the Vending band and the finder tile are
-  still pine. K4.
-- **A hover transform** already exists, against the rule as it stood: the brand
-  index's arrow (`marki/page.tsx`, `group-hover:translate-x-0.5`). It is
-  allowed by none of the motions above either; K4 removes it.
+- **Done (K1, K3, K5). Packs on their photo grounds.** Cut-outs are made
+  after each sync, and every card, the product gallery, the hero, the cart's
+  lines and the wizard's recommendations stand a pack on its well where one is
+  live. The typeahead's 40 px thumbnails keep the photographs, on purpose: a
+  pack that small reads the same either way.
+- **Done (K2). Literata** loads its optical-size axis at 600 only, and the
+  italic accent for one phrase.
+- **Done (K2), awaiting the owner's sign-off. The header, drawer and footer
+  logo** is the SVG traced from the PNG.
+- **Done (K2–K5). Drawings and motion** on the home page, the product
+  surfaces, the empty states, the 404, „order sent“, the wizard's result, the
+  journal, and the steps on the delivery, Vending and Consumables pages.
+- **Done (K4). `espresso-900`** grounds the Vending band and the finder tile.
+- **Done (K4). The hover transform** on the brand index's arrow is gone.
