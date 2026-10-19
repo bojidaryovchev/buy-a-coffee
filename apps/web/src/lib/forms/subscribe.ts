@@ -2,6 +2,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { newsletterSubscribers } from "@catalog/db/schema";
 import { db } from "@/lib/db";
+import { syncSubscribedLater } from "@/lib/newsletter/sync";
 
 /**
  * The one place a subscription is written.
@@ -22,6 +23,12 @@ import { db } from "@/lib/db";
  * Someone who unsubscribed is never put back by anything but their own action.
  * `operatorSubscribe` therefore refuses an unsubscribed address instead of
  * overwriting what they asked for.
+ *
+ * Every written row is then mirrored into Resend, which sends the newsletter,
+ * once the response is out (`lib/newsletter/sync.ts`). That copy opts the
+ * address in to this site's topic, so it follows the same rule: a form tick
+ * always mirrors, being the person's own word, and the operator mirrors only a
+ * row it created.
  */
 
 export type SubscribeOutcome = "subscribed" | "already_subscribed" | "was_unsubscribed";
@@ -51,10 +58,15 @@ export async function recordConsent(input: {
     })
     .returning({
       id: newsletterSubscribers.id,
+      email: newsletterSubscribers.email,
+      unsubscribeToken: newsletterSubscribers.unsubscribeToken,
       // `xmax = 0` is true only for a row this statement inserted.
       created: sql<boolean>`(xmax = 0)`,
     });
   if (!row) throw new Error("Subscription was not recorded");
+  // Also for an address already on the list: a second tick is the person's own
+  // word again, and the retry for a first sync that never landed.
+  syncSubscribedLater(row);
   return { id: row.id, created: row.created };
 }
 
@@ -88,6 +100,15 @@ export async function operatorSubscribe(input: {
       requestMetadata: input.metadata,
     })
     .onConflictDoNothing({ target: newsletterSubscribers.email })
-    .returning({ id: newsletterSubscribers.id });
-  return inserted.length > 0 ? "subscribed" : "already_subscribed";
+    .returning({
+      id: newsletterSubscribers.id,
+      email: newsletterSubscribers.email,
+      unsubscribeToken: newsletterSubscribers.unsubscribeToken,
+    });
+  const [row] = inserted;
+  if (!row) return "already_subscribed";
+  // Only the row created here. An existing one may have been opted out in
+  // Resend, and re-opting it in is not the operator's call.
+  syncSubscribedLater(row);
+  return "subscribed";
 }

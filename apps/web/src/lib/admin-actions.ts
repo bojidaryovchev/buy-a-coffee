@@ -26,6 +26,7 @@ import {
 } from "@/lib/forms/admin-schemas";
 import { formText } from "@/lib/forms/schemas";
 import { operatorSubscribe } from "@/lib/forms/subscribe";
+import { syncUnsubscribedLater } from "@/lib/newsletter/sync";
 import { CONVERSATION_CLOSED } from "@/lib/retention";
 import {
   REPLY_ATTACHMENT_LIMIT,
@@ -157,6 +158,9 @@ export async function updateContactStatus(formData: FormData): Promise<void> {
  * instead of erroring. Deleting would also destroy the consent record, and the
  * consent record is the thing that makes the earlier mail lawful — worth
  * keeping precisely because the subscription ended.
+ *
+ * Then, once the panel has its answer, the address is opted out of this site's
+ * topic in Resend — that topic only (`lib/newsletter/sync.ts`).
  */
 export async function unsubscribeSubscriber(formData: FormData): Promise<void> {
   if (!(await requireAdmin())) return;
@@ -164,10 +168,12 @@ export async function unsubscribeSubscriber(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  await db
+  const [row] = await db
     .update(newsletterSubscribers)
     .set({ unsubscribedAt: new Date() })
-    .where(eq(newsletterSubscribers.id, id));
+    .where(eq(newsletterSubscribers.id, id))
+    .returning({ id: newsletterSubscribers.id, email: newsletterSubscribers.email });
+  if (row) syncUnsubscribedLater(row);
 
   revalidatePath("/admin/byuletin");
 }

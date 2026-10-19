@@ -255,6 +255,67 @@ export const vars = [
   },
 
   {
+    name: "RESEND_NEWSLETTER_SEGMENT_ID",
+    kind: "config",
+    fromEnv: true,
+    // Production only: a preview deployment signing test addresses into the
+    // live segment would put them in front of the next real broadcast.
+    targets: PROD,
+    required: false,
+    section: "Newsletter",
+    example: "00000000-0000-0000-0000-000000000000",
+    summary:
+      "The Resend segment every newsletter subscriber is added to. Broadcasts need a segment; the topic below narrows it to this site's opt-ins.",
+    detail: [
+      "Also create the contact property bac_unsubscribe_url (type string)",
+      "under Audience -> Properties. Prefixed: properties are account-wide,",
+      "shared with the other three sites.",
+    ],
+    missing: {
+      level: "note",
+      message: "Signups are stored and shown in the admin panel, but not added to Resend.",
+    },
+  },
+  {
+    name: "RESEND_NEWSLETTER_TOPIC_ID",
+    kind: "config",
+    fromEnv: true,
+    // Production only, for the segment's reason.
+    targets: PROD,
+    required: false,
+    section: "Newsletter",
+    example: "00000000-0000-0000-0000-000000000000",
+    summary:
+      "This site's Resend topic. Carries opt-in and opt-out for buy-a-coffee alone: the account is shared by four sites, so the contact's own unsubscribed flag is never written.",
+    detail: [
+      "Create it with default subscription Opt-out (fixed once created), so a",
+      "contact counts only once this site has opted it in, and visibility",
+      "Private, so the other sites' subscribers do not see it on Resend's",
+      "preference page.",
+    ],
+    missing: {
+      level: "note",
+      message: "Signups are stored and shown in the admin panel, but not added to Resend.",
+    },
+  },
+  {
+    name: "RESEND_CONTACTS_WEBHOOK_SECRET",
+    kind: "secret",
+    targets: PROD,
+    required: false,
+    section: "Newsletter",
+    example: "whsec_xxxxxxxxxxxx",
+    summary:
+      "Verifies the contact webhook at /api/resend/contacts, which records opt-outs of this site's topic made in Resend, and account-wide unsubscribes. Not RESEND_WEBHOOK_SECRET, which is the inbound-mail endpoint's.",
+    detail: [
+      "Resend dashboard -> Webhooks -> add",
+      "https://buy-a-coffee.com/api/resend/contacts, subscribed to",
+      "contact.updated and contact.deleted.",
+    ],
+    missing: null,
+  },
+
+  {
     name: "DATABASE_POOL_MAX",
     kind: "config",
     targets: [],
@@ -380,5 +441,39 @@ export const crossChecks = [
           message: "That is the per-instance figure. Use a pooled endpoint or a smaller number.",
         }
       : null;
+  },
+
+  /* The newsletter mirror into Resend (src/lib/newsletter/sync.ts) needs the
+     segment and the topic together, and the key. */
+  ({ has }) => {
+    const segment = has("RESEND_NEWSLETTER_SEGMENT_ID");
+    const topic = has("RESEND_NEWSLETTER_TOPIC_ID");
+    if (!segment && !topic) return null;
+    if (segment !== topic)
+      return {
+        level: "warning",
+        title: "Newsletter half-configured",
+        message: segment
+          ? "Segment without RESEND_NEWSLETTER_TOPIC_ID: nothing is synced, because opt-outs could only be written account-wide."
+          : "Topic without RESEND_NEWSLETTER_SEGMENT_ID: nothing is synced, and a broadcast needs a segment anyway.",
+      };
+    if (!has("RESEND_API_KEY"))
+      return {
+        level: "warning",
+        title: "Newsletter without RESEND_API_KEY",
+        message: "Nothing reaches Resend; signups stay in the database only.",
+      };
+    if (!has("RESEND_CONTACTS_WEBHOOK_SECRET"))
+      return {
+        level: "note",
+        title: "RESEND_CONTACTS_WEBHOOK_SECRET is not set",
+        message:
+          "Opt-outs made in Resend stop the mail but still show as active in the admin panel.",
+      };
+    return {
+      level: "ok",
+      title: "Newsletter",
+      message: "segment, topic, key and contact webhook present",
+    };
   },
 ];
