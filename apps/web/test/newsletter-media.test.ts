@@ -34,7 +34,7 @@ describe("an address in mail", () => {
     );
   });
 
-  it("is left alone when it is anybody else's, or outside the two prefixes", () => {
+  it("is left alone when it is anybody else's, or outside the prefixes", () => {
     for (const url of [
       // Another Blob store: not the one our rewrite serves.
       "https://otherstore.public.blob.vercel-storage.com/newsletter/a.jpg",
@@ -51,7 +51,7 @@ describe("an address in mail", () => {
       `${STORE}/catalog/..%2Fprivate%2Fsecret.png`,
       `${STORE}/catalog/ab/.hidden`,
       `${STORE}/newsletter/a%20b.pdf`,
-      "https://www.kafezona.com/img/a.jpg",
+      "https://www.another-shop.example/img/a.jpg",
       "https://example.com/catalog/a.jpg",
       "mailto:info@buy-a-coffee.com",
       "not a url",
