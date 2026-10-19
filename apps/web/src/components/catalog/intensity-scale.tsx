@@ -44,6 +44,10 @@ export function IntensityScale({
   }
 
   const segments = Array.from({ length: reading.max }, (_, index) => index < reading.value);
+  // Only the product page's track pours: there it is the one a reader is
+  // studying, while a listing would set two hundred segments pouring at once,
+  // and that many scroll-driven animations cost the page its first paint.
+  const pour = size === "page";
 
   return (
     /*
@@ -69,16 +73,17 @@ export function IntensityScale({
           <span
             key={index}
             /*
-             * A filled segment pours in, one after another, the first time
-             * the track scrolls into view (`.intensity-fill` in globals.css;
-             * DESIGN.md, "Motion"). Its fill is drawn by `::after`, over the
-             * empty segment's grey; where scroll-driven animation is not
-             * supported, or less motion is asked for, it is simply full.
+             * On the product page a filled segment pours in, one after
+             * another, the first time the track scrolls into view
+             * (`.intensity-fill` in globals.css; DESIGN.md, "Motion"). Its
+             * fill is drawn by `::after`, over the empty segment's grey;
+             * where scroll-driven animation is not supported, or less motion
+             * is asked for, it is simply full. On a card it is simply full.
              */
-            style={filled ? ({ "--i": index } as CSSProperties) : undefined}
+            style={filled && pour ? ({ "--i": index } as CSSProperties) : undefined}
             className={[
               "h-1.5 flex-1",
-              filled ? "intensity-fill" : "bg-line",
+              filled ? (pour ? "intensity-fill" : "bg-pine-700") : "bg-line",
               index === 0 ? "rounded-l-xs" : "",
               index === segments.length - 1 ? "rounded-r-xs" : "",
             ]

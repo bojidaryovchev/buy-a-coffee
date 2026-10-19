@@ -831,7 +831,7 @@ steam — and it stops whenever nobody can see it.
 | Arrival    | The hero's packs are set down, beans drop, steam starts — on load, once, within 1.2 s                         | CSS keyframes                                                                       |
 | Arrival    | Tiles and drawings below the fold rise into place as they enter the viewport                                  | CSS scroll-driven animation (`animation-timeline: view()`), inside `@supports`      |
 | Feedback   | A bean arcs from „Добави“ to the header cart, which nudges and counts up                                      | Web Animations API, started after the cart has changed                              |
-| Feedback   | An intensity track fills segment by segment, the first time it is seen                                        | CSS scroll-driven animation                                                         |
+| Feedback   | The product page's intensity track fills segment by segment, the first time it is seen                        | CSS scroll-driven animation                                                         |
 | Feedback   | The cup fills and steams when an order is sent                                                                | CSS keyframes                                                                       |
 | Progress   | The ordering steps' curl draws itself as the section scrolls past                                             | `stroke-dashoffset`, scroll-driven                                                  |
 | Ambient    | Steam over a cup                                                                                              | CSS keyframes, paused off-screen                                                    |
@@ -846,7 +846,8 @@ never from nothing.
 hijacking or a smooth-scroll library, numbers that count up, scrambled text, a
 cursor follower, a video or Lottie hero, an image that zooms, and an animation
 library. Everything here is CSS, the Web Animations API or the View Transitions
-API, and costs no JavaScript on the first load.
+API, and costs no JavaScript on the first load but the few lines that switch
+scroll-driven motion on after it ("The Quiet Load Rule").
 
 ### The Web Vitals rules
 
@@ -867,6 +868,16 @@ Each rule names what it protects. They hold for every motion on every page.
 - **The No Motion Script Above The Fold Rule** (INP, LCP). Motion in the first
   screen is CSS. JavaScript motion starts on an interaction, after the state it
   reports has been committed, and imports nothing.
+- **The Quiet Load Rule** (LCP, FCP). Scroll-driven motion starts after the
+  page has loaded: every `animation-timeline: view()` rule waits for
+  `:root[data-motion]`, which `MotionGate` sets on the first idle moment
+  after `load` (`test/motion-css.test.ts` holds every such rule to it). A
+  `view()` timeline present while the page loads put the home page's LCP
+  back by about 500 ms, and a listing's first paint by 100 to 160 ms, on the
+  budget's phone; switched on after load it costs neither. For the same
+  reason a scroll-driven effect is never repeated across a listing: an
+  intensity track pours on the product page only, and is simply full on a
+  card.
 - **The Unseen Loop Rule** (INP, battery). The steam pauses when it leaves the
   viewport (an `IntersectionObserver` sets `animation-play-state`) and when the
   tab is hidden. No other loop exists.

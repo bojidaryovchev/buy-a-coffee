@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SiteFrame, loadNavigation } from "@/components/layout/site-frame";
+import { MotionGate } from "@/components/layout/motion-gate";
 import { Measurement } from "@/components/measurement";
 import { siteConfig } from "@/config/site";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
@@ -114,6 +115,7 @@ export default async function SiteLayout({ children, params }: LayoutProps) {
           {children}
         </SiteFrame>
         <Measurement />
+        <MotionGate />
       </body>
     </html>
   );
