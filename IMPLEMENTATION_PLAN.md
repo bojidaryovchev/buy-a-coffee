@@ -788,9 +788,8 @@ passes.
       crawler's user agent. Someone holding real A Modo Mio, Caffitaly and
       Lavazza Blue capsules compares them with the drawings on
       `/bg/za-kafemashina`. From Phase J: logo files for Molini (its owner is
-      Rema Caffè, Plovdiv), Eurocaf (the source knows who supplies it) and
-      Excelsior (a transparent file of its plain lockup, from Caffè
-      Excelsior); and a word to the source about the illy tin it still lists
+      Rema Caffè, Plovdiv) and Eurocaf (the source knows who supplies it) —
+      Excelsior's was made from its shop's SVG on 19 October; and a word to the source about the illy tin it still lists
       as 100 pods.
 - [x] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.

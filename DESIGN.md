@@ -1374,7 +1374,7 @@ fill (illy's and Julius Meinl's red squares, the Vergnano roundel) sit on paper
 as they are.
 
 **Text fallback.** A brand with no logo — none found or none usable (Eurocaf,
-Excelsior, Molini, each with the reason recorded), or one the sync added after the file
+Molini, each with the reason recorded), or one the sync added after the file
 was written — shows its display name in the same box: `font-display
 font-semibold text-ink-700`, `text-lg` in a tile and `text-sm` elsewhere,
 clamped to two lines; centred in a reserved box, in normal case on a card's

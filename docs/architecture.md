@@ -954,8 +954,8 @@ capsule drawings"). The standard is `DESIGN.md`, "Brand logo".
   published only for dark grounds on an `ink-900` tile, and shows the brand's
   name in text when there is no logo or the box would draw it smaller than it
   can be read — in a 24 px chip that is five stacked lockups, so a chip falls
-  back to the name. Three brands have no usable logo (Eurocaf, Excelsior,
-  Molini) and are written out everywhere.
+  back to the name. Two brands have no usable logo (Eurocaf, Molini) and are
+  written out everywhere.
 
 All three tables are keyed by the brand's source key, like
 `content/brand-names.ts`, which holds how each brand is written on the page.

@@ -150,6 +150,16 @@ export const brandLogoProvenance: Readonly<Record<string, BrandLogoProvenance>> 
       '36cb2aa7...jpg (Este Aroma 1kg): ring of eight coffee beans above "ESTE" in wide gold capitals with a dark offset shadow, thin rules either side, spaced "COFFEE" below. Same symbol, letterforms and gold; the pack sets the lockup on a red band, the file on transparent.',
     note: 'Este is a house brand of Европейски Кафе Експерти ООД (Enco Vending until 2025): its company history (https://www.enco-vending.com/about/history) records launching "собствена марка кафе за вендинг автомати с наименование Este Vending" in 2007, and the side panel of its own Este Aroma packshot carries the ENCO mark. cafeshop.bg is that company\'s shop (its terms name "ЕВРОПЕЙСКИ КАФЕ ЕКСПЕРТИ" ООД as the trader); the file is the brand image on its vending page, taken unmodified. enco-vending.com shows only an older grey "Este vending" script mark at 78x70, which does not match the packs. The gold fill alone is about 2.6:1 on white, but every letter carries a dark shadow and "COFFEE" is near-black, so it sits on paper; a dark tile would lose both. Below 24 px tall the gold "ESTE" is too faint to read.',
   },
+  excelsior: {
+    sourceType: "official-site",
+    sourcePage: "https://shop.torrefazionexcelsior.it/",
+    assetUrl:
+      "https://shop.torrefazionexcelsior.it/themes/Blulab201508/img/_brand/brand-caffe-excelsior-shop-new.svg",
+    retrievedAt: "2026-10-19",
+    packagingCheck:
+      'Gold, Rubin, Sapphire, Emerald and Extra Mild beans and the Porto Rico pods all print a white serif "CAFFÈ / EXCELSIOR" over a green-white-red ribbon, on the navy or red bag or in a navy panel: the same letterforms, ribbon and proportions as this file. Caffè Excelsior srl of Busca, Cuneo; its 2026 export catalogue (https://www.torrefazionexcelsior.it/wp-content/uploads/2026/02/CATALOGO-2026-EXPORT.pdf) lists all six of our coffees.',
+    note: "One edit, made on the owner's request (19 October 2026) after the brand's plain lockup proved unobtainable: the shop's SVG sets a gold script \"The shop\" under the lockup, and those six gold paths (class st3) were removed and the viewBox cropped to what remains. Nothing else changed: the white lettering, the ® and the ribbon are the file's own paths and colours. White, so it sits on a dark tile, as on the bags. Not the Trieste roaster of caffeexcelsior.it, whose mark is a lower-case script \"excelsior\".",
+  },
   foodness: {
     sourceType: "official-site",
     sourcePage: "https://foodness.it/",
@@ -258,11 +268,6 @@ export const brandsWithoutLogo: Readonly<Record<string, BrandWithoutLogo>> = {
     reason:
       'The owner of the label on our packs (the round "EUROCAF" badge over a bean, "ESPRESSO VENDING"; Crema Vivace, Piacere d\'Oro, Piacere d\'Oro Green, Rosso Fuoco) was not found. Tried: eurocafcaffe.it (EUROCAF SRL, Druento, Turin: its home, vending, brand-history and logo-history pages; its marks are a star-ringed oval, never this badge, and it lists none of these coffees), its ICE agrifood profile, EUROCAF trademark records; Bulgarian sellers coffeprint.bg (Kardzhali), the RiO vending site (introbg.wixsite.com/rio2012coffee, Ruse), 100caffeine.com and bestcoffee.bg, none of which names a maker or publishes the badge (they pair Eurocaf with Eurodrinks instant drinks; ЕВРОДРИНКС ЕООД, Sliven, is registered but shows no link to the coffee); Turkish listings (trendyol, cimri) of Eurocaf Piacere d\'Oro, with no maker named; Facebook and Instagram handles (eurocaf, eurocaf.bg, eurocafbg: none is this brand); seeklogo and other logo libraries (nothing). Web searches in Bulgarian, Italian, English and Turkish.',
     checkedAt: "2026-10-09",
-  },
-  excelsior: {
-    reason:
-      'The brand is found and is right, but it publishes no file of its mark that can be shown as is. Our packs (Gold, Rubin, Sapphire, Emerald, Extra Mild beans and Portorico pods) print a white serif "CAFFÈ / EXCELSIOR" with a tricolour ribbon and "L\'ESPRESSO D\'AUTORE DAL 1966" straight on the bag (navy, red) or in a navy panel (silver bags, the pod). It is Caffè Excelsior srl of Busca, Cuneo: torrefazionexcelsior.it shows the same Gold bag, and its 2026 export catalogue (https://www.torrefazionexcelsior.it/wp-content/uploads/2026/02/CATALOGO-2026-EXPORT.pdf) lists all six of our coffees. Every file it publishes was tried. The site\'s header logo (wp-content/themes/blulab/includes/img/loghi/logo-500x500.gif), the Facebook (facebook.com/caffexcelsior) and Instagram (torrefazione.excelsior) profile pictures and its ICE/CEIP Piemonte and Faire profiles are all this lockup set small inside a navy square: in a 48 px tile or a 69 px brand header the name is about 6 to 8 px tall, a blur, and making it readable would mean cutting the square away. Its online shop\'s SVGs (shop.torrefazionexcelsior.it, brand-caffe-excelsior-shop-new.svg and brand-caffe-excelsior-shop.svg) are the lockup in white on transparent with "The shop" or "SHOP" set under it, a different lockup that we would have to edit. The site\'s 2015 logo-excelsior.gif is a gold version at 226x93, under the 400 px floor. Its WordPress media library holds no other logo; LinkedIn shows a placeholder. Not the Trieste roaster of caffeexcelsior.it (Excelsior Industria Caffè Torrefatto, a lower-case script "excelsior"). Wikimedia Commons, seeklogo, worldvectorlogo and brandsoftheworld have nothing for it. No Bulgarian importer was found. Web searches in Bulgarian, Italian and English. A transparent file of the plain lockup from the brand would settle it.',
-    checkedAt: "2026-10-16",
   },
   molini: {
     reason:

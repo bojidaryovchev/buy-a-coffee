@@ -117,6 +117,14 @@ export const brandLogos: Readonly<Record<string, BrandLogo>> = {
     ground: "light",
     minHeight: 24,
   },
+  excelsior: {
+    file: "/brand-logos/excelsior.svg",
+    format: "svg",
+    width: 240.7,
+    height: 73.6,
+    ground: "dark",
+    minHeight: 16,
+  },
   foodness: {
     file: "/brand-logos/foodness.svg",
     format: "svg",

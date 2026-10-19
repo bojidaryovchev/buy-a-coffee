@@ -710,10 +710,12 @@ box cannot draw it legibly (a 24 px chip and the five stacked lockups) the name
 is written instead. A system is named in text by the system badge, with our
 own capsule icon, even where the system's owner is a brand on sale (Lavazza,
 Caffitaly), because a logo beside somebody else's compatible capsule would read
-as an endorsement. Three brands have no usable logo — Eurocaf (the label's
-owner was not found), Excelsior (it publishes no file of its mark that can be
-shown as it is) and Molini (its own shop is still behind a password) — each with the reason recorded in
-`content/brand-logo-provenance.ts`, and show their name.
+as an endorsement. Two brands have no usable logo — Eurocaf (the label's
+owner was not found) and Molini (its own shop is still behind a password) —
+each with the reason recorded in `content/brand-logo-provenance.ts`, and show
+their name. Excelsior publishes its plain lockup nowhere; at the owner's
+request (19 October 2026) its shop's SVG is used with the gold "The shop" line
+removed, the one edit ever made to a brand's file, recorded with it.
 
 **`@theme static`.** Tailwind normally emits only the theme variables some
 utility uses. The system colours are reached only through `var()` from the

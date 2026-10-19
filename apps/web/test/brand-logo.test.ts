@@ -69,9 +69,9 @@ function intrinsicSize(file: string): { width: number; height: number } {
 describe("brand logos: the data file", () => {
   const entries = Object.entries(brandLogos);
 
-  it("holds twenty logos and three recorded absences", () => {
-    expect(entries).toHaveLength(20);
-    expect(Object.keys(brandsWithoutLogo).sort()).toEqual(["eurocaf", "excelsior", "molini"]);
+  it("holds twenty-one logos and two recorded absences", () => {
+    expect(entries).toHaveLength(21);
+    expect(Object.keys(brandsWithoutLogo).sort()).toEqual(["eurocaf", "molini"]);
   });
 
   it("accounts for the brands the sync added on 16 October", () => {
@@ -80,13 +80,12 @@ describe("brand logos: the data file", () => {
     for (const [key, slug] of [
       ["cafe-moreno", "moreno"],
       ["ristora", "ristora"],
+      ["excelsior", "excelsior"],
     ]) {
       expect(brandLogoFor(key), key).not.toBeNull();
       // Pages look a logo up by stored slug: Moreno's is not a spelling of its key.
       expect(brandLogoFor(slug), slug).toBe(brandLogoFor(key));
     }
-    expect(brandLogoFor("excelsior")).toBeNull();
-    expect(brandsWithoutLogo.excelsior).toBeDefined();
   });
 
   it("serves every logo from our own origin, from a file that exists, named by its key", () => {
@@ -252,6 +251,9 @@ const LEGIBLE_EVERYWHERE: readonly BrandLogoSize[] = [
 /** Stacked lockups whose name is a thin line under an emblem. */
 const STACKED = ["bianchi", "lollocafe", "vandino", "3-bourbons", "este"];
 
+/** A wide two-line lockup: in a chip's 24 px box its name falls under its 16 px floor. */
+const WIDE = ["excelsior"];
+
 describe("brand logos: legibility", () => {
   it("shows every logo in every box 40 px tall or more", () => {
     for (const key of Object.keys(brandLogos)) {
@@ -264,8 +266,10 @@ describe("brand logos: legibility", () => {
 
   it("gives up on a logo whose name would be too small to read, and only then", () => {
     // A chip is 36 px tall; the 24 px box inside it is too small for these.
-    for (const key of STACKED) expect(legibleBrandLogo(key, "chip"), key).toBeNull();
-    for (const key of Object.keys(brandLogos).filter((key) => !STACKED.includes(key))) {
+    for (const key of [...STACKED, ...WIDE]) expect(legibleBrandLogo(key, "chip"), key).toBeNull();
+    for (const key of Object.keys(brandLogos).filter(
+      (k) => !STACKED.includes(k) && !WIDE.includes(k),
+    )) {
       expect(legibleBrandLogo(key, "chip"), key).not.toBeNull();
     }
     expect(legibleBrandLogo("moreno", "chip")).not.toBeNull();

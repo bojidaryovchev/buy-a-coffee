@@ -381,7 +381,7 @@ describe("the card's brand line on a narrow phone", () => {
   });
 
   it("never cuts a written name: the pack size wraps under it, its separator clipped", () => {
-    const root = card({ brand: { slug: "excelsior", name: "Excelsior" }, weight: "150 бр." });
+    const root = card({ brand: { slug: "eurocaf", name: "Eurocaf" }, weight: "150 бр." });
     const name = root.querySelector("[data-brand-logo='text']")!;
     expect(name.className).not.toContain("min-w-0");
     const line = name.closest("p")!;
