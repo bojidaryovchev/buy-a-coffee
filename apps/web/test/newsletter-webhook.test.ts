@@ -196,6 +196,48 @@ describe("leaving this site's list", () => {
   });
 });
 
+describe("contact.topics.updated", () => {
+  /* The event Resend fires when a topic subscription changes - the preference
+     page behind {{{RESEND_UNSUBSCRIBE_URL}}} included. Its payload names the
+     changed topics, so the answer is read from it with no API call. */
+  const topicsEvent = (changed: { id: string; subscription: string }[]) =>
+    JSON.stringify({
+      type: "contact.topics.updated",
+      created_at: "2026-10-18T07:30:00.000Z",
+      data: { email: "Ivan@Firma.bg", topics: changed },
+    });
+
+  it("records an opt-out of our topic straight from the payload", async () => {
+    const result = await deliver(topicsEvent([{ id: "topic_bac", subscription: "opt_out" }]));
+
+    expect(result).toEqual({
+      status: "unsubscribed",
+      event: "contact.topics.updated",
+      reason: "topic_opt_out",
+    });
+    expect(topics.list).not.toHaveBeenCalled();
+    expect(store.unsubscribeByEmail).toHaveBeenCalledWith(
+      "ivan@firma.bg",
+      new Date("2026-10-18T07:30:00.000Z"),
+    );
+  });
+
+  it("ignores another site's topic opting out on the same contact", async () => {
+    const result = await deliver(topicsEvent([{ id: "topic_bav", subscription: "opt_out" }]));
+
+    expect(result.status).toBe("ignored");
+    expect(store.unsubscribeByEmail).not.toHaveBeenCalled();
+  });
+
+  it("ignores our topic being switched on", async () => {
+    // Our own signup sync produces exactly this event.
+    const result = await deliver(topicsEvent([{ id: "topic_bac", subscription: "opt_in" }]));
+
+    expect(result.status).toBe("ignored");
+    expect(store.unsubscribeByEmail).not.toHaveBeenCalled();
+  });
+});
+
 describe("leaving everything", () => {
   it("records 'unsubscribe from everything' without asking about topics", async () => {
     const result = await deliver(contactEvent("contact.updated", { unsubscribed: true }));

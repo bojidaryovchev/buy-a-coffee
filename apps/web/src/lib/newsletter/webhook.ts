@@ -26,7 +26,8 @@ import { findSubscriberByEmail, unsubscribeByEmail } from "@/lib/forms/unsubscri
  * the only way onto this list is a consent recorded HERE, and a contact turned
  * back on in a dashboard has not told us how they agreed.
  *
- * THE PAYLOAD CARRIES NO TOPICS. `contact.updated` says what the contact's
+ * `CONTACT.UPDATED` CARRIES NO TOPICS (`contact.topics.updated` does, and is
+ * read as it arrives). `contact.updated` says what the contact's
  * account-wide flag is and nothing about its topic subscriptions, so when the
  * flag alone does not settle it, the contact's topics are fetched before
  * deciding. Before that, the address is looked up here: webhooks are
@@ -93,11 +94,29 @@ export async function handleContactEvent(
     return { status: "unauthorized" };
   }
 
-  if (event.type !== "contact.updated" && event.type !== "contact.deleted") {
-    return { status: "ignored", reason: event.type };
+  /*
+   * `contact.topics.updated` is what Resend fires when a topic subscription
+   * changes - including an opt-out on the preference page behind
+   * {{{RESEND_UNSUBSCRIBE_URL}}}. The installed SDK's event union predates
+   * topics, so the type is widened here; the payload is documented as
+   * `data.email` plus the changed `data.topics` ({ id, subscription }), which
+   * answers the question without a topic lookup.
+   */
+  const type = event.type as string;
+  if (
+    type !== "contact.updated" &&
+    type !== "contact.deleted" &&
+    type !== "contact.topics.updated"
+  ) {
+    return { status: "ignored", reason: type };
   }
+  const data = event.data as {
+    email?: string;
+    unsubscribed?: boolean;
+    topics?: { id: string; subscription: string }[];
+  };
 
-  const email = (event.data.email ?? "").trim().toLowerCase();
+  const email = (data.email ?? "").trim().toLowerCase();
   if (!email) return { status: "ignored", reason: "event without an email" };
 
   let subscriber;
@@ -117,9 +136,18 @@ export async function handleContactEvent(
   }
 
   let reason: UnsubscribeReason;
-  if (event.type === "contact.deleted") {
+  if (type === "contact.deleted") {
     reason = "deleted";
-  } else if (event.data.unsubscribed) {
+  } else if (type === "contact.topics.updated") {
+    const topicId = process.env.RESEND_NEWSLETTER_TOPIC_ID;
+    const ours = topicId ? data.topics?.find((t) => t.id === topicId) : undefined;
+    if (ours?.subscription !== "opt_out") {
+      // Another site's topic, or ours switched on — our own signup sync
+      // produces exactly that.
+      return { status: "ignored", reason: "this site's topic was not opted out" };
+    }
+    reason = "topic_opt_out";
+  } else if (data.unsubscribed) {
     reason = "global_unsubscribe";
   } else {
     const topicId = process.env.RESEND_NEWSLETTER_TOPIC_ID;
@@ -160,7 +188,7 @@ export async function handleContactEvent(
   try {
     switch (await unsubscribeByEmail(email, when)) {
       case "unsubscribed":
-        return { status: "unsubscribed", event: event.type, reason };
+        return { status: "unsubscribed", event: type, reason };
       case "already_unsubscribed":
         return { status: "ignored", reason: "already unsubscribed" };
       case "not_found":
