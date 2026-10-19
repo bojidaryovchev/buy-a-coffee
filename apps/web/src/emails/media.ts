@@ -29,8 +29,8 @@ import { PRODUCTION_ORIGIN, mailOrigin } from "./theme";
  * against the deployment, so the composer's preview still shows them.
  */
 
-/** The store's key prefixes `/media` serves. `next.config.ts` names the same two. */
-export const MEDIA_PREFIXES = ["catalog", "newsletter"] as const;
+/** The store's key prefixes `/media` serves. `next.config.ts` names the same three. */
+export const MEDIA_PREFIXES = ["catalog", "cutouts", "newsletter"] as const;
 
 /**
  * The rest of a key, after its prefix, as `next.config.ts` lets it through:

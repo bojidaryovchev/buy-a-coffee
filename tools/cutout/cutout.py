@@ -129,9 +129,15 @@ def main() -> int:
         return 2
     src, dst = Path(sys.argv[1]), Path(sys.argv[2])
     dst.mkdir(parents=True, exist_ok=True)
+    import onnxruntime as ort
     from rembg import new_session, remove  # imported late: slow, and only needed here
 
-    sessions = {name: new_session(name) for name in MODELS}
+    # Without its CPU arena: with it, the process committed 36 GB at the first
+    # photo and kept it, which a 16 GB runner does not have; without it, 7 to
+    # 9 GB throughout (measured on 8 photos, 20 October 2026).
+    options = ort.SessionOptions()
+    options.enable_cpu_mem_arena = False
+    sessions = {name: new_session(name, sess_opts=options) for name in MODELS}
     report: dict[str, dict] = {}
     for path in sorted(p for p in src.iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")):
         key = path.stem
