@@ -265,13 +265,19 @@ export const siteConfig: SiteConfig = {
     // A human flips this to `true` once the shop owner has confirmed every
     // value in this block. Until then `pnpm check:launch` fails on it.
     confirmedByOwner: false,
+    // The owner's answers, 19 October 2026: free from exactly 49.00; below it
+    // the customer pays the courier's own rate (`deliveryFee` takes that form
+    // in the next commit); dispatch within one business day; Econt, Speedy and
+    // BOX NOW; cash on delivery only; returns of unopened packs within the
+    // statutory 14 days at the customer's cost (opened packs are excluded
+    // under Art. 57, item 5 of the Consumer Protection Act); weekdays 09-18.
     freeDeliveryThreshold: "49.00",
     deliveryFee: null,
-    deliveryTime: null,
-    couriers: [],
-    paymentMethods: ["cash_on_delivery", "bank_transfer"],
+    deliveryTime: { dispatch: { min: 1, max: 1 }, transit: { min: 1, max: 2 } },
+    couriers: ["Еконт", "Спиди", "BOX NOW"],
+    paymentMethods: ["cash_on_delivery"],
     returnWindowDays: 14,
-    returnShippingPaidBy: null,
+    returnShippingPaidBy: "customer",
     openingHours: OPENING_HOURS,
   },
 
