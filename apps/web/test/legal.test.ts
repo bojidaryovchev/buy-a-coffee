@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { siteConfig, type CommerceConfig } from "@/config/site";
+import { COURIER_RATE, siteConfig, type CommerceConfig } from "@/config/site";
 import {
   REVIEW_MARKER,
   buildTermsOfService,
@@ -12,6 +12,7 @@ import {
   privacyPolicy,
   settledParagraphs,
   termsOfService,
+  withdrawalFormSection,
   withdrawalSection,
   type LegalDocument,
 } from "@/content/legal";
@@ -39,6 +40,17 @@ const COMPLETE: CommerceConfig = {
   returnWindowDays: 14,
   returnShippingPaidBy: "customer",
   openingHours: [{ from: "monday", to: "friday", opens: "09:00", closes: "18:00" }],
+};
+
+/**
+ * The terms as they stood before the owner answered: a threshold, payment and
+ * the statutory window proposed, nothing else decided, nothing confirmed.
+ */
+const PROPOSAL: CommerceConfig = {
+  ...UNSET,
+  freeDeliveryThreshold: "49.00",
+  paymentMethods: ["cash_on_delivery", "bank_transfer"],
+  returnWindowDays: 14,
 };
 
 const markers = (paragraphs: readonly string[]) => paragraphs.filter(isReviewParagraph);
@@ -99,16 +111,39 @@ describe("deliverySection", () => {
     expect(markers(delivery.paragraphs)).toEqual([]);
     const text = delivery.paragraphs.join(" ");
     expect(text).toContain("Пратките изпращаме с Куриер А.");
-    expect(text).toMatch(/безплатна за поръчки над 49,00\s€/);
-    expect(text).toMatch(/доставката струва 5,90\s€/);
+    expect(text).toMatch(/безплатна за поръчки от 49,00\s€ нагоре\./);
+    expect(text).toMatch(/За поръчки под тази сума доставката струва 5,90\s€\./);
     expect(text).toContain("доставката отнема 1–2 работни дни");
+  });
+
+  it("is finished text at the courier's rate too, which is a term and not a gap", () => {
+    const delivery = deliverySection({ ...COMPLETE, deliveryFee: COURIER_RATE });
+    expect(markers(delivery.paragraphs)).toEqual([]);
+    const text = delivery.paragraphs.join(" ");
+    expect(text).toContain(
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+    expect(text).not.toContain("5,90");
+    expect(text).not.toContain("ви казваме по телефона");
+  });
+
+  it("states the shipped terms in full, with no marker", () => {
+    const delivery = deliverySection(siteConfig.commerce);
+    expect(markers(delivery.paragraphs)).toEqual([]);
+    const text = delivery.paragraphs.join(" ");
+    expect(text).toContain("Пратките изпращаме с Еконт, Спиди и BOX NOW.");
+    expect(text).toMatch(/безплатна за поръчки от 49,00\s€ нагоре\./);
+    expect(text).toContain("по тарифата на куриера и се плаща при получаване");
+    expect(text).toContain(
+      "Предаваме пратката на куриера до 1 работен ден след потвърждаването, а доставката отнема 1–2 работни дни.",
+    );
   });
 
   it("follows a changed threshold", () => {
     const text = deliverySection({ ...COMPLETE, freeDeliveryThreshold: "60.00" }).paragraphs.join(
       " ",
     );
-    expect(text).toMatch(/над 60,00\s€/);
+    expect(text).toMatch(/от 60,00\s€ нагоре/);
     expect(text).not.toContain("49,00");
   });
 
@@ -161,12 +196,55 @@ describe("withdrawalSection", () => {
     );
   });
 
-  it("keeps the marker for the withdrawal form, which no config value supplies", () => {
-    expect(
-      markers(withdrawalSection(COMPLETE).paragraphs).some((paragraph) =>
-        paragraph.includes("формуляр за отказ"),
-      ),
-    ).toBe(true);
+  it("points to the withdrawal form instead of keeping a marker for it", () => {
+    const paragraphs = withdrawalSection(COMPLETE).paragraphs;
+    expect(markers(paragraphs)).toEqual([]);
+    expect(paragraphs.join(" ")).toContain("стандартния формуляр за отказ от Общите условия");
+    // With nothing configured, the one open question is who pays for the return.
+    const open = markers(withdrawalSection(UNSET).paragraphs);
+    expect(open).toHaveLength(1);
+    expect(open[0]).not.toContain("формуляр");
+  });
+});
+
+describe("withdrawalFormSection", () => {
+  const form = withdrawalFormSection();
+
+  it("is the statutory standard form, as its own section", () => {
+    expect(form.heading).toBe("Стандартен формуляр за отказ");
+    expect(form.paragraphs.join(" ")).toContain("само ако желаете да се откажете от договора");
+    expect(form.bullets).toEqual([
+      expect.stringMatching(/^До: /),
+      "С настоящото уведомявам/уведомяваме (*), че се отказвам/отказваме (*) от сключения от мен/нас (*) договор за покупка на следните стоки:",
+      "Поръчано на (*) / получено на (*):",
+      "Име на потребителя/ите:",
+      "Адрес на потребителя/ите:",
+      "Подпис на потребителя/ите (само ако настоящият формуляр е на хартия):",
+      "Дата:",
+    ]);
+  });
+
+  it("is addressed to the trader by name, address and e-mail", () => {
+    expect(siteConfig.legal.isComplete).toBe(true);
+    expect(form.bullets?.[0]).toBe(
+      `До: ${siteConfig.legal.companyName}, ${siteConfig.legal.address}, ${siteConfig.contact.email}`,
+    );
+    expect(form.bullets?.[0]).toContain("Лидер офис МЛ ЕООД");
+    expect(form.bullets?.[0]).toContain("info@buy-a-coffee.com");
+  });
+
+  it("is finished text, with no marker", () => {
+    expect(markers([...form.paragraphs, ...(form.bullets ?? [])])).toEqual([]);
+  });
+
+  it("follows the right of withdrawal in the terms, whatever the config says", () => {
+    for (const commerce of [UNSET, COMPLETE, siteConfig.commerce]) {
+      const headings = buildTermsOfService(commerce).sections.map((entry) => entry.heading);
+      const at = headings.indexOf("Право на отказ");
+      expect(at).toBeGreaterThanOrEqual(0);
+      expect(headings[at + 1]).toBe("Стандартен формуляр за отказ");
+      expect(section(buildTermsOfService(commerce), "Стандартен формуляр за отказ")).toEqual(form);
+    }
   });
 });
 
@@ -184,6 +262,7 @@ describe("the terms document", () => {
       "Доставка",
       "Плащане",
       "Право на отказ",
+      "Стандартен формуляр за отказ",
       "Кога правото на отказ не важи",
       "Съответствие на стоката и рекламации",
       "Спорове",
@@ -201,16 +280,33 @@ describe("the terms document", () => {
     }
   });
 
-  it("leaves the Article 57 question open whatever the config says", () => {
-    const exclusions = section(buildTermsOfService(COMPLETE), "Кога правото на отказ не важи")!;
-    expect(markers(exclusions.paragraphs)).toHaveLength(1);
-    expect(markers(exclusions.paragraphs)[0]).toContain("член 57");
+  it("states the Article 57 exclusion as settled text: opened factory packaging cannot be returned", () => {
+    for (const commerce of [UNSET, COMPLETE, siteConfig.commerce]) {
+      const exclusions = section(buildTermsOfService(commerce), "Кога правото на отказ не важи")!;
+      expect(markers(exclusions.paragraphs)).toEqual([]);
+      const text = exclusions.paragraphs.join(" ");
+      expect(text).toContain("член 57, точка 5 от Закона за защита на потребителите");
+      expect(text).toContain("чиято фабрична опаковка е отворена след доставката");
+      expect(text).toContain("не могат да бъдат върнати");
+      // Unopened packs can still go back, and a complaint is a separate right.
+      expect(text).toContain("Опаковка в ненарушен фабричен вид може да бъде върната");
+      expect(text).toContain("Това не засяга рекламацията");
+    }
   });
 
-  it("as shipped, has exactly four open questions", () => {
-    // Delivery fee and time; who pays for a return; the withdrawal form; the
-    // scope of the Article 57 exclusions.
-    expect(openReviewItems(termsOfService)).toHaveLength(4);
+  it("as shipped, has no open question left", () => {
+    expect(openReviewItems(termsOfService)).toEqual([]);
+  });
+
+  it("keeps an open question only for a term the config leaves undecided", () => {
+    // The fee and the delivery time (one marker); who pays for a return.
+    const open = openReviewItems(buildTermsOfService(PROPOSAL));
+    expect(open).toHaveLength(2);
+    expect(open.join("\n")).not.toMatch(/формуляр|член 57/);
+  });
+
+  it("is still a draft awaiting the lawyer's read", () => {
+    expect(termsOfService.needsReview).toBe(true);
   });
 });
 
@@ -255,8 +351,30 @@ describe("measurement in the privacy and cookie texts", () => {
 });
 
 describe("check:launch", () => {
-  it("fails for the shipped config, and says why", () => {
+  it("passes for the shipped config, with the lawyer's read as its only notes", () => {
     const report = launchReport();
+    expect(report.blockers).toEqual([]);
+    expect(report.notes).toEqual([
+      expect.stringContaining("/bg/poveritelnost still shows its draft notice"),
+      expect.stringContaining("/bg/obshti-usloviya still shows its draft notice"),
+    ]);
+
+    const out: string[] = [];
+    const err: string[] = [];
+    expect(
+      run(
+        report,
+        (line) => out.push(line),
+        (line) => err.push(line),
+      ),
+    ).toBe(0);
+    expect(err).toEqual([]);
+    expect(out).toHaveLength(3);
+    expect(out.at(-1)).toContain("check:launch passed");
+  });
+
+  it("fails for an unconfirmed proposal, and says why", () => {
+    const report = launchReport(PROPOSAL);
     const text = report.blockers.join("\n");
     expect(text).toContain("commerce.confirmedByOwner is false");
     expect(text).toContain("unset term: commerce.deliveryFee");
@@ -264,7 +382,7 @@ describe("check:launch", () => {
     expect(text).toContain("unset term: commerce.returnShippingPaidBy");
     expect(
       report.blockers.filter((line) => line.startsWith("/bg/obshti-usloviya renders")),
-    ).toHaveLength(4);
+    ).toHaveLength(2);
     expect(
       run(
         report,
@@ -276,7 +394,8 @@ describe("check:launch", () => {
 
   it("lists every reason on its own line", () => {
     const lines: string[] = [];
-    const report = launchReport();
+    const report = launchReport(PROPOSAL);
+    expect(report.blockers.length).toBeGreaterThan(0);
     run(
       report,
       () => {},
@@ -318,11 +437,9 @@ describe("check:launch", () => {
     ).toBe(1);
   });
 
-  it("still fails with everything configured, because the terms keep two open questions", () => {
-    const report = launchReport(COMPLETE);
-    expect(report.blockers).toHaveLength(2);
-    expect(report.blockers.join("\n")).toContain("формуляр за отказ");
-    expect(report.blockers.join("\n")).toContain("член 57");
+  it("passes with everything configured, a fixed fee or the courier's rate alike", () => {
+    expect(launchReport(COMPLETE).blockers).toEqual([]);
+    expect(launchReport({ ...COMPLETE, deliveryFee: COURIER_RATE }).blockers).toEqual([]);
   });
 
   it("passes when nothing is open, and reports an unreviewed document as a note only", () => {

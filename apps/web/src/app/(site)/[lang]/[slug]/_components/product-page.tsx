@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/primitives";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { AddToCartPanel } from "@/components/cart/add-to-cart-panel";
-import { QuickOrderForm } from "@/components/forms/quick-order-form";
 import {
   DeliveryPaymentBlock,
   deliveryPaymentRows,
@@ -350,19 +349,24 @@ export async function ProductPage({
                   </div>
                 ) : (
                   <>
-                    {/* The cart first, with the page's one gold button. */}
+                    {/* Both ways into the one order form, the cart's. */}
                     <AddToCartPanel
                       productId={product.id}
                       slug={product.slug}
                       name={product.name}
                     />
-                    {/*
-                      Then the quick order: this one product, by phone, in one
-                      step. Without JavaScript the cart is not drawn and this is
-                      the whole panel, so its rule and spacing go with it.
-                    */}
-                    <div className="mt-4 border-t border-line pt-5 noscript:mt-0 noscript:border-t-0 noscript:pt-0 [&>form]:rounded-none [&>form]:border-0 [&>form]:bg-transparent [&>form]:p-0">
-                      <QuickOrderForm productSlug={product.slug} submitVariant="primary" />
+                    {/* The cart needs a script; without one, the phone. */}
+                    <div className="hidden noscript:block">
+                      <p className="text-sm text-ink-700">
+                        Поръчките се изпращат от количката, която работи с включен JavaScript.
+                        Можете да поръчате и по телефона:
+                      </p>
+                      <a
+                        href={`tel:${siteConfig.contact.phoneHref}`}
+                        className={`${PHONE_LINK} mt-3`}
+                      >
+                        {siteConfig.contact.phone}
+                      </a>
                     </div>
                   </>
                 )}

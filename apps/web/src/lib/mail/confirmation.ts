@@ -39,6 +39,8 @@ export interface OrderConfirmation {
   readonly lines: readonly OrderLine[];
   /** When to expect the call (`callbackSentence`), worked out when the order came in. */
   readonly callback: string;
+  /** Where it goes (`deliveryLines`), printed back like the phone. */
+  readonly delivery?: readonly string[] | null;
 }
 
 /**
@@ -58,6 +60,7 @@ export async function composeOrderConfirmation(order: OrderConfirmation): Promis
       phone: order.phone,
       lines: order.lines,
       callback: order.callback,
+      delivery: order.delivery ?? null,
     },
     MAIL_SIGNATURE,
   );

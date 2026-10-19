@@ -29,6 +29,7 @@ const toAddress = {
   lastName: "Петров",
   phone: "0888 123 456",
   deliveryMethod: "address",
+  deliveryCourier: "econt",
   deliveryCity: "Пловдив",
   deliveryPostcode: "4000",
   deliveryAddress: "ул. Иван Вазов 12, ет. 3, ап. 7",
@@ -40,7 +41,7 @@ const toOffice = {
   deliveryMethod: "office",
   deliveryPostcode: "",
   deliveryAddress: "",
-  deliveryOffice: "Еконт, Пловдив Център",
+  deliveryOffice: "Пловдив Център",
 };
 
 const errorsOf = (input: Record<string, unknown>) => {
@@ -63,6 +64,7 @@ describe("the order form's delivery", () => {
       lastName: "",
       phone: "",
       deliveryMethod: "address",
+      deliveryCourier: "",
       deliveryCity: "",
       deliveryPostcode: "",
       deliveryAddress: "",
@@ -72,6 +74,7 @@ describe("the order form's delivery", () => {
       firstName: DELIVERY_MESSAGES.firstName,
       lastName: DELIVERY_MESSAGES.lastName,
       phone: PHONE_MESSAGES.missing,
+      deliveryCourier: DELIVERY_MESSAGES.courier,
       deliveryCity: DELIVERY_MESSAGES.city,
       deliveryPostcode: DELIVERY_MESSAGES.postcode,
       deliveryAddress: DELIVERY_MESSAGES.address,
@@ -82,6 +85,17 @@ describe("the order form's delivery", () => {
   it("asks an office delivery for the office, not for a postcode or street", () => {
     const errors = errorsOf({ ...toOffice, deliveryOffice: "" });
     expect(errors).toEqual({ deliveryOffice: DELIVERY_MESSAGES.office });
+  });
+
+  it("offers BOX NOW only for collection, and asks for a courier", () => {
+    expect(cartOrderSchema.safeParse({ ...toOffice, deliveryCourier: "boxnow" }).success).toBe(
+      true,
+    );
+    for (const courier of ["boxnow", ""]) {
+      expect(errorsOf({ ...toAddress, deliveryCourier: courier })).toEqual({
+        deliveryCourier: DELIVERY_MESSAGES.courier,
+      });
+    }
   });
 
   it("wants a four-digit postcode", () => {
@@ -136,6 +150,7 @@ describe("storing and reading a delivery", () => {
       firstName: "Иван",
       lastName: "Петров",
       deliveryMethod: "address",
+      deliveryCourier: "econt",
       deliveryCity: "Пловдив",
       deliveryPostcode: "4000",
       deliveryAddress: "ул. Иван Вазов 12, ет. 3, ап. 7",
@@ -145,25 +160,26 @@ describe("storing and reading a delivery", () => {
     const switched = deliveryColumns(parsed({ ...toOffice, deliveryAddress: "ул. Стара 1" }));
     expect(switched.deliveryAddress).toBeNull();
     expect(switched.deliveryPostcode).toBeNull();
-    expect(switched.deliveryOffice).toBe("Еконт, Пловдив Център");
+    expect(switched.deliveryOffice).toBe("Пловдив Център");
   });
 
   it("writes a delivery the way a Bulgarian address label reads", () => {
     const address = deliveryColumns(parsed(toAddress));
     expect(deliveryLines(address)).toEqual([
-      "До адрес",
+      "До адрес с Еконт",
       "ул. Иван Вазов 12, ет. 3, ап. 7",
       "4000 Пловдив",
     ]);
-    expect(deliverySummary(address)).toBe("Пловдив · до адрес");
+    expect(deliverySummary(address)).toBe("Пловдив · до адрес с Еконт");
 
     const office = deliveryColumns(parsed(toOffice));
-    expect(deliveryLines(office)).toEqual([
-      "До офис на куриер",
-      "Еконт, Пловдив Център",
-      "Пловдив",
-    ]);
-    expect(deliverySummary(office)).toBe("Пловдив · офис на куриер");
+    expect(deliveryLines(office)).toEqual(["До офис на Еконт", "Пловдив Център", "Пловдив"]);
+    expect(deliverySummary(office)).toBe("Пловдив · до офис на Еконт");
+
+    const locker = deliveryColumns(
+      parsed({ ...toOffice, deliveryCourier: "boxnow", deliveryOffice: "до Kaufland Тракия" }),
+    );
+    expect(deliveryLines(locker)).toEqual(["До автомат BOX NOW", "до Kaufland Тракия", "Пловдив"]);
   });
 
   it("reads an order taken before the form asked for a delivery", () => {
@@ -172,6 +188,7 @@ describe("storing and reading a delivery", () => {
       firstName: null,
       lastName: null,
       deliveryMethod: null,
+      deliveryCourier: null,
       deliveryCity: null,
       deliveryPostcode: null,
       deliveryAddress: null,

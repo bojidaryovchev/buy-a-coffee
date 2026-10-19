@@ -2,11 +2,11 @@ import { absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
 import {
   couriersSentence,
   deliveryCostSentences,
-  deliveryFee,
   deliveryTimeSentence,
   freeDeliveryThreshold,
   paymentSentence,
   returnShippingSentence,
+  deliveryCostKnown,
 } from "@/components/commerce/terms";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { href, routes } from "@/lib/routes";
@@ -80,7 +80,7 @@ export interface LlmsInput {
 export function deliveryTermLines(
   commerce: CommerceConfig = siteConfig.commerce,
 ): readonly string[] {
-  const costKnown = freeDeliveryThreshold(commerce) !== null || deliveryFee(commerce) !== null;
+  const costKnown = freeDeliveryThreshold(commerce) !== null || deliveryCostKnown(commerce);
 
   return [
     ...(costKnown ? deliveryCostSentences(commerce) : []),

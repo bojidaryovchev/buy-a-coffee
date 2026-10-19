@@ -5,8 +5,10 @@ import {
   couriersSentence,
   daysInRange,
   deliveryCostFor,
+  deliveryCostKnown,
   deliveryCostSentences,
   deliveryFee,
+  deliveryFeeIsCourierRate,
   deliveryTime,
   deliveryTimeSentence,
   freeDeliveryGap,
@@ -21,7 +23,7 @@ import {
   unsetTerms,
   withdrawalDays,
 } from "@/components/commerce/terms";
-import { formatOpeningHours, siteConfig, type CommerceConfig } from "@/config/site";
+import { COURIER_RATE, formatOpeningHours, siteConfig, type CommerceConfig } from "@/config/site";
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { organizationJsonLd, productJsonLd } from "@/lib/seo/json-ld";
 
@@ -54,19 +56,24 @@ const COMPLETE: CommerceConfig = {
 const eur = (amount: string) => ({ amount, currency: "EUR" });
 
 describe("the configured terms as shipped", () => {
-  it("is a proposal: three values set, the rest unset, nothing confirmed", () => {
+  it("is what the owner confirmed on 19 October 2026, every term set", () => {
     const commerce = siteConfig.commerce;
-    expect(commerce.confirmedByOwner).toBe(false);
+    expect(commerce.confirmedByOwner).toBe(true);
     expect(freeDeliveryThreshold(commerce)?.amount).toBe("49.00");
-    expect(paymentMethods(commerce).map((method) => method.id)).toEqual([
-      "cash_on_delivery",
-      "bank_transfer",
-    ]);
-    expect(returnWindowDays(commerce)).toBe(14);
+    // Below the threshold the customer pays the courier's own tariff: a term,
+    // but not an amount.
+    expect(commerce.deliveryFee).toBe(COURIER_RATE);
+    expect(deliveryFeeIsCourierRate(commerce)).toBe(true);
     expect(deliveryFee(commerce)).toBeNull();
-    expect(deliveryTime(commerce)).toBeNull();
-    expect(commerce.couriers).toEqual([]);
-    expect(commerce.returnShippingPaidBy).toBeNull();
+    expect(deliveryCostKnown(commerce)).toBe(true);
+    expect(deliveryTime(commerce)).toEqual({
+      dispatch: { min: 1, max: 1 },
+      transit: { min: 1, max: 2 },
+    });
+    expect(commerce.couriers).toEqual(["Еконт", "Спиди", "BOX NOW"]);
+    expect(paymentMethods(commerce).map((method) => method.id)).toEqual(["cash_on_delivery"]);
+    expect(returnWindowDays(commerce)).toBe(14);
+    expect(commerce.returnShippingPaidBy).toBe("customer");
   });
 
   it("still prints the opening hours the rest of the site reads", () => {
@@ -118,6 +125,32 @@ describe("money guards", () => {
   it("accepts a fee of zero, which is a real answer", () => {
     expect(deliveryFee({ ...UNSET, deliveryFee: "0" })?.amount).toBe("0.00");
   });
+
+  it("has no amount for the courier's rate, which is not a single number", () => {
+    const courier = { ...UNSET, deliveryFee: COURIER_RATE };
+    expect(deliveryFee(courier)).toBeNull();
+    expect(deliveryFeeIsCourierRate(courier)).toBe(true);
+    expect(deliveryFeeIsCourierRate(COMPLETE)).toBe(false);
+    expect(deliveryFeeIsCourierRate(UNSET)).toBe(false);
+  });
+});
+
+describe("deliveryCostKnown", () => {
+  it("is true for a fixed fee, a fee of zero and the courier's rate", () => {
+    expect(deliveryCostKnown(COMPLETE)).toBe(true);
+    expect(deliveryCostKnown({ ...UNSET, deliveryFee: "0.00" })).toBe(true);
+    expect(deliveryCostKnown({ ...UNSET, deliveryFee: COURIER_RATE })).toBe(true);
+  });
+
+  it("is false while the fee is undecided or unusable", () => {
+    expect(deliveryCostKnown(UNSET)).toBe(false);
+    expect(deliveryCostKnown({ ...UNSET, deliveryFee: "-1.00" })).toBe(false);
+    expect(deliveryCostKnown({ ...UNSET, deliveryFee: "abc" })).toBe(false);
+  });
+
+  it("does not count a free-delivery threshold as a delivery cost", () => {
+    expect(deliveryCostKnown({ ...UNSET, freeDeliveryThreshold: "49.00" })).toBe(false);
+  });
 });
 
 describe("freeDeliveryGap", () => {
@@ -153,11 +186,16 @@ describe("freeDeliveryGap", () => {
     });
   });
 
-  it("qualifies only above the threshold, never on it", () => {
+  it("qualifies from the threshold up, exactly on it included", () => {
+    // The owner, 19 October 2026: an order of exactly 49,00 € is delivered free.
+    expect(freeDeliveryGap(eur("49.00"), COMPLETE)).toEqual({ qualifies: true });
     expect(freeDeliveryGap(eur("49.01"), COMPLETE)).toEqual({ qualifies: true });
     expect(freeDeliveryGap(eur("120.00"), COMPLETE)).toEqual({ qualifies: true });
-    // Exactly on it: the offer says "above", so no promise and nothing to add.
-    expect(freeDeliveryGap(eur("49.00"), COMPLETE)).toEqual({ qualifies: false, remaining: null });
+    // One cent short is still short, and says by how much.
+    expect(freeDeliveryGap(eur("48.99"), COMPLETE)).toMatchObject({
+      qualifies: false,
+      remaining: { amount: "0.01" },
+    });
   });
 });
 
@@ -165,6 +203,17 @@ describe("deliveryCostFor", () => {
   it("is zero above the threshold and the fee below it", () => {
     expect(deliveryCostFor(eur("60.00"), COMPLETE)?.amount).toBe("0.00");
     expect(deliveryCostFor(eur("20.00"), COMPLETE)?.amount).toBe("5.90");
+  });
+
+  it("is zero exactly on the threshold", () => {
+    expect(deliveryCostFor(eur("49.00"), COMPLETE)?.amount).toBe("0.00");
+    expect(deliveryCostFor(eur("48.99"), COMPLETE)?.amount).toBe("5.90");
+  });
+
+  it("is null below the threshold at the courier's rate, which has no single number", () => {
+    const courier = { ...COMPLETE, deliveryFee: COURIER_RATE };
+    expect(deliveryCostFor(eur("20.00"), courier)).toBeNull();
+    expect(deliveryCostFor(eur("49.00"), courier)?.amount).toBe("0.00");
   });
 
   it("is null below the threshold when no fee is configured", () => {
@@ -273,8 +322,10 @@ describe("sentences", () => {
     );
 
     const thresholdOnly = deliveryCostSentences({ ...UNSET, freeDeliveryThreshold: "49.00" });
-    expect(thresholdOnly[0]).toMatch(/^Доставката е безплатна за поръчки над 49,00\s€\.$/);
-    expect(thresholdOnly[1]).toContain("ви казваме по телефона");
+    expect(thresholdOnly[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
+    expect(thresholdOnly[1]).toBe(
+      "За поръчки под тази сума цената на доставката ви казваме по телефона, когато потвърждаваме поръчката.",
+    );
 
     const feeOnly = deliveryCostSentences({ ...UNSET, deliveryFee: "5.90" });
     expect(feeOnly).toHaveLength(1);
@@ -282,16 +333,39 @@ describe("sentences", () => {
 
     const both = deliveryCostSentences(COMPLETE);
     expect(both[0]).toContain("49,00");
-    expect(both[1]).toMatch(/доставката струва 5,90\s€\.$/);
+    expect(both[1]).toMatch(/^За поръчки под тази сума доставката струва 5,90\s€\.$/);
 
     expect(deliveryCostSentences({ ...COMPLETE, deliveryFee: "0.00" })).toEqual([
       "Доставката е безплатна.",
     ]);
   });
 
+  it("states the courier's rate, with a threshold and without one", () => {
+    const withThreshold = deliveryCostSentences({ ...COMPLETE, deliveryFee: COURIER_RATE });
+    expect(withThreshold).toHaveLength(2);
+    expect(withThreshold[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
+    expect(withThreshold[1]).toBe(
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+
+    expect(deliveryCostSentences({ ...UNSET, deliveryFee: COURIER_RATE })).toEqual([
+      "Доставката е по тарифата на куриера и се плаща при получаване.",
+    ]);
+  });
+
+  it("states the shipped terms in exactly those sentences", () => {
+    const shipped = deliveryCostSentences(siteConfig.commerce);
+    expect(shipped).toHaveLength(2);
+    expect(shipped[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
+    expect(shipped[1]).toBe(
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+    expect(shipped.join(" ")).not.toContain("по телефона");
+  });
+
   it("never states a fee that was not configured", () => {
-    // The shipped config has a threshold and no fee: no amount other than the
-    // threshold may appear.
+    // The shipped config has a threshold and the courier's rate: no amount
+    // other than the threshold may appear.
     const text = deliveryCostSentences(siteConfig.commerce).join(" ");
     expect(text.match(/\d+,\d{2}/g)).toEqual(["49,00"]);
   });
@@ -314,21 +388,29 @@ describe("the announcement bar and the product block", () => {
   });
 
   it("makes the promise when there is one", () => {
-    expect(freeDeliveryPromise(COMPLETE)).toMatch(/^Безплатна доставка за поръчки над 49,00\s€$/);
+    expect(freeDeliveryPromise(COMPLETE)).toMatch(/^Безплатна доставка за поръчки от 49,00\s€$/);
   });
 
   it("says where one unit stands, exactly", () => {
     expect(productDeliveryLines(eur("36.90"), COMPLETE).standing).toMatch(
       /до тази сума остават 12,10\s€\.$/,
     );
-    expect(productDeliveryLines(eur("59.00"), COMPLETE).standing).toContain("вече е над");
+    expect(productDeliveryLines(eur("59.00"), COMPLETE).standing).toContain("вече достига");
   });
 
-  it("says nothing about the product without a price, or exactly on the threshold", () => {
+  it("says nothing about the product without a price", () => {
     expect(productDeliveryLines(null, COMPLETE).standing).toBeNull();
-    expect(productDeliveryLines(eur("49.00"), COMPLETE).standing).toBeNull();
     // The promise itself does not depend on the product.
     expect(productDeliveryLines(null, COMPLETE).promise).not.toBeNull();
+  });
+
+  it("counts a product exactly on the threshold as qualifying, with nothing left to add", () => {
+    const onIt = productDeliveryLines(eur("49.00"), COMPLETE).standing;
+    expect(onIt).toBe(productDeliveryLines(eur("59.00"), COMPLETE).standing);
+    expect(onIt).not.toContain("остават");
+    expect(productDeliveryLines(eur("49.00"), COMPLETE, "order").standing).toBe(
+      productDeliveryLines(eur("59.00"), COMPLETE, "order").standing,
+    );
   });
 
   it("lists payment methods independently of the threshold", () => {
@@ -411,8 +493,15 @@ describe("unsetTerms", () => {
     expect(unsetTerms({ ...COMPLETE, returnWindowDays: 7 }).join()).toContain("returnWindowDays");
   });
 
-  it("lists exactly the three terms the shipped config leaves open", () => {
-    expect(unsetTerms(siteConfig.commerce)).toHaveLength(3);
+  it("counts the courier's rate as a known delivery cost, and an undecided fee as missing", () => {
+    expect(unsetTerms({ ...COMPLETE, deliveryFee: COURIER_RATE })).toEqual([]);
+    expect(unsetTerms({ ...COMPLETE, deliveryFee: null })).toEqual([
+      "commerce.deliveryFee — what delivery costs when it is not free",
+    ]);
+  });
+
+  it("is empty for the shipped config", () => {
+    expect(unsetTerms(siteConfig.commerce)).toEqual([]);
   });
 });
 
@@ -434,11 +523,35 @@ describe("structured data", () => {
   const offer = (amount: string | null, commerce: CommerceConfig) =>
     productJsonLd(product(amount), "bg", commerce).offers as Record<string, unknown> | undefined;
 
-  it("emits neither policy for the shipped, unconfirmed config", () => {
+  it("emits both policies for the shipped, confirmed config above the threshold", () => {
     const shipped = productJsonLd(product("60.00"), "bg").offers as Record<string, unknown>;
     expect(shipped.price).toBe("60.00");
-    expect(shipped).not.toHaveProperty("shippingDetails");
-    expect(shipped).not.toHaveProperty("hasMerchantReturnPolicy");
+    expect(shipped.shippingDetails).toMatchObject({
+      shippingRate: { "@type": "MonetaryAmount", value: "0.00", currency: "EUR" },
+      deliveryTime: {
+        handlingTime: { minValue: 1, maxValue: 1, unitCode: "DAY" },
+        transitTime: { minValue: 1, maxValue: 2, unitCode: "DAY" },
+      },
+    });
+    expect(shipped.hasMerchantReturnPolicy).toMatchObject({
+      merchantReturnDays: 14,
+      returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+    });
+  });
+
+  it("emits free shipping exactly on the threshold", () => {
+    expect(offer("49.00", COMPLETE)?.shippingDetails).toMatchObject({
+      shippingRate: { value: "0.00" },
+    });
+  });
+
+  it("emits no rate below the threshold at the courier's rate, and keeps the return policy", () => {
+    // The courier's tariff is a real term, but not a number a rate can carry.
+    for (const commerce of [siteConfig.commerce, { ...COMPLETE, deliveryFee: COURIER_RATE }]) {
+      const below = offer("20.00", commerce);
+      expect(below).not.toHaveProperty("shippingDetails");
+      expect(below).toHaveProperty("hasMerchantReturnPolicy");
+    }
   });
 
   it("emits neither policy while unconfirmed, however complete the values", () => {

@@ -1,4 +1,4 @@
-import type { DeliveryMethod } from "@/lib/forms/schemas";
+import { COURIERS, type Courier, type DeliveryMethod } from "@/lib/forms/schemas";
 
 /**
  * Who an order is for and where it goes: from the form to the row, and from
@@ -14,6 +14,7 @@ export interface DeliveryInput {
   readonly firstName: string;
   readonly lastName: string;
   readonly deliveryMethod: DeliveryMethod;
+  readonly deliveryCourier: string;
   readonly deliveryCity: string;
   readonly deliveryPostcode: string;
   readonly deliveryAddress: string;
@@ -26,6 +27,7 @@ export interface StoredDelivery {
   readonly firstName: string | null;
   readonly lastName: string | null;
   readonly deliveryMethod: string | null;
+  readonly deliveryCourier: string | null;
   readonly deliveryCity: string | null;
   readonly deliveryPostcode: string | null;
   readonly deliveryAddress: string | null;
@@ -45,11 +47,31 @@ export function deliveryColumns(input: DeliveryInput): StoredDelivery {
     firstName: input.firstName,
     lastName: input.lastName,
     deliveryMethod: input.deliveryMethod,
+    deliveryCourier: input.deliveryCourier,
     deliveryCity: input.deliveryCity,
     deliveryPostcode: toAddress ? input.deliveryPostcode : null,
     deliveryAddress: toAddress ? input.deliveryAddress : null,
     deliveryOffice: toAddress ? null : input.deliveryOffice,
   };
+}
+
+/** A stored courier as a customer reads it: "Еконт", or the stored key if unknown. */
+export function courierName(key: string | null): string | null {
+  if (!key) return null;
+  return key in COURIERS ? COURIERS[key as Courier] : key;
+}
+
+/** „с“, or „със“ before a word that starts with с or з, as Bulgarian has it. */
+function withCourier(courier: string): string {
+  return /^[сз]/i.test(courier) ? `със ${courier}` : `с ${courier}`;
+}
+
+/** How it goes, as the first line of a label: "До адрес с Еконт", "До автомат BOX NOW". */
+function methodLine(order: StoredDelivery): string {
+  const courier = courierName(order.deliveryCourier);
+  if (order.deliveryMethod === "address") return courier ? `До адрес ${withCourier(courier)}` : "До адрес";
+  if (order.deliveryCourier === "boxnow") return "До автомат BOX NOW";
+  return courier ? `До офис на ${courier}` : "До офис на куриер";
 }
 
 /** The customer's name, or null for an older order that was sent without one. */
@@ -68,10 +90,10 @@ export function deliveryLines(order: StoredDelivery): readonly string[] | null {
   const city = order.deliveryCity?.trim();
   if (order.deliveryMethod === "address" && city) {
     const place = [order.deliveryPostcode?.trim(), city].filter(Boolean).join(" ");
-    return ["До адрес", order.deliveryAddress?.trim() || "", place].filter(Boolean);
+    return [methodLine(order), order.deliveryAddress?.trim() || "", place].filter(Boolean);
   }
   if (order.deliveryMethod === "office" && city) {
-    return ["До офис на куриер", order.deliveryOffice?.trim() || "", city].filter(Boolean);
+    return [methodLine(order), order.deliveryOffice?.trim() || "", city].filter(Boolean);
   }
   return null;
 }
@@ -80,7 +102,6 @@ export function deliveryLines(order: StoredDelivery): readonly string[] | null {
 export function deliverySummary(order: StoredDelivery): string | null {
   const city = order.deliveryCity?.trim();
   if (!city) return null;
-  if (order.deliveryMethod === "office") return `${city} · офис на куриер`;
-  if (order.deliveryMethod === "address") return `${city} · до адрес`;
-  return city;
+  if (order.deliveryMethod !== "address" && order.deliveryMethod !== "office") return city;
+  return `${city} · ${methodLine(order).replace(/^До /, "до ")}`;
 }

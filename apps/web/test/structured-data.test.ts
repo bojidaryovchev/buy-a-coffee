@@ -148,6 +148,23 @@ describe("a product", () => {
     expect(checkStructuredData(page(productJsonLd(product(), "bg", COMPLETE)))).toEqual([]);
   });
 
+  it("passes it with the shipped terms, above the free-delivery threshold and below it", () => {
+    expect(siteConfig.commerce.confirmedByOwner).toBe(true);
+    const at = (amount: string) =>
+      productJsonLd(product({ price: { amount, currency: "EUR", formatted: amount } }), "bg");
+
+    const above = at("60.00");
+    expect(above.offers).toHaveProperty("shippingDetails");
+    expect(above.offers).toHaveProperty("hasMerchantReturnPolicy");
+    expect(checkStructuredData(page(above))).toEqual([]);
+
+    // Below it the courier's own tariff applies, which is no single rate.
+    const below = at("5.90");
+    expect(below.offers).not.toHaveProperty("shippingDetails");
+    expect(below.offers).toHaveProperty("hasMerchantReturnPolicy");
+    expect(checkStructuredData(page(below))).toEqual([]);
+  });
+
   it("passes it with no price, as a product with no offer", () => {
     expect(checkStructuredData(page(productJsonLd(product({ price: null }), "bg")))).toEqual([]);
   });

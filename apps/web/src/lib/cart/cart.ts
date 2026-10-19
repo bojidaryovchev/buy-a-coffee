@@ -22,7 +22,7 @@ export const CART_STORAGE_KEY = "buy-a-coffee.cart";
 /** The stored shape's version. A cart in a shape this code does not know is read as empty. */
 export const CART_VERSION = 1;
 
-/** The same bounds as the quick order's quantity (`orderInquirySchema`). */
+/** How many of one product a line may hold: more is a phone call. */
 export const MIN_QUANTITY = 1;
 export const MAX_QUANTITY = 99;
 

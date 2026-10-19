@@ -93,7 +93,7 @@ export const bg = {
   announcement: {
     label: "Доставка и поръчка",
     /** Must read exactly as `freeDeliveryPromise` does; a test holds them together. */
-    freeDelivery: "Безплатна доставка за поръчки над {amount}",
+    freeDelivery: "Безплатна доставка за поръчки от {amount}",
   },
 
   language: {

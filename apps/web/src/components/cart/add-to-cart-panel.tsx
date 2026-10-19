@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { useAnalytics } from "@/components/analytics-provider";
 import { QuantityStepper } from "@/components/cart/quantity-stepper";
@@ -11,20 +12,22 @@ import { cartStore, useCart } from "@/lib/cart/store";
 import { href, routes } from "@/lib/routes";
 
 /**
- * The cart, on a product page: how many, and „Добави в количката“.
+ * Ordering, on a product page: how many, „Добави в количката“, and „Поръчай“.
  *
- * The page's one gold button, above the quick order. Adding does not leave the
- * page: the notice says it was added and offers the cart, and the line under
- * the button says how many of this product the cart now holds, so a second
- * press is a deliberate „one more“ and not an accident nobody sees.
+ * Every order is sent from one form, the cart's (the owner's decision of
+ * 19 October 2026, when an order came to need a name and a delivery). So the
+ * page has two ways into it. „Добави в количката“, the page's one gold button,
+ * stays on the page: the notice says it was added and offers the cart, and the
+ * line under the button says how many of this product the cart now holds, so a
+ * second press is a deliberate „one more“ and not an accident nobody sees.
+ * „Поръчай“ is for this one product: it puts it in the cart unless it is there
+ * already (so pressing it never doubles a line) and opens the cart's form.
  *
  * **Not drawn without JavaScript** (`noscript:hidden`, which is
  * `@media (scripting: none)`). A cart in the browser cannot work without a
- * script, and a stepper and a button that do nothing would be worse than none;
- * the quick order below is a plain form and is the whole order panel then. With
- * JavaScript it is in the server's HTML from the start, so the form below it
- * does not move when the page hydrates. The line under the button keeps its
- * height empty or full, for the same reason.
+ * script, and buttons that do nothing would be worse than none; the product
+ * page offers the phone instead. The line under the buttons keeps its height
+ * empty or full, so nothing moves when the page hydrates.
  */
 export function AddToCartPanel({
   productId,
@@ -39,15 +42,16 @@ export function AddToCartPanel({
   const { lines } = useCart();
   const locale = useLocale();
   const analytics = useAnalytics();
+  const router = useRouter();
   const statusId = useId();
   const inCart = lines.find((line) => line.productId === productId)?.quantity ?? 0;
 
   return (
     <div className="noscript:hidden">
-      <p className="font-display text-base font-semibold text-ink-900">Добавете в количката</p>
+      <p className="font-display text-base font-semibold text-ink-900">Поръчайте</p>
       <p className="mt-1 text-sm text-ink-500">
-        Съберете всичко, което искате, и изпратете една заявка. Ще ви се обадим веднъж, за цялата
-        поръчка.
+        Поръчайте само този продукт или съберете всичко в количката и изпратете една заявка. Ще ви
+        се обадим веднъж, за да потвърдим цялата поръчка.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -78,6 +82,29 @@ export function AddToCartPanel({
       >
         <CartIcon className="h-5 w-5" />
         Добави в количката
+      </Button>
+
+      <Button
+        type="button"
+        variant="primary"
+        size="lg"
+        className="mt-3 w-full"
+        onClick={() => {
+          if (inCart === 0) {
+            const { added } = cartStore.add({ productId, slug, name }, quantity);
+            if (added) {
+              analytics.track({
+                name: "add_to_cart",
+                productSlug: slug,
+                quantity,
+                source: "product_page",
+              });
+            }
+          }
+          router.push(href(locale, routes.cart));
+        }}
+      >
+        Поръчай
       </Button>
 
       {/* Its height is kept whether or not the product is in the cart. */}

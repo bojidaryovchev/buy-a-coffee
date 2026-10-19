@@ -1,5 +1,6 @@
 import { moneyFromDecimalString } from "@catalog/shared";
 import {
+  COURIER_RATE,
   WEEK_DAYS,
   siteConfig,
   type CommerceConfig,
@@ -57,9 +58,23 @@ export function freeDeliveryThreshold(
   return configuredAmount(commerce.freeDeliveryThreshold, false);
 }
 
-/** The delivery fee when delivery is not free. Zero is a real answer. */
+/** The delivery fee when delivery is not free, as an amount. Zero is a real answer. */
 export function deliveryFee(commerce: CommerceConfig = siteConfig.commerce): PriceView | null {
+  if (commerce.deliveryFee === COURIER_RATE) return null;
   return configuredAmount(commerce.deliveryFee, true);
+}
+
+/** Below the threshold the customer pays the courier's own tariff, on delivery. */
+export function deliveryFeeIsCourierRate(commerce: CommerceConfig = siteConfig.commerce): boolean {
+  return commerce.deliveryFee === COURIER_RATE;
+}
+
+/**
+ * Whether the site can say what delivery costs when it is not free: a fixed
+ * fee, or the courier's rate. Either is a term; only "undecided" is not.
+ */
+export function deliveryCostKnown(commerce: CommerceConfig = siteConfig.commerce): boolean {
+  return deliveryFee(commerce) !== null || deliveryFeeIsCourierRate(commerce);
 }
 
 const isZero = (price: PriceView): boolean => /^0+\.0+$/.test(price.amount);
@@ -73,11 +88,9 @@ export type FreeDeliveryGap =
  *
  * Integer arithmetic on minor units, like every other sum in the shop.
  *
- * The offer is for orders *above* the threshold, and whether an order of
- * exactly that amount counts is the shop's call, not ours. So the boundary is
- * read against the customer: exactly on the threshold does not qualify, and
- * there is no distance left to report either — `remaining` is null and the
- * page says nothing rather than "add 0,00 €".
+ * An order of exactly the threshold qualifies: the owner settled that on
+ * 19 October 2026 („49,00 € — безплатна доставка“), and every sentence says
+ * „от“, not „над“.
  *
  * Null when there is nothing to compare: no threshold, no price, or a price in
  * another currency (the two numbers would not be the same kind of thing).
@@ -93,10 +106,9 @@ export function freeDeliveryGap(
   const thresholdMoney = moneyFromDecimalString(threshold.amount, threshold.currency);
   if (!priceMoney || !thresholdMoney || priceMoney.minor < 0n) return null;
 
-  if (priceMoney.minor > thresholdMoney.minor) return { qualifies: true };
+  if (priceMoney.minor >= thresholdMoney.minor) return { qualifies: true };
 
   const missing = thresholdMoney.minor - priceMoney.minor;
-  if (missing === 0n) return { qualifies: false, remaining: null };
 
   const whole = missing / 100n;
   const cents = (missing % 100n).toString().padStart(2, "0");
@@ -230,6 +242,7 @@ export function joinList(items: readonly string[], conjunction = "и"): string {
 }
 
 const ASK_ON_THE_CALL = "ви казваме по телефона, когато потвърждаваме поръчката";
+const AT_COURIER_RATE = "по тарифата на куриера и се плаща при получаване";
 
 /** What delivery costs, in as many sentences as the config can support. */
 export function deliveryCostSentences(
@@ -238,16 +251,23 @@ export function deliveryCostSentences(
   const threshold = freeDeliveryThreshold(commerce);
   const fee = deliveryFee(commerce);
 
+  const courierRate = deliveryFeeIsCourierRate(commerce);
+
   if (fee && isZero(fee)) return ["Доставката е безплатна."];
   if (threshold) {
     return [
-      `Доставката е безплатна за поръчки над ${threshold.formatted}.`,
+      `Доставката е безплатна за поръчки от ${threshold.formatted} нагоре.`,
       fee
-        ? `За поръчки до тази сума доставката струва ${fee.formatted}.`
-        : `За поръчки до тази сума цената на доставката ${ASK_ON_THE_CALL}.`,
+        ? `За поръчки под тази сума доставката струва ${fee.formatted}.`
+        : courierRate
+          ? `За поръчки под тази сума доставката е ${AT_COURIER_RATE}.`
+          : `За поръчки под тази сума цената на доставката ${ASK_ON_THE_CALL}.`,
     ];
   }
-  return [fee ? `Доставката струва ${fee.formatted}.` : `Цената на доставката ${ASK_ON_THE_CALL}.`];
+  if (fee) return [`Доставката струва ${fee.formatted}.`];
+  return [
+    courierRate ? `Доставката е ${AT_COURIER_RATE}.` : `Цената на доставката ${ASK_ON_THE_CALL}.`,
+  ];
 }
 
 /** How long delivery takes, or null when that is not known. */
@@ -280,6 +300,13 @@ export function paymentSentence(commerce: CommerceConfig = siteConfig.commerce):
   )}.`;
 }
 
+/**
+ * The exclusion every short statement of the return terms must carry: a pack
+ * opened after delivery cannot come back (Consumer Protection Act, art. 57,
+ * item 5; the terms page words it in full).
+ */
+export const OPENED_PACKS_EXCLUDED = "Отворени опаковки не подлежат на връщане.";
+
 /** Who pays to send a return back, or null while that is undecided. */
 export function returnShippingSentence(
   commerce: CommerceConfig = siteConfig.commerce,
@@ -303,11 +330,11 @@ export function returnShippingSentence(
  */
 export function freeDeliveryPromise(commerce: CommerceConfig = siteConfig.commerce): string | null {
   const threshold = freeDeliveryThreshold(commerce);
-  return threshold ? `Безплатна доставка за поръчки над ${threshold.formatted}` : null;
+  return threshold ? `Безплатна доставка за поръчки от ${threshold.formatted}` : null;
 }
 
 export interface ProductDeliveryLines {
-  /** "Безплатна доставка за поръчки над 49,00 €", or null. */
+  /** "Безплатна доставка за поръчки от 49,00 €", or null. */
   readonly promise: string | null;
   /** Where one unit of this product stands against the threshold, or null. */
   readonly standing: string | null;
@@ -326,11 +353,11 @@ const STANDING: Readonly<
   Record<DeliveryBasis, { over: string; remaining: (amount: string) => string }>
 > = {
   unit: {
-    over: "Един брой от този продукт вече е над тази сума.",
+    over: "Един брой от този продукт вече достига тази сума.",
     remaining: (amount) => `С един брой от този продукт до тази сума остават ${amount}.`,
   },
   order: {
-    over: "Продуктите в количката вече са над тази сума.",
+    over: "Продуктите в количката вече достигат тази сума.",
     remaining: (amount) => `С продуктите в количката до тази сума остават ${amount}.`,
   },
 };
@@ -339,9 +366,8 @@ const STANDING: Readonly<
  * What the block beside the order form says for one product — or, with the
  * `order` basis, for the products in a cart, whose sum is `price`.
  *
- * `standing` reports a distance, not an instruction: "add 12,10 € more" would
- * promise free delivery at exactly the threshold, which the offer ("above")
- * does not say.
+ * `standing` reports a distance, not an instruction („остават 12,10 €“, never
+ * „добавете още“): the customer decides, and the call confirms the sum.
  */
 export function productDeliveryLines(
   price: Pick<PriceView, "amount" | "currency"> | null,
@@ -384,7 +410,7 @@ export function productDeliveryLines(
  */
 export function unsetTerms(commerce: CommerceConfig = siteConfig.commerce): readonly string[] {
   const missing: string[] = [];
-  if (!deliveryFee(commerce)) {
+  if (!deliveryCostKnown(commerce)) {
     missing.push("commerce.deliveryFee — what delivery costs when it is not free");
   }
   if (!deliveryTime(commerce)) {

@@ -6,10 +6,10 @@ import { ProductGrid } from "@/components/catalog/product-card";
 import { ButtonLink, SectionHeading } from "@/components/ui/primitives";
 import {
   deliveryCostSentences,
-  deliveryFee,
   deliveryTimeSentence,
   freeDeliveryThreshold,
   paymentSentence,
+  deliveryCostKnown,
 } from "@/components/commerce/terms";
 import { siteConfig, type CommerceConfig } from "@/config/site";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
@@ -91,14 +91,14 @@ export function deliveryFacts(
   // With neither a threshold nor a fee, the builder can only say "we will tell
   // you on the phone". That is not a term, so the fact is left out — and with
   // a threshold but no fee, so is its second sentence, for the same reason.
-  const fee = deliveryFee(commerce);
-  if (freeDeliveryThreshold(commerce) || fee) {
+  const costKnown = deliveryCostKnown(commerce);
+  if (freeDeliveryThreshold(commerce) || costKnown) {
     const sentences = deliveryCostSentences(commerce);
     facts.push({
       id: "delivery",
       icon: DELIVERY_ICON,
       title: "Доставка",
-      line: (fee ? sentences : sentences.slice(0, 1)).join(" "),
+      line: (costKnown ? sentences : sentences.slice(0, 1)).join(" "),
     });
   }
 

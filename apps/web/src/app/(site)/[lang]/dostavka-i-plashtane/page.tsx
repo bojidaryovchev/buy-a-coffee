@@ -84,7 +84,8 @@ export default async function DeliveryPage({ params }: PageProps) {
       <article className="max-w-(--container-measure)">
         <h1 className="font-display text-3xl font-semibold text-ink-900 md:text-4xl">{TITLE}</h1>
         <p className="mt-2 text-base text-ink-500">
-          Поръчката тук е телефонен номер и едно обаждане. Ето какво следва след него.
+          Поръчката тук е една заявка с данните за доставка и едно обаждане, с което я
+          потвърждаваме. Ето какво следва.
         </p>
 
         <div className="mt-8 space-y-8">

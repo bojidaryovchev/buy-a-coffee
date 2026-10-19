@@ -24,7 +24,7 @@ import { HERO_SHELF_SIZES } from "@/components/home/hero";
 import { HomeView, type HomeData } from "@/components/home/home-view";
 import { DeliveryPromise, deliveryFacts } from "@/components/home/sections";
 import { freeDeliveryPromise } from "@/components/commerce/terms";
-import { siteConfig, type CommerceConfig } from "@/config/site";
+import { COURIER_RATE, siteConfig, type CommerceConfig } from "@/config/site";
 import type { HeroShelfItem } from "@/lib/catalog/home-shelf";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
 import type { ArticleSummary } from "@/lib/journal";
@@ -527,7 +527,20 @@ describe("home page: the delivery promise", () => {
 
   it("does not invent a fee: a threshold alone yields one sentence about it", () => {
     const [delivery] = deliveryFacts({ ...COMMERCE, deliveryFee: null });
-    expect(text(delivery?.line ?? "")).toBe("Доставката е безплатна за поръчки над 49,00 €.");
+    expect(text(delivery?.line ?? "")).toBe("Доставката е безплатна за поръчки от 49,00 € нагоре.");
+  });
+
+  it("states the courier's rate as a term, with the threshold and without it", () => {
+    const courier = { ...COMMERCE, deliveryFee: COURIER_RATE };
+    const [delivery] = deliveryFacts(courier);
+    expect(delivery?.id).toBe("delivery");
+    expect(text(delivery?.line ?? "")).toBe(
+      "Доставката е безплатна за поръчки от 49,00 € нагоре. За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+
+    const [alone] = deliveryFacts({ ...courier, freeDeliveryThreshold: null });
+    expect(alone?.id).toBe("delivery");
+    expect(alone?.line).toBe("Доставката е по тарифата на куриера и се плаща при получаване.");
   });
 
   it("is absent with fewer than two facts", () => {

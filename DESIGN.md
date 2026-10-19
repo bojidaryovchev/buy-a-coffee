@@ -808,7 +808,7 @@ styled as a button that performs an action, or the reverse.
 - _Field:_ `min-h-12 w-full rounded-sm border border-line-strong bg-paper-raised
 px-3 text-input text-ink-900 placeholder:text-ink-300`. A secondary field
   inside a disclosure may be `min-h-11`. `textarea` adds `py-2`.
-- _Disclosure for optional fields_ (the order form's „Добавете име, имейл или
+- _Disclosure for optional fields_ (the order form's „Добавете имейл или
   бележка (по избор)“): a `summary` in `text-sm text-pine-700`, `min-h-11`,
   led by a 16 px chevron that turns a quarter when open — a disclosure says
   that it opens. Its label may take two lines in a narrow column; „(по избор)“
@@ -830,8 +830,8 @@ text-paper` with a 2.5 px check mark.
   message says what to do: "Въведете телефонен номер с поне 9 цифри."
 - _Disabled:_ `bg-paper-sunken text-ink-500`.
 
-**Validation.** Every form a person fills in — the quick order on a product
-page, the cart's order form, the contact form and the enquiry forms built on
+**Validation.** Every form a person fills in — the cart's order form (the only
+order form), the contact form and the enquiry forms built on
 it, the newsletter band, the unsubscribe button and the admin panel's forms —
 works the same way
 (`components/forms/use-schema-form.ts`):
@@ -1212,8 +1212,8 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
    320 px phone's card is not. The accessible name is always
    `<span class="sr-only">Добави в количката: {name}</span>`.
    - In the server's HTML, and for good without JavaScript, it is a link to the
-     product page's `#order` (`productHref(locale, product, "#order")`), whose
-     quick order is a plain form. Once hydrated it is a `<button>` with the same
+     product page's `#order` (`productHref(locale, product, "#order")`), which
+     offers the phone when there is no script. Once hydrated it is a `<button>` with the same
      classes, so nothing moves; a press adds one unit and the cart notice
      answers it.
    - `out_of_stock`: the control is replaced by a `secondary` link "Виж
@@ -1945,24 +1945,16 @@ holding the order form and, beside it, the delivery-and-payment block.
 - From `sm` up: `grid grid-cols-[1fr_13rem]`; the form in the first column
   (`p-5`), the block in the second (`border-l border-line bg-paper-sunken p-5`,
   right corners rounded).
-- _Add to cart_ (`AddToCartPanel`), first: title "Добавете в количката"
-  (`font-display text-base font-semibold`); one sentence, `text-sm
-text-ink-500`; "Количество" and the quantity stepper (see "Cart"); the
-  page's one `accent` button, size `lg`, full width, a 20 px cart icon and
-  "Добави в количката"; under it a line that keeps its `min-h-6` whether or
-  not it says "В количката: 2 бр." and links "Към количката". Without
-  JavaScript the whole block is `noscript:hidden` (`@media (scripting:
-none)`): a cart in the browser cannot work then, and the quick order below
-  is the panel.
-- _Quick order_ (`QuickOrderForm`), under a `border-t border-line` with
-  `mt-4 pt-5` (both dropped with the block above when there is no script):
-  title "Поръчка на една стъпка" (Panel title); one sentence, `text-sm
-text-ink-500`; the phone field (label "Телефонен номер", required,
-  `type="tel"`); the submit, a `primary` button here (`submitVariant`), size
-  `lg`, full width, "Поискай обаждане" — `accent` wherever the form is the
-  only way to order; a `<details>` "Добавете име, количество или бележка (по
-  избор)"; the result line (`aria-live="polite"`); the privacy sentence in
-  `text-xs text-ink-500`.
+- _Order_ (`AddToCartPanel`): title "Поръчайте" (`font-display text-base
+font-semibold`); one sentence, `text-sm text-ink-500`; "Количество" and the
+  quantity stepper (see "Cart"); the page's one `accent` button, size `lg`,
+  full width, a 20 px cart icon and "Добави в количката"; under it a `primary`
+  button, size `lg`, full width, "Поръчай", which puts the product in the cart
+  unless it is there already and opens the cart's order form; under both a line
+  that keeps its `min-h-6` whether or not it says "В количката: 2 бр." and links
+  "Към количката". Without JavaScript the whole block is `noscript:hidden`
+  (`@media (scripting: none)`): a cart in the browser cannot work then, and a
+  sentence saying so, with the phone as a `PHONE_LINK`, is the panel.
 - _Delivery-and-payment block:_ a `dl`, `space-y-3 text-sm`. Rows, each with a
   16 px icon in `text-pine-700`, a `dt` in `font-semibold text-ink-900` and a
   `dd` in `text-ink-700`: **Доставка** (fee and free-delivery threshold),
@@ -2088,10 +2080,20 @@ text-caution` line counts them. They are left out of the sum and the order.
   крайната сума потвърждаваме по телефона. На сайта нищо не се плаща." Under a
   `border-t`, the delivery-and-payment block with the `order` basis, which
   measures the free-delivery threshold against the sum.
-- _Order form_ (`CartOrderForm`): its own panel, `p-4 sm:p-5`; the quick
-  order's fields and rules, `h2` "Изпратете заявката", the page's one `accent`
-  button "Изпрати заявката", and under the email "Ако го напишете, ще ви
-  изпратим потвърждение със заявката."
+- _Order form_ (`CartOrderForm`): its own panel, `p-4 sm:p-5`; `h2`
+  "Изпратете заявката" and one sentence; then, all required (a red `*` after
+  the label): "Име" and "Фамилия" side by side from `sm`
+  (`autocomplete` `given-name`, `family-name`); "Телефонен номер"; a fieldset
+  "Доставка" with two radios, "До адрес" and "До офис или автомат"; a fieldset
+  "Куриер" whose radios follow the choice (Еконт and Спиди for an address, BOX
+  NOW added for an office or locker; a courier the new choice does not offer is
+  cleared); for an address "Пощенски код" (`9rem`, `inputMode="numeric"`) beside
+  "Населено място", then "Адрес" (`street-address`); for an office "Населено
+  място", then "Офис" or "Автомат BOX NOW" with a helper line. Every input is
+  the `lg` field (`min-h-12`) and every radio row `min-h-11`. Then the page's one
+  `accent` button "Изпрати заявката", the optional disclosure (email with "Ако
+  го напишете, ще ви изпратим потвърждение със заявката.", the newsletter
+  consent, the note), the result line, and the privacy sentence.
 - _Sent:_ the page becomes a `role="status"` panel, `bg-pine-100 border
 border-pine-500 rounded-md p-5`: "Заявката е получена" (`text-pine-900`),
   "Референция: A1B2C3D4", the server's sentence about when we will call; then
@@ -2104,9 +2106,8 @@ border-pine-500 rounded-md p-5`: "Заявката е получена" (`text-p
   server cannot be reached, a `caution-100` notice "Не успяхме да заредим
   количката", "Продуктите ви са запазени.", the phone, and a `secondary`
   "Опитайте отново".
-- _Without JavaScript:_ a `<noscript>` notice on `caution-100` says the cart
-  needs it and that every product page's quick order and the phone work
-  without; the skeleton is `noscript:hidden`.
+- _Without JavaScript:_ a `<noscript>` notice on `caution-100` says the cart needs it and that the
+  phone works without; the skeleton is `noscript:hidden`.
 
 **Never.** A price read from the browser. A checkout step, an address form, a
 payment method to choose. A line that disappears without saying why. A count

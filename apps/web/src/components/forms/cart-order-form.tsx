@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { submitCartOrder } from "@/lib/forms/actions";
 import {
   CHECK_FIELDS_MESSAGE,
+  COURIERS,
+  COURIERS_FOR,
   IDLE_FORM_STATE,
   cartOrderSchema,
   type FormState,
@@ -54,7 +56,7 @@ const OPTIONAL_FIELDS = ["email", "notes"] as const;
 /** The two ways to receive an order, in the order they are offered. */
 const DELIVERY_CHOICES = [
   { value: "address", label: "До адрес" },
-  { value: "office", label: "До офис на куриер" },
+  { value: "office", label: "До офис или автомат" },
 ] as const;
 
 /** The mark after a required field's label; the field itself carries `required`. */
@@ -104,6 +106,7 @@ export function CartOrderForm({
       lastName: "",
       phone: "",
       deliveryMethod: "address",
+      deliveryCourier: "",
       deliveryCity: "",
       deliveryPostcode: "",
       deliveryAddress: "",
@@ -119,6 +122,7 @@ export function CartOrderForm({
   const lastNameId = useId();
   const phoneId = useId();
   const methodId = useId();
+  const courierId = useId();
   const cityId = useId();
   const postcodeId = useId();
   const addressId = useId();
@@ -134,7 +138,17 @@ export function CartOrderForm({
 
   /* Which fields the delivery needs follows the choice; the schema requires the
      same ones. */
-  const toOffice = watch("deliveryMethod") === "office";
+  const method = watch("deliveryMethod") === "office" ? "office" : "address";
+  const toOffice = method === "office";
+  const courier = watch("deliveryCourier");
+  const boxNow = toOffice && courier === "boxnow";
+  /* BOX NOW only delivers to its lockers: a courier the new method does not
+     offer is cleared rather than kept and refused on sending. */
+  useEffect(() => {
+    if (courier && !(COURIERS_FOR[method] as readonly string[]).includes(courier)) {
+      setValue("deliveryCourier", "");
+    }
+  }, [method, courier, setValue]);
 
   const units = lines.reduce((sum, line) => sum + line.quantity, 0);
   /* Each answer from the server is acted on once, however often the lines
@@ -258,6 +272,30 @@ export function CartOrderForm({
           <FieldError id={methodId} message={errorOf("deliveryMethod")} />
         </fieldset>
 
+        <fieldset>
+          <legend className={LABEL_CLASS}>
+            Куриер <Required />
+          </legend>
+          <div className="flex flex-wrap gap-x-6">
+            {COURIERS_FOR[method].map((value) => (
+              <label
+                key={value}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-ink-900"
+              >
+                <input
+                  type="radio"
+                  {...register("deliveryCourier")}
+                  value={value}
+                  {...ariaFor("deliveryCourier", courierId)}
+                  className="size-5 accent-pine-900"
+                />
+                {COURIERS[value]}
+              </label>
+            ))}
+          </div>
+          <FieldError id={courierId} message={errorOf("deliveryCourier")} />
+        </fieldset>
+
         <div className={toOffice ? "grid gap-3" : "grid gap-3 sm:grid-cols-[9rem_1fr]"}>
           {!toOffice && (
             <div>
@@ -301,7 +339,7 @@ export function CartOrderForm({
         {toOffice ? (
           <div>
             <label htmlFor={officeId} className={LABEL_CLASS}>
-              Офис на куриер <Required />
+              {boxNow ? "Автомат BOX NOW" : "Офис"} <Required />
             </label>
             <input
               id={officeId}
@@ -310,12 +348,12 @@ export function CartOrderForm({
               required
               autoComplete="off"
               maxLength={200}
-              placeholder="Напр. Еконт, Пловдив Център"
+              placeholder={boxNow ? "Напр. до Kaufland, ул. Пазарска" : "Напр. Пловдив Център"}
               {...ariaFor("deliveryOffice", officeId, `${officeId}-helper`)}
               className={INPUT_CLASS}
             />
             <p id={`${officeId}-helper`} className="mt-1 text-xs text-ink-500">
-              Куриерът и името или адресът на офиса, от който ще вземете пратката.
+              Името или адресът на {boxNow ? "автомата" : "офиса"}, от който ще вземете пратката.
             </p>
             <FieldError id={officeId} message={errorOf("deliveryOffice")} />
           </div>

@@ -187,7 +187,7 @@ export { recordReference, orderThreadSubject, contactThreadSubject };
  * conversation.
  *
  * WHY THIS EXISTS AT ALL. Until now the shop could read nothing it collected:
- * `submitOrderInquiry` and `submitContactMessage` wrote a row and called
+ * the order and contact actions wrote a row and called
  * `notify()`, which logged a redacted line to the server console and stopped
  * there. There was no screen, no reply path, and no notification anybody would
  * see. This is the other end of that.

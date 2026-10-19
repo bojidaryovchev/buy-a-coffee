@@ -62,6 +62,12 @@ export interface DayRange {
 
 export type PaymentMethod = "cash_on_delivery" | "card_on_delivery" | "bank_transfer";
 
+/**
+ * The delivery fee when it is the courier's own tariff, paid to the courier on
+ * delivery: a real answer, but not a single number the site can print.
+ */
+export const COURIER_RATE = "courier-rate" as const;
+
 export interface CommerceConfig {
   /**
    * Has the business confirmed the values below?
@@ -75,12 +81,17 @@ export interface CommerceConfig {
    */
   readonly confirmedByOwner: boolean;
   /**
-   * Orders above this total are delivered free. Exact decimal string in
+   * Orders of this total or more are delivered free (an order of exactly this
+   * amount qualifies: the owner, 19 October 2026). Exact decimal string in
    * `siteConfig.currency`, or `null` when there is no such offer.
    */
   readonly freeDeliveryThreshold: string | null;
-  /** What delivery costs when it is not free. Exact decimal string, or `null`. */
-  readonly deliveryFee: string | null;
+  /**
+   * What delivery costs when it is not free: an exact decimal string,
+   * `COURIER_RATE` when the customer pays the courier's own tariff on
+   * delivery, or `null` while undecided.
+   */
+  readonly deliveryFee: string | typeof COURIER_RATE | null;
   /**
    * How long delivery takes, in the two parts a customer and a search engine
    * both ask about: business days until the parcel is handed to the courier
@@ -254,25 +265,22 @@ export const siteConfig: SiteConfig = {
   },
 
   /**
-   * PROPOSED, not confirmed. The business has not yet stated its own terms, so
-   * the three values set here mirror what the partner who fulfils the orders
-   * states publicly: free delivery above €49, payment on delivery or by bank
-   * transfer, and the 14-day withdrawal period the law gives every distance
-   * sale. Everything else is left unset rather than guessed, and stays off the
-   * pages until someone supplies it.
+   * Confirmed by the owner on 19 October 2026 (`confirmedByOwner`). Until then
+   * this was a proposal mirroring what the partner who fulfils the orders
+   * states publicly; every value below is now the owner's own answer.
    */
   commerce: {
-    // A human flips this to `true` once the shop owner has confirmed every
-    // value in this block. Until then `pnpm check:launch` fails on it.
-    confirmedByOwner: false,
+    // A human sets this, in a commit, once the shop owner has confirmed every
+    // value in this block; while it is false `pnpm check:launch` fails.
+    confirmedByOwner: true,
     // The owner's answers, 19 October 2026: free from exactly 49.00; below it
-    // the customer pays the courier's own rate (`deliveryFee` takes that form
-    // in the next commit); dispatch within one business day; Econt, Speedy and
+    // the customer pays the courier's own rate on delivery; dispatch within one
+    // business day; Econt, Speedy and
     // BOX NOW; cash on delivery only; returns of unopened packs within the
     // statutory 14 days at the customer's cost (opened packs are excluded
     // under Art. 57, item 5 of the Consumer Protection Act); weekdays 09-18.
     freeDeliveryThreshold: "49.00",
-    deliveryFee: null,
+    deliveryFee: COURIER_RATE,
     deliveryTime: { dispatch: { min: 1, max: 1 }, transit: { min: 1, max: 2 } },
     couriers: ["Еконт", "Спиди", "BOX NOW"],
     paymentMethods: ["cash_on_delivery"],

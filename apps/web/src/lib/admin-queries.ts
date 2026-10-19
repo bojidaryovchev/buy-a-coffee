@@ -7,6 +7,7 @@ import {
   orderInquiryItems,
 } from "@catalog/db/schema";
 import { db } from "@/lib/db";
+import type { StoredDelivery } from "@/lib/orders/delivery";
 
 /**
  * Reads for the admin panel.
@@ -46,13 +47,14 @@ export interface OrderItemRow {
   currency: string | null;
 }
 
-export interface OrderRow {
+/** An enquiry as the panel reads it. The delivery fields are null on orders
+    taken before the form asked for them (`StoredDelivery`). */
+export interface OrderRow extends StoredDelivery {
   id: string;
   createdAt: Date;
   status: string;
   productName: string | null;
   productSlug: string | null;
-  customerName: string | null;
   phone: string;
   email: string | null;
   quantity: number;
@@ -121,21 +123,32 @@ async function withItems(orders: OrderColumns[]): Promise<OrderRow[]> {
   });
 }
 
+/** What the list and the order page read of an enquiry, beside its lines. */
+const ORDER_COLUMNS = {
+  id: orderInquiries.id,
+  createdAt: orderInquiries.createdAt,
+  status: orderInquiries.status,
+  productName: orderInquiries.productName,
+  productSlug: orderInquiries.productSlug,
+  customerName: orderInquiries.customerName,
+  firstName: orderInquiries.firstName,
+  lastName: orderInquiries.lastName,
+  deliveryMethod: orderInquiries.deliveryMethod,
+  deliveryCourier: orderInquiries.deliveryCourier,
+  deliveryCity: orderInquiries.deliveryCity,
+  deliveryPostcode: orderInquiries.deliveryPostcode,
+  deliveryAddress: orderInquiries.deliveryAddress,
+  deliveryOffice: orderInquiries.deliveryOffice,
+  phone: orderInquiries.phone,
+  email: orderInquiries.email,
+  quantity: orderInquiries.quantity,
+  notes: orderInquiries.notes,
+  sourcePage: orderInquiries.sourcePage,
+};
+
 export async function listOrders(): Promise<OrderRow[]> {
   const orders = await db
-    .select({
-      id: orderInquiries.id,
-      createdAt: orderInquiries.createdAt,
-      status: orderInquiries.status,
-      productName: orderInquiries.productName,
-      productSlug: orderInquiries.productSlug,
-      customerName: orderInquiries.customerName,
-      phone: orderInquiries.phone,
-      email: orderInquiries.email,
-      quantity: orderInquiries.quantity,
-      notes: orderInquiries.notes,
-      sourcePage: orderInquiries.sourcePage,
-    })
+    .select(ORDER_COLUMNS)
     .from(orderInquiries)
     .orderBy(desc(orderInquiries.createdAt))
     .limit(PAGE);
@@ -144,19 +157,7 @@ export async function listOrders(): Promise<OrderRow[]> {
 
 export async function getOrder(id: string): Promise<OrderRow | null> {
   const [row] = await db
-    .select({
-      id: orderInquiries.id,
-      createdAt: orderInquiries.createdAt,
-      status: orderInquiries.status,
-      productName: orderInquiries.productName,
-      productSlug: orderInquiries.productSlug,
-      customerName: orderInquiries.customerName,
-      phone: orderInquiries.phone,
-      email: orderInquiries.email,
-      quantity: orderInquiries.quantity,
-      notes: orderInquiries.notes,
-      sourcePage: orderInquiries.sourcePage,
-    })
+    .select(ORDER_COLUMNS)
     .from(orderInquiries)
     .where(eq(orderInquiries.id, id))
     .limit(1);

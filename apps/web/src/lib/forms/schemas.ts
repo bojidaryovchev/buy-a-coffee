@@ -140,49 +140,43 @@ export const checkboxSchema = z.preprocess(
 /** For a field the page fills in itself: only a hand-made post can get it wrong. */
 const RELOAD = "Презаредете страницата и опитайте отново.";
 
-export const QUANTITY_MESSAGES = {
-  number: "Въведете количеството с цифри, от 1 до 99.",
-  low: "Въведете количество поне 1.",
-  high: "Въведете до 99 броя. За по-голяма поръчка ни се обадете.",
-} as const;
-
-export const orderInquirySchema = z.object({
-  productSlug: z.string().trim().min(1, RELOAD).max(200, RELOAD),
-  phone: phoneSchema,
-  customerName: z.string().trim().max(120, "Съкратете името до 120 знака.").optional(),
-  email: optionalEmailSchema,
-  quantity: z.coerce
-    .number({ invalid_type_error: QUANTITY_MESSAGES.number })
-    .int(QUANTITY_MESSAGES.number)
-    .min(1, QUANTITY_MESSAGES.low)
-    .max(99, QUANTITY_MESSAGES.high)
-    .default(1),
-  notes: z.string().trim().max(1000, "Съкратете бележката до 1000 знака.").optional(),
-  /** Unticked by default. Only means anything when an email was given. */
-  newsletterConsent: checkboxSchema,
-  website: honeypotSchema,
-});
+/** A note to the order, in the customer's words. */
+const notesSchema = z.string().trim().max(1000, "Съкратете бележката до 1000 знака.").optional();
 
 /* --- Who the order is for, and where it goes ------------------------------- */
 
 /**
- * Where an order is delivered: to an address, or to a courier's office for the
- * customer to collect, which is how most people in Bulgaria take a parcel.
+ * Where an order is delivered: to an address, or to a courier's office or
+ * locker for the customer to collect, which is how most people in Bulgaria
+ * take a parcel.
  */
 export const DELIVERY_METHODS = ["address", "office"] as const;
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
+
+/**
+ * The couriers the shop sends with (the owner, 19 October 2026), named as a
+ * customer reads them. BOX NOW delivers only to its own lockers, so an address
+ * can go by Econt or Speedy and an office or locker by any of the three.
+ */
+export const COURIERS = { econt: "Еконт", speedy: "Спиди", boxnow: "BOX NOW" } as const;
+export type Courier = keyof typeof COURIERS;
+export const COURIERS_FOR: Readonly<Record<DeliveryMethod, readonly Courier[]>> = {
+  address: ["econt", "speedy"],
+  office: ["econt", "speedy", "boxnow"],
+};
 
 export const DELIVERY_MESSAGES = {
   firstName: "Въведете името си.",
   lastName: "Въведете фамилията си.",
   nameLong: "Съкратете до 60 знака.",
-  method: "Изберете дали да доставим до адрес или до офис на куриер.",
+  method: "Изберете дали да доставим до адрес или до офис или автомат.",
+  courier: "Изберете куриер.",
   city: "Въведете населеното място.",
   cityLong: "Съкратете до 80 знака.",
   postcode: "Въведете пощенския код: 4 цифри, например 4000.",
   address: "Въведете улица и номер, или квартал, блок, вход и апартамент.",
   addressLong: "Съкратете адреса до 200 знака.",
-  office: "Напишете кой офис, например „Еконт, Пловдив Център“.",
+  office: "Напишете кой офис или автомат, например „Пловдив Център“.",
   officeLong: "Съкратете до 200 знака.",
 } as const;
 
@@ -216,6 +210,7 @@ export const deliveryShape = {
   firstName: requiredText(DELIVERY_MESSAGES.firstName, 60, DELIVERY_MESSAGES.nameLong),
   lastName: requiredText(DELIVERY_MESSAGES.lastName, 60, DELIVERY_MESSAGES.nameLong),
   deliveryMethod: z.string().trim().default("").refine(isDeliveryMethod, DELIVERY_MESSAGES.method),
+  deliveryCourier: z.string().trim().default(""),
   deliveryCity: requiredText(DELIVERY_MESSAGES.city, 80, DELIVERY_MESSAGES.cityLong),
   deliveryPostcode: z.string().trim().default(""),
   deliveryAddress: z.string().trim().max(200, DELIVERY_MESSAGES.addressLong).default(""),
@@ -226,6 +221,7 @@ export const deliveryShape = {
 export function checkDelivery(
   value: {
     readonly deliveryMethod: string;
+    readonly deliveryCourier: string;
     readonly deliveryPostcode: string;
     readonly deliveryAddress: string;
     readonly deliveryOffice: string;
@@ -234,6 +230,11 @@ export function checkDelivery(
 ): void {
   const missing = (field: string, message: string) =>
     context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+  if (isDeliveryMethod(value.deliveryMethod)) {
+    const offered: readonly string[] = COURIERS_FOR[value.deliveryMethod];
+    if (!offered.includes(value.deliveryCourier))
+      missing("deliveryCourier", DELIVERY_MESSAGES.courier);
+  }
   if (value.deliveryMethod === "address") {
     if (!POSTCODE.test(value.deliveryPostcode))
       missing("deliveryPostcode", DELIVERY_MESSAGES.postcode);
@@ -301,7 +302,7 @@ export const cartOrderSchema = z
     lines: cartLinesSchema,
     phone: phoneSchema,
     email: optionalEmailSchema,
-    notes: orderInquirySchema.shape.notes,
+    notes: notesSchema,
     /** Unticked by default. Only means anything when an email was given. */
     newsletterConsent: checkboxSchema,
     website: honeypotSchema,
@@ -354,7 +355,6 @@ export const unsubscribeSchema = z.object({
   locale: z.string().max(10, RELOAD).optional(),
 });
 
-export type OrderInquiryInput = z.infer<typeof orderInquirySchema>;
 export type CartOrderInput = z.infer<typeof cartOrderSchema>;
 export type NewsletterInput = z.infer<typeof newsletterSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;

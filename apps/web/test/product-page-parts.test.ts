@@ -5,7 +5,8 @@ import {
   DeliveryPaymentBlock,
   deliveryPaymentRows,
 } from "@/components/commerce/delivery-payment-block";
-import type { CommerceConfig } from "@/config/site";
+import { OPENED_PACKS_EXCLUDED } from "@/components/commerce/terms";
+import { COURIER_RATE, type CommerceConfig } from "@/config/site";
 import { PLACEHOLDER_IMAGE } from "@/lib/catalog/images";
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { productImageUrls, productJsonLd } from "@/lib/seo/json-ld";
@@ -158,16 +159,63 @@ describe("delivery-and-payment block", () => {
   it("states the fee and the threshold, and where one unit stands against it", () => {
     const [delivery] = deliveryPaymentRows(price("12.80"), COMPLETE);
     const text = delivery!.lines.join(" ");
-    expect(text).toContain("безплатна за поръчки над");
-    expect(text).toContain("5,90");
+    expect(text).toMatch(/безплатна за поръчки от 49,00\s€ нагоре\./);
+    expect(text).toMatch(/под тази сума доставката струва 5,90\s€\./);
     expect(text).toMatch(/остават 36,20/);
+  });
+
+  it("states the courier's rate in full, since it is a term", () => {
+    const courier = { ...COMPLETE, deliveryFee: COURIER_RATE };
+    const [delivery] = deliveryPaymentRows(price("12.80"), courier);
+    expect(delivery!.term).toBe("Доставка");
+    expect(delivery!.lines).toHaveLength(3);
+    expect(delivery!.lines[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
+    expect(delivery!.lines[1]).toBe(
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+    expect(delivery!.lines[2]).toMatch(/остават 36,20/);
+    expect(delivery!.lines.join(" ")).not.toMatch(/по телефона/);
+
+    // Without a threshold, the courier's rate is the whole row.
+    const [alone] = deliveryPaymentRows(price("12.80"), {
+      ...courier,
+      freeDeliveryThreshold: null,
+    });
+    expect(alone!.lines).toEqual([
+      "Доставката е по тарифата на куриера и се плаща при получаване.",
+    ]);
+  });
+
+  it("says a product exactly on the threshold already qualifies", () => {
+    const onIt = deliveryPaymentRows(price("49.00"), COMPLETE)[0]!.lines.join(" ");
+    expect(onIt).not.toMatch(/остават/);
+    expect(onIt).toContain(deliveryPaymentRows(price("59.00"), COMPLETE)[0]!.lines.at(-1));
   });
 
   it("prints only the promise when no fee is set — never 'we will tell you'", () => {
     const rows = deliveryPaymentRows(price("12.80"), { ...COMPLETE, deliveryFee: null });
     const text = rows[0]!.lines.join(" ");
-    expect(text).toContain("Безплатна доставка за поръчки над");
+    expect(text).toMatch(/^Безплатна доставка за поръчки от 49,00\s€\./);
     expect(text).not.toMatch(/по телефона/);
+  });
+
+  it("says in the returns row that opened packs cannot be returned", () => {
+    const returns = deliveryPaymentRows(price("12.80"), COMPLETE).find(
+      (row) => row.term === "Връщане",
+    );
+    expect(returns!.lines).toEqual([
+      "14 дни за отказ след получаването.",
+      OPENED_PACKS_EXCLUDED,
+      "Преките разходи за връщането на стоката са за ваша сметка.",
+    ]);
+    expect(OPENED_PACKS_EXCLUDED).toBe("Отворени опаковки не подлежат на връщане.");
+
+    // Still said while who pays for the return is undecided.
+    const undecided = deliveryPaymentRows(price("12.80"), {
+      ...COMPLETE,
+      returnShippingPaidBy: null,
+    }).find((row) => row.term === "Връщане");
+    expect(undecided!.lines).toEqual(["14 дни за отказ след получаването.", OPENED_PACKS_EXCLUDED]);
   });
 
   it("omits each row whose term is unset", () => {
@@ -219,6 +267,7 @@ describe("delivery-and-payment block", () => {
     expect(markup).toContain('href="/bg/dostavka-i-plashtane"');
     expect(stripTags(markup)).toContain("Наложен платеж или банков превод.");
     expect(stripTags(markup)).toContain("14 дни за отказ след получаването.");
+    expect(stripTags(markup)).toContain(OPENED_PACKS_EXCLUDED);
     expect(stripTags(markup)).toContain("за ваша сметка");
   });
 });

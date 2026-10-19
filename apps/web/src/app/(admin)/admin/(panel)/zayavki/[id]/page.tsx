@@ -11,6 +11,7 @@ import { recordReference } from "@/lib/mail/reply";
 import { StatusPicker } from "@/components/admin/status-picker";
 import { RecordReplyForm } from "@/components/admin/record-reply-form";
 import { NewsletterMarkForm } from "@/components/admin/newsletter-mark-form";
+import { deliveryLines, fullName } from "@/lib/orders/delivery";
 import { lineTotal, orderSum, productCount, storedLine } from "@/lib/orders/lines";
 import { toPriceView } from "@/lib/catalog/format";
 
@@ -42,6 +43,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const sum = orderSum(order.items.map((item) => storedLine(item, "")));
   // A line from before the cart recorded no price and no shop name.
   const unrecorded = order.items.some((item) => item.displayName === null);
+  const delivery = deliveryLines(order);
 
   return (
     <>
@@ -52,7 +54,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">
-            {order.customerName || "Заявка без име"}
+            {fullName(order) || "Заявка без име"}
           </h1>
           <p className="mt-1 text-sm text-ink-500">
             {/* The reference the customer would see in a reply's subject line,
@@ -150,6 +152,29 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       </section>
 
       <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-md border border-line bg-paper-raised p-5 sm:grid-cols-2">
+        {/* What the courier's form asks for, in the order it asks: how, where,
+            and who. One click selects the block for copying. */}
+        <div className="sm:col-span-2">
+          <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Доставка</dt>
+          <dd className="mt-1 text-ink-900">
+            {delivery ? (
+              <p className="leading-relaxed select-all">
+                {delivery.map((line, index) => (
+                  <span key={index} className={index === 0 ? "font-semibold" : undefined}>
+                    {index > 0 && <br />}
+                    {line}
+                  </span>
+                ))}
+                <br />
+                {fullName(order)}, {order.phone}
+              </p>
+            ) : (
+              <span className="text-ink-500">
+                не е посочена: заявката е отпреди формата да пита за доставка
+              </span>
+            )}
+          </dd>
+        </div>
         <div>
           <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Имейл</dt>
           <dd className="mt-1 text-ink-900">

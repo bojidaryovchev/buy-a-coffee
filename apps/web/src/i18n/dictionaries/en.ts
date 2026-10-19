@@ -68,7 +68,7 @@ export const en: Dictionary = {
 
   announcement: {
     label: "Delivery and ordering",
-    freeDelivery: "Free delivery on orders over {amount}",
+    freeDelivery: "Free delivery on orders from {amount}",
   },
 
   language: {

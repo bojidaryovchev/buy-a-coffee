@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listOrders, type OrderRow } from "@/lib/admin-queries";
 import { INQUIRY_STATUS_LABEL, type InquiryStatus } from "@/lib/inquiry-status";
 import { orderSum, storedLine } from "@/lib/orders/lines";
+import { deliverySummary, fullName } from "@/lib/orders/delivery";
 
 export const metadata: Metadata = { title: "Заявки" };
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export default async function AdminOrdersPage() {
         <div>
           <h1 className="font-display text-3xl font-semibold text-ink-900">Заявки</h1>
           <p className="mt-1 text-base text-ink-500">
-            Заявки за поръчка от количката и от продуктовите страници. Обаждаме се ние.
+            Заявки за поръчка от количката, с данните за доставка. Обаждаме се ние.
           </p>
         </div>
         <p className="text-sm">
@@ -83,7 +84,7 @@ export default async function AdminOrdersPage() {
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
                   <p className="font-semibold text-ink-900">
-                    {order.customerName || "Без име"}
+                    {fullName(order) || "Без име"}
                     <span className="ml-2 align-middle font-mono text-sm font-normal text-ink-700">
                       {order.phone}
                     </span>
@@ -99,6 +100,9 @@ export default async function AdminOrdersPage() {
                 </div>
 
                 <p className="mt-1 text-sm text-ink-700 tabular-nums">{summary(order)}</p>
+                {deliverySummary(order) && (
+                  <p className="mt-0.5 text-sm text-ink-700">{deliverySummary(order)}</p>
+                )}
                 {order.notes && (
                   <p className="mt-0.5 line-clamp-1 text-sm text-ink-500">{order.notes}</p>
                 )}

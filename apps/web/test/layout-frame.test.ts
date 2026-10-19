@@ -88,7 +88,7 @@ import { buildNavigation, isCurrentSection } from "@/components/layout/navigatio
 import { NewsletterBand, NewsletterBandOff } from "@/components/layout/newsletter-band";
 import { SiteFooter, SiteFooterView } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
+import { COURIER_RATE, absoluteUrl, siteConfig, type CommerceConfig } from "@/config/site";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { NO_LANDINGS, type LandingAvailability } from "@/lib/catalog/landings";
 import type { CategoryView } from "@/lib/catalog/types";
@@ -497,7 +497,7 @@ describe("the announcement bar", () => {
     expect(hasAnnouncement(WITH_THRESHOLD)).toBe(true);
     expect(markup).toMatch(/^<aside[^>]*class="on-pine bg-pine-900 text-paper"/);
     expect(markup).toMatch(
-      /Безплатна доставка за поръчки над <strong class="font-semibold text-gold-300">49,00\s€<\/strong>/,
+      /Безплатна доставка за поръчки от <strong class="font-semibold text-gold-300">49,00\s€<\/strong>/,
     );
     expect(markup.match(/gold-/g)).toHaveLength(1);
     expect(markup).not.toMatch(/clay-|bg-gold/);
@@ -690,7 +690,7 @@ describe("llms.txt", () => {
 
   it("states exactly the terms that are set, in the site's own sentences", () => {
     const lines = deliveryTermLines(WITH_THRESHOLD);
-    expect(lines[0]).toMatch(/^Доставката е безплатна за поръчки над 49,00\s€\.$/);
+    expect(lines[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
     expect(lines).toContain("Плащате в брой при получаване на пратката (наложен платеж).");
     // No delivery time and no courier were configured, so neither is mentioned.
     expect(lines.join(" ")).not.toMatch(/куриер|работн/);
@@ -698,6 +698,29 @@ describe("llms.txt", () => {
     const text = llmsText(input(WITH_THRESHOLD));
     expect(text).toContain("## Доставка и плащане");
     expect(text).toContain(`- ${lines[0]}`);
+  });
+
+  it("states the courier's rate as a delivery cost, on its own or below the threshold", () => {
+    expect(deliveryTermLines({ ...UNSET, deliveryFee: COURIER_RATE })).toEqual([
+      "Доставката е по тарифата на куриера и се плаща при получаване.",
+    ]);
+    const lines = deliveryTermLines({ ...WITH_THRESHOLD, deliveryFee: COURIER_RATE });
+    expect(lines[1]).toBe(
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+    );
+  });
+
+  it("states every shipped term", () => {
+    const lines = deliveryTermLines(siteConfig.commerce);
+    expect(lines).toHaveLength(6);
+    expect(lines[0]).toMatch(/^Доставката е безплатна за поръчки от 49,00\s€ нагоре\.$/);
+    expect(lines.slice(1)).toEqual([
+      "За поръчки под тази сума доставката е по тарифата на куриера и се плаща при получаване.",
+      "Предаваме пратката на куриера до 1 работен ден след потвърждаването, а доставката отнема 1–2 работни дни.",
+      "Пратките изпращаме с Еконт, Спиди и BOX NOW.",
+      "Плащате в брой при получаване на пратката (наложен платеж).",
+      "Преките разходи за връщането на стоката са за ваша сметка.",
+    ]);
   });
 
   it("states a fee on its own, and payment on its own", () => {

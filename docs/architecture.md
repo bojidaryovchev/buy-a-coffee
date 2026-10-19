@@ -312,8 +312,7 @@ locale, or a locale code.
 **Previous slugs.** `products.previous_slugs` (a `text[]` with a GIN index,
 migration `0007_product_previous_slugs`) holds every address a product has
 had. `resolve-slug.ts` answers one with a 308 to the current slug, the proxy's
-existence check counts it as existing, the quick-order action accepts it (a
-cached page may still post the old slug), and no later product is given it.
+existence check counts it as existing, and no later product is given it.
 `pnpm --filter @catalog/web catalog:reslug` moves stored products to their
 planned slugs: plan by default, `--tsv <file>` to write old → new, `--apply` to
 write in one transaction. It is idempotent, and a slug is otherwise never
@@ -466,12 +465,12 @@ products page one has no room for (`lib/seo/pagination.ts`).
 
 The sync owns reconciliation; the storefront just respects it.
 
-| State                  | Behaviour                                                                                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `active`, in stock     | Listed, orderable                                                                                                                                  |
-| `active`, out of stock | Listed with an availability badge. The card links to the page instead of offering quick order; the page shows the phone number instead of the form |
-| `missing`              | Hidden from listings. The sync is unsure, so we do not advertise it                                                                                |
-| `removed`              | Hidden from listings. The URL still resolves to a page explaining that the product is gone, with a route back into the catalog                     |
+| State                  | Behaviour                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active`, in stock     | Listed, orderable                                                                                                                                       |
+| `active`, out of stock | Listed with an availability badge. The card links to the page instead of adding to the cart; the page shows the phone number instead of the order panel |
+| `missing`              | Hidden from listings. The sync is unsure, so we do not advertise it                                                                                     |
+| `removed`              | Hidden from listings. The URL still resolves to a page explaining that the product is gone, with a route back into the catalog                          |
 
 A removed product returns a real page rather than a 404 because its URL may
 already be indexed or bookmarked, and a dead end helps nobody. That page is
@@ -624,11 +623,15 @@ synonym list closes that gap for every brand and system the catalog carries. A
 spelling that is not in the list is still not found. The list should grow from
 what visitors actually type.
 
-## Ordering: the cart and the quick order
+## Ordering: the cart and its order form
 
-There is a cart and no checkout. Ordering is still a phone number and a
-callback - nothing is paid on the site - but since October 2026 one request can
-carry several products, as on any shop.
+There is a cart and no payment. Ordering ends in a callback - nothing is paid on
+the site - but the request carries everything delivery needs, so the call only
+confirms it: first and last name, phone, and a delivery either to an address
+(Econt or Speedy, postcode, street) or to an Econt or Speedy office or a BOX NOW
+locker, with the courier chosen. Email and a note are optional. Since
+19 October 2026 this is the one way to order (the owner's decision), and one
+request can carry several products, as on any shop.
 
 **The cart** lives in the browser's `localStorage`
 ([`lib/cart/`](../apps/web/src/lib/cart/)): product ids and quantities only, no
@@ -640,13 +643,20 @@ anything no longer orderable with the reason, and sends the order through
 which re-prices every line from the database and stores it in
 `order_inquiry_items` - the browser's figures are never trusted.
 
-**The quick order** stays on every product page's order panel, `#order`, below
-the cart button: one product, a phone number, done. It writes its product as one
-line of the same table, so the admin and the mail read a single shape. Without
-JavaScript only the quick order shows, and a card's control is a link to it.
+**One form.** The product page's order panel, `#order`, has „Добави в
+количката“ and „Поръчай“; the second puts the product in the cart unless it is
+there and opens `/bg/kolichka`, whose form
+([`components/forms/cart-order-form.tsx`](../apps/web/src/components/forms/cart-order-form.tsx))
+is the only order form. The delivery is stored in `order_inquiries`
+(`first_name` … `delivery_office`, migration `0011`) through
+`deliveryColumns` ([`lib/orders/delivery.ts`](../apps/web/src/lib/orders/delivery.ts)),
+which drops the fields of the method not chosen; the same module words a
+stored delivery as label lines for the panel and the customer's confirmation.
+Orders taken before the change have no delivery and are shown as such.
+Without JavaScript the cart cannot work, so the product page shows the phone
+instead, and a card's control is a link to the product page.
 
-**Validation, in the browser and on the server.** Every form (the quick order,
-contact and its enquiry variants, the newsletter band, unsubscribe, and the
+**Validation, in the browser and on the server.** Every form (the order form, contact and its enquiry variants, the newsletter band, unsubscribe, and the
 admin's forms) is validated by one zod schema per form
 ([`lib/forms/schemas.ts`](../apps/web/src/lib/forms/schemas.ts),
 [`lib/forms/admin-schemas.ts`](../apps/web/src/lib/forms/admin-schemas.ts)),
@@ -662,11 +672,7 @@ same messages and what was typed. The server is the authority either way.
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
 safe in the database before any notification is attempted, so a misconfigured
-email provider can never lose an order. Submissions are idempotent within a
-five-minute window, keyed on the phone number and product, so a double-clicked
-button cannot create two orders. The product is looked up by the slug the
-form posted, then by a slug it used to have, and the order is recorded under
-the current one.
+email provider can never lose an order. Submissions are idempotent within a five-minute window, keyed on the phone number and the cart's lines, so a double-clicked button cannot create two orders. The delivery is checked as its own object beside the rest of the schema, so an empty form reports every missing field on the first press.
 
 **The confirmation says when to expect the call.** It is built on the server at
 the moment of submission from `siteConfig.commerce.openingHours`, read as wall
@@ -677,7 +683,7 @@ printed beside it. It never names an hour for the call, because the shop has
 committed to when it is open, not to when it will ring back. The honeypot branch
 returns the same text, so a bot sees what a person sees.
 
-**Consent.** The quick-order and contact forms carry an unticked newsletter
+**Consent.** The order and contact forms carry an unticked newsletter
 checkbox. Ticking it records the subscription with its consent source
 ([`lib/forms/consent.ts`](../apps/web/src/lib/forms/consent.ts)); leaving it
 unticked records nothing.
@@ -688,9 +694,7 @@ is chosen by configuration: with `RESEND_API_KEY` and `MAIL_TO` both set the
 notification is emailed, otherwise a redacted line goes to the log. The record is
 stored either way. `setNotificationSink` remains, as an override for tests.
 
-**The notification carries a link, not the customer.** Subject, one-line summary
-and a URL into the panel — never the phone number or the email. Those stay in
-the record behind the panel password.
+**The notification carries a link, not the customer.** Subject, one-line summary and a URL into the panel — never the name, the phone number, the email or the delivery address. Those stay in the record behind the panel password, where the order page sets the delivery out as a courier label.
 
 ## Commercial terms
 
@@ -1002,7 +1006,7 @@ counter per warm instance. Without one — unit tests, a checkout with no databa
 
 | Limiter       | Limit            | When the store fails |
 | ------------- | ---------------- | -------------------- |
-| Quick order   | 5 per 10 minutes | open                 |
+| Order         | 5 per 10 minutes | open                 |
 | Contact       | 3 per 30 minutes | open                 |
 | Newsletter    | 3 per hour       | open                 |
 | Suggestions   | 60 per minute    | open                 |

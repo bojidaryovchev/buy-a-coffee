@@ -111,10 +111,10 @@ describe("the dictionaries", () => {
 
   it("fill placeholders without fixing the word order", () => {
     expect(fill(bg.announcement.freeDelivery, { amount: "49 €" })).toBe(
-      "Безплатна доставка за поръчки над 49 €",
+      "Безплатна доставка за поръчки от 49 €",
     );
     expect(fill(getDictionary("en").announcement.freeDelivery, { amount: "€49" })).toBe(
-      "Free delivery on orders over €49",
+      "Free delivery on orders from €49",
     );
     expect(fill("{a} и {b}", { a: 1 })).toBe("1 и {b}");
     expect(plural(bg.nav.products, 1)).toBe("продукт");

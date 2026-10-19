@@ -830,3 +830,40 @@ cannot be ordered any more refuses the whole request rather than vanishing from
 it, so nobody is called about an order they did not see. The card's control
 became „Добави“ and its quick-order dialog was removed; without JavaScript it is
 still the link to the product page's quick order, which is a plain form.
+
+## An order carries its delivery
+
+**Name and delivery are required, and the cart's form is the only order form.**
+Decided by the owner on 19 October 2026, so that every request has what the
+courier needs and the call back only confirms the order. The form asks for first
+and last name, phone, and a delivery: to an address (Econt or Speedy, postcode,
+street) or to an Econt or Speedy office or a BOX NOW locker, with the courier
+chosen; BOX NOW delivers only to its lockers, so it is offered only there. Email
+and a note stay optional. The product page's quick order was removed rather than
+given the same fields: two copies of a long form drift. „Поръчай“ on the product
+page puts the product in the cart and opens its form. Without JavaScript the cart
+cannot work, so the product page then offers the phone; that is the one thing
+lost.
+
+The delivery is personal data and is treated like the phone: stored with the
+order, shown in the panel as a courier label, printed back in the customer's own
+confirmation (a mistyped address is noticed now, not by the courier), and never
+put in the owner's notification email. The privacy policy names it and the
+courier as its recipient.
+
+**The commercial terms are the owner's answers of the same day:** free delivery
+from exactly 49,00 € (so every sentence says „от“, not „над“); below it the
+courier's own tariff, paid on delivery (`COURIER_RATE`), which is a known term
+but not a number, so the structured data declares free shipping above the
+threshold and nothing below it; dispatch within one business day and 1–2 in
+transit; cash on delivery only; weekdays 09:00–18:00.
+
+**Returns: the statutory 14 days for unopened packs, at the customer's cost.** The
+owner asked for no returns. A consumer's right of withdrawal from a distance sale
+cannot be excluded (Consumer Protection Act, art. 50), so the terms use the
+exclusion the law does allow for coffee: sealed goods unsealed after delivery,
+which cannot be returned for health or hygiene reasons (art. 57, item 5). Opened
+packs are not returnable, unopened ones are, and a wrong or damaged delivery is a
+complaint the shop remedies whatever the packaging. The standard withdrawal form
+(Annex 6 to art. 52) is printed under the terms. A lawyer's read still clears the
+draft notice.

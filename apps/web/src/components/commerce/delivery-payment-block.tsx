@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { siteConfig, type CommerceConfig } from "@/config/site";
 import {
   deliveryCostSentences,
-  deliveryFee,
   deliveryTimeSentence,
   joinList,
   paymentMethods,
@@ -11,6 +10,8 @@ import {
   returnShippingSentence,
   returnWindowDays,
   type DeliveryBasis,
+  deliveryCostKnown,
+  OPENED_PACKS_EXCLUDED,
 } from "@/components/commerce/terms";
 import type { PriceView } from "@/lib/catalog/types";
 import type { Locale } from "@/i18n/config";
@@ -64,7 +65,7 @@ export function deliveryPaymentRows(
    * one they end in "we tell you on the call", which is the absence of a term,
    * so only the free-delivery promise — when there is one — is printed.
    */
-  const cost = deliveryFee(commerce)
+  const cost = deliveryCostKnown(commerce)
     ? [...deliveryCostSentences(commerce)]
     : lines.promise
       ? [`${lines.promise}.`]
@@ -102,7 +103,11 @@ export function deliveryPaymentRows(
     rows.push({
       key: "returns",
       term: "Връщане",
-      lines: [`${days} дни за отказ след получаването.`, ...(shipping ? [shipping] : [])],
+      lines: [
+        `${days} дни за отказ след получаването.`,
+        OPENED_PACKS_EXCLUDED,
+        ...(shipping ? [shipping] : []),
+      ],
     });
   }
 

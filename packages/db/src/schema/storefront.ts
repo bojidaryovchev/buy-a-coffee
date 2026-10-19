@@ -69,13 +69,15 @@ export const orderInquiries = pgTable(
      * Who the order is for and where it goes, so the call back only confirms
      * it. Required by the form since 19 October 2026; null on older orders.
      * `deliveryMethod` is `address` (postcode and address set, office null) or
-     * `office` (a courier's office for the customer to collect from: office
-     * set, postcode and address null). `deliveryColumns` in
+     * `office` (a courier's office or a BOX NOW locker for the customer to
+     * collect from: office set, postcode and address null). `deliveryColumns` in
      * `apps/web/src/lib/orders/delivery.ts` keeps to that.
      */
     firstName: text("first_name"),
     lastName: text("last_name"),
     deliveryMethod: text("delivery_method"),
+    /** `econt` or `speedy` to an address; those or `boxnow` to an office or locker. */
+    deliveryCourier: text("delivery_courier"),
     deliveryCity: text("delivery_city"),
     deliveryPostcode: text("delivery_postcode"),
     deliveryAddress: text("delivery_address"),

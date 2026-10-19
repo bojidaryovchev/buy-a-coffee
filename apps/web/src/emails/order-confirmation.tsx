@@ -10,7 +10,8 @@ import { renderEmail, type ComposedEmail } from "./render";
  * only what it says. In the order a customer reads it: that it arrived and its
  * reference, when we ring and on which number (printed back, so a mistyped
  * digit is noticed now and not when the call fails), what was asked for at
- * what price, and then what the call decides — because nothing is ordered or
+ * what price, where it goes (printed back for the same reason), and then what
+ * the call decides — because nothing is ordered or
  * paid on the site, and the message must not read as if it had been.
  *
  * No signature block in the HTML: the letterhead's footer already carries the
@@ -28,12 +29,17 @@ export interface OrderConfirmationContent {
   readonly lines: readonly OrderLine[];
   /** When to expect the call (`callbackSentence`). */
   readonly callback: string;
+  /**
+   * Where it goes, as the lines of a label (`deliveryLines`). Absent for an
+   * order taken before the form asked for a delivery.
+   */
+  readonly delivery?: readonly string[] | null;
 }
 
 const PRICES_NOTE =
   "Цените са към момента на заявката. Наличността, крайната сума и доставката потвърждаваме по телефона; поръчка има едва след този разговор и на сайта нищо не се плаща.";
 const CHANGES_NOTE =
-  "Ако номерът е сгрешен или искате да промените нещо, отговорете на това писмо или ни се обадете.";
+  "Ако номерът или адресът са сгрешени или искате да промените нещо, отговорете на това писмо или ни се обадете.";
 
 function greeting(name: string | null): string {
   const trimmed = name?.trim();
@@ -53,6 +59,20 @@ export function OrderConfirmationEmail({ order }: { order: OrderConfirmationCont
 
       <Heading level={2}>Какво поискахте</Heading>
       <OrderLines lines={order.lines} />
+
+      {order.delivery && order.delivery.length > 0 && (
+        <>
+          <Heading level={2}>Къде доставяме</Heading>
+          <Paragraph>
+            {order.delivery.map((line, index) => (
+              <span key={index}>
+                {index > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </Paragraph>
+        </>
+      )}
 
       <Heading level={2}>Какво следва</Heading>
       <Paragraph tone="secondary">{PRICES_NOTE}</Paragraph>
@@ -81,6 +101,9 @@ export async function composeOrderConfirmationEmail(
     "Какво поискахте:",
     ...orderLinesText(order.lines),
     "",
+    ...(order.delivery && order.delivery.length > 0
+      ? ["Къде доставяме:", ...order.delivery, ""]
+      : []),
     PRICES_NOTE,
     "",
     CHANGES_NOTE,

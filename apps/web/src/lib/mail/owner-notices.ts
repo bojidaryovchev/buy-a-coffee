@@ -33,6 +33,8 @@ export interface OrderRecord {
   readonly phone: string;
   readonly email: string | null;
   readonly customerName: string | null;
+  /** Where it goes: an address or a courier office, as label lines. */
+  readonly delivery?: readonly string[] | null;
   readonly notes?: string | null;
 }
 

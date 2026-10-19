@@ -75,11 +75,15 @@ look comparable when they are not.
 - **Market:** Bulgaria only. Every address carries its language (`/bg/…`), and
   an English version is built and switched off until its content is written;
   until then there is nothing to switch to and no switcher is shown.
-- **Ordering:** by phone callback. The customer collects products in a cart and
-  sends them with a phone number, or orders one product from its page with the
-  quick order; name, email and a note are optional. A person calls to confirm
-  the order and arrange delivery. The request is stored before any notification
-  is sent, and a customer who gave an email is sent a confirmation of it.
+- **Ordering:** by phone callback, from one order form, the cart's. The
+  customer collects products in the cart (or presses „Поръчай“ on a product
+  page, which puts it there and opens the form) and sends them with everything
+  delivery needs: first and last name, phone, and a delivery either to an
+  address or to an Econt or Speedy office or a BOX NOW locker, with the courier
+  chosen. Email and a note are optional. A person calls only to confirm the
+  order; nothing has to be asked for on the call. The request is stored before
+  any notification is sent, and a customer who gave an email is sent a
+  confirmation of it, with the delivery printed back.
 - **Mirrored catalog:** products, prices and availability are synchronised from
   one source shop, which also fulfils the order. The storefront never names that
   shop, never links to it and never loads anything from it. Product copy is
@@ -100,8 +104,9 @@ look comparable when they are not.
 ## Scope
 
 **Built:** home; category, brand, promotions and search listings with
-server-side filters, sort and pagination; product pages with add to cart and a
-quick-order form; a cart that sends one order request for everything in it;
+server-side filters, sort and pagination; product pages with add to cart and
+„Поръчай“; a cart whose form sends one order request, with name and delivery,
+for everything in it;
 the recommendation wizard and its result page; machine-compatibility pages by
 brand and model; search with typeahead in both alphabets; contact form;
 newsletter consent capture; legal pages; an admin panel for order requests,

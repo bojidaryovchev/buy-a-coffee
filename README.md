@@ -5,8 +5,8 @@ A second outlet for another shop's catalogue. The public site
 copy of its catalogue continuously synchronised into our own database and sells
 the same products, at the same prices, from an independently branded storefront
 — Buy a Coffee, `apps/web`. There is a cart but no online payment: a customer
-leaves a phone number and the shop calls back, which is how the source takes
-orders too.
+sends the order with a name, a phone number and where to deliver, and the shop
+calls back to confirm it, which is how the source takes orders too.
 
 The storefront reads **only** our own PostgreSQL database and our own mirrored
 images. It never contacts the source during a customer request.

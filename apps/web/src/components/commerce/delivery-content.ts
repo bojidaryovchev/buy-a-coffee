@@ -6,6 +6,8 @@ import {
   paymentSentence,
   returnShippingSentence,
   withdrawalDays,
+  OPENED_PACKS_EXCLUDED,
+  paymentMethods,
 } from "@/components/commerce/terms";
 
 /**
@@ -29,8 +31,8 @@ export function orderingSteps(commerce: CommerceConfig = siteConfig.commerce): r
   const payment = paymentSentence(commerce);
 
   return [
-    "Сложете в количката кафето, което искате, и изпратете заявка с телефонния си номер — или поръчайте един продукт направо от страницата му. Без регистрация и без плащане на сайта: в този момент нищо не се таксува и нищо не се изпраща.",
-    `Обаждаме ви се${hours ? ` в работно време (${hours})` : ""}, за да потвърдим наличността и крайната сума и да уговорим доставката. Поръчка има едва след този разговор.`,
+    "Сложете в количката кафето, което искате (или натиснете „Поръчай“ на страницата му), и изпратете заявката с име, телефон и къде да доставим. Без регистрация и без плащане на сайта: в този момент нищо не се таксува и нищо не се изпраща.",
+    `Обаждаме ви се${hours ? ` в работно време (${hours})` : ""}, за да потвърдим наличността, крайната сума и доставката. Поръчка има едва след този разговор.`,
     ["Получавате пратката, както сме се уговорили.", payment].filter(Boolean).join(" "),
   ];
 }
@@ -45,7 +47,7 @@ export function deliveryFaq(commerce: CommerceConfig = siteConfig.commerce): rea
     {
       question: "Трябва ли да се регистрирам или да платя на сайта?",
       answer:
-        "Не. На сайта няма регистрация и плащане. Оставяте телефонен номер — от количката или от страницата на продукта — и ние ви се обаждаме.",
+        "Не. На сайта няма регистрация и плащане. Изпращате заявка от количката с име, телефон и къде да доставим, а ние ви се обаждаме, за да я потвърдим.",
     },
     hours
       ? {
@@ -61,7 +63,10 @@ export function deliveryFaq(commerce: CommerceConfig = siteConfig.commerce): rea
     payment
       ? {
           question: "Как се плаща?",
-          answer: `${payment} Избирате по време на обаждането.`,
+          answer:
+            paymentMethods(commerce).length > 1
+              ? `${payment} Избирате по време на обаждането.`
+              : payment,
         }
       : null,
     {
@@ -80,7 +85,8 @@ export function deliveryFaq(commerce: CommerceConfig = siteConfig.commerce): rea
       answer: [
         `Да. Може да се откажете от поръчката в срок от ${withdrawalDays(commerce)} дни от получаването ѝ, без да посочвате причина.`,
         returnShipping,
-        "За някои стоки законът предвижда изключения — описани са в Общите условия.",
+        OPENED_PACKS_EXCLUDED,
+        "Подробностите са в Общите условия.",
       ]
         .filter(Boolean)
         .join(" "),
