@@ -75,7 +75,7 @@ describe("a picture for a card", () => {
 
   it("is nothing for the placeholder, a foreign host or a path outside public", async () => {
     expect(await imageDataUri("/placeholder-product.svg")).toBeNull();
-    expect(await imageDataUri("https://www.kafezona.com/img/a.jpg")).toBeNull();
+    expect(await imageDataUri("https://images.example.com/img/a.jpg")).toBeNull();
     expect(await imageDataUri("/../package.json")).toBeNull();
     expect(await imageDataUri(null)).toBeNull();
   });
