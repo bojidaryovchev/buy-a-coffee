@@ -83,11 +83,11 @@ describe("adminGate", () => {
     expect(MIN_ADMIN_PASSWORD_LENGTH).toBe(6);
 
     const production = { VERCEL_ENV: "production", ADMIN_SESSION_SECRET: SECRET };
-    expect(adminGate({ ...production, ADMIN_PASSWORD: "parol" })).toEqual({
+    expect(adminGate({ ...production, ADMIN_PASSWORD: "abcde" })).toEqual({
       enabled: false,
       reason: "short_password",
     });
-    expect(adminGate({ ...production, ADMIN_PASSWORD: "parola" })).toEqual({ enabled: true });
+    expect(adminGate({ ...production, ADMIN_PASSWORD: "abcdef" })).toEqual({ enabled: true });
   });
 
   it("refuses production without a separate session secret", async () => {
