@@ -7,6 +7,7 @@ import { CartIcon } from "@/components/layout/icons";
 import { buttonClasses } from "@/components/ui/primitives";
 import { useLocale } from "@/i18n/use-locale";
 import { cartStore, useHydrated } from "@/lib/cart/store";
+import { prepareBeanFlight } from "@/lib/motion/bean-flight";
 import { productHref } from "@/lib/routes";
 
 /**
@@ -20,10 +21,12 @@ import { productHref } from "@/lib/routes";
  * adds to the cart without leaving the listing. The two are drawn with the same
  * classes, so nothing moves when one becomes the other.
  *
- * The label is „Добави“ with a cart beside it, and „Добави в количката“ when
- * the card is wide enough (`@container` on the card's body): a 320 px phone
- * gives a card 114 px, which the long label does not fit unbroken. The
+ * The label is „Добави“ with a cart beside it: on a wide card the button sits
+ * beside the price, where the long label would push it to its own line. The
  * accessible name is always the long one, with the product's name after it.
+ *
+ * A press sends a bean from the button to the header's cart
+ * (`prepareBeanFlight`), measured before the cart changes and flown after.
  *
  * It is a sibling of the card's product link, never a descendant, for the
  * reason `ProductCard` gives.
@@ -48,9 +51,7 @@ export function AddToCartButton({
   const label: ReactNode = (
     <>
       <CartIcon className="h-4 w-4" />
-      <span aria-hidden>
-        Добави<span className="hidden @[12rem]:inline"> в количката</span>
-      </span>
+      <span aria-hidden>Добави</span>
       <span className="sr-only">Добави в количката: {name}</span>
     </>
   );
@@ -72,10 +73,13 @@ export function AddToCartButton({
     <button
       type="button"
       className={classes}
-      onClick={() => {
+      onClick={(event) => {
+        const launch = prepareBeanFlight(event.currentTarget);
         const { added } = cartStore.add({ productId, slug, name }, 1);
-        if (added)
+        if (added) {
+          launch?.();
           analytics.track({ name: "add_to_cart", productSlug: slug, quantity: 1, source: "card" });
+        }
       }}
     >
       {label}

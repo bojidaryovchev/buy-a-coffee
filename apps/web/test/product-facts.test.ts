@@ -386,7 +386,7 @@ describe("FactsTable", () => {
       expect(value.indexOf("Средно")).toBeLessThan(value.indexOf("8 от 12"));
       // Page size: the 120 px track, twelve segments of it.
       expect(value).toContain("w-30");
-      expect((value.match(/bg-pine-700/g) ?? []).length).toBe(8);
+      expect((value.match(/intensity-fill/g) ?? []).length).toBe(8);
       expect((value.match(/bg-line/g) ?? []).length).toBe(4);
 
       expect(stripTags(cell(enriched, "Интензивност"))).toBe("СилноИнтензивност 7 от 10");

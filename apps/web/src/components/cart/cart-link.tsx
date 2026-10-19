@@ -39,6 +39,8 @@ export function CartLink({
   return (
     <Link
       href={href}
+      // Where „Добави“ sends its bean (lib/motion/bean-flight.ts).
+      data-cart-target=""
       className={cx(
         "relative inline-flex min-h-11 w-11 shrink-0 items-center justify-center rounded-sm text-ink-700 transition-colors hover:bg-paper-sunken hover:text-ink-900",
         className,

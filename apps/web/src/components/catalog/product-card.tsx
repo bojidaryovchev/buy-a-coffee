@@ -3,9 +3,8 @@ import { AvailabilityBadge, Badge, buttonClasses, cx } from "@/components/ui/pri
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
-import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { IntensityScale } from "@/components/catalog/intensity-scale";
-import { ProductImage } from "@/components/catalog/product-image";
+import { PackWell } from "@/components/catalog/pack-well";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import type { ProductCardView } from "@/lib/catalog/types";
 import type { Locale } from "@/i18n/config";
@@ -14,9 +13,12 @@ import { productHref } from "@/lib/routes";
 /**
  * Product card. Specified row by row in DESIGN.md, "Product card".
  *
- * Top to bottom: the packshot on a white, unpadded square; the brewing system;
- * brand and pack size; the name; intensity on the brand's own scale; the price
- * and what one cup costs; and „Добави“, which puts one in the cart. The system and the price per
+ * Top to bottom: the pack standing on its well (`PackWell`: cut out where a
+ * cut-out is live, the photo on white where not); the brewing system; brand
+ * and pack size; the name; intensity on the brand's own scale; the price and
+ * what one cup costs, with „Добави“ beside them where the card is wide enough
+ * and under them where it is not. No border: the well and the type carry the
+ * card (DESIGN.md, Phase K). The system and the price per
  * cup are there because they are the two questions a pack price and a
  * photograph do not answer: does it fit my machine, and what does it cost me.
  *
@@ -48,26 +50,20 @@ export function ProductCard({
   const reduced = product.price !== null && product.oldPrice !== null;
   const href = productHref(locale, product);
   // Its height is the `sm` button's: 44 px below `lg`, where a card is touched,
-  // 40 px from `lg` (DESIGN.md, "Product card", row 8).
-  const controlClasses = "relative z-10 mt-3 w-full";
+  // 40 px from `lg` (DESIGN.md, "Product card", row 8). Full width under the
+  // price on a narrow card; its own width beside the price on a wide one.
+  const controlClasses = "relative z-10 w-full @[13rem]:w-auto";
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-md border border-line bg-paper-raised transition-colors focus-within:border-line-strong focus-within:shadow-raise hover:border-line-strong hover:shadow-raise">
-      <div className="relative aspect-square border-b border-line bg-well">
-        {product.image ? (
-          <ProductImage
-            src={product.image.url}
-            alt={product.image.alt || product.name}
-            fill
-            sizes={IMAGE_SIZES.card}
-            priority={priority}
-            loading={priority ? undefined : "lazy"}
-            className="object-contain"
-          />
-        ) : (
-          <ImagePlaceholder />
-        )}
-
+    <article className="group relative flex h-full flex-col">
+      <PackWell
+        image={product.image}
+        alt={product.image?.alt || product.name}
+        sizes={IMAGE_SIZES.card}
+        priority={priority}
+        lift
+        className="aspect-square rounded-md"
+      >
         {/* A reduction under one percent rounds to zero: the struck old price
             says it; a "−0%" badge would only look like a mistake. */}
         {reduced && product.discountPercent !== null && product.discountPercent >= 1 && (
@@ -81,11 +77,11 @@ export function ProductCard({
             <AvailabilityBadge availability={product.availability} />
           </div>
         )}
-      </div>
+      </PackWell>
 
-      {/* A size container, so the cart button's label follows the card's width,
-          not the window's (DESIGN.md, "The Meta Rule"). */}
-      <div className="@container flex flex-1 flex-col p-3 md:p-4">
+      {/* A size container, so the price row follows the card's width, not the
+          window's (DESIGN.md, "The Meta Rule"). */}
+      <div className="@container flex flex-1 flex-col pt-3">
         {/* Each optional row keeps its height when empty; see the note above. */}
         <div className="flex h-5 min-w-0 items-center">
           <SystemBadge systemId={product.systemId} size="sm" />
@@ -125,64 +121,66 @@ export function ProductCard({
           <IntensityScale raw={product.intensity} size="card" />
         </div>
 
-        <div className="mt-auto pt-3">
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            {product.price ? (
-              <>
-                {reduced && <span className="sr-only">Намалена цена </span>}
-                <span
-                  className={cx(
-                    "text-lg font-semibold tabular-nums",
-                    reduced ? "text-clay-600" : "text-ink-900",
+        <div className="mt-auto flex flex-col gap-3 pt-3 @[13rem]:flex-row @[13rem]:items-end @[13rem]:justify-between @[13rem]:gap-2">
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-baseline gap-x-2">
+              {product.price ? (
+                <>
+                  {reduced && <span className="sr-only">Намалена цена </span>}
+                  <span
+                    className={cx(
+                      "text-lg font-semibold tabular-nums",
+                      reduced ? "text-clay-600" : "text-ink-900",
+                    )}
+                  >
+                    {product.price.formatted}
+                  </span>
+                  {product.oldPrice && (
+                    <>
+                      <span className="sr-only">Стара цена </span>
+                      <span className="text-sm text-ink-300 tabular-nums line-through">
+                        {product.oldPrice.formatted}
+                      </span>
+                    </>
                   )}
-                >
-                  {product.price.formatted}
-                </span>
-                {product.oldPrice && (
-                  <>
-                    <span className="sr-only">Стара цена </span>
-                    <span className="text-sm text-ink-300 tabular-nums line-through">
-                      {product.oldPrice.formatted}
-                    </span>
-                  </>
-                )}
-              </>
-            ) : (
-              /* Some products genuinely have no price; never render "0,00 €". */
-              <span className="text-sm leading-[1.625rem] text-ink-500">Цена при запитване</span>
-            )}
-          </p>
+                </>
+              ) : (
+                /* Some products genuinely have no price; never render "0,00 €". */
+                <span className="text-sm leading-[1.625rem] text-ink-500">Цена при запитване</span>
+              )}
+            </p>
 
-          <p className="min-h-[1.125rem] text-xs font-medium text-pine-700 tabular-nums">
-            {product.servingPrice?.formatted}
-          </p>
+            <p className="min-h-[1.125rem] text-xs font-medium text-pine-700 tabular-nums">
+              {product.servingPrice?.formatted}
+            </p>
+          </div>
+
+          {product.availability === "out_of_stock" ? (
+            /*
+             * Nothing to order, so nothing to put in the cart — but the same box,
+             * so the row above still lines up with its neighbours.
+             */
+            <Link
+              href={href}
+              className={buttonClasses({
+                variant: "secondary",
+                size: "sm",
+                className: controlClasses,
+              })}
+            >
+              <span>
+                Виж продукта<span className="sr-only">: {product.name}</span>
+              </span>
+            </Link>
+          ) : (
+            <AddToCartButton
+              productId={product.id}
+              slug={product.slug}
+              name={product.name}
+              className={controlClasses}
+            />
+          )}
         </div>
-
-        {product.availability === "out_of_stock" ? (
-          /*
-           * Nothing to order, so nothing to put in the cart — but the same box,
-           * so the row above still lines up with its neighbours.
-           */
-          <Link
-            href={href}
-            className={buttonClasses({
-              variant: "secondary",
-              size: "sm",
-              className: controlClasses,
-            })}
-          >
-            <span>
-              Виж продукта<span className="sr-only">: {product.name}</span>
-            </span>
-          </Link>
-        ) : (
-          <AddToCartButton
-            productId={product.id}
-            slug={product.slug}
-            name={product.name}
-            className={controlClasses}
-          />
-        )}
       </div>
     </article>
   );

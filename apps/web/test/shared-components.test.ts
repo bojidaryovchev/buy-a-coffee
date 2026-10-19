@@ -9,7 +9,8 @@ const html = (element: Parameters<typeof renderToStaticMarkup>[0]) => renderToSt
 
 /** How many track segments a rendered scale has, and how many are filled. */
 function track(markup: string): { total: number; filled: number } {
-  const filled = markup.match(/bg-pine-700/g)?.length ?? 0;
+  // A filled segment pours its pine in over the grey (`.intensity-fill`).
+  const filled = markup.match(/intensity-fill/g)?.length ?? 0;
   const empty = markup.match(/bg-line/g)?.length ?? 0;
   return { total: filled + empty, filled };
 }

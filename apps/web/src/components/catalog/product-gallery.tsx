@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
-import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
+import { PackWell } from "@/components/catalog/pack-well";
 import { ProductImage } from "@/components/catalog/product-image";
 import { cx } from "@/components/ui/primitives";
 import type { ProductImageView } from "@/lib/catalog/types";
@@ -26,9 +26,10 @@ import type { ProductImageView } from "@/lib/catalog/types";
  * element on the page; the rest are lazy. Every well declares its aspect
  * ratio, so nothing shifts as they load.
  *
- * The wells are pure white and unpadded: the photographs were taken on white
- * and carry their own margin, so a tinted or padded well draws a rectangle
- * around every one of them.
+ * Each picture is a `PackWell`: a live cut-out stands on its well with its
+ * contact shadow; a photograph with none sits on pure white, unpadded, as it
+ * was taken (DESIGN.md, "The Cut-out Rule"). The thumbnails keep the
+ * photographs.
  */
 
 /** The anchor of the image at `index` (zero-based). */
@@ -72,23 +73,25 @@ export function ProductGallery({
 
   if (count === 0) {
     return (
-      <div className="relative aspect-square overflow-hidden rounded-md border border-line">
-        <ImagePlaceholder />
-      </div>
+      <PackWell
+        image={null}
+        alt={productName}
+        sizes={IMAGE_SIZES.detail}
+        className="aspect-square rounded-md"
+      />
     );
   }
 
   if (count === 1) {
     const image = images[0]!;
     return (
-      <figure className="relative aspect-square overflow-hidden rounded-md border border-line bg-well">
-        <ProductImage
-          src={image.url}
+      <figure>
+        <PackWell
+          image={image}
           alt={image.alt || productName}
-          fill
           sizes={IMAGE_SIZES.detail}
           priority
-          className="object-contain"
+          className="aspect-square rounded-md"
         />
       </figure>
     );
@@ -123,17 +126,13 @@ export function ProductGallery({
             aria-label={`Снимка ${index + 1} от ${count}`}
             className="w-full shrink-0 snap-start"
           >
-            <div className="relative aspect-square overflow-hidden rounded-md border border-line bg-well">
-              <ProductImage
-                src={image.url}
-                alt={image.alt || productName}
-                fill
-                sizes={IMAGE_SIZES.detail}
-                priority={index === 0}
-                loading={index === 0 ? undefined : "lazy"}
-                className="object-contain"
-              />
-            </div>
+            <PackWell
+              image={image}
+              alt={image.alt || productName}
+              sizes={IMAGE_SIZES.detail}
+              priority={index === 0}
+              className="aspect-square rounded-md"
+            />
             <figcaption
               aria-hidden
               className="mt-2 text-center text-xs text-ink-500 tabular-nums md:hidden"

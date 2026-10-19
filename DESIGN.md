@@ -1311,41 +1311,48 @@ from. Two engineers building it from this section must produce the same card.
 **Anatomy,** top to bottom:
 
 ```
-┌──────────────────────────┐
-│ [−15%]          [Изчерпан]│  1  packshot well, 1:1
-│                          │
-│        packshot          │
-│                          │
-├──────────────────────────┤
-│ [◘ Dolce Gusto]          │  2  system badge        20 px
-│ [BIANCHI logo] · 16 бр.  │  3  brand · pack        40 px
-│ Bianchi Gusto Forte      │  4  name, up to 3 lines 60 px
-│ Espresso                 │
-│                          │
-│ ▮▮▮▮▮▮▮▮▮▮▯▯ 10 от 12    │  5  intensity           16 px
-│ 5,60 €  ~~6,60 €~~       │  6  price               26 px
-│ 0,35 € на чаша           │  7  price per cup       18 px
-│ [       Добави         ] │  8  add to cart      44/40 px
-└──────────────────────────┘
+╭──────────────────────────╮
+│ [−15%]          [Изчерпан]│  1  pack well, 1:1, rounded-md, no border
+│         ▕▔▔▔▔▏           │
+│         ▕pack▏           │     the pack stands on the well
+│        ░░░░░░░░          │     with its contact shadow
+╰──────────────────────────╯
+  [◘ Dolce Gusto]              2  system badge        20 px
+  [BIANCHI logo] · 16 бр.      3  brand · pack        40 px
+  Bianchi Gusto Forte          4  name, up to 3 lines 60 px
+  Espresso
+
+  ▮▮▮▮▮▮▮▮▮▮▯▯ 10 от 12        5  intensity           16 px
+  5,60 €  ~~6,60 €~~ [Добави]  6  price · control  44/40 px
+  0,35 € на чаша               7  price per cup       18 px
 ```
 
-**Container.** `<article class="group relative flex h-full flex-col
-overflow-hidden rounded-md border border-line bg-paper-raised
-transition-colors">`.
+On a card narrower than 13rem (a phone's two columns) the control takes the
+full width under the price, as row 8 did before Phase K.
 
-1. **Packshot well.** `relative aspect-square border-b border-line bg-well`.
-   - Image: `next/image` with `fill`, `object-contain`, no padding (the
-     photographs carry their own margin), `sizes={IMAGE_SIZES.card}`.
-     `priority` for the first row of a page (4 cards) and `loading="lazy"` for
-     the rest. `alt` is the image's stored alt text, else the product's full
-     name ("Bianchi Gusto Forte Espresso — капсули за Dolce Gusto, 16 бр.").
+**Container.** `<article class="group relative flex h-full flex-col">`. No
+border, no fill, no shadow: the well and the type carry the card (Phase K).
+
+1. **Pack well.** `PackWell` (`components/catalog/pack-well.tsx`) with
+   `lift`, in a box `aspect-square rounded-md`.
+   - With a live cut-out (see "Imagery"): the pack stands in an inner box
+     inset 14 % at the sides, 10 % at the top and 13 % at the foot, anchored
+     to the bottom (`object-contain object-bottom`), on a well of `well`
+     fading to `paper-sunken` from 60 % down, with its contact shadow as wide
+     as the pack's own footprint.
+   - Without one: `bg-well` and the photograph with `fill`, `object-contain`,
+     no padding (the photographs carry their own margin), as before.
+   - `sizes={IMAGE_SIZES.card}`; `priority` for the first row of a page (4
+     cards) and `loading="lazy"` for the rest. `alt` is the image's stored alt
+     text, else the product's full name ("Bianchi Gusto Forte Espresso —
+     капсули за Dolce Gusto, 16 бр.").
    - No photo: the image placeholder (below) fills the well.
    - Top left, `absolute top-2 left-2`: the reduction badge, only when
      `discountPercent` and `oldPrice` are both present.
    - Top right, `absolute top-2 right-2`: the availability badge, only when
      availability is not `in_stock`.
-2. **Body.** `flex flex-1 flex-col p-3 md:p-4`. Rows 2 to 5 are separated by
-   `mt-1.5`.
+2. **Body.** `@container flex flex-1 flex-col pt-3`, no side padding: it
+   lines up with the well's edges. Rows 2 to 5 are separated by `mt-1.5`.
 3. **System badge**, size `sm`. Row height 20 px, kept when there is no badge.
    Instant coffee fits no system and has no badge; the row says
    "Разтворимо кафе" in `text-2xs font-semibold text-ink-700` instead — the
@@ -1374,7 +1381,10 @@ text-ink-900">` containing the one link of the card, to the product page
    words in its place) and the brand line beside it already say both.
 6. **Intensity scale**, card variant. Row height 16 px, kept when absent.
 7. **Price block.** `mt-auto pt-3` — pushed to the bottom so prices align
-   across a row.
+   across a row. Below 13rem of card it is a column (price, price per cup,
+   then the control at full width, `gap-3`); from 13rem a row, the price on
+   the left and the control on the right, aligned at their foot
+   (`@[13rem]:flex-row @[13rem]:items-end @[13rem]:justify-between`).
    - Price row, `flex flex-wrap items-baseline gap-x-2`: price in `text-lg
 font-semibold tabular-nums text-ink-900`.
    - Reduced: the price is `text-clay-600`, preceded by `<span
@@ -1387,13 +1397,13 @@ class="sr-only">Стара цена </span>`.
 text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша", or
      "≈ 0,12 € на чаша" when estimated from weight. Row height 18 px, kept when
      absent.
-8. **Add-to-cart control** (`components/cart/add-to-cart-button.tsx`). `mt-3`.
-   A `secondary` button of size `sm`, `w-full`: 44 px below `lg`, where a card
-   is touched, 40 px from `lg`; `text-sm`, `relative z-10` so it sits above the
-   stretched link. A 16 px cart icon, then „Добави“; „ в количката“ follows
-   when the card's body (an `@container`) is at least 12rem wide, which a
-   320 px phone's card is not. The accessible name is always
-   `<span class="sr-only">Добави в количката: {name}</span>`.
+8. **Add-to-cart control** (`components/cart/add-to-cart-button.tsx`), in
+   the price block. A `secondary` button of size `sm`, `w-full` below 13rem of
+   card and its own width from 13rem: 44 px tall below `lg`, where a card is
+   touched, 40 px from `lg`; `text-sm`, `relative z-10` so it sits above the
+   stretched link. A 16 px cart icon, then „Добави“. The accessible name is
+   always `<span class="sr-only">Добави в количката: {name}</span>`. A press
+   sends a bean to the header's cart (see "Motion").
    - In the server's HTML, and for good without JavaScript, it is a link to the
      product page's `#order` (`productHref(locale, product, "#order")`), which
      offers the phone when there is no script. Once hydrated it is a `<button>` with the same
@@ -1404,9 +1414,10 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
 
 **States.**
 
-- _Rest:_ `border-line`, no shadow.
-- _Hover and focus-within:_ `border-line-strong shadow-raise`. The name gains
-  `underline underline-offset-2`. The image does not move.
+- _Rest:_ no border, no shadow but the pack's contact shadow.
+- _Hover and focus-within:_ the name gains `underline underline-offset-2`. On
+  devices that hover, a cut-out pack rises 5 px while its shadow widens and
+  softens (`.pack-lift`, 280 ms); a photograph on white does not move.
 - _Focus:_ the ring is drawn on the name link and, separately, on the
   add-to-cart control. Two tab stops per card, in that order.
 - _Loading:_ none. A card arrives with its page, rendered on the server; see
@@ -1416,8 +1427,8 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
 block is pinned with `mt-auto`, so all cards in a grid row are the same height
 and their prices and buttons line up, whatever is missing.
 
-**Phone.** Two columns from 320 px up. At 390 px a card is about 173 px wide;
-the body has 12 px padding. Nothing is hidden on a phone: system, intensity and
+**Phone.** Two columns from 320 px up. At 390 px a card is about 173 px wide,
+under 13rem: the control takes the full width under the price. Nothing is hidden on a phone: system, intensity and
 price per cup are the reasons to shop here. The name clamps at three lines.
 
 **Data the card needs** beyond today's `ProductCardView`: the resolved system
@@ -1425,8 +1436,8 @@ id, the parsed intensity, and `pricePerServing` with `servingsEstimated`.
 
 **Never.** A description paragraph. More than one price per cup. A star, a
 rating, a "bestseller" ribbon. A second link to the same product. A gold
-button — twenty-four gold buttons are not an accent. A tinted or padded well. A
-hover zoom. A card whose height depends on which optional rows it has.
+button — twenty-four gold buttons are not an accent. A photograph on a tinted
+or padded well (only a cut-out stands on the fading well). A hover zoom. A card whose height depends on which optional rows it has.
 
 ### Image placeholder
 

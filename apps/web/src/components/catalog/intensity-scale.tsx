@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { parseIntensity } from "@/lib/catalog/attributes";
 
 /**
@@ -67,9 +68,17 @@ export function IntensityScale({
         {segments.map((filled, index) => (
           <span
             key={index}
+            /*
+             * A filled segment pours in, one after another, the first time
+             * the track scrolls into view (`.intensity-fill` in globals.css;
+             * DESIGN.md, "Motion"). Its fill is drawn by `::after`, over the
+             * empty segment's grey; where scroll-driven animation is not
+             * supported, or less motion is asked for, it is simply full.
+             */
+            style={filled ? ({ "--i": index } as CSSProperties) : undefined}
             className={[
               "h-1.5 flex-1",
-              filled ? "bg-pine-700" : "bg-line",
+              filled ? "intensity-fill" : "bg-line",
               index === 0 ? "rounded-l-xs" : "",
               index === segments.length - 1 ? "rounded-r-xs" : "",
             ]
