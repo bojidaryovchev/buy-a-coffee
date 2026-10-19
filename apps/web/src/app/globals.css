@@ -127,7 +127,10 @@
   --color-illo-stain: oklch(0.457 0.082 56);
 
   /* --- Type ------------------------------------------------------------ */
-  --font-display: var(--font-literata), Georgia, "Times New Roman", serif;
+  /* Literata in three subset faces; see `app/fonts.ts` for why in this order. */
+  --font-display:
+    var(--font-literata-cyrillic), var(--font-literata-latin-ext), var(--font-literata-latin),
+    Georgia, "Times New Roman", serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   --text-2xs: 0.6875rem;

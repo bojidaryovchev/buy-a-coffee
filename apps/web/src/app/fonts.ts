@@ -1,4 +1,5 @@
-import { Inter, Literata } from "next/font/google";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 /**
  * The two faces, defined once for the three documents that draw a page: the
@@ -14,21 +15,91 @@ import { Inter, Literata } from "next/font/google";
  *
  * Both faces carry the Cyrillic subset. That is not optional: the catalog is
  * Bulgarian, and a Latin-only face would draw every product name in a fallback.
+ * `test/fonts.test.ts` holds the subsets and what is preloaded.
+ */
+/**
+ * Inter without its Latin Extended subset: `next/font/google` preloads every
+ * subset it is given, and that one was 83 KB on every page for characters no
+ * product, brand or page text used (checked 19 October 2026). A character from
+ * that range would be drawn by the system sans in `--font-sans`, which is
+ * close enough for a rare accent.
  */
 const inter = Inter({
-  subsets: ["latin", "latin-ext", "cyrillic"],
+  subsets: ["latin", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
 });
 
-const literata = Literata({
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  variable: "--font-literata",
-  weight: ["400", "600", "700"],
+/**
+ * Literata, at the one weight the shop sets it in (600), with its optical-size
+ * axis — DESIGN.md, "Typography". The axis is what draws a 52 px heading with
+ * the display design instead of the 14 pt text design stretched to size.
+ *
+ * Self-hosted because `next/font/google` loads an extra axis only together
+ * with the whole weight range: 167 KB of Cyrillic and Latin, against 75 KB for
+ * these files and 58 KB for the three fixed weights they replace (19 October
+ * 2026). They are Google Fonts' own subset files for `opsz 7..72, wght 600`,
+ * under the SIL Open Font License (`fonts/OFL-Literata.txt`).
+ *
+ * One face per subset, each with its own `unicode-range`, as Google serves
+ * them, so a page downloads only the subsets its text uses. `--font-display`
+ * lists them Cyrillic, Latin Extended, Latin: the first two match only their
+ * own ranges, and only the last carries the size-adjusted fallback, so a
+ * fallback never stands in for a subset that is merely still loading.
+ * `next/font` takes only literal arguments, hence the ranges written out.
+ */
+const literataCyrillic = localFont({
+  src: "./fonts/literata-opsz-600-cyrillic.woff2",
+  weight: "600",
+  style: "normal",
   display: "swap",
+  variable: "--font-literata-cyrillic",
+  adjustFontFallback: false,
+  declarations: [
+    { prop: "unicode-range", value: "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116" },
+  ],
 });
 
-export const fontVariables = `${inter.variable} ${literata.variable}`;
+const literataLatinExt = localFont({
+  src: "./fonts/literata-opsz-600-latin-ext.woff2",
+  weight: "600",
+  style: "normal",
+  display: "swap",
+  variable: "--font-literata-latin-ext",
+  adjustFontFallback: false,
+  // Brand names live in Latin-1 („Caffè“); this subset is rarely drawn.
+  preload: false,
+  declarations: [
+    {
+      prop: "unicode-range",
+      value:
+        "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF",
+    },
+  ],
+});
+
+const literataLatin = localFont({
+  src: "./fonts/literata-opsz-600-latin.woff2",
+  weight: "600",
+  style: "normal",
+  display: "swap",
+  variable: "--font-literata-latin",
+  adjustFontFallback: "Times New Roman",
+  declarations: [
+    {
+      prop: "unicode-range",
+      value:
+        "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+    },
+  ],
+});
+
+export const fontVariables = [
+  inter.variable,
+  literataCyrillic.variable,
+  literataLatinExt.variable,
+  literataLatin.variable,
+].join(" ");
 
 /** The `<body>` every document shares. */
 export const BODY_CLASS = "flex min-h-dvh flex-col bg-paper text-ink-900 antialiased";
