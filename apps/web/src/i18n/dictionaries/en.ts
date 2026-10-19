@@ -43,6 +43,8 @@ export const en: Dictionary = {
 
   header: {
     call: "Call us",
+    cart: "Cart",
+    cartCount: { one: "{count} item", many: "{count} items" },
   },
 
   drawer: {

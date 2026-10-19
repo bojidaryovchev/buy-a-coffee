@@ -316,7 +316,28 @@ export interface ProductDeliveryLines {
 }
 
 /**
- * What the block beside the order form says for one product.
+ * What `price` is the price of: one unit of a product (its page), or the
+ * products in a cart (the cart page), which is what the threshold is measured
+ * against.
+ */
+export type DeliveryBasis = "unit" | "order";
+
+const STANDING: Readonly<
+  Record<DeliveryBasis, { over: string; remaining: (amount: string) => string }>
+> = {
+  unit: {
+    over: "Един брой от този продукт вече е над тази сума.",
+    remaining: (amount) => `С един брой от този продукт до тази сума остават ${amount}.`,
+  },
+  order: {
+    over: "Продуктите в количката вече са над тази сума.",
+    remaining: (amount) => `С продуктите в количката до тази сума остават ${amount}.`,
+  },
+};
+
+/**
+ * What the block beside the order form says for one product — or, with the
+ * `order` basis, for the products in a cart, whose sum is `price`.
  *
  * `standing` reports a distance, not an instruction: "add 12,10 € more" would
  * promise free delivery at exactly the threshold, which the offer ("above")
@@ -325,15 +346,16 @@ export interface ProductDeliveryLines {
 export function productDeliveryLines(
   price: Pick<PriceView, "amount" | "currency"> | null,
   commerce: CommerceConfig = siteConfig.commerce,
+  basis: DeliveryBasis = "unit",
 ): ProductDeliveryLines {
   const gap = freeDeliveryGap(price, commerce);
   const methods = paymentMethods(commerce);
 
   let standing: string | null = null;
   if (gap?.qualifies) {
-    standing = "Един брой от този продукт вече е над тази сума.";
+    standing = STANDING[basis].over;
   } else if (gap?.remaining) {
-    standing = `С един брой от този продукт до тази сума остават ${gap.remaining.formatted}.`;
+    standing = STANDING[basis].remaining(gap.remaining.formatted);
   }
 
   return {

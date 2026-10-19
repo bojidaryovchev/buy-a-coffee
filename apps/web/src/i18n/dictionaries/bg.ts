@@ -64,6 +64,10 @@ export const bg = {
 
   header: {
     call: "Обадете се",
+    /** The cart link's name; the count follows it for a screen reader. */
+    cart: "Количка",
+    /** Units in the cart, after the name: "Количка, 3 броя". */
+    cartCount: { one: "{count} брой", many: "{count} броя" },
   },
 
   drawer: {

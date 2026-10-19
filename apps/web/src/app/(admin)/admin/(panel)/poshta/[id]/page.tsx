@@ -52,7 +52,7 @@ function flatten(html: string): string {
  * Drop our own signature block from a message we sent.
  *
  * `--` on a line of its own is the standard signature delimiter, and the block
- * beneath it is `SIGNATURE` in `lib/mail/reply.ts`: the same three lines under
+ * beneath it is `MAIL_SIGNATURE` in `lib/mail/identity.ts`: the same three lines under
  * every outgoing message. Repeated down a transcript it buries the sentence
  * someone actually wrote.
  *

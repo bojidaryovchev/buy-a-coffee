@@ -47,6 +47,7 @@ export const routes = {
   machines: "/za-kafemashina",
   machineBrand: (slug: string): CanonicalPath => `/za-kafemashina/${slug}`,
   unsubscribe: "/byuletin/otpisvane",
+  cart: "/kolichka",
 } as const satisfies Record<string, CanonicalPath | ((slug: string) => CanonicalPath)>;
 
 const SEGMENT_KEYS: ReadonlySet<string> = new Set(ROUTE_SEGMENTS);

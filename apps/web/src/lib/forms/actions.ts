@@ -1,14 +1,20 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { productHref } from "@/lib/routes";
+import { href, productHref, routes } from "@/lib/routes";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
-import { contactMessages, orderInquiries, products } from "@catalog/db/schema";
+import { contactMessages, products } from "@catalog/db/schema";
 import { siteConfig } from "@/config/site";
-import { getCurrentSlugOfFormer } from "@/lib/catalog/queries";
+import { cartBlock } from "@/lib/cart/view";
+import { getCurrentSlugOfFormer, listProductsForOrder } from "@/lib/catalog/queries";
 import { db } from "@/lib/db";
+import { sendOrderConfirmation } from "@/lib/mail/confirmation";
+import { recordReference } from "@/lib/mail/reference";
 import { notify } from "@/lib/notifications";
+import { orderLinesText, productCount } from "@/lib/orders/lines";
+import { itemFor, itemLines, recordInquiry, type OrderItem } from "@/lib/orders/record";
 import {
   clientFingerprint,
   contactLimiter,
@@ -17,12 +23,13 @@ import {
   newsletterLimiter,
 } from "@/lib/rate-limit";
 import { callbackSentence } from "./callback-window";
-import { FORM_CONSENT_SOURCES } from "./consent";
+import { FORM_CONSENT_SOURCES, type FormConsentSource } from "./consent";
 import { recordConsent } from "./subscribe";
 import {
   CHECK_EMAIL_MESSAGE,
   CHECK_FIELDS_MESSAGE,
   type FormState,
+  cartOrderSchema,
   contactSchema,
   formText,
   newsletterSchema,
@@ -54,6 +61,7 @@ import {
 
 /** The fields handed back with a refusal: what a person typed, never the honeypot. */
 const ORDER_FIELDS = ["phone", "customerName", "email", "quantity", "notes", "newsletterConsent"];
+const CART_FIELDS = ["phone", "customerName", "email", "notes", "newsletterConsent"];
 const CONTACT_FIELDS = ["name", "email", "phone", "subject", "message", "newsletterConsent"];
 
 const GENERIC_ERROR = "Нещо се обърка. Моля, опитайте отново или ни се обадете.";
@@ -82,7 +90,7 @@ function orderSuccessMessage(lead: string, now: Date = new Date()): string {
 async function subscribeFromForm(input: {
   ticked: boolean;
   email: string | undefined;
-  source: "quick_order_form" | "contact_form";
+  source: Exclude<FormConsentSource, "footer">;
   fingerprint: string;
   metadata: Record<string, unknown>;
 }): Promise<void> {
@@ -157,6 +165,50 @@ async function findOrderedProduct(
   return movedTo ? bySlug(movedTo) : null;
 }
 
+/**
+ * What happens once an order is safely stored: the shop is told, and the
+ * customer gets a confirmation if they gave an address. Both are best effort —
+ * `notify` and `sendOrderConfirmation` log a failure and never throw — so the
+ * customer is answered "received" either way, which is the truth.
+ *
+ * The shop's mail names the products as the owner orders them (the supplier's
+ * names) and carries no contact detail; the customer's names them as the shop
+ * does and carries the number the shop will ring.
+ */
+async function announceOrder(order: {
+  id: string;
+  subject: string;
+  items: readonly OrderItem[];
+  phone: string;
+  email: string | null;
+  customerName: string | null;
+  callback: string;
+}): Promise<void> {
+  await notify({
+    kind: "order_inquiry",
+    subject: order.subject,
+    summary: orderLinesText(itemLines(order.items, "productName")).join("\n"),
+    recordId: order.id,
+  });
+
+  if (order.email) {
+    await sendOrderConfirmation({
+      id: order.id,
+      email: order.email,
+      customerName: order.customerName,
+      phone: order.phone,
+      lines: itemLines(order.items, "displayName"),
+      callback: order.callback,
+    });
+  }
+}
+
+/**
+ * A reference for the honeypot's answer. A bot must see what a person sees, and
+ * a person sees a reference; this one names nothing, because nothing was stored.
+ */
+const decoyReference = (): string => recordReference(randomUUID());
+
 export async function submitOrderInquiry(
   _previous: FormState,
   formData: FormData,
@@ -183,7 +235,11 @@ export async function submitOrderInquiry(
     // A honeypot hit is spam. Report success so a bot learns nothing, and
     // store nothing.
     if (fieldErrors.website) {
-      return { status: "success", message: orderSuccessMessage("Благодарим ви.") };
+      return {
+        status: "success",
+        message: orderSuccessMessage("Благодарим ви."),
+        reference: decoyReference(),
+      };
     }
     return {
       status: "error",
@@ -196,34 +252,40 @@ export async function submitOrderInquiry(
   const input = parsed.data;
 
   try {
-    const product = await findOrderedProduct(input.productSlug);
+    const found = await findOrderedProduct(input.productSlug);
 
-    if (!product) {
+    if (!found) {
       return {
         status: "error",
         message: "Не намерихме този продукт. Моля, презаредете страницата и опитайте отново.",
       };
     }
-    if (product.status !== "active") {
+    if (found.status !== "active") {
       return {
         status: "error",
         message:
           "Този продукт вече не се предлага. Моля, обадете ни се и ще ви предложим алтернатива.",
       };
     }
+    /* Priced and named from the database, like a line of a cart: the price
+       the order is recorded at, and the shop's name for the confirmation. */
+    const product = (await listProductsForOrder([found.id])).get(found.id);
+    if (!product) throw new Error(`Product ${found.id} vanished between two reads`);
+    const items = [itemFor(product, input.quantity)];
 
     // Everything recorded names the product by the slug it has now, whichever
     // one the form posted: the operator's link must open, and one customer
     // pressing the button on an old page and then on the new one has still
     // ordered once.
-    const key = idempotencyKey(["inquiry", input.phone, product.slug]);
+    const key = idempotencyKey(["inquiry", input.phone, found.slug]);
+    const callback = callbackSentence(new Date(), siteConfig.commerce.openingHours);
 
-    const [row] = await db
-      .insert(orderInquiries)
-      .values({
-        productId: product.id,
-        productName: product.name,
-        productSlug: product.slug,
+    const { id, created } = await recordInquiry(
+      {
+        // The columns a quick order has always filled; its line is in the items.
+        productId: found.id,
+        productName: found.name,
+        productSlug: found.slug,
         customerName: input.customerName || null,
         phone: input.phone,
         email: input.email || null,
@@ -232,13 +294,12 @@ export async function submitOrderInquiry(
         /* The page the order came from. A server action is not told its
            page's locale; the order form exists on Bulgarian pages only until
            another locale ships, and this column is a note for the operator. */
-        sourcePage: productHref(DEFAULT_LOCALE, { slug: product.slug }),
+        sourcePage: productHref(DEFAULT_LOCALE, { slug: found.slug }),
         idempotencyKey: key,
         requestMetadata: { ...metadata, fingerprint },
-      })
-      // A double-clicked button must not create two orders.
-      .onConflictDoNothing({ target: orderInquiries.idempotencyKey })
-      .returning({ id: orderInquiries.id });
+      },
+      items,
+    );
 
     // Their tick counts whether this is the first press or a repeated one.
     await subscribeFromForm({
@@ -249,23 +310,185 @@ export async function submitOrderInquiry(
       metadata,
     });
 
-    if (!row) {
+    if (!created) {
       // The conflict means an identical enquiry already exists, which from the
       // customer's point of view is a success.
-      return { status: "success", message: orderSuccessMessage("Вече получихме заявката ви.") };
+      return {
+        status: "success",
+        message: orderSuccessMessage("Вече получихме заявката ви."),
+        reference: recordReference(id),
+      };
     }
 
-    await notify({
-      kind: "order_inquiry",
-      subject: `Нова заявка за поръчка: ${product.name}`,
-      summary: `Количество ${input.quantity}. Данните за контакт са в записа в базата.`,
-      recordId: row.id,
+    await announceOrder({
+      id,
+      subject: `Нова заявка за поръчка: ${found.name}`,
+      items,
+      phone: input.phone,
+      email: input.email || null,
+      customerName: input.customerName || null,
+      callback,
     });
 
-    return { status: "success", message: orderSuccessMessage("Благодарим ви.") };
+    return {
+      status: "success",
+      message: `Благодарим ви. ${callback}`,
+      reference: recordReference(id),
+    };
   } catch (error) {
     console.error(JSON.stringify({ level: "error", msg: "inquiry.failed", error: String(error) }));
     return { status: "error", message: GENERIC_ERROR };
+  }
+}
+
+/**
+ * An order from the cart: every line in one enquiry, and one phone call.
+ *
+ * The browser posts product ids and quantities and nothing else it could lie
+ * about. Each line is priced and named here, from the database, and stored as
+ * a snapshot (`order_inquiry_items`) — what the customer is called back about
+ * is what the shop's catalog said at the moment they pressed the button.
+ *
+ * A line that cannot be ordered any more — withdrawn, or sold out since the
+ * page was drawn — refuses the whole request rather than vanishing from it.
+ * The page then reloads the cart, shows the line for what it is, and leaves it
+ * out; the customer sends again knowing what they are ordering. Quietly
+ * ordering two of three products would be a surprise on the phone.
+ */
+export async function submitCartOrder(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const { fingerprint, metadata } = await requestContext();
+
+  // One limit for every order, from whichever form: a phone call each.
+  const limit = await inquiryLimiter.check(fingerprint);
+  if (!limit.allowed) return { status: "error", message: RATE_LIMITED };
+
+  const parsed = cartOrderSchema.safeParse({
+    lines: formText(formData, "lines"),
+    phone: formText(formData, "phone"),
+    customerName: formText(formData, "customerName"),
+    email: formText(formData, "email"),
+    notes: formText(formData, "notes"),
+    newsletterConsent: formData.get("newsletterConsent"),
+    website: formText(formData, "website"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = toFieldErrors(parsed.error);
+    if (fieldErrors.website) {
+      return {
+        status: "success",
+        message: orderSuccessMessage("Благодарим ви."),
+        reference: decoyReference(),
+      };
+    }
+    return {
+      status: "error",
+      // The lines have no field to stand under: their message is the form's.
+      message: fieldErrors.lines ?? CHECK_FIELDS_MESSAGE,
+      fieldErrors,
+      values: submittedValues(formData, CART_FIELDS),
+    };
+  }
+
+  const input = parsed.data;
+
+  try {
+    const found = await listProductsForOrder(input.lines.map((line) => line.productId));
+
+    const refused = input.lines.filter((line) => {
+      const product = found.get(line.productId);
+      return !product || cartBlock(product.status, product.card.availability) !== null;
+    });
+    if (refused.length > 0) {
+      const names = refused.flatMap((line) => {
+        const product = found.get(line.productId);
+        return product ? [product.card.name] : [];
+      });
+      return {
+        status: "error",
+        message:
+          names.length > 0
+            ? `Вече не можем да приемем поръчка за ${names.join(", ")}. Прегледайте количката и изпратете отново.`
+            : "Продукт от количката вече не се предлага. Прегледайте количката и изпратете отново.",
+        values: submittedValues(formData, CART_FIELDS),
+      };
+    }
+
+    const items = input.lines.map((line) => itemFor(found.get(line.productId)!, line.quantity));
+    const units = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    // The same customer sending the same cart twice has ordered once. Sorted,
+    // so the order the lines happen to be in does not make a second key.
+    const key = idempotencyKey([
+      "cart",
+      input.phone,
+      ...input.lines.map((line) => `${line.productId}:${line.quantity}`).sort(),
+    ]);
+    const callback = callbackSentence(new Date(), siteConfig.commerce.openingHours);
+
+    const { id, created } = await recordInquiry(
+      {
+        // A cart names no single product; its lines are in the items. The
+        // quantity is every unit in it, for anything that reads the old shape.
+        productId: null,
+        productName: null,
+        productSlug: null,
+        customerName: input.customerName || null,
+        phone: input.phone,
+        email: input.email || null,
+        quantity: units,
+        notes: input.notes || null,
+        // As for the quick order: the Bulgarian page, the only one that ships.
+        sourcePage: href(DEFAULT_LOCALE, routes.cart),
+        idempotencyKey: key,
+        requestMetadata: { ...metadata, fingerprint },
+      },
+      items,
+    );
+
+    await subscribeFromForm({
+      ticked: input.newsletterConsent,
+      email: input.email || undefined,
+      source: "cart_form",
+      fingerprint,
+      metadata,
+    });
+
+    if (!created) {
+      return {
+        status: "success",
+        message: orderSuccessMessage("Вече получихме заявката ви."),
+        reference: recordReference(id),
+      };
+    }
+
+    await announceOrder({
+      id,
+      subject: `Нова заявка от количката: ${productCount(items.length)}, ${units} бр.`,
+      items,
+      phone: input.phone,
+      email: input.email || null,
+      customerName: input.customerName || null,
+      callback,
+    });
+
+    return {
+      status: "success",
+      message: `Благодарим ви. ${callback}`,
+      reference: recordReference(id),
+    };
+  } catch (error) {
+    console.error(
+      JSON.stringify({ level: "error", msg: "cart_order.failed", error: String(error) }),
+    );
+    return {
+      status: "error",
+      message: GENERIC_ERROR,
+      values: submittedValues(formData, CART_FIELDS),
+    };
   }
 }
 

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listOrders } from "@/lib/admin-queries";
+import { listOrders, type OrderRow } from "@/lib/admin-queries";
 import { INQUIRY_STATUS_LABEL, type InquiryStatus } from "@/lib/inquiry-status";
+import { orderSum, storedLine } from "@/lib/orders/lines";
 
 export const metadata: Metadata = { title: "Заявки" };
 export const dynamic = "force-dynamic";
@@ -9,16 +10,35 @@ export const dynamic = "force-dynamic";
 /**
  * Order enquiries.
  *
- * The shop has no cart and no checkout: a product page takes a phone number and
- * somebody rings back. This table has been filling up since the site launched
- * and, until now, nothing in the application could read it — which meant the
- * one screen the business actually needed did not exist.
+ * There is no checkout: a customer sends a cart, or one product from its page,
+ * with a phone number, and somebody rings back. This table has been filling up
+ * since the site launched and, until now, nothing in the application could
+ * read it — which meant the one screen the business actually needed did not
+ * exist.
  *
  * The phone number is on the list rather than one click in. It is the action:
  * the operator's next move on almost every row here is to dial it, and hiding
  * the only useful field behind a navigation is the classic way to make a
  * working panel feel slow.
  */
+
+/**
+ * One line for a list row: the first product and its quantity, how many more
+ * there are, and what the priced lines add up to. The whole order is one click
+ * in.
+ */
+function summary(order: OrderRow): string {
+  const [first, ...rest] = order.items;
+  if (!first) return "(без продукт)";
+  const name = first.productName ?? "(изтрит продукт)";
+  const head = first.quantity > 1 ? `${name} · ${first.quantity} бр.` : name;
+  const more = rest.length > 0 ? ` и още ${rest.length}` : "";
+  const { subtotal, unpriced } = orderSum(order.items.map((item) => storedLine(item, "")));
+  const total = subtotal
+    ? ` · ${subtotal.formatted}${unpriced > 0 ? " + цена при запитване" : ""}`
+    : "";
+  return `${head}${more}${total}`;
+}
 
 const STATUS_TONE: Record<InquiryStatus, string> = {
   new: "bg-caution-100 text-caution",
@@ -38,7 +58,7 @@ export default async function AdminOrdersPage() {
         <div>
           <h1 className="font-display text-3xl font-semibold text-ink-900">Заявки</h1>
           <p className="mt-1 text-base text-ink-500">
-            Заявки за поръчка от продуктовите страници. Обаждаме се ние.
+            Заявки за поръчка от количката и от продуктовите страници. Обаждаме се ние.
           </p>
         </div>
         <p className="text-sm">
@@ -78,10 +98,7 @@ export default async function AdminOrdersPage() {
                   </p>
                 </div>
 
-                <p className="mt-1 text-sm text-ink-700">
-                  {order.productName ?? "(изтрит продукт)"}
-                  {order.quantity > 1 && ` · ${order.quantity} бр.`}
-                </p>
+                <p className="mt-1 text-sm text-ink-700 tabular-nums">{summary(order)}</p>
                 {order.notes && (
                   <p className="mt-0.5 line-clamp-1 text-sm text-ink-500">{order.notes}</p>
                 )}

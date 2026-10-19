@@ -4,7 +4,7 @@ A second outlet for another shop's catalogue. The public site
 `https://www.kafezona.com/` (the source) sells coffee; this repository keeps a
 copy of its catalogue continuously synchronised into our own database and sells
 the same products, at the same prices, from an independently branded storefront
-— Buy a Coffee, `apps/web`. There is no cart and no online payment: a customer
+— Buy a Coffee, `apps/web`. There is a cart but no online payment: a customer
 leaves a phone number and the shop calls back, which is how the source takes
 orders too.
 

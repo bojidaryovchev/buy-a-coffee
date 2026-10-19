@@ -4,7 +4,8 @@ import { siteConfig } from "@/config/site";
 import { SystemIcon } from "@/components/catalog/system-icon";
 import { SearchField } from "@/components/catalog/search-field";
 import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
-import { MachineIcon } from "@/components/layout/icons";
+import { CartLink } from "@/components/cart/cart-link";
+import { MachineIcon, PhoneIcon } from "@/components/layout/icons";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import type { NavSystem, SiteNavigation } from "@/components/layout/navigation";
@@ -13,6 +14,7 @@ import { Wordmark } from "@/components/layout/wordmark";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 import { fill, plural } from "@/i18n/fill";
 import { openingHoursLabel } from "@/i18n/hours";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Site header.
@@ -76,13 +78,22 @@ export function SiteHeader({
             <Wordmark />
           </Link>
 
+          {/*
+            Below 360 px the first line has no room for the words beside the
+            cart: the menu, the wordmark, "Обадете се" and the cart come to
+            307 px where a 320 px phone has 288. There the link is the 44 px
+            handset, its words read out but not drawn.
+          */}
           <a
             href={`tel:${siteConfig.contact.phoneHref}`}
-            className={`ml-auto inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-pine-700 underline-offset-4 hover:underline ${
+            className={`ml-auto inline-flex min-h-11 shrink-0 items-center justify-center text-sm font-medium text-pine-700 underline-offset-4 hover:underline max-[359px]:w-11 ${
               showPhone ? "md:order-last md:ml-0" : "md:hidden"
             }`}
           >
-            <span className={showPhone ? "md:hidden" : undefined}>{dict.header.call}</span>
+            <PhoneIcon className="hidden h-5 w-5 max-[359px]:block" />
+            <span className={`max-[359px]:sr-only ${showPhone ? "md:hidden" : ""}`}>
+              {dict.header.call}
+            </span>
             {showPhone && (
               <span className="hidden tabular-nums md:inline">{siteConfig.contact.phone}</span>
             )}
@@ -98,6 +109,19 @@ export function SiteHeader({
               <SearchField locale={locale} copy={dict.search} />
             </Suspense>
           </div>
+
+          {/*
+            The cart. After the search in the source, which is where it is on
+            a wide screen; on a phone the search is moved to a line of its own
+            (`order-last`), so the cart ends the first line, beside "Обадете
+            се", pulled in to the 4 px its 44 px box needs there.
+          */}
+          <CartLink
+            href={href(locale, routes.cart)}
+            label={dict.header.cart}
+            count={dict.header.cartCount}
+            className="-ml-3 md:ml-0"
+          />
 
           {/* Nothing at all while one locale ships. */}
           <LanguageSwitcher locale={locale} label={dict.language.label} />

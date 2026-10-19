@@ -5,8 +5,8 @@ import { expect, type Page } from "@playwright/test";
  *
  * Several controls are links in the server's HTML and become something else
  * once React has attached: the menu trigger is a link to `/categories` that
- * turns into a drawer button, and a card's "Бърза поръчка" is a link to the
- * product page's order panel that turns into a dialog opener. A spec that
+ * turns into a drawer button, and a card's „Добави“ is a link to the product
+ * page's order panel that turns into an add-to-cart button. A spec that
  * clicks one of them before hydration follows the link instead — correct
  * behaviour, but not the behaviour under test, and a race.
  *

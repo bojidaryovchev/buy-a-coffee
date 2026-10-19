@@ -336,7 +336,7 @@ export function NewArrivals({
 /* --- 7. How ordering works ----------------------------------------------- */
 
 const ORDER_STEPS = [
-  "Намерете кафето, което искате.",
+  "Сложете в количката кафето, което искате.",
   "Оставете телефонния си номер.",
   "Звъним ви, за да потвърдим и да уговорим доставката.",
 ] as const;
@@ -363,7 +363,7 @@ export function HowOrderingWorks() {
           ))}
         </ol>
         <p className="mt-5 text-sm text-ink-500">
-          Без регистрация и без количка. Предпочитате да говорим?{" "}
+          Без регистрация и без плащане на сайта. Предпочитате да говорим?{" "}
           <a
             href={`tel:${siteConfig.contact.phoneHref}`}
             className="whitespace-nowrap text-pine-700 underline underline-offset-2 hover:no-underline"

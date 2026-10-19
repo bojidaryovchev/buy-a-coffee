@@ -22,6 +22,23 @@ export type AnalyticsEvent =
   | { name: "filter_applied"; filter: string; value: string; resultCount: number }
   | { name: "quick_order_started"; productSlug: string }
   | { name: "quick_order_submitted"; productSlug: string; outcome: "success" | "error" }
+  /*
+   * The cart. Products and counts, never who: the order's phone number stays
+   * in the form. `source` says which control was used, so the card's button
+   * and the product page's can be told apart.
+   */
+  | {
+      name: "add_to_cart";
+      productSlug: string;
+      quantity: number;
+      source: "card" | "product_page";
+    }
+  | {
+      name: "cart_order_submitted";
+      lineCount: number;
+      unitCount: number;
+      outcome: "success" | "error";
+    }
   | { name: "newsletter_submitted"; outcome: "success" | "error" }
   /*
    * Wizard events carry the answers, not the visitor. They are what tells us

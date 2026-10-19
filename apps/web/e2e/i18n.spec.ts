@@ -268,6 +268,8 @@ test.describe("the head of every page", () => {
     BG.journal,
     ARTICLE,
     BG.vending,
+    // `noindex`, and still declares its head like every page.
+    BG.cart,
   ];
 
   for (const path of pages) {

@@ -10,7 +10,7 @@ import { expectControlsLabelled } from "./support/structure";
  * management — rather than colour-picking.
  */
 
-const PAGES = ["/", "/bg/kafe-kapsuli", "/bg/marki", "/bg/kontakti"];
+const PAGES = ["/", "/bg/kafe-kapsuli", "/bg/marki", "/bg/kontakti", "/bg/kolichka"];
 
 for (const route of PAGES) {
   test(`${route} has exactly one h1 and proper landmarks`, async ({ page }) => {

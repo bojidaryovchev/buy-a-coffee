@@ -15,6 +15,7 @@
 export const FORM_CONSENT_SOURCES = {
   footer: "Формата в долната част на сайта",
   quick_order_form: "Отметка във формата за бърза поръчка",
+  cart_form: "Отметка във формата за поръчка от количката",
   contact_form: "Отметка във формата за контакт",
 } as const;
 

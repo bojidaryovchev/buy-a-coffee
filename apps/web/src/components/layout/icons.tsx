@@ -72,3 +72,44 @@ export function CloseIcon({ className = "h-5 w-5" }: { className?: string }) {
     </svg>
   );
 }
+
+/**
+ * A shopping cart: basket, handle, two wheels. On the 24 px grid for the
+ * header; the same drawing at 16 px beside a button's label.
+ */
+export function CartIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className={`shrink-0 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 3.5h2.6l2.3 11h10.4l2.2-7.5H6.2" />
+      <circle cx="9.5" cy="19" r="1.5" />
+      <circle cx="16.5" cy="19" r="1.5" />
+    </svg>
+  );
+}
+
+/** A telephone handset, for the call link where its words do not fit. */
+export function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className={`shrink-0 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3.5h3.2l1.6 4.2-2.2 1.4a11 11 0 0 0 7.3 7.3l1.4-2.2 4.2 1.6V19a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 3.5 5.1 1.5 1.5 0 0 1 5 3.5Z" />
+    </svg>
+  );
+}

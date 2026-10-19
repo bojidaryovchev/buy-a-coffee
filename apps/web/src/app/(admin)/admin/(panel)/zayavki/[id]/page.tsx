@@ -11,6 +11,8 @@ import { recordReference } from "@/lib/mail/reply";
 import { StatusPicker } from "@/components/admin/status-picker";
 import { RecordReplyForm } from "@/components/admin/record-reply-form";
 import { NewsletterMarkForm } from "@/components/admin/newsletter-mark-form";
+import { lineTotal, orderSum, productCount, storedLine } from "@/lib/orders/lines";
+import { toPriceView } from "@/lib/catalog/format";
 
 export const metadata: Metadata = { title: "Заявка" };
 export const dynamic = "force-dynamic";
@@ -26,12 +28,20 @@ export const dynamic = "force-dynamic";
  * order form requires a phone and treats the email as optional, so "no email" is
  * an ordinary state and not an error — showing a disabled form for it would
  * imply something is missing that never was.
+ *
+ * What was ordered is a table: one row per product, under the supplier's name
+ * (what the owner orders by), with the quantity and the price it was priced at
+ * when the request came in — not today's. A request from before the cart has
+ * no recorded price, and the table says so rather than looking one up.
  */
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
   const subscriber = order.email ? await getSubscriberByEmail(order.email) : null;
+  const sum = orderSum(order.items.map((item) => storedLine(item, "")));
+  // A line from before the cart recorded no price and no shop name.
+  const unrecorded = order.items.some((item) => item.displayName === null);
 
   return (
     <>
@@ -59,26 +69,87 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
         </a>
       </div>
 
-      <dl className="mt-8 grid gap-x-8 gap-y-4 rounded-md border border-line bg-paper-raised p-5 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Продукт</dt>
-          <dd className="mt-1 text-ink-900">
-            {order.productSlug ? (
-              <Link
-                href={productHref(DEFAULT_LOCALE, { slug: order.productSlug })}
-                className="underline"
-              >
-                {order.productName ?? order.productSlug}
-              </Link>
-            ) : (
-              (order.productName ?? "(изтрит продукт)")
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Количество</dt>
-          <dd className="mt-1 text-ink-900 tabular-nums">{order.quantity}</dd>
-        </div>
+      <section className="mt-8 overflow-x-auto rounded-md border border-line bg-paper-raised">
+        <h2 className="px-5 pt-4 text-xs font-medium tracking-wide text-ink-500 uppercase">
+          Поръчано · {productCount(order.items.length)}, {sum.units} бр.
+        </h2>
+        <table className="mt-2 w-full min-w-[32rem] text-sm">
+          <thead>
+            <tr className="text-left text-xs text-ink-500">
+              <th scope="col" className="px-5 py-2 font-medium">
+                Продукт
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                Брой
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                Цена за брой
+              </th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">
+                Сума
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line border-t border-line">
+            {order.items.map((item, index) => {
+              const unit = item.unitPrice ? toPriceView(item.unitPrice, item.currency) : null;
+              const total = lineTotal(storedLine(item, "").unitPrice, item.quantity);
+              const name = item.productName ?? "(изтрит продукт)";
+              return (
+                <tr key={index} className="align-top text-ink-900">
+                  <td className="px-5 py-3">
+                    {item.productSlug ? (
+                      <Link
+                        href={productHref(DEFAULT_LOCALE, { slug: item.productSlug })}
+                        className="underline"
+                      >
+                        {name}
+                      </Link>
+                    ) : (
+                      name
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">{item.quantity}</td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {unit ? (
+                      unit.formatted
+                    ) : (
+                      <span className="text-ink-500">
+                        {item.displayName === null ? "не е записана" : "при запитване"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium tabular-nums">
+                    {total?.formatted ?? <span className="font-normal text-ink-500">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot className="border-t border-line-strong">
+            <tr className="text-ink-900">
+              <th scope="row" colSpan={3} className="px-5 py-3 text-left font-semibold">
+                Сума на продуктите
+                {sum.unpriced > 0 && sum.subtotal && (
+                  <span className="ml-2 font-normal text-ink-500">
+                    без {productCount(sum.unpriced)} без цена
+                  </span>
+                )}
+              </th>
+              <td className="px-5 py-3 text-right font-semibold tabular-nums">
+                {sum.subtotal?.formatted ?? <span className="font-normal text-ink-500">—</span>}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+        {unrecorded && (
+          <p className="px-5 pb-4 text-xs text-ink-500">
+            Заявка отпреди количката: цената, на която е поръчано, не е записана.
+          </p>
+        )}
+      </section>
+
+      <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-md border border-line bg-paper-raised p-5 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium tracking-wide text-ink-500 uppercase">Имейл</dt>
           <dd className="mt-1 text-ink-900">

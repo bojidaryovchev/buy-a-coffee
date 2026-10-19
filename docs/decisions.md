@@ -809,3 +809,22 @@ Nothing in this repository records what that relationship is, and `robots.txt`
 permission is not the same as permission under the source's terms of service.
 If this is ever questioned, the answer has to come from the business rather than
 from the code. See [launch.md](launch.md).
+
+## The cart
+
+**A cart, and still no checkout and no payment.** Added on 19 October 2026 at
+the owner's request. The cart lives in the browser's `localStorage` — product
+ids and quantities, no personal data, created on the first add and removed when
+the order is sent — so it needs no account and no cookie, and the cookie policy
+names it as strictly necessary. The browser is trusted with nothing else: the
+cart page asks `/api/cart` what each product is and costs today, and
+`submitCartOrder` prices every line again from the database and stores it as a
+snapshot in `order_inquiry_items`. One enquiry, one phone call, for the whole
+cart. The quick order on a product page writes its one line through the same
+table, so the panel and the mail read one shape; the rows from before the cart
+were given their line by the migration, and the panel falls back to an
+enquiry's own product columns for any written in the deploy window. A line that
+cannot be ordered any more refuses the whole request rather than vanishing from
+it, so nobody is called about an order they did not see. The card's control
+became „Добави“ and its quick-order dialog was removed; without JavaScript it is
+still the link to the product page's quick order, which is a plain form.

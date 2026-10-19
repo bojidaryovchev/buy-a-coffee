@@ -10,13 +10,15 @@ import {
   productDeliveryLines,
   returnShippingSentence,
   returnWindowDays,
+  type DeliveryBasis,
 } from "@/components/commerce/terms";
 import type { PriceView } from "@/lib/catalog/types";
 import type { Locale } from "@/i18n/config";
 import { href, routes } from "@/lib/routes";
 
 /**
- * Delivery and payment, inside the order panel.
+ * Delivery and payment, inside the order panel — on a product page, and on the
+ * cart page beside the order form there.
  *
  * The form asks for a phone number, and the questions a customer has before
  * giving one are "what will delivery cost me", "when", "how do I pay" and "can
@@ -45,12 +47,16 @@ export interface DeliveryPaymentRow {
 
 const upperFirst = (text: string): string => text.charAt(0).toLocaleUpperCase("bg") + text.slice(1);
 
-/** The rows the block shows for one product, in order. Empty when nothing is set. */
+/**
+ * The rows the block shows for one product, in order — or for a cart, with the
+ * `order` basis and its sum as `price`. Empty when nothing is set.
+ */
 export function deliveryPaymentRows(
   price: Pick<PriceView, "amount" | "currency"> | null,
   commerce: CommerceConfig = siteConfig.commerce,
+  basis: DeliveryBasis = "unit",
 ): readonly DeliveryPaymentRow[] {
-  const lines = productDeliveryLines(price, commerce);
+  const lines = productDeliveryLines(price, commerce, basis);
   const rows: DeliveryPaymentRow[] = [];
 
   /*
@@ -155,15 +161,18 @@ export function DeliveryPaymentBlock({
   locale,
   price,
   commerce = siteConfig.commerce,
+  basis = "unit",
   className,
 }: {
   locale: Locale;
   price: PriceView | null;
   commerce?: CommerceConfig;
+  /** `order` on the cart page, where `price` is the sum of the cart. */
+  basis?: DeliveryBasis;
   /** Placement inside the order panel: which edge carries the divider. */
   className?: string;
 }) {
-  const rows = deliveryPaymentRows(price, commerce);
+  const rows = deliveryPaymentRows(price, commerce, basis);
   if (rows.length === 0) return null;
 
   return (

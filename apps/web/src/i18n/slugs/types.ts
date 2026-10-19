@@ -38,6 +38,7 @@ export const ROUTE_SEGMENTS = [
   "za-kafemashina",
   "byuletin",
   "byuletin/otpisvane",
+  "kolichka",
 ] as const;
 
 export type RouteSegment = (typeof ROUTE_SEGMENTS)[number];

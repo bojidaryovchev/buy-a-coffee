@@ -24,11 +24,12 @@ import { useLocale } from "@/i18n/use-locale";
 import { href, routes } from "@/lib/routes";
 
 /**
- * Quick order.
+ * Quick order: one product, a phone number, a call back.
  *
- * The reference storefront has no cart and no checkout: ordering is a single
- * phone number and the shop calls back. This reproduces that functional intent
- * with our own UI, our own endpoint and our own database.
+ * The shop's first way to order, and still the shortest: the source takes its
+ * orders the same way. Since the cart it is the second way on a product page,
+ * under „Добави в количката“ — for the customer who wants this one thing and
+ * no list — and the only one that works with no JavaScript at all.
  *
  * Checked in the browser with `orderInquirySchema`, the schema the action
  * checks with, when the button is pressed (`use-schema-form.ts`). Without
@@ -43,16 +44,23 @@ import { href, routes } from "@/lib/routes";
  *   - the submit button reports its pending state rather than silently doing
  *     nothing on a slow connection
  *
- * Safe to render more than once on a page, and inside a `<dialog>`: every id
- * comes from `useId`, nothing looks the form up by a fixed id or name, and it
- * owns its own state. The props are the contract other components rely on —
+ * Safe to render more than once on a page: every id comes from `useId`,
+ * nothing looks the form up by a fixed id or name, and it owns its own state. The props are the contract other components rely on —
  * add to them, do not change them.
  */
-function SubmitButton({ pending, disabled }: { pending: boolean; disabled: boolean }) {
+function SubmitButton({
+  pending,
+  disabled,
+  variant,
+}: {
+  pending: boolean;
+  disabled: boolean;
+  variant: "accent" | "primary";
+}) {
   return (
     <Button
       type="submit"
-      variant="accent"
+      variant={variant}
       size="lg"
       disabled={pending || disabled}
       aria-busy={pending || undefined}
@@ -76,9 +84,16 @@ const OPTIONAL_FIELDS = ["customerName", "quantity", "email", "notes"] as const;
 export function QuickOrderForm({
   productSlug,
   disabled = false,
+  submitVariant = "accent",
 }: {
   productSlug: string;
   disabled?: boolean;
+  /**
+   * The send button's weight. Gold where this form is the order (the default);
+   * pine on the product page, where „Добави в количката“ above it is the
+   * page's one gold button and this is the second way to order.
+   */
+  submitVariant?: "accent" | "primary";
 }) {
   const {
     state,
@@ -139,6 +154,11 @@ export function QuickOrderForm({
     return (
       <div role="status" className="rounded-md border border-pine-500/40 bg-pine-100 p-5">
         <p className="font-display text-lg font-semibold text-pine-900">Заявката е получена</p>
+        {state.reference && (
+          <p className="mt-1 text-sm text-ink-700">
+            Референция: <span className="font-semibold tabular-nums">{state.reference}</span>
+          </p>
+        )}
         <p className="mt-1 text-sm text-ink-700">{state.message}</p>
       </div>
     );
@@ -183,7 +203,7 @@ export function QuickOrderForm({
           <FieldError id={phoneId} message={errorOf("phone")} />
         </div>
 
-        <SubmitButton pending={pending} disabled={disabled} />
+        <SubmitButton pending={pending} disabled={disabled} variant={submitVariant} />
       </div>
 
       <details className="group mt-3" open={optionalOpen || undefined}>

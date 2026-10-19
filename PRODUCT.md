@@ -7,8 +7,9 @@ beans, capsules for five mutually incompatible capsule systems, and ESE paper
 pods, from about twenty mostly Italian brands — roughly 190 products.
 
 It has one measurable output: **an order request reaching a person**, for a
-product that fits the customer's machine. There is no cart and no checkout. The
-customer leaves a phone number and is called back.
+product that fits the customer's machine. There is a cart but no checkout and
+no online payment. The customer collects what they want, leaves a phone number
+and is called back.
 
 Success is the number of order requests and how few of them end in "that does
 not fit my machine". Traffic, time on page and pages per session are not goals.
@@ -74,9 +75,11 @@ look comparable when they are not.
 - **Market:** Bulgaria only. Every address carries its language (`/bg/…`), and
   an English version is built and switched off until its content is written;
   until then there is nothing to switch to and no switcher is shown.
-- **Ordering:** by phone callback. The form takes a phone number; name, quantity
-  and a note are optional. A person calls to confirm the order and arrange
-  delivery. The request is stored before any notification is sent.
+- **Ordering:** by phone callback. The customer collects products in a cart and
+  sends them with a phone number, or orders one product from its page with the
+  quick order; name, email and a note are optional. A person calls to confirm
+  the order and arrange delivery. The request is stored before any notification
+  is sent, and a customer who gave an email is sent a confirmation of it.
 - **Mirrored catalog:** products, prices and availability are synchronised from
   one source shop, which also fulfils the order. The storefront never names that
   shop, never links to it and never loads anything from it. Product copy is
@@ -97,14 +100,15 @@ look comparable when they are not.
 ## Scope
 
 **Built:** home; category, brand, promotions and search listings with
-server-side filters, sort and pagination; product pages with a quick-order form;
+server-side filters, sort and pagination; product pages with add to cart and a
+quick-order form; a cart that sends one order request for everything in it;
 the recommendation wizard and its result page; machine-compatibility pages by
 brand and model; search with typeahead in both alphabets; contact form;
 newsletter consent capture; legal pages; an admin panel for order requests,
 messages and the shared mailbox.
 
 **Also built, to the standard in `DESIGN.md`:** machine-first navigation; system
-badge and intensity scale on every card; quick order from the card; a facts
+badge and intensity scale on every card; add to cart from the card; a facts
 table and a delivery-and-payment block on the product page; filters by system
 and intensity band and a sort by price per cup; a home page built from
 packshots; Vending Zone and Consumables pages; a journal, called „Блог“ on the
@@ -114,8 +118,9 @@ it has products.
 
 **Deliberately out of scope:**
 
-- A cart, online payment, checkout and order tracking. The business confirms
-  every order by phone; a cart would promise a process that does not exist.
+- Online payment, checkout and order tracking. The business confirms every
+  order by phone: the cart gathers an order and sends it as a request, and
+  promises nothing the call has not confirmed.
 - Customer accounts, wishlists and saved comparisons.
 - Reviews, ratings and question-and-answer sections. See below.
 - Prices, discounts or stock that differ from the source's.

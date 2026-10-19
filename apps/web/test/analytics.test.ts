@@ -72,6 +72,8 @@ const EVENTS: AnalyticsEvent[] = [
   { name: "filter_applied", filter: "f", value: "v", resultCount: 1 },
   { name: "quick_order_started", productSlug: "a" },
   { name: "quick_order_submitted", productSlug: "a", outcome: "success" },
+  { name: "add_to_cart", productSlug: "a", quantity: 2, source: "product_page" },
+  { name: "cart_order_submitted", lineCount: 2, unitCount: 3, outcome: "success" },
   { name: "newsletter_submitted", outcome: "error" },
   { name: "wizard_step_viewed", step: "1" },
   {

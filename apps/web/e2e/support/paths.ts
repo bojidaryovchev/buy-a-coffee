@@ -42,6 +42,7 @@ export const BG = {
   machines: "/bg/za-kafemashina",
   machineBrand: (slug: string) => `/bg/za-kafemashina/${slug}`,
   unsubscribe: "/bg/byuletin/otpisvane",
+  cart: "/bg/kolichka",
 } as const;
 
 /**

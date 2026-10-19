@@ -38,6 +38,25 @@ export const MAIL_DOMAIN = MAIL_ADDRESS.slice(MAIL_ADDRESS.indexOf("@") + 1);
 export const NOTIFY_TO = process.env.MAIL_TO?.trim() || "";
 
 /**
+ * The signature under every message the shop sends a customer: a reply from
+ * the panel (`reply.ts`) and the confirmation of an order (`confirmation.ts`).
+ *
+ * Facts a customer may need to act on: who wrote, what to call, when someone
+ * answers. The phone number is first because this shop's whole ordering flow is
+ * a phone call — the fastest reply to any of this mail is the customer ringing.
+ *
+ * The lone `--` is the standard signature delimiter, and the thread view relies
+ * on it to hide this block when it lists what we sent — see `withoutSignature`
+ * in the admin thread page. Changing it here means changing it there.
+ */
+export const MAIL_SIGNATURE: readonly string[] = [
+  "--",
+  siteConfig.name,
+  `${siteConfig.contact.phone} · ${MAIL_ADDRESS}`,
+  siteConfig.contact.hours,
+];
+
+/**
  * A link into the panel, absolute.
  *
  * Notification mail is read on a phone, away from the machine the panel was

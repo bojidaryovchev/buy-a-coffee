@@ -766,7 +766,7 @@ the label. The label never wraps (see "The Unbroken Label Rule").
 | ----------- | -------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
 | `primary`   | `bg-pine-900 text-paper`                                 | `bg-pine-700`                        | The main action of a section on a light ground.              |
 | `accent`    | `bg-gold-500 text-ink-900 font-semibold`                 | `bg-gold-600`; on pine `bg-gold-300` | The single most important action in a viewport. New variant. |
-| `secondary` | `border border-line-strong bg-paper-raised text-ink-900` | `bg-paper-sunken`                    | Alternative actions; the card's quick-order control.         |
+| `secondary` | `border border-line-strong bg-paper-raised text-ink-900` | `bg-paper-sunken`                    | Alternative actions; the card's add-to-cart control.         |
 | `ghost`     | `text-ink-700`                                           | `bg-paper-sunken text-ink-900`       | Tertiary actions, icon buttons.                              |
 | `danger`    | `bg-critical text-paper`                                 | `bg-critical` at 90% opacity         | Destructive admin actions only.                              |
 | `on-pine`   | `border border-pine-200 text-paper`                      | `bg-pine-700`                        | The secondary action on a `pine-900` band.                   |
@@ -830,9 +830,10 @@ text-paper` with a 2.5 px check mark.
   message says what to do: "Въведете телефонен номер с поне 9 цифри."
 - _Disabled:_ `bg-paper-sunken text-ink-500`.
 
-**Validation.** Every form a person fills in — the quick order (product page
-and dialog), the contact form and the enquiry forms built on it, the newsletter
-band, the unsubscribe button and the admin panel's forms — works the same way
+**Validation.** Every form a person fills in — the quick order on a product
+page, the cart's order form, the contact form and the enquiry forms built on
+it, the newsletter band, the unsubscribe button and the admin panel's forms —
+works the same way
 (`components/forms/use-schema-form.ts`):
 
 - _One schema per form,_ in `lib/forms/schemas.ts` (storefront) or
@@ -1141,7 +1142,7 @@ from. Two engineers building it from this section must produce the same card.
 │ ▮▮▮▮▮▮▮▮▮▮▯▯ 10 от 12    │  5  intensity           16 px
 │ 5,60 €  ~~6,60 €~~       │  6  price               26 px
 │ 0,35 € на чаша           │  7  price per cup       18 px
-│ [    Бърза поръчка     ] │  8  quick order      44/40 px
+│ [       Добави         ] │  8  add to cart      44/40 px
 └──────────────────────────┘
 ```
 
@@ -1203,14 +1204,18 @@ class="sr-only">Стара цена </span>`.
 text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша", or
      "≈ 0,12 € на чаша" when estimated from weight. Row height 18 px, kept when
      absent.
-8. **Quick-order control.** `mt-3`. A `secondary` button of size `sm`,
-   `w-full`: 44 px below `lg`, where a card is touched, 40 px from `lg`;
-   `text-sm`, `relative z-10` so it sits above the stretched link. „Бърза
-   поръчка“ fits unbroken in a 320 px phone's card.
-   Label "Бърза поръчка" plus `<span class="sr-only">: {name}</span>`.
-   - It is a link to the product page's `#order`
-     (`productHref(locale, product, "#order")`). With JavaScript it opens the
-     order form in a dialog; without, it goes to the form on the product page.
+8. **Add-to-cart control** (`components/cart/add-to-cart-button.tsx`). `mt-3`.
+   A `secondary` button of size `sm`, `w-full`: 44 px below `lg`, where a card
+   is touched, 40 px from `lg`; `text-sm`, `relative z-10` so it sits above the
+   stretched link. A 16 px cart icon, then „Добави“; „ в количката“ follows
+   when the card's body (an `@container`) is at least 12rem wide, which a
+   320 px phone's card is not. The accessible name is always
+   `<span class="sr-only">Добави в количката: {name}</span>`.
+   - In the server's HTML, and for good without JavaScript, it is a link to the
+     product page's `#order` (`productHref(locale, product, "#order")`), whose
+     quick order is a plain form. Once hydrated it is a `<button>` with the same
+     classes, so nothing moves; a press adds one unit and the cart notice
+     answers it.
    - `out_of_stock`: the control is replaced by a `secondary` link "Виж
      продукта" of the same size, so heights still match.
 
@@ -1220,7 +1225,7 @@ text-pine-700`, the string from `toPerServingView()` — "0,35 € на чаша
 - _Hover and focus-within:_ `border-line-strong shadow-raise`. The name gains
   `underline underline-offset-2`. The image does not move.
 - _Focus:_ the ring is drawn on the name link and, separately, on the
-  quick-order control. Two tab stops per card, in that order.
+  add-to-cart control. Two tab stops per card, in that order.
 - _Loading:_ none. A card arrives with its page, rendered on the server; see
   "Loading".
 
@@ -1463,7 +1468,19 @@ section first said, comes to 125 px on a phone and could not meet it.)
 начало"`, a `min-h-11` target), then the search field taking the remaining width on `md` and up
   (`max-w-md`, pushed right) and its own full-width second line on a phone.
 - Phone only, right of the wordmark: `<a href="tel:…">Обадете се</a>` in
-  `text-sm font-medium text-pine-700`.
+  `text-sm font-medium text-pine-700`. Below 360 px the line has no room for
+  the words beside the cart (the four come to 307 px where a 320 px phone has
+  288): the link is then a 44 px square holding a 20 px handset, and the
+  words are `sr-only`.
+- The cart (`components/cart/cart-link.tsx`): a 44 by 44 px `ghost`-style link
+  to the cart page (`routes.cart`) holding the 24 px cart icon, named
+  "Количка" and, once there is something in it, ", 3 броя" (`sr-only`). The
+  count is a `bg-pine-900 text-paper text-2xs font-semibold tabular-nums
+rounded-xs` badge over the icon's top-right corner, `aria-hidden`, outside
+  the flow; it is drawn only once the browser's cart has been read, so the
+  server's HTML has none and nothing moves when it appears. After the search
+  field on a wide screen; on a phone it ends the first line, beside "Обадете
+  се" (`-ml-3`: 4 px apart, the icon's own box giving the rest).
 
 **Row 2 — the rail** (`md` and up). `<nav aria-label="Основна навигация">`, one
 `ul`, `flex items-center gap-x-6`. Organised by what the customer owns.
@@ -1589,7 +1606,7 @@ empty shell or a placeholder message.
 | 4   | Wizard entry       | `paper-sunken` | Catch the customer who does not know their system or what they like.       |
 | 5   | Promotions         | `clay-100`     | Reduced products. Only when there are any.                                 |
 | 6   | New arrivals       | `paper`        | Show the shelf: real packs, real prices.                                   |
-| 7   | How ordering works | `paper`        | Explain that there is no cart, in three steps.                             |
+| 7   | How ordering works | `paper`        | Explain the cart and the call back, in three steps.                        |
 | 8   | Brands             | `paper`        | A route in for the customer who shops by brand.                            |
 | 9   | Journal            | `paper-sunken` | Latest articles. Only when there are any.                                  |
 | 10  | Vending Zone       | `pine-900`     | Send the business buyer to the page written for them. Only when it exists. |
@@ -1670,8 +1687,8 @@ element.
 steps in `grid gap-4 md:grid-cols-3`, each a `rounded-md border border-line
 bg-paper-raised p-5` panel: a 28 px `bg-gold-500 text-ink-900 rounded-xs`
 numeral, then one sentence in `text-base text-ink-900`. Under the grid, in
-`text-sm text-ink-500`: "Без регистрация и без количка. Предпочитате да
-говорим?" and the phone number as a `text-pine-700 underline` link.
+`text-sm text-ink-500`: "Без регистрация и без плащане на сайта. Предпочитате
+да говорим?" and the phone number as a `text-pine-700 underline` link.
 
 **8. Brands.** `SectionHeading` "Марките, които предлагаме", action "Всички
 марки". One tile per brand with products: a `rounded-md border border-line
@@ -1922,12 +1939,24 @@ holding the order form and, beside it, the delivery-and-payment block.
 - From `sm` up: `grid grid-cols-[1fr_13rem]`; the form in the first column
   (`p-5`), the block in the second (`border-l border-line bg-paper-sunken p-5`,
   right corners rounded).
-- _Order form_ (`QuickOrderForm`): title "Поръчка на една стъпка" (Panel
-  title); one sentence, `text-sm text-ink-500`; the phone field (label
-  "Телефонен номер", required, `type="tel"`); the submit — the page's one
-  `accent` button, size `lg`, full width, "Поискай обаждане"; a `<details>`
-  "Добавете име, количество или бележка (по избор)"; the result line
-  (`aria-live="polite"`); the privacy sentence in `text-xs text-ink-500`.
+- _Add to cart_ (`AddToCartPanel`), first: title "Добавете в количката"
+  (`font-display text-base font-semibold`); one sentence, `text-sm
+text-ink-500`; "Количество" and the quantity stepper (see "Cart"); the
+  page's one `accent` button, size `lg`, full width, a 20 px cart icon and
+  "Добави в количката"; under it a line that keeps its `min-h-6` whether or
+  not it says "В количката: 2 бр." and links "Към количката". Without
+  JavaScript the whole block is `noscript:hidden` (`@media (scripting:
+none)`): a cart in the browser cannot work then, and the quick order below
+  is the panel.
+- _Quick order_ (`QuickOrderForm`), under a `border-t border-line` with
+  `mt-4 pt-5` (both dropped with the block above when there is no script):
+  title "Поръчка на една стъпка" (Panel title); one sentence, `text-sm
+text-ink-500`; the phone field (label "Телефонен номер", required,
+  `type="tel"`); the submit, a `primary` button here (`submitVariant`), size
+  `lg`, full width, "Поискай обаждане" — `accent` wherever the form is the
+  only way to order; a `<details>` "Добавете име, количество или бележка (по
+  избор)"; the result line (`aria-live="polite"`); the privacy sentence in
+  `text-xs text-ink-500`.
 - _Delivery-and-payment block:_ a `dl`, `space-y-3 text-sm`. Rows, each with a
   16 px icon in `text-pine-700`, a `dt` in `font-semibold text-ink-900` and a
   `dd` in `text-ink-700`: **Доставка** (fee and free-delivery threshold),
@@ -1943,8 +1972,9 @@ border border-pine-500 rounded-md p-5`: title "Заявката е получе�
   line as `text-sm text-critical`. Pressing the button with the phone empty or
   wrong shows the error there before anything is sent, with focus in the field;
   an error in the optional fields opens the disclosure (Inputs, "Validation").
-- _Out of stock:_ the submit is replaced by a `caution` notice "В момента е
-  изчерпан. Обадете ни се и ще ви кажем кога ще го има." with the phone number.
+- _Out of stock:_ both the cart block and the form are replaced by a
+  `caution` notice "В момента е изчерпан. Обадете ни се и ще ви кажем кога ще
+  го има." with the phone number.
 - _Product no longer sold:_ the whole panel is replaced by a `caution-100`
   notice: title "Този продукт вече не се предлага", one sentence, a `primary`
   button to the category and the phone number. The page keeps its URL and is
@@ -1992,9 +2022,89 @@ delivery-and-payment block comes **first** (`border-b`, not `border-l`), above
 the phone field, so delivery cost and payment are read before the form and
 without scrolling past it. The facts table keeps two columns at 40% / 60%.
 
-**Never.** A quantity stepper with "Add to cart". A sticky buy bar. Tabs that
+**Never.** A sticky buy bar. Tabs that
 hide the facts. A fact row filled with a guess. A rating. Related products from
 another system. A second `accent` button.
+
+### Cart
+
+The cart gathers an order; the phone call confirms it. There is no checkout,
+no address and no payment (`PRODUCT.md`). The cart is in the browser
+(`lib/cart/store.ts`, `localStorage`): product ids and quantities, nothing
+else. Every name and price on the cart page comes from the server
+(`/api/cart`), and the order is priced again when it is stored.
+
+**Quantity stepper** (`components/cart/quantity-stepper.tsx`). One
+`rounded-sm border border-line-strong bg-paper-raised` group: a 44 px square
+"−" button (`lg:` 40 px), a `w-12` number field in `text-input tabular-nums`,
+centred, with its own spin buttons hidden, and a "+" button. The buttons are
+named "Един брой по-малко" / "Един брой повече" and are disabled at 1 and 99.
+What is typed becomes the quantity on blur or Enter, brought within 1 to 99;
+an empty field changes nothing.
+
+**Cart notice** (`components/cart/cart-notice.tsx`). One per page, in the
+frame, answering every add. A `role="status"` region, always present and
+polite, fixed to the foot of the screen (`z-50`, `p-4`; from `md` on the right,
+`md:p-6`); inside it, once something is added, a `max-w-sm rounded-md border
+border-line bg-paper-raised p-4 shadow-float` panel: "Добавено в количката"
+in `text-sm font-semibold`, the product's name (with "2 × " when more than
+one) in `text-sm text-ink-700`, a 44 px close button, and a `primary` `sm`
+link "Към количката", full width. It never takes focus. It goes after six
+seconds, unless the pointer or focus is in it, and on Escape or its close
+button. A full cart (50 different products) says "Количката е пълна" instead.
+It is the answer to the customer's own press, which is why it is allowed where
+a pop-up is not.
+
+**Cart page** (`app/(site)/[lang]/kolichka/`, `routes.cart`, `noindex`, not in
+the sitemap). Breadcrumbs, the `h1` "Количка", then:
+
+- From `lg`, `grid lg:grid-cols-[1fr_22rem] lg:gap-10`: the lines on the
+  left, the sum and the form on the right (`lg:sticky lg:top-44`). On a phone
+  the same order, stacked.
+- _Lines:_ one `rounded-md border border-line bg-paper-raised` list, rows
+  divided by `divide-line`, `p-4`. A row: a 64 px well (`sm:` 80 px, `bg-well
+border border-line rounded-sm`, the packshot `object-contain`), then the
+  title as a link (`text-sm font-medium`, `sm:text-base`), the detail line in
+  `text-sm text-ink-500`, the availability badge when it is not "В
+  наличност", the unit price "5,60 € за брой" and the price per cup in
+  `text-xs font-medium text-pine-700`, then the stepper and the line total
+  (`text-base font-semibold tabular-nums`) on one row, and a `ghost` `sm`
+  "Премахни" with a 16 px ×.
+- _A line that cannot be ordered_ (withdrawn, gone from the catalog, or out of
+  stock today) keeps its row with the reason in `text-sm text-caution` — "Вече
+  не го предлагаме…", "В момента е изчерпан…", "…и няма да влезе в
+  заявката." — and only "Премахни". Under the list a `bg-caution-100
+text-caution` line counts them. They are left out of the sum and the order.
+- _Sum:_ a `rounded-md border border-line bg-paper-raised` panel: "Сума на
+  продуктите (3 бр.)" and the figure in `text-xl font-semibold tabular-nums`;
+  when some lines have no price, "Без 1 продукт с цена при запитване — цената
+  ще ви кажем по телефона." in `text-xs text-ink-500`; then "Доставката и
+  крайната сума потвърждаваме по телефона. На сайта нищо не се плаща." Under a
+  `border-t`, the delivery-and-payment block with the `order` basis, which
+  measures the free-delivery threshold against the sum.
+- _Order form_ (`CartOrderForm`): its own panel, `p-4 sm:p-5`; the quick
+  order's fields and rules, `h2` "Изпратете заявката", the page's one `accent`
+  button "Изпрати заявката", and under the email "Ако го напишете, ще ви
+  изпратим потвърждение със заявката."
+- _Sent:_ the page becomes a `role="status"` panel, `bg-pine-100 border
+border-pine-500 rounded-md p-5`: "Заявката е получена" (`text-pine-900`),
+  "Референция: A1B2C3D4", the server's sentence about when we will call; then
+  "Какво поискахте" with the lines, the phone, and a `secondary` link home.
+  The cart is emptied.
+- _Empty:_ `EmptyState` with a 40 px cart: "Количката е празна", "Изберете
+  кафе от каталога и го добавете тук — или ни се обадете и ще поръчаме
+  заедно.", `primary` "Към каталога" and `secondary` "Намери по машина".
+- _Loading_ and _failed:_ the skeleton of the lines (see "Loading"); if the
+  server cannot be reached, a `caution-100` notice "Не успяхме да заредим
+  количката", "Продуктите ви са запазени.", the phone, and a `secondary`
+  "Опитайте отново".
+- _Without JavaScript:_ a `<noscript>` notice on `caution-100` says the cart
+  needs it and that every product page's quick order and the phone work
+  without; the skeleton is `noscript:hidden`.
+
+**Never.** A price read from the browser. A checkout step, an address form, a
+payment method to choose. A line that disappears without saying why. A count
+of what other people bought. Urgency about stock.
 
 ### Wizard
 
@@ -2232,9 +2342,13 @@ What a visitor sees while something is pending:
 - _A submitting form._ The button goes to the pending state: `disabled`,
   `aria-busy`, and a label that says what is happening ("Изпраща се…"). It
   keeps its width. The result arrives in the form's `aria-live` line.
-- _The quick-order dialog._ Its code is fetched the first time a card's control
-  is used. Until it arrives the control is still the link to the product
-  page's order form, so there is nothing to draw in between.
+- _The cart page._ The cart is in the browser and its prices come from the
+  server, so the page draws the skeleton of its lines (`aria-busy`, one
+  `sr-only` „Зарежда се…“) until both are in. It is the one client-side region
+  that does; see "Cart page".
+- _A card's „Добави“ and the header's count._ Both are in the server's HTML
+  (the control as a link, the count absent) and change in place once the
+  page hydrates; the count is a badge over the icon, outside the flow.
 
 **Skeletons.** `.skeleton` (from `globals.css`) is `paper-sunken`,
 `rounded-sm`, with a 1.6 s opacity pulse that stops under reduced motion. No

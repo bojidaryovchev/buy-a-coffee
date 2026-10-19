@@ -1,8 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { siteConfig } from "@/config/site";
 import { asHtml } from "./html";
-import { MAIL_ADDRESS, MAIL_FROM } from "./identity";
+import { MAIL_FROM, MAIL_SIGNATURE } from "./identity";
+import { contactThreadSubject, orderThreadSubject, recordReference } from "./reference";
 import {
   addMessage,
   createThread,
@@ -65,23 +65,8 @@ function referenceChain(thread: MailThreadDetail): string[] {
   return ids.length <= 20 ? ids : [...ids.slice(0, 10), ...ids.slice(-10)];
 }
 
-/**
- * The signature under every outgoing message.
- *
- * Facts a customer may need to act on: who wrote, what to call, when someone
- * answers. The phone number is first because this shop's whole ordering flow is
- * a phone call — the fastest reply to any of this mail is the customer ringing.
- *
- * The lone `--` is the standard signature delimiter, and the thread view relies
- * on it to hide this block when it lists what we sent — see `withoutSignature`
- * in the admin thread page. Changing it here means changing it there.
- */
-const SIGNATURE = [
-  "--",
-  siteConfig.name,
-  `${siteConfig.contact.phone} · ${MAIL_ADDRESS}`,
-  siteConfig.contact.hours,
-];
+/** The signature under every outgoing message; see `MAIL_SIGNATURE`. */
+const SIGNATURE = MAIL_SIGNATURE;
 
 export async function sendReply(
   threadId: string,
@@ -181,30 +166,11 @@ export async function sendReply(
 
 /* -- answering a stored record --------------------------------------------- */
 
-/**
- * A short reference the customer can quote and the shop can read out.
- *
- * The primary keys here are `uuid`, which is right for a key and useless in a
- * subject line — nobody reads thirty-six characters back over the phone. Eight
- * hex characters of the same id is unambiguous across any volume this shop will
- * ever see, and stays a pure function of the row, which is what the subject
- * matching below depends on.
- */
-export const recordReference = (id: string): string => id.slice(0, 8).toUpperCase();
-
-/**
- * The subject a record's conversation carries.
- *
- * Built from the reference rather than from the product or the customer, because
- * it is the ONE part of the thread that has to be reproducible: nothing links a
- * record to a thread — no column, no join — and the conversation is found again
- * by asking the mailbox for this correspondent and this normalised subject. A
- * subject derived from anything editable would hand the customer a second thread
- * on their second reply.
- */
-export const orderThreadSubject = (id: string): string => `Вашата заявка ${recordReference(id)}`;
-export const contactThreadSubject = (id: string): string =>
-  `Вашето съобщение ${recordReference(id)}`;
+/* The reference and the subjects built from it live in `./reference`, which
+   imports nothing, so the order confirmation can use them without the
+   mailbox's database code. Re-exported here for the callers that always had
+   them from this module. */
+export { recordReference, orderThreadSubject, contactThreadSubject };
 
 /**
  * Answer a stored order enquiry or contact message, as the shop, in a real

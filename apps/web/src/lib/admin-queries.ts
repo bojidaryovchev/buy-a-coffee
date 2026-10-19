@@ -1,6 +1,11 @@
 import "server-only";
-import { count, desc, eq, isNull } from "drizzle-orm";
-import { contactMessages, newsletterSubscribers, orderInquiries } from "@catalog/db/schema";
+import { asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import {
+  contactMessages,
+  newsletterSubscribers,
+  orderInquiries,
+  orderInquiryItems,
+} from "@catalog/db/schema";
 import { db } from "@/lib/db";
 
 /**
@@ -23,6 +28,24 @@ import { db } from "@/lib/db";
 
 const PAGE = 200;
 
+/** One line of an order, as it was priced and named when the order came in. */
+export interface OrderItemRow {
+  productId: string | null;
+  /** The supplier's name, which the owner orders by. */
+  productName: string | null;
+  /**
+   * The shop's name, which the customer saw. Null on a line from before the
+   * cart, which recorded neither this nor a price: that is how such a line is
+   * told apart from one priced "при запитване".
+   */
+  displayName: string | null;
+  productSlug: string | null;
+  quantity: number;
+  /** Exact decimal string; null for "Цена при запитване", and on lines from before the cart. */
+  unitPrice: string | null;
+  currency: string | null;
+}
+
 export interface OrderRow {
   id: string;
   createdAt: Date;
@@ -35,10 +58,71 @@ export interface OrderRow {
   quantity: number;
   notes: string | null;
   sourcePage: string | null;
+  /** What was ordered; never empty for an enquiry that named a product. */
+  items: OrderItemRow[];
+}
+
+type OrderColumns = Omit<OrderRow, "items">;
+
+/**
+ * The lines of these enquiries, in the order the customer listed them.
+ *
+ * An enquiry with no line rows gets one built from its own product columns.
+ * The migration that made the lines table gave every enquiry stored before it
+ * its line, but a quick order taken by the previous release in the minutes
+ * between that migration and this release's deploy has none, and must not
+ * show up as an order for nothing.
+ */
+async function withItems(orders: OrderColumns[]): Promise<OrderRow[]> {
+  if (orders.length === 0) return [];
+  const rows = await db
+    .select({
+      inquiryId: orderInquiryItems.inquiryId,
+      productId: orderInquiryItems.productId,
+      productName: orderInquiryItems.productName,
+      displayName: orderInquiryItems.displayName,
+      productSlug: orderInquiryItems.productSlug,
+      quantity: orderInquiryItems.quantity,
+      unitPrice: orderInquiryItems.unitPrice,
+      currency: orderInquiryItems.currency,
+    })
+    .from(orderInquiryItems)
+    .where(
+      inArray(
+        orderInquiryItems.inquiryId,
+        orders.map((order) => order.id),
+      ),
+    )
+    .orderBy(asc(orderInquiryItems.inquiryId), asc(orderInquiryItems.position));
+
+  const byOrder = new Map<string, OrderItemRow[]>();
+  for (const { inquiryId, ...item } of rows) {
+    byOrder.set(inquiryId, [...(byOrder.get(inquiryId) ?? []), item]);
+  }
+
+  return orders.map((order) => {
+    const items = byOrder.get(order.id);
+    if (items && items.length > 0) return { ...order, items };
+    const legacy =
+      order.productName || order.productSlug
+        ? [
+            {
+              productId: null,
+              productName: order.productName,
+              displayName: null,
+              productSlug: order.productSlug,
+              quantity: order.quantity,
+              unitPrice: null,
+              currency: null,
+            },
+          ]
+        : [];
+    return { ...order, items: legacy };
+  });
 }
 
 export async function listOrders(): Promise<OrderRow[]> {
-  return db
+  const orders = await db
     .select({
       id: orderInquiries.id,
       createdAt: orderInquiries.createdAt,
@@ -55,6 +139,7 @@ export async function listOrders(): Promise<OrderRow[]> {
     .from(orderInquiries)
     .orderBy(desc(orderInquiries.createdAt))
     .limit(PAGE);
+  return withItems(orders);
 }
 
 export async function getOrder(id: string): Promise<OrderRow | null> {
@@ -75,7 +160,9 @@ export async function getOrder(id: string): Promise<OrderRow | null> {
     .from(orderInquiries)
     .where(eq(orderInquiries.id, id))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const [order] = await withItems([row]);
+  return order ?? null;
 }
 
 export interface ContactRow {

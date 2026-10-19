@@ -208,8 +208,11 @@ suite("newsletter consent (integration)", () => {
       });
       const person = await order({ phone: "0899 000 111" });
       expect(bot.status).toBe("success");
-      // The bot is shown exactly what a person is shown.
-      expect(bot).toEqual(person);
+      // The bot is shown exactly what a person is shown, down to a reference
+      // of the same shape; only its eight characters differ, as any two
+      // orders' do.
+      expect(bot).toEqual({ ...person, reference: expect.stringMatching(/^[0-9A-F]{8}$/) });
+      expect(person).toMatchObject({ reference: expect.stringMatching(/^[0-9A-F]{8}$/) });
       expect(await db.select().from(orderInquiries)).toHaveLength(1);
       expect(await subscribers()).toHaveLength(0);
     });

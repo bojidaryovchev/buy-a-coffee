@@ -469,3 +469,17 @@ export const suggestLimiter = createRateLimiter({
   onStoreError: "allow",
   store: sharedStore,
 });
+/*
+ * The cart page asking what its products are and cost today. A read of public
+ * data, made once when the page opens and again when another tab changes the
+ * cart, so the ceiling is the suggestions' and is far above what a person
+ * produces. Fails open for the same reason: what it serves is public, and a
+ * cart page that cannot show its products cannot take an order.
+ */
+export const cartLimiter = createRateLimiter({
+  name: "cart",
+  limit: 60,
+  windowMs: 60_000,
+  onStoreError: "allow",
+  store: sharedStore,
+});

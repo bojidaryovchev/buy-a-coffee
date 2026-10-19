@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -31,11 +32,18 @@ export const inquiryStatusEnum = pgEnum("inquiry_status", [
 ]);
 
 /**
- * Quick-order enquiries.
+ * Order enquiries: a phone number the shop calls back, and what it is about.
  *
- * The reference storefront has no cart, no checkout and no payment: ordering
- * is a single phone number and the shop calls back. This table reproduces that
- * functional intent against our own database.
+ * There is no checkout and no payment: an enquiry becomes an order on the
+ * phone. It comes from one of two forms — the quick order on a product page,
+ * or the cart — and what was asked for is in `order_inquiry_items`, one row per
+ * product, whichever form it came from.
+ *
+ * `productId`, `productName`, `productSlug` and `quantity` are the shape this
+ * table had before the cart. A quick order still fills them, so a row stays
+ * readable by anything written against that shape; a cart order leaves the
+ * product columns empty and puts its total number of units in `quantity`. The
+ * items are the record of what was ordered.
  *
  * `productId` is nullable and `productName` is denormalised on purpose — an
  * enquiry must remain readable even if the product is later removed from the
@@ -78,6 +86,52 @@ export const orderInquiries = pgTable(
     index("order_inquiries_status_idx").on(table.status),
     index("order_inquiries_product_idx").on(table.productId),
     uniqueIndex("order_inquiries_idempotency_idx").on(table.idempotencyKey),
+  ],
+);
+
+/**
+ * What an enquiry asks for: one row per product, in the order the customer
+ * listed them.
+ *
+ * Everything is a snapshot taken when the enquiry was stored, priced from the
+ * database and never from the browser. The catalog moves on — a price changes
+ * on the next sync, a product is renamed or removed — and the operator calling
+ * back needs what the customer saw, so nothing here is read through
+ * `productId`, which only links to the product while it exists.
+ *
+ * Two names, because two people read this. `productName` is the supplier's
+ * wording (`products.name`), which is what the owner orders by and what the
+ * panel and the notification show. `displayName` is the shop's own name for the
+ * product (`productName()` in `@catalog/shared`), which is what the customer
+ * read, and the only one a message addressed to them may use. Rows written
+ * before the cart have no `displayName` and no price: those were never
+ * recorded.
+ *
+ * `unitPrice` is null for a product sold at "Цена при запитване": its price is
+ * said on the call. Deleted with its enquiry (`on delete cascade`), so the
+ * retention job that deletes an enquiry deletes what it asked for with it.
+ */
+export const orderInquiryItems = pgTable(
+  "order_inquiry_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inquiryId: uuid("inquiry_id")
+      .notNull()
+      .references(() => orderInquiries.id, { onDelete: "cascade" }),
+    /** 0-based, the order the lines were listed in. */
+    position: integer("position").notNull().default(0),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    productName: text("product_name"),
+    displayName: text("display_name"),
+    productSlug: text("product_slug"),
+    quantity: integer("quantity").notNull().default(1),
+    unitPrice: numeric("unit_price", { precision: 12, scale: 2 }),
+    currency: text("currency"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(now),
+  },
+  (table) => [
+    index("order_inquiry_items_inquiry_idx").on(table.inquiryId, table.position),
+    index("order_inquiry_items_product_idx").on(table.productId),
   ],
 );
 

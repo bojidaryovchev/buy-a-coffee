@@ -33,6 +33,7 @@ export const en: LocaleSlugs = {
     "za-kafemashina": "by-machine",
     byuletin: "newsletter",
     "byuletin/otpisvane": "unsubscribe",
+    kolichka: "cart",
   },
   categories: {
     "kafe-kapsuli": "coffee-capsules",

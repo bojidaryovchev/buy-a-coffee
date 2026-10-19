@@ -612,22 +612,26 @@ synonym list closes that gap for every brand and system the catalog carries. A
 spelling that is not in the list is still not found. The list should grow from
 what visitors actually type.
 
-## Quick order
+## Ordering: the cart and the quick order
 
-There is no cart and no checkout, because the source has neither. Ordering is
-a phone number and a callback.
+There is a cart and no checkout. Ordering is still a phone number and a
+callback - nothing is paid on the site - but since October 2026 one request can
+carry several products, as on any shop.
 
-**Where the form lives.** Every product page has one order panel, `#order`,
-holding the form and the delivery and payment terms it is ordered on; on a phone
-the terms come first, so they are read before the number is typed. A product
-card's "Бърза поръчка" is a link to the product page's `#order`
-(`productHref(locale, product, "#order")`). With JavaScript, a
-plain click instead opens the same form in a native `<dialog>`
-([`components/catalog/quick-order-dialog.tsx`](../apps/web/src/components/catalog/quick-order-dialog.tsx)),
-fetched the first time any card's control is used and mounted for one product
-at a time, so a listing of 24 cards ships 24 small links and no copy of the form.
-`showModal()` gives the inert background, Escape and the top layer for free, and
-focus returns to the card's link on close.
+**The cart** lives in the browser's `localStorage`
+([`lib/cart/`](../apps/web/src/lib/cart/)): product ids and quantities only, no
+prices and no personal data. A card's control adds one unit without leaving the
+listing; the product page has a quantity stepper. `/bg/kolichka` reads current
+prices from the server ([`app/api/cart`](../apps/web/src/app/api/cart/)), shows
+anything no longer orderable with the reason, and sends the order through
+`submitCartOrder` ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)),
+which re-prices every line from the database and stores it in
+`order_inquiry_items` - the browser's figures are never trusted.
+
+**The quick order** stays on every product page's order panel, `#order`, below
+the cart button: one product, a phone number, done. It writes its product as one
+line of the same table, so the admin and the mail read a single shape. Without
+JavaScript only the quick order shows, and a card's control is a link to it.
 
 **Validation, in the browser and on the server.** Every form (the quick order,
 contact and its enquiry variants, the newsletter band, unsubscribe, and the

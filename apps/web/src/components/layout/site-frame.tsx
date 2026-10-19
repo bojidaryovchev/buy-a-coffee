@@ -2,6 +2,7 @@ import "server-only";
 import type { ReactNode } from "react";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";
+import { CartNotice } from "@/components/cart/cart-notice";
 import { buildNavigation, type SiteNavigation } from "@/components/layout/navigation";
 import { NewsletterBand } from "@/components/layout/newsletter-band";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -76,6 +77,8 @@ export function SiteFrame({
           <NewsletterBand dict={dict} />
           <SiteFooter navigation={navigation} dict={dict} />
         </div>
+        {/* One answer to every „Добави“ on the page; it floats, so it is last. */}
+        <CartNotice />
       </AnalyticsProvider>
     </>
   );

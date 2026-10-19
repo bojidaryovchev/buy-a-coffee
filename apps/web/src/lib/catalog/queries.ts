@@ -10,6 +10,7 @@ import {
   productName,
 } from "@catalog/shared";
 import { db } from "@/lib/db";
+import { isProductId } from "@/lib/cart/cart";
 import { resolveImageUrl } from "./images";
 import { brandDisplayName } from "./brand-display";
 import { discountPercent, toPerServingView, toPriceView, unitPriceView } from "./format";
@@ -1185,6 +1186,53 @@ export async function listProductCardsByIds(
 
   const images = await loadPrimaryImages(rows.map((row) => row.id));
   return new Map(rows.map((row) => [row.id, toCard(row, images.get(row.id))]));
+}
+
+/** A product as an order needs it: what the customer sees, and what the owner orders by. */
+export interface ProductForOrder {
+  readonly card: ProductCardView;
+  readonly status: ProductDetailView["status"];
+  /**
+   * The supplier's name (`products.name`). For the owner's side only — the
+   * stored order and the notification — because it is what the owner orders
+   * by. Never sent to a browser: `/api/cart` maps this to a view without it.
+   */
+  readonly sourceName: string;
+}
+
+/**
+ * The products a cart or a quick order names, by id, **whatever their status**.
+ *
+ * The one read in this file that does not stop at `status = 'active'`, and on
+ * purpose: a cart can hold a product that has since been withdrawn, and the
+ * cart page has to say which one it was — by its name, not by a gap — before
+ * it leaves it out of the order. Nothing here is listed or linked as on sale;
+ * `cartBlock` (`lib/cart/view.ts`) reads the status and refuses the line.
+ *
+ * Ids that are not uuids are dropped before the query: the cart comes from a
+ * browser, and a malformed id must cost nothing, not a cast error.
+ */
+export async function listProductsForOrder(
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, ProductForOrder>> {
+  const wanted = [...new Set(ids)].filter(isProductId);
+  if (wanted.length === 0) return new Map();
+
+  const rows = (await db
+    .select({ ...productColumns, status: products.status })
+    .from(products)
+    .leftJoin(brands, eq(products.brandId, brands.id))
+    .where(inArray(products.id, wanted))) as unknown as Array<
+    ProductRow & { status: ProductForOrder["status"] }
+  >;
+
+  const images = await loadPrimaryImages(rows.map((row) => row.id));
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      { card: toCard(row, images.get(row.id)), status: row.status, sourceName: row.name },
+    ]),
+  );
 }
 
 /**

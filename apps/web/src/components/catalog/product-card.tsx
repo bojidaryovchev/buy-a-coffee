@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AvailabilityBadge, Badge, buttonClasses, cx } from "@/components/ui/primitives";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { IMAGE_SIZES } from "@/lib/catalog/images";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { IntensityScale } from "@/components/catalog/intensity-scale";
 import { ProductImage } from "@/components/catalog/product-image";
-import { QuickOrderControl } from "@/components/catalog/quick-order-control";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import type { ProductCardView } from "@/lib/catalog/types";
 import type { Locale } from "@/i18n/config";
@@ -16,7 +16,7 @@ import { productHref } from "@/lib/routes";
  *
  * Top to bottom: the packshot on a white, unpadded square; the brewing system;
  * brand and pack size; the name; intensity on the brand's own scale; the price
- * and what one cup costs; and the order control. The system and the price per
+ * and what one cup costs; and „Добави“, which puts one in the cart. The system and the price per
  * cup are there because they are the two questions a pack price and a
  * photograph do not answer: does it fit my machine, and what does it cost me.
  *
@@ -83,7 +83,9 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-3 md:p-4">
+      {/* A size container, so the cart button's label follows the card's width,
+          not the window's (DESIGN.md, "The Meta Rule"). */}
+      <div className="@container flex flex-1 flex-col p-3 md:p-4">
         {/* Each optional row keeps its height when empty; see the note above. */}
         <div className="flex h-5 min-w-0 items-center">
           <SystemBadge systemId={product.systemId} size="sm" />
@@ -158,8 +160,8 @@ export function ProductCard({
 
         {product.availability === "out_of_stock" ? (
           /*
-           * Nothing to order, so no order control — but the same box, so the
-           * row above still lines up with its neighbours.
+           * Nothing to order, so nothing to put in the cart — but the same box,
+           * so the row above still lines up with its neighbours.
            */
           <Link
             href={href}
@@ -174,7 +176,12 @@ export function ProductCard({
             </span>
           </Link>
         ) : (
-          <QuickOrderControl slug={product.slug} name={product.name} className={controlClasses} />
+          <AddToCartButton
+            productId={product.id}
+            slug={product.slug}
+            name={product.name}
+            className={controlClasses}
+          />
         )}
       </div>
     </article>

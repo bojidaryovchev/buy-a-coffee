@@ -221,10 +221,18 @@ describe("ProductCard: links and controls", () => {
     }
   });
 
-  it("server-renders the order control as a link to the form on the product page", () => {
+  it("server-renders the cart control as a link to the order form on the product page", () => {
+    // A link until the page hydrates, and for good without JavaScript: the
+    // product page's quick order works with no script (test/cart-controls.test.ts
+    // covers the button it becomes).
     const control = card().querySelectorAll("a")[1]!;
     expect(control.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br#order");
-    expect(text(control)).toBe("Бърза поръчка: Капсули DG Bianchi Gusto Forte Espresso 16 бр.");
+    expect(text(control.querySelector(".sr-only"))).toBe(
+      "Добави в количката: Капсули DG Bianchi Gusto Forte Espresso 16 бр.",
+    );
+    // „Добави“ on a narrow card, the whole label when the card has room.
+    expect(text(control.querySelector("[aria-hidden='true']:not(svg)"))).toBe("Добави в количката");
+    expect(control.querySelector(".hidden")?.className).toContain("@[12rem]:inline");
     // Above the stretched link, or the click would land on the product link.
     expect(control.className).toContain("relative");
     expect(control.className).toContain("z-10");
@@ -247,7 +255,7 @@ describe("ProductCard: links and controls", () => {
   it("gives an out-of-stock product no order control, and a same-sized link instead", () => {
     const root = card({ availability: "out_of_stock" });
     expect(root.querySelector("a[href$='#order']")).toBeNull();
-    expect(text(root)).not.toContain("Бърза поръчка");
+    expect(text(root)).not.toContain("Добави");
     const fallback = root.querySelectorAll("a")[1]!;
     expect(fallback.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br");
     expect(text(fallback)).toContain("Виж продукта");

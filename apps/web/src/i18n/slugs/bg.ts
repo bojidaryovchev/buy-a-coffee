@@ -54,6 +54,7 @@ export const bg: LocaleSlugs = {
     "za-kafemashina": "za-kafemashina",
     byuletin: "byuletin",
     "byuletin/otpisvane": "otpisvane",
+    kolichka: "kolichka",
   },
   categories: {
     "kafe-kapsuli": "kafe-kapsuli",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_CART_LINES, MAX_QUANTITY, MIN_QUANTITY, isProductId } from "@/lib/cart/cart";
 import { isPlausibleToken } from "./unsubscribe-token";
 
 /**
@@ -162,6 +163,66 @@ export const orderInquirySchema = z.object({
   website: honeypotSchema,
 });
 
+export const CART_MESSAGES = {
+  empty: "Количката е празна. Добавете продукт и изпратете отново.",
+  changed: "Количката се промени в друг прозорец. Презаредете страницата и изпратете отново.",
+} as const;
+
+/**
+ * The cart's lines, as the order form posts them: one hidden field holding the
+ * JSON the page wrote from the cart (`[{"productId": "…", "quantity": 2}]`).
+ *
+ * The page writes it, so only a hand-made post — or a cart changed in another
+ * tab between drawing and sending — gets it wrong, and the message says to
+ * reload. The ids and quantities are all the browser is trusted with; what each
+ * product is and costs is read from the database by the action.
+ */
+const cartLineSchema = z.object({
+  productId: z.string().refine(isProductId, CART_MESSAGES.changed),
+  quantity: z
+    .number({ invalid_type_error: CART_MESSAGES.changed })
+    .int(CART_MESSAGES.changed)
+    .min(MIN_QUANTITY, CART_MESSAGES.changed)
+    .max(MAX_QUANTITY, CART_MESSAGES.changed),
+});
+
+const parseLines = (value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+  if (value.trim() === "") return [];
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+export const cartLinesSchema = z.preprocess(
+  parseLines,
+  z
+    .array(cartLineSchema, { invalid_type_error: CART_MESSAGES.changed })
+    .min(1, CART_MESSAGES.empty)
+    .max(MAX_CART_LINES, CART_MESSAGES.changed)
+    .refine(
+      (lines) => new Set(lines.map((line) => line.productId)).size === lines.length,
+      CART_MESSAGES.changed,
+    ),
+);
+
+/**
+ * The cart's order form: the lines, and the same contact fields as the quick
+ * order with the same rules — a phone number is all that is required.
+ */
+export const cartOrderSchema = z.object({
+  lines: cartLinesSchema,
+  phone: phoneSchema,
+  customerName: orderInquirySchema.shape.customerName,
+  email: optionalEmailSchema,
+  notes: orderInquirySchema.shape.notes,
+  /** Unticked by default. Only means anything when an email was given. */
+  newsletterConsent: checkboxSchema,
+  website: honeypotSchema,
+});
+
 export const newsletterSchema = z.object({
   email: emailSchema,
   source: z.string().trim().max(60, RELOAD).optional(),
@@ -205,6 +266,7 @@ export const unsubscribeSchema = z.object({
 });
 
 export type OrderInquiryInput = z.infer<typeof orderInquirySchema>;
+export type CartOrderInput = z.infer<typeof cartOrderSchema>;
 export type NewsletterInput = z.infer<typeof newsletterSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 
@@ -220,7 +282,12 @@ export const CHECK_EMAIL_MESSAGE = "Поправете имейл адреса �
 /** Uniform result shape for every form action. */
 export type FormState =
   | { status: "idle" }
-  | { status: "success"; message: string }
+  | {
+      status: "success";
+      message: string;
+      /** An order's short reference (`recordReference`), for the customer to quote. */
+      reference?: string;
+    }
   | {
       status: "error";
       message: string;
