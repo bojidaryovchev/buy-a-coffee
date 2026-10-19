@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { brandFactsFor } from "../../../content/brand-facts";
 import { categoryCopyFor } from "../../../content/category-copy";
 import { CALLBACK_SENTENCE } from "../../../content/order-callback";
 import { fill } from "@/i18n/fill";
 import { cupRangePhrase, type CupRange } from "@/lib/catalog/cup-range";
 import type { BrewMethod, BrewingSystem } from "@/lib/recommend/systems";
-import { fullTitle } from "./title";
+import { TITLE_LIMIT, fullTitle, pageTitle, titleLength, withShopName } from "./title";
+import { fitDescription } from "./description";
 
 /**
  * Titles, headings and meta descriptions of the listing, brand and index
@@ -26,17 +26,10 @@ import { fullTitle } from "./title";
 /* --- The shared parts ---------------------------------------------------- */
 
 /**
- * A full `<title>`: the page's own words, then the shop's name.
- *
- * Absolute, and ending exactly as the layout's template ends every other
- * page's title: both are `fullTitle` in `lib/seo/title.ts`, which is the one
- * place the separator is decided.
+ * A full `<title>`: the page's own words, then the shop's name while it fits
+ * (`lib/seo/title.ts`, the one place that decides how a title ends).
  */
-export function pageTitle(text: string): NonNullable<Metadata["title"]> {
-  return { absolute: fullTitle(text) };
-}
-
-export { fullTitle };
+export { fullTitle, pageTitle };
 
 /** How ordering works; one wording for every page (`content/order-callback.ts`). */
 export { CALLBACK_SENTENCE };
@@ -48,7 +41,8 @@ export { CALLBACK_SENTENCE };
  */
 export function metaDescription(lead: string, cupRange: CupRange | null): string {
   const range = cupRangePhrase(cupRange);
-  return `${range ? `${lead} — ${range}` : lead}. ${CALLBACK_SENTENCE}`;
+  // The callback only while it fits a search result (`lib/seo/description.ts`).
+  return fitDescription(`${range ? `${lead} — ${range}` : lead}.`, CALLBACK_SENTENCE);
 }
 
 /** "A", "A и B", "A, B и C". */
@@ -196,8 +190,7 @@ function brandLabel(brand: BrandNaming): string {
   return cyrillic ? `Кафе ${brand.name} (${cyrillic})` : `Кафе ${brand.name}`;
 }
 
-/** Added to a brand title only while the whole title stays this short. */
-const TITLE_BUDGET = 60;
+/** Added to a brand title only while the whole title, the shop's name included, fits. */
 const PER_CUP_TAIL = " — цена на чаша";
 
 /**
@@ -214,7 +207,9 @@ export function brandTitle(
   const title = `${brandLabel(brand)}: ${listOf(formats)}`;
   // A one-format brand makes a very short title; the per-cup price is what
   // every listing here shows, so it is said where there is room for it.
-  return fullTitle(title + PER_CUP_TAIL).length <= TITLE_BUDGET ? title + PER_CUP_TAIL : title;
+  return titleLength(withShopName(title + PER_CUP_TAIL)) <= TITLE_LIMIT
+    ? title + PER_CUP_TAIL
+    : title;
 }
 
 /** The opening of a brand page's meta description. */

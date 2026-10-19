@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { BG, PRODUCT_LINK } from "./support/paths";
+import { SHOP, characters, shopTitle } from "./support/titles";
 
 /**
  * Locales, URLs and the redirects from the shop's pre-locale addresses, as a
@@ -161,6 +162,8 @@ test.describe("locales", () => {
       "/bg/za-kafemashina/no-such-machine",
       "/bg/a/b/c",
       "/nope",
+      "/en",
+      "/BG",
     ];
     for (const path of dead) {
       const response = await raw(request, path);
@@ -168,6 +171,10 @@ test.describe("locales", () => {
 
       const html = await response.text();
       expect(html, path).toMatch(/<html[^>]*\slang="bg"/);
+      // One robots directive, and it keeps the page out: two used to be printed.
+      const robots = [...html.matchAll(/<meta name="robots" content="([^"]+)"/g)].map((m) => m[1]);
+      expect(robots, path).toHaveLength(1);
+      expect(robots[0], path).toMatch(/noindex/);
       const body = html.slice(html.indexOf("<body"));
       // The heading, as markup in the body, not as data in a script.
       expect(body, path).toMatch(/<h1[^>]*>Тази страница я няма<\/h1>/);
@@ -187,7 +194,6 @@ test.describe("locales", () => {
   });
 });
 
-const SHOP = "Buy a Coffee";
 /** The storefront's default `<title>`: the shop's name and its tagline. */
 const DEFAULT_TITLE = new RegExp(`^${SHOP} — `);
 const ARTICLE = "/bg/blog/kolko-struva-edna-chasha-kafe";
@@ -197,6 +203,14 @@ const meta = (page: Page, selector: string): Promise<string | null> =>
   page.locator(`meta[${selector}]`).evaluateAll((tags) => tags[0]?.getAttribute("content") ?? null);
 
 const canonicalOf = (page: Page) => page.locator('link[rel="canonical"]').getAttribute("href");
+
+/** The image host product photographs are served from, when one is configured. */
+const IMAGE_HOSTS = [
+  process.env.NEXT_PUBLIC_IMAGE_BASE_URL,
+  "https://j6xpmlta50zfdxeo.public.blob.vercel-storage.com",
+]
+  .filter((value): value is string => Boolean(value))
+  .map((value) => new URL(value).origin);
 
 /**
  * A page shares as itself: under its own address, title and description.
@@ -218,8 +232,11 @@ async function expectSharesAsItself(page: Page, canonical: string): Promise<void
   // The page's own words: `og:site_name` carries the shop's name.
   expect(title, "og:title").not.toContain(`| ${SHOP}`);
   expect(await meta(page, 'property="og:site_name"')).toBe(SHOP);
-  // And they are the words its `<title>` is made of.
-  expect(await page.title(), "<title>").toBe(`${title} | ${SHOP}`);
+  // And they are the words its `<title>` is made of: the shop's name follows
+  // while the whole fits a search result, sixty characters.
+  const documentTitle = await page.title();
+  expect(documentTitle, "<title>").toBe(shopTitle(title!));
+  expect(characters(documentTitle), documentTitle).toBeLessThanOrEqual(60);
 
   const description = await meta(page, 'name="description"');
   expect(description, "description").toBeTruthy();
@@ -227,8 +244,25 @@ async function expectSharesAsItself(page: Page, canonical: string): Promise<void
 
   expect(await meta(page, 'property="og:locale"')).toBe("bg_BG");
   const image = await meta(page, 'property="og:image"');
-  expect(new URL(image!).origin, "og:image").toBe(new URL(canonical).origin);
-  expect(new URL(image!).pathname, "og:image").toMatch(/^\/(opengraph-image$|media\/)/);
+  /*
+   * On the site — the shop's card, or a page's own card beside it
+   * (`<page>/opengraph-image-<hash>/card-<facts hash>`) — or a photograph on the image host
+   * (`NEXT_PUBLIC_IMAGE_BASE_URL`, the Blob store in production), and never
+   * one nested in the other: `https://site/https://blob/…` once shipped.
+   */
+  const imageOrigin = new URL(image!).origin;
+  expect([new URL(canonical).origin, ...IMAGE_HOSTS], `og:image ${image}`).toContain(imageOrigin);
+  expect(image!, "og:image").not.toMatch(/^https?:\/\/[^/]+\/+https?:/);
+  if (imageOrigin === new URL(canonical).origin) {
+    expect(new URL(image!).pathname, "og:image").toMatch(
+      /^\/(opengraph-image$|media\/|bg\/.*\/opengraph-image-[a-z0-9]+\/card-[0-9a-f]{12}$)/,
+    );
+  }
+  // Sized and described, so a preview is laid out before the picture arrives.
+  expect(await meta(page, 'property="og:image:width"'), "og:image:width").toBe("1200");
+  expect(await meta(page, 'property="og:image:height"'), "og:image:height").toBe("630");
+  expect(await meta(page, 'property="og:image:alt"'), "og:image:alt").toBeTruthy();
+  expect(await meta(page, 'name="twitter:image:alt"'), "twitter:image:alt").toBeTruthy();
 
   // The card X draws says the same thing.
   expect(await meta(page, 'name="twitter:card"')).toBe("summary_large_image");
@@ -299,11 +333,41 @@ test.describe("the head of every page", () => {
       const ours = urls.filter((url) => !url.startsWith("https://schema.org"));
       expect(ours.length).toBeGreaterThan(0);
       for (const url of ours) {
-        const { pathname } = new URL(url);
-        expect(pathname, url).toMatch(/^\/(bg(\/|$)|media\/|brand-logos\/|opengraph-image)/);
+        const { origin, pathname } = new URL(url);
+        expect(url, url).not.toMatch(/^https?:\/\/[^/]+\/+https?:/);
+        if (IMAGE_HOSTS.includes(origin)) continue;
+        // `/` is the organisation's `@id` (`/#organization`); `/icon-512.png` its logo.
+        expect(pathname, url).toMatch(
+          /^\/(bg(\/|$)|media\/|brand-logos\/|opengraph-image|icon-512\.png$|$)/,
+        );
       }
     });
   }
+
+  /*
+   * Every indexable page states the whole directive. These five once wrote
+   * `robots: undefined` to mean "inherit", which erased the layout's
+   * directive instead, `max-image-preview:large` with it.
+   */
+  test("an indexable page asks for large image previews, whatever kind it is", async ({ page }) => {
+    await page.goto(BG.capsules);
+    const product = await page.locator(PRODUCT_LINK).first().getAttribute("href");
+    for (const path of [
+      product!,
+      BG.capsules,
+      BG.nespresso,
+      BG.brand("lavazza"),
+      BG.wizard,
+      BG.vending,
+      BG.home,
+    ]) {
+      await page.goto(path);
+      expect(await meta(page, 'name="robots"'), path).toBe("index, follow");
+      expect(await meta(page, 'name="googlebot"'), path).toMatch(
+        /^index, follow, .*max-image-preview:large/,
+      );
+    }
+  });
 
   test("a product shares as itself, under its own name", async ({ page }) => {
     await page.goto(BG.capsules);
@@ -315,6 +379,21 @@ test.describe("the head of every page", () => {
     expect(new URL(canonical!).pathname).toBe(product);
     await expectSharesAsItself(page, canonical!);
     expect(await meta(page, 'property="og:type"')).toBe("website");
+
+    // Its own card: a 1200 × 630 PNG drawn beside the page, not the portrait
+    // photograph every network cropped, at an address named by what it shows.
+    const card = new URL((await meta(page, 'property="og:image"'))!);
+    expect(card.pathname).toMatch(
+      new RegExp(`^${product}/opengraph-image-[a-z0-9]+/card-[0-9a-f]{12}$`),
+    );
+    const response = await page.request.get(card.pathname + card.search);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("image/png");
+    const png = await response.body();
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+    expect(await meta(page, 'property="og:image:alt"')).toContain(
+      (await page.locator("h1").textContent())!.trim(),
+    );
   });
 
   test("an article shares as an article, with its dates", async ({ page }) => {
@@ -384,6 +463,32 @@ test.describe("the head of every page", () => {
     expect(
       new URL((await page.locator('link[rel="canonical"]').getAttribute("href"))!).pathname,
     ).toBe(BG.capsules);
+  });
+
+  /*
+   * Page two of a clean listing is not one to rank, but it is the only page
+   * that links what page one has no room for: `noindex, follow`, canonical to
+   * itself (not to page one, which would contradict the noindex), and titled
+   * as page two so it is not a duplicate of page one (`lib/seo/pagination.ts`).
+   */
+  test("page two of a listing is noindex, follow, names itself and says which page it is", async ({
+    page,
+  }) => {
+    for (const listing of [BG.capsules, BG.brand("lavazza")]) {
+      await page.goto(listing);
+      const firstTitle = await page.title();
+      const view = `${listing}?page=2`;
+      await page.goto(view);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex, follow",
+      );
+      const canonical = new URL((await canonicalOf(page))!);
+      expect(canonical.pathname + canonical.search, view).toBe(view);
+      expect(await meta(page, 'property="og:url"'), view).toBe(canonical.href);
+      expect(await page.title(), view).toContain("— страница 2");
+      expect(await page.title(), view).not.toBe(firstTitle);
+    }
   });
 
   test("the consumables page is noindex and out of the sitemap while it lists nothing", async ({

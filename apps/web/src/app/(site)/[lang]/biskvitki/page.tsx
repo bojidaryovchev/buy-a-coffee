@@ -5,6 +5,8 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { pageTitle } from "@/lib/seo/title";
+import { cookiesMeta } from "@/lib/seo/page-meta";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -12,16 +14,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
+  const { title, description } = cookiesMeta();
   return {
-    title: cookiePolicy.title,
-    description: cookiePolicy.summary,
+    title: pageTitle(title),
+    description,
     alternates: pageAlternates(locale, routes.cookies),
-    ...shareMetadata({
-      locale,
-      title: cookiePolicy.title,
-      description: cookiePolicy.summary,
-      path: href(locale, routes.cookies),
-    }),
+    ...shareMetadata({ locale, title, description, path: href(locale, routes.cookies) }),
   };
 }
 

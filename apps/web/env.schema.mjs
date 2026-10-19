@@ -149,6 +149,69 @@ export const vars = [
       "Where the sync wrote images under STORAGE_DRIVER=local. Resolved from the app directory.",
   },
 
+  /* Search engines. All three are public by design - a verification token is
+     printed in every page's <head>, an IndexNow key is served at /<key>.txt -
+     so they are config, pushed from .env, and production only: a preview must
+     neither verify as the site nor ping search engines about its URLs. */
+  {
+    name: "GOOGLE_SITE_VERIFICATION",
+    kind: "config",
+    fromEnv: true,
+    targets: PROD,
+    required: false,
+    section: "Search engines",
+    example: "abc123DEF456_the-content-of-the-meta-tag",
+    summary:
+      'Google Search Console ownership token: the content="..." of the HTML-tag method. Printed as <meta name="google-site-verification"> only when set.',
+    validate: (v) =>
+      /[\s<>"]/.test(v)
+        ? { level: "error", message: "Paste the token alone, not the whole meta tag." }
+        : null,
+    missing: {
+      level: "note",
+      message: "No Google verification tag. Verify by DNS instead, or set it.",
+    },
+  },
+  {
+    name: "BING_SITE_VERIFICATION",
+    kind: "config",
+    fromEnv: true,
+    targets: PROD,
+    required: false,
+    section: "Search engines",
+    example: "0123456789ABCDEF0123456789ABCDEF",
+    summary:
+      'Bing Webmaster Tools ownership token. Printed as <meta name="msvalidate.01"> only when set.',
+    validate: (v) =>
+      /[\s<>"]/.test(v)
+        ? { level: "error", message: "Paste the token alone, not the whole meta tag." }
+        : null,
+    missing: { level: "note", message: "No Bing verification tag." },
+  },
+  {
+    name: "INDEXNOW_KEY",
+    kind: "config",
+    fromEnv: true,
+    targets: PROD,
+    required: false,
+    section: "Search engines",
+    example: "openssl rand -hex 16",
+    summary:
+      "IndexNow key: served at /<key>.txt and sent with every URL submitted to api.indexnow.org (Bing, Yandex and others). Unset, nothing is served and nothing is submitted.",
+    detail: [
+      "The catalog sync runs on GitHub Actions and needs the same value there",
+      "to submit changed product URLs (submitIndexNow in @catalog/shared/indexnow).",
+    ],
+    validate: (v) =>
+      !/^[a-zA-Z0-9-]{8,128}$/.test(v)
+        ? { level: "error", message: "8 to 128 characters of a-z, A-Z, 0-9 and dashes." }
+        : null,
+    missing: {
+      level: "note",
+      message: "IndexNow off: search engines learn of changes by crawling.",
+    },
+  },
+
   {
     name: "ADMIN_PASSWORD",
     kind: "secret",
@@ -217,7 +280,8 @@ export const vars = [
     required: false,
     section: "Email",
     example: "re_xxxxxxxxxxxxxxxxxxxx",
-    summary: "Sends order notifications, admin mailbox replies and inbound forwards.",
+    summary:
+      "Sends order notifications, admin mailbox replies, inbound forwards and the newsletter.",
     missing: { level: "warning", message: "Mail is logged to the console instead of sent." },
   },
   {
@@ -265,7 +329,7 @@ export const vars = [
     section: "Newsletter",
     example: "00000000-0000-0000-0000-000000000000",
     summary:
-      "The Resend segment every newsletter subscriber is added to. Broadcasts need a segment; the topic below narrows it to this site's opt-ins.",
+      "Optional. A Resend segment every newsletter subscriber is also added to, as a record in Resend of who joined. Neither the sync nor the send needs it.",
     detail: [
       "Also create the contact property bac_unsubscribe_url (type string)",
       "under Audience -> Properties. Prefixed: properties are account-wide,",
@@ -286,7 +350,7 @@ export const vars = [
     section: "Newsletter",
     example: "00000000-0000-0000-0000-000000000000",
     summary:
-      "This site's Resend topic. Carries opt-in and opt-out for buy-a-coffee alone: the account is shared by four sites, so the contact's own unsubscribed flag is never written.",
+      "This site's Resend topic. The copy of the list in Resend carries opt-in and opt-out on it, for buy-a-coffee alone: the account is shared by four sites, so the contact's own unsubscribed flag is never written. The newsletter is sent to the database's list and does not depend on it.",
     detail: [
       "Create it with default subscription Opt-out (fixed once created), so a",
       "contact counts only once this site has opted it in, and visibility",
@@ -306,13 +370,23 @@ export const vars = [
     section: "Newsletter",
     example: "whsec_xxxxxxxxxxxx",
     summary:
-      "Verifies the contact webhook at /api/resend/contacts, which records opt-outs of this site's topic made in Resend, and account-wide unsubscribes. Not RESEND_WEBHOOK_SECRET, which is the inbound-mail endpoint's.",
+      "Verifies the contact webhook at /api/resend/contacts, which records opt-outs of this site's topic made in Resend, account-wide unsubscribes, and permanent bounces and complaints of the newsletter. Not RESEND_WEBHOOK_SECRET, which is the inbound-mail endpoint's.",
     detail: [
       "Resend dashboard -> Webhooks -> add",
       "https://buy-a-coffee.com/api/resend/contacts, subscribed to",
-      "contact.updated and contact.deleted.",
+      "contact.updated, contact.topics.updated, contact.deleted,",
+      "email.bounced and email.complained.",
     ],
     missing: null,
+  },
+  {
+    name: "BLOB_READ_WRITE_TOKEN",
+    // Set by Vercel on a project the Blob store is connected to - the store that
+    // already holds the product images - so nothing here pushes it.
+    kind: "system",
+    section: "Newsletter",
+    summary:
+      "Signs the admin's newsletter uploads (images and documents, under newsletter/ in the image store). Without it the composer cannot attach files; text-only newsletters still send.",
   },
 
   {
@@ -444,18 +518,17 @@ export const crossChecks = [
   },
 
   /* The newsletter mirror into Resend (src/lib/newsletter/sync.ts) needs the
-     segment and the topic together, and the key. */
+     topic and the key; the segment is optional. */
   ({ has }) => {
     const segment = has("RESEND_NEWSLETTER_SEGMENT_ID");
     const topic = has("RESEND_NEWSLETTER_TOPIC_ID");
     if (!segment && !topic) return null;
-    if (segment !== topic)
+    if (segment && !topic)
       return {
         level: "warning",
         title: "Newsletter half-configured",
-        message: segment
-          ? "Segment without RESEND_NEWSLETTER_TOPIC_ID: nothing is synced, because opt-outs could only be written account-wide."
-          : "Topic without RESEND_NEWSLETTER_SEGMENT_ID: nothing is synced, and a broadcast needs a segment anyway.",
+        message:
+          "Segment without RESEND_NEWSLETTER_TOPIC_ID: nothing is synced, because opt-outs could only be written account-wide.",
       };
     if (!has("RESEND_API_KEY"))
       return {
@@ -473,7 +546,7 @@ export const crossChecks = [
     return {
       level: "ok",
       title: "Newsletter",
-      message: "segment, topic, key and contact webhook present",
+      message: "topic, key and contact webhook present",
     };
   },
 ];

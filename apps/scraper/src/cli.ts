@@ -8,7 +8,7 @@ import {
   commandSync,
 } from "./commands.ts";
 import { runImagesCommand } from "./commands-images.ts";
-import { CATALOG_HELP, runCatalogCommand } from "./commands-catalog.ts";
+import { CATALOG_HELP, announceSyncChanges, runCatalogCommand } from "./commands-catalog.ts";
 import { createRuntime } from "./runtime.ts";
 
 /**
@@ -233,9 +233,16 @@ export async function main(argv: readonly string[]): Promise<number> {
             ? { productLimit: num(flags, "product-limit") }
             : {}),
         });
+        // Changed pages are announced to IndexNow after a live run that
+        // completed; nothing is sent without INDEXNOW_KEY and SITE_URL.
+        const indexNow =
+          !result.dryRun && result.syncRunId && result.status === "succeeded"
+            ? await announceSyncChanges(runtime, result.syncRunId)
+            : null;
         printJson({
           command,
           syncRunId: result.syncRunId,
+          indexNow,
           status: result.status,
           dryRun: result.dryRun,
           catalogSource: result.discovery.source,

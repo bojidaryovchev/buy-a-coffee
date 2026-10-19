@@ -1,0 +1,5 @@
+{
+  "//": "For `pnpm email:preview` only. Next.js compiles JSX itself and keeps it as `preserve` in the app's tsconfig; tsx needs it compiled, with React 19's automatic runtime, as the tests do (vitest.base.ts).",
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx" }
+}

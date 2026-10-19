@@ -7,8 +7,10 @@ import { describe, expect, it } from "vitest";
 import {
   productMetaDescription,
   productPageTitle,
+  productTitleWords,
 } from "@/app/(site)/[lang]/[slug]/_components/product-meta";
 import { siteConfig } from "@/config/site";
+import { clipWords } from "@/lib/seo/title";
 import { LOCALES, isLocale } from "@/i18n/config";
 import { SLUGS } from "@/i18n/slugs";
 import type { ProductDetailView } from "@/lib/catalog/types";
@@ -140,14 +142,89 @@ function product(patch: Partial<ProductDetailView> = {}): ProductDetailView {
   };
 }
 
+/** A product of one line in one format: its name as `productName` builds it. */
+const named = (title: string, detail: string) =>
+  product({
+    title,
+    detail,
+    name: `${title} — ${detail.charAt(0).toLowerCase()}${detail.slice(1)}`,
+  });
+
 describe("the product page's title and description", () => {
-  it("titles the page <Brand> <Line> — <format>, <qty> | <shop>", () => {
+  it("titles the page <Brand> <Line> — <format>, <qty> | <shop>, the shop only while it fits", () => {
+    // Sixty-eight characters with the shop's name: the name gives way, not the product's.
     expect(productPageTitle(product())).toBe(
-      `Borbone Crema Classica — капсули за Dolce Gusto, 16 бр. | ${siteConfig.name}`,
+      "Borbone Crema Classica — капсули за Dolce Gusto, 16 бр.",
     );
     expect(productPageTitle(product({ name: "Lavazza Super Crema — кафе на зърна, 1 кг" }))).toBe(
       `Lavazza Super Crema — кафе на зърна, 1 кг | ${siteConfig.name}`,
     );
+  });
+
+  it("gives up „капсули“ first, then the end of the line, never what tells packs apart", () => {
+    // 67 characters on its own: the system's name says „капсули“ already.
+    expect(
+      productPageTitle(
+        named("Bianchi Irish Cream Aroma Espresso", "Капсули за Dolce Gusto, 16 бр."),
+      ),
+    ).toBe("Bianchi Irish Cream Aroma Espresso — Dolce Gusto, 16 бр.");
+    expect(
+      productPageTitle(named("Lavazza Venezia Lungo Espresso", "Капсули Lavazza Blue, 100 бр.")),
+    ).toBe("Lavazza Venezia Lungo Espresso — Lavazza Blue, 100 бр.");
+    // Then the end of the line, at a word: the system and the size stay whole.
+    expect(
+      productPageTitle(
+        named("Bianchi Extraordinarily Long Irish Cream Aroma", "Капсули за Dolce Gusto, 16 бр."),
+      ),
+    ).toBe("Bianchi Extraordinarily Long Irish — Dolce Gusto, 16 бр.");
+  });
+
+  /* One line, eight packs: what the source sells as Lollo Caffè Classico.
+     The part after the dash is the only thing that tells them apart. */
+  const FORMATS = [
+    "Капсули за Dolce Gusto, 16 бр.",
+    "Капсули за Nespresso, 10 бр.",
+    "Капсули за Nespresso, 100 бр.",
+    "Капсули Lavazza Blue, 100 бр.",
+    "Капсули за Lavazza A Modo Mio, 16 бр.",
+    "Кафе дози ESE, 150 бр.",
+    "Кафе на зърна, 1 кг",
+    "Кафе на зърна, 500 г",
+  ];
+
+  it.each([
+    "Lollo Caffè Classico",
+    "Lollo Caffè Classico Miscela Oro Extra Crema Intensa",
+    "Lollo Caffè Classico Miscela Oro Extra Crema Intensa Selezione Speciale del Bar",
+  ])("keeps every pack of %s apart, each within sixty characters", (line) => {
+    const titles = FORMATS.map((detail) => productTitleWords(named(line, detail)));
+    expect(new Set(titles).size).toBe(FORMATS.length);
+    for (const [index, title] of titles.entries()) {
+      expect([...title].length, title).toBeLessThanOrEqual(60);
+      // The size, whole, at the end.
+      expect(title, title).toMatch(
+        new RegExp(`${FORMATS[index]!.split(", ")[1]!.replace(".", "\\.")}$`),
+      );
+      expect(title, title).not.toMatch(/[,—(-]\s*$/);
+    }
+  });
+
+  it("cuts a name with nothing to give up at a word, with nothing left dangling", () => {
+    const bare = product({
+      title: undefined,
+      detail: null,
+      name: "Lollo Caffè Classico Miscela Oro Extra Crema Intensa (Selezione Speciale del Bar)",
+    });
+    const title = productTitleWords(bare);
+    expect([...title].length).toBeLessThanOrEqual(60);
+    expect(title).toBe("Lollo Caffè Classico Miscela Oro Extra Crema Intensa");
+  });
+
+  it("clips at a word boundary, never inside a word, and leaves no punctuation hanging", () => {
+    expect(clipWords("Кафе на зърна — цена за кг и на чаша", 16)).toBe("Кафе на зърна");
+    expect(clipWords("Едно, две, три", 11)).toBe("Едно, две");
+    expect(clipWords("Кратко", 60)).toBe("Кратко");
+    expect(clipWords("Капсули (за Dolce Gusto) и още", 20)).toBe("Капсули");
   });
 
   it("says what it is, what it costs, what a cup costs and how to order", () => {

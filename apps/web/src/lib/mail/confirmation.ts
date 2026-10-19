@@ -1,6 +1,6 @@
 import "server-only";
-import { orderLinesText, type OrderLine } from "@/lib/orders/lines";
-import { asHtml } from "./html";
+import { composeOrderConfirmationEmail } from "@/emails/order-confirmation";
+import type { OrderLine } from "@/lib/orders/lines";
 import { MAIL_FROM, MAIL_SIGNATURE } from "./identity";
 import { orderThreadSubject, recordReference } from "./reference";
 
@@ -41,29 +41,27 @@ export interface OrderConfirmation {
   readonly callback: string;
 }
 
-export function composeOrderConfirmation(order: OrderConfirmation): {
+/**
+ * Subject, text and HTML. What the message says is the template's
+ * (`emails/order-confirmation.tsx`, both parts); the subject and the signature
+ * are this module's, because the thread and the sender address are.
+ */
+export async function composeOrderConfirmation(order: OrderConfirmation): Promise<{
   subject: string;
   text: string;
   html: string;
-} {
-  const name = order.customerName?.trim();
-  const text = [
-    name ? `Здравейте, ${name},` : "Здравейте,",
-    "",
-    `Получихме заявката ви. Референцията ѝ е ${recordReference(order.id)}.`,
-    `${order.callback} Ще звъним на ${order.phone}.`,
-    "",
-    "Какво поискахте:",
-    ...orderLinesText(order.lines),
-    "",
-    "Цените са към момента на заявката. Наличността, крайната сума и доставката потвърждаваме по телефона; поръчка има едва след този разговор и на сайта нищо не се плаща.",
-    "",
-    "Ако номерът е сгрешен или искате да промените нещо, отговорете на това писмо или ни се обадете.",
-    "",
-    ...MAIL_SIGNATURE,
-  ].join("\n");
-
-  return { subject: orderThreadSubject(order.id), text, html: asHtml(text) };
+}> {
+  const { text, html } = await composeOrderConfirmationEmail(
+    {
+      reference: recordReference(order.id),
+      customerName: order.customerName,
+      phone: order.phone,
+      lines: order.lines,
+      callback: order.callback,
+    },
+    MAIL_SIGNATURE,
+  );
+  return { subject: orderThreadSubject(order.id), text, html };
 }
 
 /** Send it, or log why not. Never throws. */
@@ -82,7 +80,7 @@ export async function sendOrderConfirmation(order: OrderConfirmation): Promise<{
   }
 
   try {
-    const { subject, text, html } = composeOrderConfirmation(order);
+    const { subject, text, html } = await composeOrderConfirmation(order);
     const { Resend } = await import("resend");
     const { error } = await new Resend(key).emails.send({
       from: MAIL_FROM,

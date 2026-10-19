@@ -124,7 +124,7 @@ describe("contact properties", () => {
 });
 
 describe("syncSubscribed", () => {
-  it.each(["RESEND_API_KEY", "RESEND_NEWSLETTER_SEGMENT_ID", "RESEND_NEWSLETTER_TOPIC_ID"])(
+  it.each(["RESEND_API_KEY", "RESEND_NEWSLETTER_TOPIC_ID"])(
     "skips without %s and calls nothing",
     async (name) => {
       vi.stubEnv(name, "");
@@ -132,6 +132,24 @@ describe("syncSubscribed", () => {
       expect(sdk.create).not.toHaveBeenCalled();
     },
   );
+
+  it("needs no segment: the contact goes on the topic, and no segment is touched", async () => {
+    vi.stubEnv("RESEND_NEWSLETTER_SEGMENT_ID", "");
+    sdk.create.mockResolvedValue(ok({ id: "c_new", object: "contact" }));
+    expect(await syncSubscribed(subscriber)).toEqual({ status: "synced", contactId: "c_new" });
+    expect(sdk.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ segments: expect.anything() }),
+    );
+    expect(sdk.create).toHaveBeenCalledWith(
+      expect.objectContaining({ topics: [{ id: "topic_bac", subscription: "opt_in" }] }),
+    );
+
+    existingContact();
+    expect((await syncSubscribed(subscriber)).status).toBe("synced");
+    expect(sdk.segmentsList).not.toHaveBeenCalled();
+    expect(sdk.segmentsAdd).not.toHaveBeenCalled();
+    expect(sdk.topicsUpdate).toHaveBeenCalled();
+  });
 
   it("creates a new contact in the segment, opted in to this site's topic", async () => {
     sdk.create.mockResolvedValue(ok({ id: "c_new", object: "contact" }));

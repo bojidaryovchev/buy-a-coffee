@@ -1,6 +1,7 @@
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { HTML_LANG, type Locale } from "@/i18n/config";
 import { href, routes } from "@/lib/routes";
+import { ORGANIZATION_ID } from "./json-ld";
 import { SHARE_CARD } from "./share-card";
 
 /**
@@ -30,6 +31,12 @@ export interface ArticleJsonLdInput {
   readonly publishedAt: string;
   /** `YYYY-MM-DD`. */
   readonly modifiedAt: string;
+  /**
+   * The article's own share card, absolute: the address its `og:image` names
+   * too (`articleCard` in `lib/seo/og/article-card.ts`). Without one, the
+   * shop's card.
+   */
+  readonly image?: string;
 }
 
 export function articleJsonLd(
@@ -37,8 +44,10 @@ export function articleJsonLd(
   locale: Locale,
 ): Record<string, unknown> {
   const url = absoluteUrl(href(locale, article.href));
+  // The same entity the layout describes in full, by its `@id`.
   const shop = {
     "@type": "Organization",
+    "@id": ORGANIZATION_ID,
     name: siteConfig.name,
     url: absoluteUrl(href(locale, routes.home)),
   };
@@ -55,8 +64,9 @@ export function articleJsonLd(
     dateModified: article.modifiedAt,
     author: shop,
     publisher: shop,
-    /* The shop's share card: the articles have no photographs of their own,
-       and a made-up illustration would be decoration posing as content. */
-    image: [absoluteUrl(SHARE_CARD)],
+    /* The article's own card, at the address its og:image names: the articles
+       have no photographs of their own, and a made-up illustration would be
+       decoration posing as content. */
+    image: [article.image ?? absoluteUrl(SHARE_CARD)],
   };
 }

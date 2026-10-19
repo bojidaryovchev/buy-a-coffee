@@ -12,7 +12,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseWeight } from "@catalog/shared";
+import {
+  MAX_SOURCE_OVERLAP,
+  normalizeForComparison,
+  overlapRatio,
+  parseWeight,
+} from "@catalog/shared";
 import type { ProductCopy } from "../content/product-copy.ts";
 import { currentSlugsOfSnapshot } from "./catalog-reslug-lib.ts";
 import { brandDisplayName } from "../src/lib/catalog/brand-display.ts";
@@ -21,23 +26,20 @@ import { type FallbackCopyFacts, composeFallbackCopy } from "../src/lib/catalog/
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const REFERENCE_DIR = path.resolve(WEB_ROOT, "../../reference/latest");
 
-/**
- * How much verbatim phrasing a rewrite may share with the source it replaces.
- *
- * Measured as the share of the source's five-word sequences that also appear
- * in ours. Some overlap is unavoidable and correct: "бленд от около 70 %
- * арабика и 30 % робуста" is a fact about the coffee, and there is no honest
- * way to state it that avoids the words. Sustained overlap is not — it means
- * sentences were re-ordered rather than rewritten.
- *
- * 35 % sits above the highest legitimate value in the current catalogue (27 %,
- * a product whose description is almost entirely a blend spec) and well below
- * what a light paraphrase scores.
+/*
+ * The measures themselves (`MAX_SOURCE_OVERLAP`, `SHINGLE_SIZE`,
+ * `normalizeForComparison`, `shingles`, `overlapRatio`) live in
+ * `@catalog/shared`, because the catalog copywriter judges machine-written
+ * copy by exactly the same definition before it reaches the database. They are
+ * re-exported here so this module stays the audit's one import.
  */
-export const MAX_SOURCE_OVERLAP = 0.35;
-
-/** Five-word window. Long enough that shared phrasing is deliberate. */
-export const SHINGLE_SIZE = 5;
+export {
+  MAX_SOURCE_OVERLAP,
+  SHINGLE_SIZE,
+  normalizeForComparison,
+  overlapRatio,
+  shingles,
+} from "@catalog/shared";
 
 /** One product of `reference/latest/products.json`, as far as this audit reads it. */
 export interface ReferenceProduct {
@@ -80,34 +82,6 @@ export interface CopyAudit {
    * nothing: that copy could not be compared against the source's text.
    */
   readonly unverifiedEntries: readonly string[];
-}
-
-/** Fold to comparable words: case, punctuation and spacing carry no meaning here. */
-export function normalizeForComparison(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function shingles(text: string, size: number = SHINGLE_SIZE): Set<string> {
-  const words = normalizeForComparison(text).split(" ").filter(Boolean);
-  const result = new Set<string>();
-  for (let i = 0; i + size <= words.length; i += 1) {
-    result.add(words.slice(i, i + size).join(" "));
-  }
-  return result;
-}
-
-/** Share of `source`'s phrasing that reappears in `ours`. */
-export function overlapRatio(source: string, ours: string): number {
-  const from = shingles(source);
-  if (from.size === 0) return 0;
-  const to = shingles(ours);
-  let shared = 0;
-  for (const shingle of from) if (to.has(shingle)) shared += 1;
-  return shared / from.size;
 }
 
 /**

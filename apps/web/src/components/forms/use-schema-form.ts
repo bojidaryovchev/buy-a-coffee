@@ -189,11 +189,28 @@ export function useSchemaForm<S extends AnySchema>({
     if (inFlight.current || pending) return;
     inFlight.current = true;
     const element = event.currentTarget;
+    /* The button that was pressed, read now: the event is gone by the time
+       validation (asynchronous) is done. */
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
     void form.handleSubmit(
       () => {
         setRefusedHere(false);
-        // What the browser would have posted, honeypot and hidden fields included.
-        const formData = new FormData(element);
+        /* What the browser would have posted, honeypot and hidden fields
+           included — and, like the browser, the name and value of the button
+           that was pressed, for a form with more than one (the newsletter
+           composer's save, test and send). */
+        const formData = new FormData(element, submitter);
+        /* Safari 15.4 to 16.3 report the submitter but leave it out of the
+           form data; add it, as the browser would have posted it. (Older ones
+           report none at all, which is why a form whose buttons mean different
+           things also keeps the choice in a hidden field.) */
+        if (
+          (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement) &&
+          submitter.name &&
+          !formData.has(submitter.name)
+        ) {
+          formData.append(submitter.name, submitter.value);
+        }
         startTransition(async () => {
           try {
             await send(formData);

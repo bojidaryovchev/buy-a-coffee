@@ -1,35 +1,58 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { absoluteUrl, siteConfig } from "@/config/site";
-import { listSubscribers } from "@/lib/admin-queries";
 import { unsubscribeSubscriber } from "@/lib/admin-actions";
 import { consentSourceLabel } from "@/lib/forms/consent";
+import { ResyncForm } from "@/components/admin/resync-form";
+import { createNewsletter } from "@/lib/newsletter/actions";
+import {
+  isStale,
+  listCampaigns,
+  listSubscribersPage,
+  subscriberCounts,
+  type CampaignRow,
+} from "@/lib/newsletter/campaigns";
+import {
+  CAMPAIGN_STATUS_LABEL,
+  CAMPAIGN_STATUS_TONE,
+  subscribersWord,
+  utcStamp,
+} from "@/lib/newsletter/status";
 import { newsletterSyncStatus, PROPERTY_KEYS, PROPERTY_PREFIX } from "@/lib/newsletter/sync";
 
 export const metadata: Metadata = { title: "Бюлетин" };
 export const dynamic = "force-dynamic";
+/* "Копирай списъка в Resend" runs in the request, for up to 200 s
+   (`resync.ts`); an action has the lifetime of the page it is used on. */
+export const maxDuration = 300;
 
 /**
- * Newsletter subscribers.
+ * The newsletter: the list, and what has been sent to it.
  *
- * A list, the consent behind every row, and one action — and deliberately no
- * composer. Sending happens in Resend's Broadcasts, which already has what a
- * newsletter needs and this panel would build badly: unsubscribe links in every
- * message, bounce and complaint handling, suppression, and a sending reputation
- * kept apart from the order replies that actually matter. Every row written
- * here is mirrored there as a contact (`lib/newsletter/sync.ts`), and an
- * unsubscribe made there comes back (`lib/newsletter/webhook.ts`).
+ * The owner writes and sends from here (`Нов бюлетин` → the composer at
+ * `/admin/byuletin/[id]`). It used to send from Resend's Broadcasts, with this
+ * screen explaining how; sending from our own panel means each reader's own
+ * unsubscribe link and one-click header, our table as the only list, and a
+ * record of every copy (`lib/newsletter/send.ts` says why that matters).
  *
- * What this screen is for is what Resend cannot do: seeing who is on the list
- * and how each person agreed, and taking somebody off it when they ask by phone
- * or in a reply rather than by clicking a link. Above the list, how to send,
- * and which of the variables the mirror needs are set — so a half-configured
- * sync shows here, not only in the logs.
+ * The list is paged, not capped like the panel's other lists: it is the one
+ * that is exported and sent to, where a silent "first 200" would be a wrong
+ * answer. `consentSource` and `consentAt` are shown because they are the
+ * record that makes mailing somebody lawful; unsubscribing stamps a date and
+ * keeps the row — see `unsubscribeSubscriber`.
  *
- * `consentSource` and `consentAt` are shown because they are the record that
- * makes acting on a subscription lawful: every row answers "who agreed, when,
- * and how". Unsubscribing stamps a date rather than deleting the row, so that
- * record survives the unsubscribe — see `unsubscribeSubscriber`.
+ * Resend holds a copy of the list (`lib/newsletter/sync.ts`) for its own
+ * pages, which is where an unsubscribe made in Resend comes from; the send
+ * itself asks only this table. The copy's configuration and its repair
+ * ("Копирай списъка в Resend") are at the bottom, folded.
  */
+
+const PAGE_SIZE = 100;
+
+type Params = { page?: string | string[]; vsichki?: string | string[] };
+
+const one = (value: string | string[] | undefined): string | undefined =>
+  typeof value === "string" ? value : undefined;
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
@@ -39,33 +62,65 @@ function Code({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function AdminNewsletterPage() {
-  const subscribers = await listSubscribers();
-  const active = subscribers.filter((s) => !s.unsubscribedAt);
+function campaignLine(campaign: CampaignRow): string {
+  if (campaign.status === "draft") return `Чернова · променена ${utcStamp(campaign.updatedAt)}`;
+  const parts = [
+    `${campaign.sentCount} от ${campaign.recipientCount} изпратени`,
+    ...(campaign.failedCount > 0 ? [`${campaign.failedCount} неуспешни`] : []),
+    utcStamp(campaign.sentAt ?? campaign.startedAt ?? campaign.updatedAt),
+  ];
+  return parts.join(" · ");
+}
+
+export default async function AdminNewsletterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const params = await searchParams;
+  const everybody = one(params.vsichki) === "1";
+  const requested = Number(one(params.page) ?? "1");
+
+  const [counts, campaigns] = await Promise.all([subscriberCounts(), listCampaigns()]);
+  const listed = everybody ? counts.active + counts.unsubscribed : counts.active;
+  const pages = Math.max(1, Math.ceil(listed / PAGE_SIZE));
+  const page = Number.isInteger(requested) && requested >= 1 ? Math.min(requested, pages) : 1;
+  const subscribers = await listSubscribersPage({
+    page,
+    pageSize: PAGE_SIZE,
+    includeUnsubscribed: everybody,
+  });
+
   const sync = newsletterSyncStatus();
   const brand = siteConfig.name;
+  const pageHref = (target: number) =>
+    `/admin/byuletin?${new URLSearchParams({
+      ...(everybody ? { vsichki: "1" } : {}),
+      ...(target > 1 ? { page: String(target) } : {}),
+    }).toString()}#abonati`;
 
   /* What a missing variable costs, in the owner's terms rather than ours. */
   const checks: { ok: boolean; name: string; what: string }[] = [
+    { ok: sync.apiKey, name: "RESEND_API_KEY", what: "без него нищо не се изпраща" },
     {
-      ok: sync.apiKey,
-      name: "RESEND_API_KEY",
-      what: "без него нищо не стига до Resend",
+      ok: sync.topic,
+      name: "RESEND_NEWSLETTER_TOPIC_ID",
+      what: `темата на ${brand} в Resend, която копието на списъка следва; без нея нищо не се копира`,
     },
     {
       ok: sync.segment,
       name: "RESEND_NEWSLETTER_SEGMENT_ID",
-      what: "сегментът, в който влизат абонатите; без него не се синхронизират",
-    },
-    {
-      ok: sync.topic,
-      name: "RESEND_NEWSLETTER_TOPIC_ID",
-      what: `темата на ${brand} — кой е абониран за този сайт; без нея не се синхронизират`,
+      what: "по избор: сегмент, в който се копират и абонатите",
     },
     {
       ok: sync.webhook,
       name: "RESEND_CONTACTS_WEBHOOK_SECRET",
-      what: "отписванията, направени в Resend, се връщат тук",
+      what: "отписванията в Resend, върнатите писма и оплакванията се връщат тук",
+    },
+    {
+      ok: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      name: "BLOB_READ_WRITE_TOKEN",
+      what: "качването на снимки и файлове към бюлетина",
     },
   ];
 
@@ -75,98 +130,190 @@ export default async function AdminNewsletterPage() {
         <div>
           <h1 className="font-display text-3xl font-semibold text-ink-900">Бюлетин</h1>
           <p className="mt-1 max-w-prose text-base text-ink-500">
-            Списъкът и как всеки е дал съгласие. Самият бюлетин се пише и изпраща от Resend.
-            Отписването се записва с дата, а не изтрива съгласието.
+            Бюлетините се пишат и изпращат оттук. По-долу е списъкът и как всеки е дал съгласие;
+            отписването се записва с дата и не изтрива съгласието.
           </p>
         </div>
         <p className="text-sm">
-          <span className="font-semibold tabular-nums">{active.length}</span>{" "}
+          <span className="font-semibold tabular-nums">{counts.active}</span>{" "}
           <span className="text-ink-500">активни</span>
+          <span className="text-ink-300"> · </span>
+          <span className="font-semibold tabular-nums">{counts.unsubscribed}</span>{" "}
+          <span className="text-ink-500">отписани</span>
         </p>
       </div>
 
-      <section className="mt-8 rounded-md border border-line bg-paper-raised p-5">
-        <h2 className="font-display text-xl font-semibold text-ink-900">Как се изпраща бюлетин</h2>
-        <ol className="mt-3 max-w-prose list-decimal space-y-2 pl-5 text-sm leading-relaxed text-ink-700">
-          <li>
-            В Resend отворете <strong className="text-ink-900">Broadcasts</strong> и създайте нов
-            бюлетин. Оттук не се изпраща нищо.
-          </li>
-          <li>
-            Изпратете го до сегмента на бюлетина (номерът е в{" "}
-            <Code>RESEND_NEWSLETTER_SEGMENT_ID</Code>){" "}
-            <strong className="text-ink-900">и задължително до темата на {brand}</strong> (номерът е
-            в <Code>RESEND_NEWSLETTER_TOPIC_ID</Code>). Всеки, който се запише — от формата в
-            долната част на сайта, с отметка при поръчка, в количката или във формата за контакт,
-            или добавен от вас от заявка или съобщение — влиза и в двете автоматично.
-          </li>
-          <li>
-            Защо темата е задължителна: Resend акаунтът е общ за четирите сайта — {brand},
-            Buy-a-Vend, Rent-a-Vend и Sell-a-Vend — и един човек може да е абонат на няколко от тях.
-            Темата е това, което казва кой иска бюлетина на <em>този</em> сайт. Бюлетин без тема
-            отива и до хора, които са се отписали от нас или никога не са се записвали тук.
-          </li>
-          <li>
-            <strong className="text-ink-900">
-              Всеки бюлетин трябва да съдържа връзката за отписване на Resend:{" "}
-              <Code>{"{{{RESEND_UNSUBSCRIBE_URL}}}"}</Code>.
-            </strong>{" "}
-            Без нея не изпращайте — отписването с едно натискане е задължително. В бюлетин, изпратен
-            до темата, връзката отваря настройките на Resend, където човекът се отписва само от
-            темата на {brand} и продължава да получава писмата на другите три сайта. Отписаният се
-            отбелязва тук, с дата. Ако избере „отписване от всичко“, се отписва и тук — и от другите
-            сайтове.
-          </li>
-          <li>
-            По желание, втора връзка към нашата страница за отписване — тя също отписва само от
-            темата на {brand}: <Code>{`{{{contact.${PROPERTY_KEYS.unsubscribeUrl}}}}`}</Code>. Не
-            замества тази на Resend.
-          </li>
-          <li>
-            Всички свойства на този сайт в Resend започват с <Code>{PROPERTY_PREFIX}</Code>.
-            Акаунтът е общ и свойствата също: без представката другите сайтове биха записвали върху
-            нашите. Не използвайте в бюлетина свойства без нея.
-          </li>
-          <li>
-            Формата обещава кратко писмо, когато се появи ново кафе, и{" "}
-            <strong className="text-ink-900">не повече от веднъж месечно</strong>. Пазете това
-            обещание.
-          </li>
-        </ol>
+      <section aria-labelledby="campaigns-title" className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="campaigns-title" className="font-display text-xl font-semibold text-ink-900">
+            Бюлетини
+          </h2>
+          <form action={createNewsletter}>
+            <button
+              type="submit"
+              className="inline-flex min-h-11 items-center rounded-sm bg-pine-900 px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-pine-700"
+            >
+              Нов бюлетин
+            </button>
+          </form>
+        </div>
 
-        <h3 className="mt-5 text-sm font-semibold text-ink-900">Еднократна настройка в Resend</h3>
-        <ul className="mt-2 max-w-prose list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-500">
-          <li>
-            Тема (Topics) за {brand} с абонамент по подразбиране{" "}
-            <strong className="text-ink-900">Opt-out</strong> — бюлетинът стига само до хората,
-            записани от този сайт. Това не може да се промени след създаването. Видимост{" "}
-            <strong className="text-ink-900">Private</strong>, за да не я виждат абонатите на
-            другите три сайта в своите настройки. Номерът ѝ —{" "}
-            <Code>RESEND_NEWSLETTER_TOPIC_ID</Code>.
-          </li>
-          <li>
-            Сегмент за бюлетина на {brand}. Номерът му — <Code>RESEND_NEWSLETTER_SEGMENT_ID</Code>.
-          </li>
-          <li>
-            Свойството <Code>{PROPERTY_KEYS.unsubscribeUrl}</Code>, тип string (Audience →
-            Properties). Докато го няма, абонатите се добавят без него и втората връзка остава
-            празна.
-          </li>
-          <li>
-            Уебхук (Webhooks) към <Code>{absoluteUrl("/api/resend/contacts")}</Code> за{" "}
-            <Code>contact.updated</Code> и <Code>contact.deleted</Code>. Тайната, която Resend
-            показва — <Code>RESEND_CONTACTS_WEBHOOK_SECRET</Code>. Отделен е от уебхука за входящата
-            поща и има своя тайна.
-          </li>
-        </ul>
-        <p className="mt-2 max-w-prose text-sm text-ink-500">
-          Отписването оттук или от нашата страница никога не спира писмата на другите сайтове:
-          изключва се само темата на {brand}. Човек, който в Resend се е отписал „от всичко“, не
-          получава бюлетина дори да се запише отново тук — това може да се върне само от Resend.
-        </p>
+        {campaigns.length === 0 ? (
+          <p className="mt-4 rounded-md border border-dashed border-line-strong bg-paper-raised p-8 text-center text-ink-500">
+            Още няма бюлетини. „Нов бюлетин“ отваря празна чернова.
+          </p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {campaigns.map((campaign) => {
+              const stale = isStale(campaign);
+              return (
+                <li key={campaign.id}>
+                  <Link
+                    href={`/admin/byuletin/${campaign.id}`}
+                    className="block rounded-md border border-line bg-paper-raised p-4 transition-colors hover:border-ink-300"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                      <p className="font-semibold text-ink-900">
+                        {campaign.subject || "Без тема"}
+                        <span
+                          className={`ml-2 rounded-sm px-1.5 py-0.5 align-middle text-xs font-semibold ${
+                            stale
+                              ? CAMPAIGN_STATUS_TONE.partial
+                              : CAMPAIGN_STATUS_TONE[campaign.status]
+                          }`}
+                        >
+                          {stale ? "Прекъснат" : CAMPAIGN_STATUS_LABEL[campaign.status]}
+                        </span>
+                      </p>
+                      <p className="text-sm text-ink-500 tabular-nums">{campaignLine(campaign)}</p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-        <h3 className="mt-5 text-sm font-semibold text-ink-900">Връзка с Resend</h3>
-        <ul className="mt-2 space-y-1.5 text-sm">
+      <section aria-labelledby="abonati" className="mt-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="abonati" className="font-display text-xl font-semibold text-ink-900">
+            Абонати
+          </h2>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link
+              href={everybody ? "/admin/byuletin#abonati" : "/admin/byuletin?vsichki=1#abonati"}
+              className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4 lg:min-h-7"
+            >
+              {everybody ? "Само активните" : "Покажи и отписаните"}
+            </Link>
+            {/* Plain links to a route that answers with a file: no client code. */}
+            <a
+              href="/admin/byuletin/abonati.csv"
+              className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4 lg:min-h-7"
+            >
+              CSV на активните
+            </a>
+            <a
+              href="/admin/byuletin/abonati.csv?vsichki=1"
+              className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4 lg:min-h-7"
+            >
+              CSV на всички
+            </a>
+          </p>
+        </div>
+
+        {listed === 0 ? (
+          <p className="mt-4 rounded-md border border-dashed border-line-strong bg-paper-raised p-10 text-center text-ink-500">
+            Още няма абонати.
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 overflow-x-auto rounded-md border border-line bg-paper-raised">
+              <table className="w-full min-w-[48rem] text-sm">
+                <caption className="sr-only">
+                  {everybody ? "Всички абонати" : "Активни абонати"}, страница {page} от {pages}
+                </caption>
+                <thead className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Имейл</th>
+                    <th className="px-4 py-3 font-medium">Съгласие (UTC)</th>
+                    <th className="px-4 py-3 font-medium">Как е дадено</th>
+                    <th className="px-4 py-3 font-medium">Състояние</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscribers.map((subscriber) => (
+                    <tr key={subscriber.id} className="border-b border-line last:border-0">
+                      <td className="px-4 py-3 break-all text-ink-900">{subscriber.email}</td>
+                      <td className="px-4 py-3 text-ink-500 tabular-nums">
+                        {utcStamp(subscriber.consentAt)}
+                      </td>
+                      <td className="px-4 py-3 text-ink-700">
+                        {consentSourceLabel(subscriber.consentSource)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {subscriber.unsubscribedAt ? (
+                          <span className="text-ink-500">
+                            отписан {subscriber.unsubscribedAt.toISOString().slice(0, 10)}
+                          </span>
+                        ) : (
+                          <form action={unsubscribeSubscriber}>
+                            <input type="hidden" name="id" value={subscriber.id} />
+                            <button
+                              type="submit"
+                              className="min-h-11 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:border-ink-300 hover:text-ink-900"
+                            >
+                              Отпиши
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {pages > 1 && (
+              <nav
+                aria-label="Страници на списъка"
+                className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm"
+              >
+                {page > 1 ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4"
+                  >
+                    ← По-новите
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                <span className="text-ink-500 tabular-nums">
+                  Страница {page} от {pages} · {listed} {subscribersWord(listed)}
+                </span>
+                {page < pages ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-4"
+                  >
+                    По-старите →
+                  </Link>
+                ) : (
+                  <span />
+                )}
+              </nav>
+            )}
+          </>
+        )}
+      </section>
+
+      <details className="mt-10 rounded-md border border-line bg-paper-raised p-5">
+        <summary className="cursor-pointer font-display text-lg font-semibold text-ink-900">
+          Връзка с Resend
+        </summary>
+        <ul className="mt-3 space-y-1.5 text-sm">
           {checks.map((check) => (
             <li key={check.name} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span
@@ -181,56 +328,49 @@ export default async function AdminNewsletterPage() {
             </li>
           ))}
         </ul>
-      </section>
 
-      {subscribers.length === 0 ? (
-        <p className="mt-10 rounded-md border border-dashed border-line-strong bg-paper-raised p-10 text-center text-ink-500">
-          Още няма абонати.
+        <h3 className="mt-5 text-sm font-semibold text-ink-900">Кой получава бюлетина</h3>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-700">
+          Тукашният списък, и само той: бюлетинът не пита Resend кой е абониран. Отписванията стигат
+          до него оттук, с бутона в писмото и — чрез уебхука — от страниците на Resend; върнатите
+          писма и оплакванията също отписват човека. Копието на списъка в Resend се пази за неговите
+          страници. Resend акаунтът е общ за четирите сайта — {brand}, Buy-a-Vend, Rent-a-Vend и
+          Sell-a-Vend — и отписването от {brand} изключва само темата на {brand}, без да спира
+          писмата на другите три сайта.
         </p>
-      ) : (
-        <div className="mt-8 overflow-x-auto rounded-md border border-line bg-paper-raised">
-          <table className="w-full min-w-[48rem] text-sm">
-            <thead className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
-              <tr>
-                <th className="px-4 py-3 font-medium">Имейл</th>
-                <th className="px-4 py-3 font-medium">Съгласие (UTC)</th>
-                <th className="px-4 py-3 font-medium">Как е дадено</th>
-                <th className="px-4 py-3 font-medium">Състояние</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subscribers.map((subscriber) => (
-                <tr key={subscriber.id} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 text-ink-900">{subscriber.email}</td>
-                  <td className="px-4 py-3 text-ink-500 tabular-nums">
-                    {subscriber.consentAt.toISOString().slice(0, 16).replace("T", " ")}
-                  </td>
-                  <td className="px-4 py-3 text-ink-700">
-                    {consentSourceLabel(subscriber.consentSource)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {subscriber.unsubscribedAt ? (
-                      <span className="text-ink-500">
-                        отписан {subscriber.unsubscribedAt.toISOString().slice(0, 10)}
-                      </span>
-                    ) : (
-                      <form action={unsubscribeSubscriber}>
-                        <input type="hidden" name="id" value={subscriber.id} />
-                        <button
-                          type="submit"
-                          className="min-h-11 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:border-ink-300 hover:text-ink-900"
-                        >
-                          Отпиши
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+
+        <h3 className="mt-5 text-sm font-semibold text-ink-900">Копие на списъка в Resend</h3>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-500">
+          Всеки нов абонат се копира в Resend автоматично. Ако някое копиране не е успяло (или
+          абонатите са отпреди темата), това ги копира всички отново.
+        </p>
+        <ResyncForm disabled={!sync.apiKey || !sync.topic} />
+
+        <h3 className="mt-5 text-sm font-semibold text-ink-900">Еднократна настройка в Resend</h3>
+        <ul className="mt-2 max-w-prose list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-500">
+          <li>
+            Тема (Topics) за {brand} с абонамент по подразбиране{" "}
+            <strong className="text-ink-900">Opt-out</strong> и видимост{" "}
+            <strong className="text-ink-900">Private</strong>. Номерът ѝ —{" "}
+            <Code>RESEND_NEWSLETTER_TOPIC_ID</Code>.
+          </li>
+          <li>
+            По избор, сегмент за бюлетина на {brand}. Номерът му —{" "}
+            <Code>RESEND_NEWSLETTER_SEGMENT_ID</Code>.
+          </li>
+          <li>
+            Свойството <Code>{PROPERTY_KEYS.unsubscribeUrl}</Code>, тип string (Audience →
+            Properties). Всички свойства на този сайт започват с <Code>{PROPERTY_PREFIX}</Code>,
+            защото акаунтът е общ.
+          </li>
+          <li>
+            Уебхук (Webhooks) към <Code>{absoluteUrl("/api/resend/contacts")}</Code> за{" "}
+            <Code>contact.updated</Code>, <Code>contact.topics.updated</Code>,{" "}
+            <Code>contact.deleted</Code>, <Code>email.bounced</Code> и <Code>email.complained</Code>
+            . Тайната му — <Code>RESEND_CONTACTS_WEBHOOK_SECRET</Code>.
+          </li>
+        </ul>
+      </details>
     </>
   );
 }

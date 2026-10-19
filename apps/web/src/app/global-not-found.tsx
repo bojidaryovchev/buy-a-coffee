@@ -49,7 +49,16 @@ export const metadata: Metadata = {
      and without a base resolves that image against `localhost`. */
   metadataBase: new URL(siteConfig.url),
   title: fullTitle("404"),
-  robots: { index: false, follow: true },
+  /*
+   * No `robots` here. Every way into this page is a not-found render — a URL
+   * no route matches, which is where the proxy sends a dead link too — and
+   * Next writes `<meta name="robots" content="noindex">` into every such
+   * response itself. A second tag from here printed two robots directives on
+   * every 404 (`/bg/blog/<unknown>` among them). The status is what keeps a
+   * 404 out of the index; the tag is Next's belt to it. The route's own
+   * address, `/_not-found`, which renders without that tag, is answered with
+   * `X-Robots-Tag: noindex` from `next.config.ts`.
+   */
 };
 
 /** The frame's navigation follows the catalog, like every shop page's. */

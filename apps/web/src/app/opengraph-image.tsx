@@ -1,11 +1,14 @@
-import { ImageResponse } from "next/og";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { siteConfig } from "@/config/site";
+import { INK, renderCard } from "@/lib/seo/og/card";
+import { fitWithin, imageDataUri } from "@/lib/seo/og/image-data";
+import { SHARE_CARD_ALT, SHARE_CARD_SIZE } from "@/lib/seo/share-card";
 
 /**
  * The share card — what Facebook, Viber, WhatsApp and X draw when someone
- * pastes a link.
+ * pastes a link to a page that has no card of its own: the home page, an
+ * index, a landing listing, the legal pages. A product, a category, a brand
+ * and an article each have their own (`opengraph-image.tsx` beside the page,
+ * `lib/seo/og/`).
  *
  * ⚠ THIS FILE DID NOT EXIST, and its absence was the one blocking SEO gap on
  * this repo. `(site)/layout.tsx` has always declared
@@ -21,71 +24,78 @@ import { siteConfig } from "@/config/site";
  * the wide lockup loses its ends. Composing the card at 1200x630 is the only
  * way to control what survives.
  *
- * NO TEXT, AND THEREFORE NO FONTS. A tagline was drafted into this card and
- * taken back out: satori has no access to the site's faces, `next/font` resolves
- * them into `.next` at build time rather than to a readable path, and the
- * fallback satori falls back to is not guaranteed to carry Cyrillic. "Кафе,
- * подбрано с грижа" rendering as a row of empty boxes on every shared link is a
- * worse card than no tagline at all. The lockup is artwork, so it needs none.
+ * TEXT, NOW THAT THERE ARE FACES FOR IT. The first card carried none: satori
+ * had no access to the site's faces, and its own fallback has no Cyrillic, so
+ * the tagline would have come out as a row of empty boxes. The cards now draw
+ * with Literata and Inter read from `assets/og/` (`lib/seo/og/fonts.ts`), so
+ * the tagline is set under the lockup in the site's heading face.
  *
  * ⚠ NAMING IT IN `pageMetadata` IS SEPARATE AND ALSO REQUIRED. Next applies a
  * root `opengraph-image` to every page beneath it, but `openGraph` is
  * shallow-merged: a page that sets `openGraph` to add its own `url` replaces the
- * parent object outright and the inherited image goes with it. Product pages
- * here do exactly that. See the note in `(site)/layout.tsx`.
+ * parent object outright and the inherited image goes with it. Every page
+ * names it through `shareMetadata` (`lib/seo/share.ts`), with this size and alt.
  */
 
-export const alt = `${siteConfig.name} — ${siteConfig.tagline}`;
-export const size = { width: 1200, height: 630 };
+export const alt = SHARE_CARD_ALT;
+export const size = SHARE_CARD_SIZE;
 export const contentType = "image/png";
-
-/* Straight out of globals.css, converted from oklch. Values, not tokens: this
-   renders through satori rather than a browser, so there is no CSS to read. */
-const PAPER = "#faf6ee"; // --color-paper
-const PINE_900 = "#002c1d"; // --color-pine-900
 
 export default async function Image() {
   /**
-   * Read from `public/`, not from an `assets/` directory beside this file.
-   *
-   * A `readFile` at request time is not something Next's build can trace, so
-   * the file has to be somewhere that ships regardless — and `public/` is the
-   * only directory guaranteed to. `pnpm brand:assets` writes this one at 880px,
-   * which is a downscale to the 720 it renders at rather than an enlargement.
+   * Read from `public/`, not from an `assets/` directory beside this file:
+   * `pnpm brand:assets` writes the lockup there at 880px, a downscale to the
+   * 720 it renders at rather than an enlargement. This card is prerendered at
+   * build, where `public/` is on disk.
    */
-  const lockup = await readFile(join(process.cwd(), "public/og-lockup.png"), "base64");
+  const lockup = await imageDataUri("/og-lockup.png");
 
-  return new ImageResponse(
+  return renderCard(
     <div
       style={{
         width: "100%",
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: PAPER,
+        backgroundColor: INK.paper,
       }}
     >
       {/* The pine strip that opens the header, opening the card instead. */}
-      <div style={{ display: "flex", height: 12, backgroundColor: PINE_900 }} />
+      <div style={{ display: "flex", height: 12, backgroundColor: INK.pine900 }} />
 
       <div
         style={{
           display: "flex",
           flex: 1,
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {/* A bare <img> on purpose: next/image does not exist inside
               ImageResponse — this renders through satori, not the browser, and
-              a data-URI <img> is the documented approach. No eslint-disable for
-              `@next/next/no-img-element` because this workspace's flat config
-              does not load the Next plugin, and a disable comment for a rule
-              that is not defined is itself an eslint error.
-              Height follows the lockup's own 1579:402. */}
-        <img src={`data:image/png;base64,${lockup}`} width={780} height={199} alt="" />
+              a data-URI <img> is the documented approach, at the size it is
+              given: the lockup's own 880:224, fitted to 720 wide. */}
+        {lockup ? (
+          <img src={lockup.src} {...fitWithin(lockup, { width: 720, height: 200 })} alt="" />
+        ) : null}
+        <div
+          style={{
+            display: "flex",
+            marginTop: 36,
+            fontFamily: "Literata",
+            fontWeight: 600,
+            fontSize: 46,
+            letterSpacing: "-0.015em",
+            color: INK.ink900,
+          }}
+        >
+          {siteConfig.tagline}
+        </div>
+        <div style={{ display: "flex", marginTop: 14, fontSize: 28, color: INK.ink500 }}>
+          Кафе на зърна, капсули и дози — с цена на чаша
+        </div>
       </div>
     </div>,
-    size,
   );
 }

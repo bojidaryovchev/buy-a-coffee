@@ -24,6 +24,7 @@ import { relatedLandingLinks } from "@/lib/catalog/related-landings";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { localeAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
+import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import {
   BRANDS_INDEX_META,
   brandDescriptionLead,
@@ -40,6 +41,7 @@ import {
   systemCategory,
 } from "@/lib/routes";
 import { categoryNameFor } from "../../../../../../content/category-copy";
+import { NOINDEX, robotsFor } from "@/lib/seo/robots";
 
 export const revalidate = 300;
 
@@ -64,7 +66,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const locale = shippingLocale(lang);
   const found = await findBrand(locale, slug);
   if (!found?.published) {
-    return { title: "Марката не е намерена", robots: { index: false, follow: true } };
+    return { title: "Марката не е намерена", robots: NOINDEX };
   }
   const { brand } = found;
 
@@ -84,15 +86,25 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     facts.cupRange,
   );
 
+  // Page two and later name themselves (`lib/seo/pagination.ts`).
+  const query = parseCatalogQuery(rawParams);
+  const page = listingPage(query);
+  const shown = pagedTitle(title, page);
+
   return {
-    title: pageTitle(title),
+    title: pageTitle(shown),
     description,
     // At the slug the brand is published at, which is not always the stored one.
-    alternates: localeAlternates(locale, (each) => brandHref(each, brand)),
-    ...shareMetadata({ locale, title, description, path: brandHref(locale, brand) }),
-    robots: shouldIndexListing(parseCatalogQuery(rawParams))
-      ? undefined
-      : { index: false, follow: true },
+    alternates: localeAlternates(locale, (each) => brandHref(each, brand) + pageQuery(page)),
+    ...shareMetadata({
+      locale,
+      title: shown,
+      description,
+      path: brandHref(locale, brand) + pageQuery(page),
+      // Its own card: the brand's logo, what it has here, three of its packs.
+      image: "generated",
+    }),
+    robots: robotsFor(shouldIndexListing(query)),
   };
 }
 

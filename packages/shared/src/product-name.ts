@@ -1,6 +1,11 @@
 import { brandDisplayNames, productNameOverrides } from "./storefront-data.ts";
 import { normalizeLabel, slugify } from "./text.ts";
-import { type PackSizeConflict, TRAILING_QUANTITY, decidePackSize } from "./pack-size.ts";
+import {
+  type PackSizeConflict,
+  TRAILING_QUANTITY,
+  decidePackSize,
+  packQuantityLabel,
+} from "./pack-size.ts";
 import { isInstantCoffeeName } from "./product-kind.ts";
 
 /**
@@ -58,6 +63,14 @@ export interface ProductNameInput {
   readonly packValue?: string | number | null;
   /** `"g"`, `"ml"` or `"pc"`. */
   readonly packUnit?: string | null;
+  /**
+   * True when `packValue` is a researched correction (`products.pack_override_*`)
+   * rather than the source's reading. Then it is the size, full stop: the
+   * supplier's name may state another, and that name is exactly what the
+   * correction was made against - so the usual "the name wins" rule
+   * (`decidePackSize`) must not put the wrong size back on the label.
+   */
+  readonly packAuthoritative?: boolean;
 }
 
 export type ProductFormatId =
@@ -477,8 +490,11 @@ export function productName(input: ProductNameInput): ProductName {
     value: input.packValue,
     unit: input.packUnit,
   });
-  const packConflict = pack.conflict;
-  const quantityLabel = pack.label;
+  const authoritative = input.packAuthoritative
+    ? packQuantityLabel(input.packValue, input.packUnit)
+    : null;
+  const packConflict = authoritative ? null : pack.conflict;
+  const quantityLabel = authoritative ?? pack.label;
   const quantity: ProductQuantity | null = quantityLabel
     ? { label: quantityLabel, slug: slugify(quantityLabel) }
     : null;

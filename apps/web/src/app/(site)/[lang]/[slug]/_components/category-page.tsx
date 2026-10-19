@@ -29,6 +29,7 @@ import {
 } from "@/lib/seo/json-ld";
 import { localeAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
+import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import {
   categoryDescriptionLead,
   categoryHeading,
@@ -42,6 +43,7 @@ import { getArticle } from "@/lib/journal";
 import { categoryHref, href, productHref, routes, targetHref } from "@/lib/routes";
 import { BREWING_SYSTEMS, type BrewingSystem } from "@/lib/recommend/systems";
 import { brewingSystemForCategory, businessSectionForCategory } from "../../_lib/category-scope";
+import { robotsFor } from "@/lib/seo/robots";
 
 /**
  * A category listing, at `/<locale>/<landing slug>`.
@@ -90,18 +92,27 @@ export async function categoryMetadata(
     children: stockedChildren(category),
   };
 
-  const title = categoryTitle(category, metaFacts);
+  // Page two and later of the clean listing name themselves (`lib/seo/pagination.ts`).
+  const page = listingPage(query);
+  const title = pagedTitle(categoryTitle(category, metaFacts), page);
   const description = metaDescription(categoryDescriptionLead(category, metaFacts), facts.cupRange);
 
   return {
     title: pageTitle(title),
     description,
-    // The canonical always points at the unfiltered first page, so filtered
-    // permutations consolidate rather than compete.
-    alternates: localeAlternates(locale, (each) => categoryHref(each, category)),
+    // A filtered or sorted view names the unfiltered first page, so the
+    // permutations consolidate rather than compete; page two names itself.
+    alternates: localeAlternates(locale, (each) => categoryHref(each, category) + pageQuery(page)),
     // And a filtered view, shared, is attributed to that same clean page.
-    ...shareMetadata({ locale, title, description, path: categoryHref(locale, category) }),
-    robots: indexable ? undefined : { index: false, follow: true },
+    ...shareMetadata({
+      locale,
+      title,
+      description,
+      path: categoryHref(locale, category) + pageQuery(page),
+      // Its own card: the heading, the count and the cup range, beside three packs.
+      image: "generated",
+    }),
+    robots: robotsFor(indexable),
   };
 }
 

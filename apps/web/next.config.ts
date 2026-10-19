@@ -133,6 +133,23 @@ const nextConfig: NextConfig = {
 
   transpilePackages: ["@catalog/db", "@catalog/shared"],
 
+  /*
+   * The share cards are drawn on request (`opengraph-image.tsx` beside the
+   * product, category, brand, landing and article pages), so what they read
+   * at that moment has to be inside the deployed function: the faces in `assets/og/`
+   * and the pictures of our own in `public/` — which is served from the CDN
+   * and is otherwise not in a function at all. Matched as Next matches these
+   * keys, anywhere in the route.
+   */
+  outputFileTracingIncludes: {
+    "/**/opengraph-image*": [
+      "./assets/og/*.ttf",
+      "./public/og-lockup.png",
+      "./public/logo-icon-only.png",
+      "./public/brand-logos/**/*",
+    ],
+  },
+
   experimental: {
     /*
      * `app/global-not-found.tsx` draws the 404 for a URL that matches no route.
@@ -168,6 +185,21 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
+  /*
+   * The IndexNow key file at the site's root, `/<key>.txt`, where the engines
+   * look for it (`app/indexnow/[key]/route.ts`). After files, so `/robots.txt`
+   * and `/llms.txt` are matched by their own routes first, and before the
+   * dynamic `[lang]` segment, which would otherwise take any single segment.
+   * The proxy never sees the path: it has an extension.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [],
+      afterFiles: [{ source: "/:key([a-zA-Z0-9-]{8,128})\\.txt", destination: "/indexnow/:key" }],
+      fallback: [],
+    };
+  },
+
   async headers() {
     return [
       {
@@ -189,6 +221,17 @@ const nextConfig: NextConfig = {
             value: contentSecurityPolicy(imageHost),
           },
         ],
+      },
+      {
+        /*
+         * Next's own 404 route, asked for by its address. Every real 404 is a
+         * not-found render that Next marks `noindex` itself, which is why
+         * `app/global-not-found.tsx` declares no robots of its own; this one
+         * address renders the same page as an ordinary one — on Vercel with a
+         * 200 — and nothing else would keep it out of the index.
+         */
+        source: "/_not-found",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
       },
     ];
   },

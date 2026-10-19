@@ -10,6 +10,8 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { pageTitle } from "@/lib/seo/title";
+import { JOURNAL_META } from "@/lib/seo/page-meta";
 
 /**
  * Journal index.
@@ -23,9 +25,8 @@ import { href, routes } from "@/lib/routes";
  * say something true rather than render a heading over nothing.
  */
 
+/** The heading and the breadcrumb: the section's name. The title says more (`JOURNAL_META`). */
 const TITLE = JOURNAL_NAME;
-const DESCRIPTION =
-  "Видове капсули, как се избира кафе на зърна, арабика и робуста, цена на чаша — отговори на въпросите, които изникват преди поръчка.";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -34,13 +35,13 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   return {
-    title: TITLE,
-    description: DESCRIPTION,
+    title: pageTitle(JOURNAL_META.title),
+    description: JOURNAL_META.description,
     alternates: pageAlternates(locale, JOURNAL_PATH),
     ...shareMetadata({
       locale,
-      title: TITLE,
-      description: DESCRIPTION,
+      title: JOURNAL_META.title,
+      description: JOURNAL_META.description,
       path: href(locale, JOURNAL_PATH),
     }),
   };

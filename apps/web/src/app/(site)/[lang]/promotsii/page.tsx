@@ -13,6 +13,7 @@ import { listProducts } from "@/lib/catalog/queries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
+import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import {
   CALLBACK_SENTENCE,
@@ -21,6 +22,7 @@ import {
   pageTitle,
 } from "@/lib/seo/listing-meta";
 import { href, routes } from "@/lib/routes";
+import { robotsFor } from "@/lib/seo/robots";
 
 /**
  * Promotions.
@@ -51,17 +53,20 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const description = hasPromotions
     ? metaDescription(PROMOTIONS_META.description, facts.cupRange)
     : `${PROMOTIONS_META.descriptionWhenEmpty} ${CALLBACK_SENTENCE}`;
+  // Page two and later name themselves (`lib/seo/pagination.ts`).
+  const page = listingPage(query);
+  const title = pagedTitle(PROMOTIONS_META.title, page);
   return {
     /* Searchers type the singular as a modifier — „кафе на зърна промоция“,
        „капсули долче густо промоция“ — so the title carries „промоция“. */
-    title: pageTitle(PROMOTIONS_META.title),
+    title: pageTitle(title),
     description,
-    alternates: pageAlternates(locale, routes.promotions),
+    alternates: pageAlternates(locale, `${routes.promotions}${pageQuery(page)}`),
     ...shareMetadata({
       locale,
-      title: PROMOTIONS_META.title,
+      title,
       description,
-      path: href(locale, routes.promotions),
+      path: href(locale, `${routes.promotions}${pageQuery(page)}`),
     }),
     /*
      * The page exists for search only while a reduction does (`docs/seo.md`
@@ -69,7 +74,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
      * but a page that says "nothing here today" is not one to index under
      * „промоция“.
      */
-    robots: hasPromotions && shouldIndexListing(query) ? undefined : { index: false, follow: true },
+    robots: robotsFor(hasPromotions && shouldIndexListing(query)),
   };
 }
 

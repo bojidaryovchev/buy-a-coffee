@@ -371,6 +371,16 @@
     margin-top: 0;
   }
 
+  /*
+   * A scroll box inside the page (the filter rail, the filter sheet) draws a
+   * thin scrollbar in the control-edge colour, so it reads as part of the
+   * panel rather than as a second window. Nothing scrolls inside it.
+   */
+  .scrollbar-quiet {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+
   /* A hairline that stays 1 device pixel on high-density screens. */
   .rule {
     border-bottom: 1px solid var(--color-line);

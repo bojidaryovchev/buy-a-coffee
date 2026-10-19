@@ -13,6 +13,7 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * "Which capsules fit my machine", by brand.
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description =
     "Изберете марката и модела на кафемашината си и вижте коя система капсули приема — и какво от нашия асортимент пасва.";
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, routes.machines),
     ...shareMetadata({ locale, title, description, path: href(locale, routes.machines) }),

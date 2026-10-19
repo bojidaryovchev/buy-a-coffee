@@ -268,7 +268,7 @@ export function ListingToolbar({
             role="dialog"
             aria-modal="true"
             aria-labelledby={sheetTitleId}
-            className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-lg bg-paper px-5 pt-5 shadow-float"
+            className="scrollbar-quiet absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-lg bg-paper px-5 pt-5 shadow-float"
           >
             <div className="mb-2 flex items-center justify-between">
               <h2 id={sheetTitleId} className="font-display text-lg font-semibold text-ink-900">

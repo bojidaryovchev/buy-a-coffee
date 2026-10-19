@@ -7,6 +7,8 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { pageTitle } from "@/lib/seo/title";
+import { contactMeta } from "@/lib/seo/page-meta";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -14,10 +16,9 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
-  const title = "Контакти";
-  const description = `Свържете се с ${siteConfig.name}.`;
+  const { title, description } = contactMeta();
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, routes.contact),
     ...shareMetadata({ locale, title, description, path: href(locale, routes.contact) }),

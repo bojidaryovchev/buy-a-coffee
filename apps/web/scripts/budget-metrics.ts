@@ -3,7 +3,11 @@
  * browser driving so they can be tested without one.
  */
 
-export const BUDGETS = { lcpMs: 2500, cls: 0.1 } as const;
+/**
+ * LCP and CLS are DESIGN.md's budgets; INP's is the Web Vitals "good"
+ * threshold, the third Core Web Vital since March 2024.
+ */
+export const BUDGETS = { lcpMs: 2500, cls: 0.1, inpMs: 200 } as const;
 
 /**
  * Chrome DevTools' "Fast 4G": 9 Mbit/s down, 1.5 Mbit/s up, 60 ms RTT, with
@@ -64,9 +68,68 @@ export function mostFrequent(values: readonly string[]): string {
   return best;
 }
 
+/**
+ * Interaction to Next Paint from the interactions of one visit: the slowest,
+ * as Web Vitals takes it for a page with fewer than fifty interactions (one
+ * outlier is set aside per fifty after that). Null when none was recorded —
+ * the Event Timing API reports only interactions of 16 ms or more, so an empty
+ * list means every one was faster than that.
+ */
+export function interactionToNextPaint(durations: readonly number[]): number | null {
+  if (durations.length === 0) return null;
+  const sorted = [...durations].sort((a, b) => b - a);
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length / 50))] as number;
+}
+
+/** What the Event Timing API reports at least: an interaction under this leaves no entry. */
+export const EVENT_TIMING_FLOOR_MS = 16;
+
+export interface InpSummary {
+  /** False when some visit made no tap at all: there was nothing to time. */
+  readonly measured: boolean;
+  readonly medianMs: number | null;
+  readonly worstMs: number | null;
+  /** Within budget. Never true for a page that was not measured. */
+  readonly ok: boolean;
+}
+
+/**
+ * INP across a page's visits.
+ *
+ * A visit that made taps and recorded no entry was faster than 16 ms, and
+ * counts as 16. A visit that made no tap measured nothing: the control was
+ * not on the page, or the tap failed. Then the page's INP is "not measured",
+ * and the budget is missed rather than passed on silence.
+ */
+export function inpSummary(
+  runs: ReadonlyArray<{ readonly taps: number; readonly inpMs: number | null }>,
+): InpSummary {
+  if (runs.length === 0 || runs.some((run) => run.taps === 0)) {
+    return { measured: false, medianMs: null, worstMs: null, ok: false };
+  }
+  const values = runs.map((run) => run.inpMs ?? EVENT_TIMING_FLOOR_MS);
+  const medianMs = median(values);
+  return { measured: true, medianMs, worstMs: Math.max(...values), ok: medianMs < BUDGETS.inpMs };
+}
+
+/** The address of the first product card in a listing's HTML, or null. */
+export function firstProductPath(html: string): string | null {
+  for (const article of html.matchAll(/<article\b[\s\S]*?<\/article>/g)) {
+    const link = /<a\b[^>]*\bhref="(\/bg\/[a-z0-9-]+)"/.exec(article[0]);
+    if (link) return link[1] as string;
+  }
+  return null;
+}
+
+/** A product given as a slug or as a path: always a path under the locale. */
+export function productPath(product: string): string {
+  return product.startsWith("/") ? product : `/bg/${product}`;
+}
+
 export interface BudgetArgs {
   readonly baseUrl: string;
   readonly runs: number;
+  readonly home: string;
   readonly listing: string;
   readonly product: string | null;
   readonly json: string | null;
@@ -82,7 +145,13 @@ export function parseArgs(argv: readonly string[]): BudgetArgs {
   return {
     baseUrl: (value("base-url") ?? "http://127.0.0.1:3000").replace(/\/$/, ""),
     runs,
-    listing: value("listing") ?? "/categories/nespresso",
+    /*
+     * The pages themselves, not addresses that redirect to them: the bare `/`
+     * answers 307 to `/bg`, and `/categories/nespresso` 308 to the listing's
+     * landing slug, and a redirect's round trip is not the page's LCP.
+     */
+    home: value("home") ?? "/bg",
+    listing: value("listing") ?? "/bg/nespresso-kapsuli",
     product: value("product") ?? null,
     json: value("json") ?? null,
   };

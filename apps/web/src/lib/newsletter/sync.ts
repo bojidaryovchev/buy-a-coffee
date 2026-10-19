@@ -1,19 +1,20 @@
 import "server-only";
 import { after } from "next/server";
 import type { Resend } from "resend";
-import { absoluteUrl } from "@/config/site";
-import { DEFAULT_LOCALE } from "@/i18n/config";
-import { href, routes } from "@/lib/routes";
+import { unsubscribeUrl } from "./links";
 
 /**
  * The newsletter list, mirrored into Resend.
  *
- * Resend sends the newsletter — the owner writes it in Broadcasts — so every
- * subscriber has to exist there as a contact. This module keeps that true in
- * one direction: a subscription here becomes a contact there, opted in to this
- * site's topic; an unsubscribe here opts it out of that topic. The other
- * direction — someone using Resend's own unsubscribe page — comes back through
- * the webhook in `webhook.ts`.
+ * The newsletter is written and sent from the admin panel (`send.ts`) to this
+ * table's list, and the send does not ask Resend who is subscribed: our table
+ * is the source of truth. Resend keeps a copy anyway, because its own pages
+ * act on it — the preference page behind its unsubscribe links, and the
+ * "unsubscribe from everything" a reader of another site's mail may use — and
+ * what a reader does there comes back through the webhook in `webhook.ts`.
+ * This module keeps the copy in step in the other direction: a subscription
+ * here becomes a contact there, opted in to this site's topic; an unsubscribe
+ * here opts it out of that topic.
  *
  * ONE RESEND ACCOUNT, FOUR SITES. buy-a-coffee, buy-a-vend, rent-a-vend and
  * sell-a-vend share an account and therefore share contacts: an address on two
@@ -22,20 +23,19 @@ import { href, routes } from "@/lib/routes";
  * never writes it, in either direction. What belongs to this site is:
  *
  *   - a TOPIC (RESEND_NEWSLETTER_TOPIC_ID), which carries this site's opt-in
- *     and opt-out. A broadcast sent to the topic reaches only the contacts
- *     opted in to it, and its unsubscribe page lets a reader leave this
- *     newsletter without leaving the other three;
- *   - a SEGMENT (RESEND_NEWSLETTER_SEGMENT_ID), because a broadcast needs one —
- *     the topic narrows a segment, it does not replace it. Membership is never
- *     removed on unsubscribe: the topic says who may be mailed, and the segment
- *     stays a plain record of who ever joined.
+ *     and opt-out, and which the sync needs: without it an opt-out could only
+ *     be written account-wide;
+ *   - a SEGMENT (RESEND_NEWSLETTER_SEGMENT_ID), optional: a plain record in
+ *     Resend of who ever joined, kept when it is configured. Membership is
+ *     never removed on unsubscribe.
  *
  * NEVER BLOCKING. The table is the record and the contact is a copy of it, so
  * the copy is made in `after()`, once the visitor has their answer, and nothing
  * here throws: a Resend outage costs a log line and a contact that is mirrored
- * on the next signup by the same address, never a failed form. Without the key,
- * the segment or the topic it skips with a log line, which is the whole
- * local-development story.
+ * on the next signup by the same address — or by "Копирай списъка в Resend" in
+ * the panel (`syncAllSubscribers`) — never a failed form. Without the key or
+ * the topic it skips with a log line, which is the whole local-development
+ * story.
  *
  * Log lines name the subscriber by id, never by address.
  */
@@ -78,12 +78,10 @@ export const PROPERTY_KEYS = {
   unsubscribeUrl: `${PROPERTY_PREFIX}unsubscribe_url`,
 } as const;
 
-/** The subscriber's own unsubscribe link: the page plus the row's token. */
-export function unsubscribeUrl(token: string): string {
-  const url = new URL(absoluteUrl(href(DEFAULT_LOCALE, routes.unsubscribe)));
-  url.searchParams.set("token", token);
-  return url.toString();
-}
+/* The subscriber's own unsubscribe link: the page plus the row's token. Built
+   in `links.ts`, which the newsletter's own footer uses too; re-exported for
+   the callers that always had it from here. */
+export { unsubscribeUrl };
 
 /**
  * What a broadcast can use about a contact.
@@ -108,7 +106,7 @@ export function newsletterSyncStatus() {
   };
 }
 
-async function client(key: string): Promise<Resend> {
+export async function client(key: string): Promise<Resend> {
   // Dynamic, like the mailer: only the requests that use the SDK load it.
   const { Resend } = await import("resend");
   return new Resend(key);
@@ -133,14 +131,14 @@ type Upsert =
  */
 async function upsertContact(
   resend: Resend,
-  ids: { segmentId: string; topicId: string },
+  ids: { segmentId: string | null; topicId: string },
   email: string,
   properties: ContactProperties | undefined,
 ): Promise<Upsert> {
   const created = await resend.contacts.create({
     email,
     properties,
-    segments: [{ id: ids.segmentId }],
+    ...(ids.segmentId ? { segments: [{ id: ids.segmentId }] } : {}),
     topics: [{ id: ids.topicId, subscription: "opt_in" }],
   });
   if (!created.error) {
@@ -161,13 +159,15 @@ async function upsertContact(
 
   // Asked rather than assumed: adding a contact to a segment it is already in
   // is not something the SDK documents as harmless.
-  const membership = await resend.contacts.segments.list({ email, limit: 100 });
-  if (membership.error) {
-    return { ok: false, error: `segments: ${membership.error.message}` };
-  }
-  if (!membership.data?.data.some((segment) => segment.id === ids.segmentId)) {
-    const added = await resend.contacts.segments.add({ email, segmentId: ids.segmentId });
-    if (added.error) return { ok: false, error: `segment: ${added.error.message}` };
+  if (ids.segmentId) {
+    const membership = await resend.contacts.segments.list({ email, limit: 100 });
+    if (membership.error) {
+      return { ok: false, error: `segments: ${membership.error.message}` };
+    }
+    if (!membership.data?.data.some((segment) => segment.id === ids.segmentId)) {
+      const added = await resend.contacts.segments.add({ email, segmentId: ids.segmentId });
+      if (added.error) return { ok: false, error: `segment: ${added.error.message}` };
+    }
   }
 
   const topic = await resend.contacts.topics.update({
@@ -187,18 +187,16 @@ async function upsertContact(
   };
 }
 
-/** The key and the two ids a subscription needs, or the reason it cannot happen. */
-function subscribeConfig():
-  { ok: true; key: string; segmentId: string; topicId: string } | { ok: false; reason: string } {
+/** The key and the topic a subscription needs (the segment is optional), or
+    the reason it cannot happen. */
+export function subscribeConfig():
+  | { ok: true; key: string; segmentId: string | null; topicId: string }
+  | { ok: false; reason: string } {
   const key = process.env.RESEND_API_KEY;
-  const segmentId = process.env.RESEND_NEWSLETTER_SEGMENT_ID;
+  const segmentId = process.env.RESEND_NEWSLETTER_SEGMENT_ID?.trim() || null;
   const topicId = process.env.RESEND_NEWSLETTER_TOPIC_ID;
-  if (!key || !segmentId || !topicId) {
-    return {
-      ok: false,
-      reason:
-        "RESEND_API_KEY, RESEND_NEWSLETTER_SEGMENT_ID or RESEND_NEWSLETTER_TOPIC_ID is not set",
-    };
+  if (!key || !topicId) {
+    return { ok: false, reason: "RESEND_API_KEY or RESEND_NEWSLETTER_TOPIC_ID is not set" };
   }
   return { ok: true, key, segmentId, topicId };
 }
@@ -214,11 +212,18 @@ function unsubscribeConfig():
   return { ok: true, key, topicId };
 }
 
-export async function syncSubscribed(subscriber: SyncSubscriber): Promise<SyncResult> {
+/**
+ * Mirror one subscription. `resend` may be supplied — the panel's bulk repair
+ * passes one that paces its calls (`pacedClient`) — and is otherwise made here.
+ */
+export async function syncSubscribed(
+  subscriber: SyncSubscriber,
+  resend?: Resend,
+): Promise<SyncResult> {
   const config = subscribeConfig();
   if (!config.ok) return { status: "skipped", reason: config.reason };
 
-  const resend = await client(config.key);
+  resend ??= await client(config.key);
 
   /*
    * Once with the properties, and if that fails, once without.
@@ -375,4 +380,42 @@ export function syncUnsubscribedLater(subscriber: Pick<SyncSubscriber, "id" | "e
     return;
   }
   later("unsubscribe", subscriber.id, () => pushUnsubscribed(subscriber));
+}
+
+/**
+ * A client whose contact calls are spaced at least `gapMs` apart.
+ *
+ * For the panel's bulk repair, which syncs every subscriber in one go: one
+ * subscription can take six calls, and the Resend account is shared with three
+ * other sites whose order mail must not meet a rate limit this caused. The
+ * signup path does not need it — it syncs one subscriber, after the response.
+ */
+export async function pacedClient(
+  key: string,
+  gapMs: number,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms)),
+): Promise<Resend> {
+  const resend = await client(key);
+  let next = 0;
+  const wait = async () => {
+    const now = Date.now();
+    const at = Math.max(now, next);
+    next = at + gapMs;
+    if (at > now) await sleep(at - now);
+  };
+  const pace = <T extends object>(target: T, names: readonly (keyof T)[]) => {
+    for (const name of names) {
+      const original = target[name];
+      if (typeof original !== "function") continue;
+      const bound = (original as (...args: unknown[]) => unknown).bind(target);
+      (target as Record<keyof T, unknown>)[name] = async (...args: unknown[]) => {
+        await wait();
+        return bound(...args);
+      };
+    }
+  };
+  pace(resend.contacts, ["create", "update", "get"]);
+  pace(resend.contacts.segments, ["list", "add"]);
+  pace(resend.contacts.topics, ["update"]);
+  return resend;
 }

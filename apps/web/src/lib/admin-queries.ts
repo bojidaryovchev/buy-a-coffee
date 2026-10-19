@@ -235,19 +235,9 @@ export async function getSubscriberByEmail(
   return row ?? null;
 }
 
-export async function listSubscribers(): Promise<SubscriberRow[]> {
-  return db
-    .select({
-      id: newsletterSubscribers.id,
-      email: newsletterSubscribers.email,
-      consentAt: newsletterSubscribers.consentAt,
-      consentSource: newsletterSubscribers.consentSource,
-      unsubscribedAt: newsletterSubscribers.unsubscribedAt,
-    })
-    .from(newsletterSubscribers)
-    .orderBy(desc(newsletterSubscribers.consentAt))
-    .limit(PAGE);
-}
+/* The subscriber list itself is paged, not capped, and read by the newsletter
+   screen from `lib/newsletter/campaigns.ts`: it is the list that is exported
+   and sent to, where "the first 200" would be a wrong answer. */
 
 /**
  * The counts behind the panel's index.

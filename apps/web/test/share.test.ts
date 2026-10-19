@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareDefaults, shareMetadata } from "@/lib/seo/share";
-import { SHARE_CARD } from "@/lib/seo/share-card";
+import { SHARE_CARD, SHARE_CARD_ALT, SHARE_CARD_SIZE } from "@/lib/seo/share-card";
 
 /*
  * What a page says about itself when its link is shared (`lib/seo/share.ts`).
@@ -18,6 +18,14 @@ import { SHARE_CARD } from "@/lib/seo/share-card";
  */
 
 const CARD = absoluteUrl(SHARE_CARD);
+/** The shop's card as a page names it: with its size, type and alt. */
+const CARD_IMAGE = {
+  url: CARD,
+  width: SHARE_CARD_SIZE.width,
+  height: SHARE_CARD_SIZE.height,
+  alt: SHARE_CARD_ALT,
+  type: "image/png",
+};
 
 describe("shareMetadata", () => {
   const share = shareMetadata({
@@ -61,8 +69,31 @@ describe("shareMetadata", () => {
       card: "summary_large_image",
       title: "Кафе капсули",
       description: "Капсули за пет системи.",
-      images: [{ url: CARD }],
+      images: [CARD_IMAGE],
     });
+  });
+
+  it("names the card's size and alt, which a preview is laid out and read by", () => {
+    expect(share.openGraph).toMatchObject({ images: [CARD_IMAGE] });
+    expect(SHARE_CARD_SIZE).toEqual({ width: 1200, height: 630 });
+    expect(SHARE_CARD_ALT).toContain(siteConfig.name);
+  });
+
+  /* A page with a card of its own (`opengraph-image.tsx` beside it) must name
+     no `images` at all, not even an empty list: that is the only case in which
+     Next attaches the segment's file, with its width, height and alt. */
+  it("leaves the picture to the page's own card when it has one", () => {
+    const product = shareMetadata({
+      locale: "bg",
+      title: "x",
+      description: "y",
+      path: "/bg/x",
+      image: "generated",
+    });
+    expect(product.openGraph).not.toHaveProperty("images");
+    expect(product.twitter).not.toHaveProperty("images");
+    expect(product.openGraph).toMatchObject({ url: absoluteUrl("/bg/x"), title: "x" });
+    expect(product.twitter).toMatchObject({ card: "summary_large_image", title: "x" });
   });
 
   it("shares a page's own picture when it has one, in both cards", () => {

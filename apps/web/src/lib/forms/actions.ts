@@ -11,9 +11,10 @@ import { cartBlock } from "@/lib/cart/view";
 import { getCurrentSlugOfFormer, listProductsForOrder } from "@/lib/catalog/queries";
 import { db } from "@/lib/db";
 import { sendOrderConfirmation } from "@/lib/mail/confirmation";
+import { contactNotice, orderNotice, signupNotice } from "@/lib/mail/owner-notices";
 import { recordReference } from "@/lib/mail/reference";
 import { notify } from "@/lib/notifications";
-import { orderLinesText, productCount } from "@/lib/orders/lines";
+import { productCount } from "@/lib/orders/lines";
 import { itemFor, itemLines, recordInquiry, type OrderItem } from "@/lib/orders/record";
 import {
   clientFingerprint,
@@ -184,12 +185,8 @@ async function announceOrder(order: {
   customerName: string | null;
   callback: string;
 }): Promise<void> {
-  await notify({
-    kind: "order_inquiry",
-    subject: order.subject,
-    summary: orderLinesText(itemLines(order.items, "productName")).join("\n"),
-    recordId: order.id,
-  });
+  // The whole order goes in; what the notice may carry is `orderNotice`'s call.
+  await notify(orderNotice(order));
 
   if (order.email) {
     await sendOrderConfirmation({
@@ -532,12 +529,7 @@ export async function subscribeToNewsletter(
     });
 
     if (row.created) {
-      await notify({
-        kind: "newsletter_signup",
-        subject: "Нов абонат за бюлетина",
-        summary: "Адресът е в записа в базата.",
-        recordId: row.id,
-      });
+      await notify(signupNotice({ id: row.id, email: parsed.data.email }));
     }
     return { status: "success", message: "Благодарим ви. Вече сте в списъка." };
   } catch (error) {
@@ -607,12 +599,16 @@ export async function submitContactMessage(
     });
 
     if (row) {
-      await notify({
-        kind: "contact_message",
-        subject: `Форма за контакт: ${input.subject || "без тема"}`,
-        summary: "Съобщението и данните за контакт са в записа в базата.",
-        recordId: row.id,
-      });
+      await notify(
+        contactNotice({
+          id: row.id,
+          subject: input.subject || null,
+          name: input.name || null,
+          email: input.email,
+          phone: input.phone || null,
+          message: input.message,
+        }),
+      );
     }
 
     return { status: "success", message: "Благодарим ви. Ще се свържем с вас скоро." };

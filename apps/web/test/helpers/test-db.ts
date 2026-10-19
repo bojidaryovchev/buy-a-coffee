@@ -18,8 +18,19 @@ import { createDatabase, type Database } from "@catalog/db";
 
 const MIGRATIONS_DIR = path.resolve(import.meta.dirname, "../../../../packages/db/migrations");
 
+/**
+ * The repository's docker-compose server, the same default
+ * `vitest.integration-setup.ts` checks. Without it, a run with neither
+ * variable set skipped every database test while the setup had just reported
+ * the database reachable — a green run that tested nothing.
+ *
+ * `??`, as there, not `||`: the unit projects set both variables to "" on
+ * purpose (`NO_DATABASE_ENV`), and "" still means "no database".
+ */
+const DEFAULT_URL = "postgres://catalog:catalog@localhost:5433/catalog";
+
 function baseUrl(): string | null {
-  return process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? null;
+  return process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? DEFAULT_URL;
 }
 
 export async function isDatabaseAvailable(): Promise<boolean> {

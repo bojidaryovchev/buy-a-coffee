@@ -84,7 +84,7 @@ export function CatalogListing({
     <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8">
       <aside className="hidden lg:block">
         {/* 128 px: the sticky header (116 px) and a little air. */}
-        <div className="sticky top-32 -mx-1 max-h-[calc(100dvh-9rem)] overflow-y-auto px-1">
+        <div className="scrollbar-quiet sticky top-32 -mx-1 max-h-[calc(100dvh-9rem)] overflow-y-auto px-1">
           <FilterPanel {...panelProps} />
         </div>
       </aside>

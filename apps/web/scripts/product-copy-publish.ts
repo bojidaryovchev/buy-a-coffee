@@ -5,11 +5,12 @@
  * by exactly the rule the real command does and the two cannot drift. This
  * file has no entry point and opens no connection of its own.
  *
- * It touches the two override columns and nothing else — in particular never
- * `description_text` or `description_html`, which belong to the sync and record
- * what the source published.
+ * It touches the two override columns and their provenance (`copy_origin`
+ * and the rest), and nothing else — in particular never `description_text` or
+ * `description_html`, which belong to the sync and record what the source
+ * published.
  */
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Database } from "@catalog/db";
 import { products } from "@catalog/db/schema";
 import type { ProductCopy } from "../content/product-copy.ts";
@@ -92,6 +93,15 @@ export async function publishProductCopy(
         .set({
           descriptionTextOverride: entry.summary,
           descriptionHtmlOverride: html,
+          // A person wrote this: the catalog copywriter never rewrites it,
+          // and nothing of a machine text it replaces stays attached.
+          copyOrigin: "hand",
+          copySourceHash: null,
+          copyModel: null,
+          // When the page's text last changed, for the sitemap's date.
+          copyWrittenAt: sql`now()`,
+          copyAttempts: 0,
+          copyLastError: null,
           // Deliberately not touching `lastChangedAt`: that column tracks
           // when the *source* changed, and the sync's diff reads it. Our
           // editorial changes are not source changes.

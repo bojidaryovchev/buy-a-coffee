@@ -242,56 +242,58 @@ the storefront serves them through a development-only `/media` route.
 
 From the repository root:
 
-| Command                         | What it does                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`                      | Run the storefront locally (`next dev`, port 3000)                                                                  |
-| `pnpm build`                    | Production build of the storefront                                                                                  |
-| `pnpm typecheck`                | Strict TypeScript across every package                                                                              |
-| `pnpm lint` / `pnpm lint:fix`   | ESLint                                                                                                              |
-| `pnpm format` / `format:check`  | Prettier, write or check                                                                                            |
-| `pnpm test`                     | Unit tests only, with no database configured                                                                        |
-| `pnpm test:integration`         | Every `*.integration.test.ts` and `*.db.test.ts`; needs PostgreSQL                                                  |
-| `pnpm test:all`                 | All four Vitest projects                                                                                            |
-| `pnpm test:watch`               | Vitest in watch mode                                                                                                |
-| `pnpm test:e2e`                 | Playwright, desktop and mobile, against a production build (run `pnpm build` first; see [Testing](#testing))        |
-| `pnpm db:migrate`               | Apply the database migrations (`packages/db/migrations/`); safe to run repeatedly                                   |
-| `pnpm db:generate`              | Generate a migration from schema changes                                                                            |
-| `pnpm db:studio`                | Drizzle Studio                                                                                                      |
-| `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                             |
-| `pnpm crawl:discovery`          | Full public-surface crawl, then export `reference/latest/`                                                          |
-| `pnpm reference:export`         | Re-crawl the source and rewrite `reference/latest/` (contacts the source; a writing run)                            |
-| `pnpm catalog:verify`           | Assert the catalog invariants against the database; exit 2 on a violation (`--json` for the report)                 |
-| `pnpm catalog:link`             | `<our-slug> <new-source-key>`: re-point a product the sync could not pair (plan only; `--apply`, `--absorb-twin`)   |
-| `pnpm catalog:enrich`           | Read the product page of every active product without a code (plan only; `--apply`, `--limit <n>`)                  |
-| `pnpm images:gc`                | Report unreferenced mirrored images (`--apply` to delete)                                                           |
-| `pnpm images:push`              | Copy every referenced image between stores: `--from <driver> --to <driver>` (plan only; `--apply`)                  |
-| `pnpm images:verify`            | Check every referenced image is in the configured store (`--http` also fetches each public URL)                     |
-| `pnpm seed:reference`           | Load the committed snapshot into an empty local database                                                            |
-| `pnpm seed:dev`                 | Add six invented products under a `seed-dev` source key                                                             |
-| `pnpm copy:apply`               | Publish `content/product-copy.ts` into the override columns (`--dry-run` to preview)                                |
-| `pnpm copy:todo`                | List the products that still publish the generated sentence                                                         |
-| `pnpm check:originality`        | No source branding or source copy in the storefront                                                                 |
-| `pnpm check:launch`             | Fails while a draft marker would render or a commercial term is unset or unconfirmed                                |
-| `pnpm reference:coverage`       | Fails if the storefront misses an observed capability or `docs/reference-coverage.md` is stale                      |
-| `pnpm reference:coverage:write` | Regenerate `docs/reference-coverage.md`                                                                             |
-| `pnpm measure:budgets`          | Measure mobile LCP and CLS against the budgets in `DESIGN.md`, on a production build already running (`--base-url`) |
-| `pnpm env:check`                | Report the storefront's environment against the manifest, and what each absence costs                               |
-| `pnpm env:example`              | Regenerate `apps/web/.env.example` from the manifest                                                                |
-| `pnpm env:push`                 | Apply the manifest to Vercel (plan only; `--apply`, `--offline`, `--prune`)                                         |
+| Command                         | What it does                                                                                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                      | Run the storefront locally (`next dev`, port 3000)                                                                      |
+| `pnpm build`                    | Production build of the storefront                                                                                      |
+| `pnpm typecheck`                | Strict TypeScript across every package                                                                                  |
+| `pnpm lint` / `pnpm lint:fix`   | ESLint                                                                                                                  |
+| `pnpm format` / `format:check`  | Prettier, write or check                                                                                                |
+| `pnpm test`                     | Unit tests only, with no database configured                                                                            |
+| `pnpm test:integration`         | Every `*.integration.test.ts` and `*.db.test.ts`; needs PostgreSQL                                                      |
+| `pnpm test:all`                 | All four Vitest projects                                                                                                |
+| `pnpm test:watch`               | Vitest in watch mode                                                                                                    |
+| `pnpm test:e2e`                 | Playwright, desktop and mobile, against a production build (run `pnpm build` first; see [Testing](#testing))            |
+| `pnpm db:migrate`               | Apply the database migrations (`packages/db/migrations/`); safe to run repeatedly                                       |
+| `pnpm db:generate`              | Generate a migration from schema changes                                                                                |
+| `pnpm db:studio`                | Drizzle Studio                                                                                                          |
+| `pnpm sync:catalog`             | Synchronise the catalog into PostgreSQL                                                                                 |
+| `pnpm crawl:discovery`          | Full public-surface crawl, then export `reference/latest/`                                                              |
+| `pnpm reference:export`         | Re-crawl the source and rewrite `reference/latest/` (contacts the source; a writing run)                                |
+| `pnpm catalog:verify`           | Assert the catalog invariants against the database; exit 2 on a violation (`--json` for the report)                     |
+| `pnpm catalog:link`             | `<our-slug> <new-source-key>`: re-point a product the sync could not pair (plan only; `--apply`, `--absorb-twin`)       |
+| `pnpm catalog:enrich`           | Read the product page of every active product without a code (plan only; `--apply`, `--limit <n>`)                      |
+| `pnpm images:gc`                | Report unreferenced mirrored images (`--apply` to delete)                                                               |
+| `pnpm images:push`              | Copy every referenced image between stores: `--from <driver> --to <driver>` (plan only; `--apply`)                      |
+| `pnpm images:verify`            | Check every referenced image is in the configured store (`--http` also fetches each public URL)                         |
+| `pnpm seed:reference`           | Load the committed snapshot into an empty local database                                                                |
+| `pnpm seed:dev`                 | Add six invented products under a `seed-dev` source key                                                                 |
+| `pnpm copy:apply`               | Publish `content/product-copy.ts` into the override columns (`--dry-run` to preview)                                    |
+| `pnpm copy:todo`                | List the products that still publish the generated sentence                                                             |
+| `pnpm check:originality`        | No source branding or source copy in the storefront                                                                     |
+| `pnpm check:launch`             | Fails while a draft marker would render or a commercial term is unset or unconfirmed                                    |
+| `pnpm reference:coverage`       | Fails if the storefront misses an observed capability or `docs/reference-coverage.md` is stale                          |
+| `pnpm reference:coverage:write` | Regenerate `docs/reference-coverage.md`                                                                                 |
+| `pnpm measure:budgets`          | Measure mobile LCP, CLS and INP against the budgets in `DESIGN.md`, on a running build or a deployed URL (`--base-url`) |
+| `pnpm env:check`                | Report the storefront's environment against the manifest, and what each absence costs                                   |
+| `pnpm env:example`              | Regenerate `apps/web/.env.example` from the manifest                                                                    |
+| `pnpm env:push`                 | Apply the manifest to Vercel (plan only; `--apply`, `--offline`, `--prune`)                                             |
 
 Only through a package filter:
 
-| Command                                         | What it does                                                                                    |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `pnpm --filter @catalog/web start`              | Serve a production build                                                                        |
-| `pnpm --filter @catalog/web test:e2e:ui`        | Playwright's UI mode                                                                            |
-| `pnpm --filter @catalog/web catalog:reslug`     | Plan moving stored products to the shop's own slugs (`--tsv <file>`, `--apply`); idempotent     |
-| `pnpm --filter @catalog/web catalog:pack-size`  | Plan applying the pack-size rule to stored rows, without contacting the source (`--apply`)      |
-| `pnpm --filter @catalog/web mail:prune-foreign` | Plan the removal of mailbox threads never addressed to this shop (`--export <file>`, `--apply`) |
-| `pnpm --filter @catalog/web brand:assets`       | Regenerate the favicon, touch and share icons from `public/logo.png`                            |
-| `pnpm --filter @catalog/scraper cli status`     | Print catalog counts                                                                            |
-| `pnpm --filter @catalog/scraper cli help`       | Every CLI command and option                                                                    |
-| `pnpm --filter @catalog/scraper build:lambda`   | Bundle the Lambda for `infra/terraform`                                                         |
+| Command                                                          | What it does                                                                                    |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `pnpm --filter @catalog/web start`                               | Serve a production build                                                                        |
+| `pnpm --filter @catalog/web test:e2e:ui`                         | Playwright's UI mode                                                                            |
+| `pnpm --filter @catalog/web catalog:reslug`                      | Plan moving stored products to the shop's own slugs (`--tsv <file>`, `--apply`); idempotent     |
+| `pnpm --filter @catalog/web catalog:pack-size`                   | Plan applying the pack-size rule to stored rows, without contacting the source (`--apply`)      |
+| `pnpm --filter @catalog/web mail:prune-foreign`                  | Plan the removal of mailbox threads never addressed to this shop (`--export <file>`, `--apply`) |
+| `pnpm --filter @catalog/web brand:assets`                        | Regenerate the favicon, touch and share icons from `public/logo.png`                            |
+| `pnpm --filter @catalog/web indexnow:submit`                     | Submit every sitemap URL to IndexNow once, with `INDEXNOW_KEY` (`--dry-run` to list only)       |
+| `pnpm --filter @catalog/web exec tsx scripts/pwa-screenshots.ts` | Retake the web app manifest's screenshots from a running build (`--base-url`)                   |
+| `pnpm --filter @catalog/scraper cli status`                      | Print catalog counts                                                                            |
+| `pnpm --filter @catalog/scraper cli help`                        | Every CLI command and option                                                                    |
+| `pnpm --filter @catalog/scraper build:lambda`                    | Bundle the Lambda for `infra/terraform`                                                         |
 
 CLI flags go after the command, e.g. `pnpm sync:catalog --dry-run`:
 

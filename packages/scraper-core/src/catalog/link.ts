@@ -137,6 +137,7 @@ export async function planProductLink(db: Database, input: LinkInput): Promise<L
     consecutiveMissingCount: products.consecutiveMissingCount,
     descriptionTextOverride: products.descriptionTextOverride,
     descriptionHtmlOverride: products.descriptionHtmlOverride,
+    copyOrigin: products.copyOrigin,
     retailPriceOverride: products.retailPriceOverride,
     retailOldPriceOverride: products.retailOldPriceOverride,
   };
@@ -206,7 +207,12 @@ export async function planProductLink(db: Database, input: LinkInput): Promise<L
 
   // Absorbing deletes a row. Refuse if it holds anything a person put there.
   const blockers: string[] = [];
-  if (twinRow.descriptionTextOverride !== null || twinRow.descriptionHtmlOverride !== null) {
+  // Machine-written copy is not a person's work: the copywriter writes it
+  // again for the surviving row if it needs it.
+  const humanCopy =
+    twinRow.copyOrigin !== "ai" &&
+    (twinRow.descriptionTextOverride !== null || twinRow.descriptionHtmlOverride !== null);
+  if (humanCopy) {
     blockers.push(
       `"${twin.slug}" has hand-written description overrides, which deleting it would lose.`,
     );

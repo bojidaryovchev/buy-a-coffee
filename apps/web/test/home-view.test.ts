@@ -92,6 +92,7 @@ function article(index: number): ArticleSummary {
     href: `/blog/statia-${index}`,
     title: `Статия номер ${index}`,
     description: `Кратко описание ${index}.`,
+    metaDescription: `Кратко описание ${index}.`,
     publishedAt: "2026-10-09",
     modifiedAt: "2026-10-09",
     lastModified: new Date("2026-10-09T00:00:00.000Z"),

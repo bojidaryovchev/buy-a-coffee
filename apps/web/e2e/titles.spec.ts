@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BG } from "./support/paths";
+import { SHOP, shopTitle } from "./support/titles";
 
 /**
  * What a search result and a crawler get from the listing, brand and index
@@ -16,7 +17,6 @@ import { BG } from "./support/paths";
 /** „от 0,19 € до 0,42 € на чаша“, or one figure; either end may carry „≈“. */
 const PER_CUP = /(от (≈ )?\d+,\d{2}\s€ до (≈ )?\d+,\d{2}\s€|(≈ )?\d+,\d{2}\s€) на чаша/u;
 const CALLBACK = "Оставяте телефон и ви се обаждаме, за да потвърдим.";
-const SHOP = "Buy a Coffee";
 
 const LISTINGS: ReadonlyArray<{
   readonly path: string;
@@ -125,7 +125,7 @@ for (const listing of LISTINGS) {
   test.describe(listing.path, () => {
     test("is titled and headed as its searchers type", async ({ page }) => {
       await page.goto(listing.path);
-      await expect(page).toHaveTitle(`${listing.title} | ${SHOP}`);
+      await expect(page).toHaveTitle(shopTitle(listing.title));
       await expect(page.locator("h1")).toHaveCount(1);
       await expect(page.locator("h1")).toHaveText(listing.h1);
     });
@@ -134,7 +134,10 @@ for (const listing of LISTINGS) {
       await page.goto(listing.path);
       const description = await page.locator('meta[name="description"]').getAttribute("content");
       expect(description).toMatch(PER_CUP);
-      expect(description?.endsWith(CALLBACK), description ?? "").toBe(true);
+      // The callback closes it wherever a result has room for the sentence.
+      if (!description?.endsWith(CALLBACK)) {
+        expect([...`${description} ${CALLBACK}`].length, description ?? "").toBeGreaterThan(160);
+      }
       expect(description?.length ?? 0).toBeLessThanOrEqual(160);
       expect(description).not.toMatch(/!|оригинал/iu);
     });
@@ -171,7 +174,7 @@ test("promotions are titled for „промоция“ and stay out of the index
   page,
 }) => {
   await page.goto(BG.promotions);
-  await expect(page).toHaveTitle(`Кафе на промоция — намалени капсули, зърна и дози | ${SHOP}`);
+  await expect(page).toHaveTitle(shopTitle("Кафе на промоция — намалени капсули, зърна и дози"));
   await expect(page.locator("h1")).toHaveText("Кафе на промоция");
 
   const reduced = await page.locator("main article").count();

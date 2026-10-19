@@ -39,10 +39,11 @@ import { localeOfPath, resolveLocalisedPath, routes } from "@/lib/routes";
  *      Bulgarian equivalents, query string kept (`lib/legacy-routes.ts`).
  *   4. **Everything else is the 404** — a first segment that is not a
  *      shipping locale, `/en` while English is switched off, `/nope`. It is
- *      rewritten to Next's own `/_not-found`, which draws
- *      `app/global-not-found.tsx` with a real 404 status. Left to the route
- *      tree it would match `[lang]`, whose layout can only answer with Next's
- *      bare error document: a root layout has no not-found boundary above it.
+ *      rewritten to a path no route matches (`NOT_FOUND`), which Next answers
+ *      with `app/global-not-found.tsx` and a real 404 status. Left to the
+ *      route tree it would match `[lang]`, whose layout can only answer with
+ *      Next's bare error document: a root layout has no not-found boundary
+ *      above it.
  *      The one route outside `[lang]` that is not untouched, the old
  *      `/categories/<slug>`, is let through to its handler.
  *
@@ -99,8 +100,24 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   return NextResponse.rewrite(url);
 }
 
-/** Next's internal route for the global 404 (`app/global-not-found.tsx`). */
-const NOT_FOUND = "/_not-found";
+/**
+ * Where a dead URL is rewritten to: a path that no route in the app matches,
+ * so Next answers it the way it answers `/bg/a/b/c` — with
+ * `app/global-not-found.tsx`, drawn on the server, and a 404 status.
+ *
+ * ⚠ NOT Next's own `/_not-found` route, which this used to name. `next start`
+ * serves that route with 404, so every test passed; Vercel serves it as the
+ * prerendered page it is, with **200**. Every dead link answered 200 with a
+ * `noindex` — a soft 404 — on production (`/bg/<unknown>`, `/bg/marki/<unknown>`,
+ * `/en`, `/nope`, `/BG`), while `/bg/a/b/c`, which no route matches, was a real
+ * 404 all along. Matching nothing is what both hosts answer with a 404.
+ *
+ * Four segments, because three would be `[lang]/marki/[slug]` and its kin
+ * and two would be `[lang]/[slug]`; the first one is not a locale, and the
+ * third is not a metadata image. `test/proxy.test.ts` checks it against every
+ * route under `src/app`.
+ */
+export const NOT_FOUND = "/_404/no/such/page";
 
 const STATIC_FIRST_LEVEL: ReadonlySet<string> = new Set(
   ROUTE_SEGMENTS.filter((key) => !key.includes("/")),
@@ -141,13 +158,16 @@ const UNTOUCHED_PREFIXES = [
 export function isUntouched(pathname: string): boolean {
   if (UNTOUCHED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)))
     return true;
-  if (pathname === "/opengraph-image" || pathname.startsWith("/opengraph-image/")) return true;
+  /* A share card, the shop's at the root or a page's own under it
+     (`/bg/<slug>/opengraph-image-<hash>/<id>`): an image, not a page, and
+     never worth a catalog lookup. */
+  if (/(^|\/)opengraph-image(-[a-z0-9]+)?(\/|$)/.test(pathname)) return true;
   // A file: `/sitemap.xml`, `/llms.txt`, `/favicon.ico`, `/manifest.webmanifest`.
   return /\.[^/]+$/.test(pathname);
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/|_vercel/|_not-found(?:/|$)|api(?:/|$)|media(?:/|$)|admin(?:/|$)|opengraph-image(?:/|$)|.*\\.[^/]+$).*)",
+    "/((?!_next/|_vercel/|_not-found(?:/|$)|api(?:/|$)|media(?:/|$)|admin(?:/|$)|(?:.*/)?opengraph-image(?:-[a-z0-9]+)?(?:/|$)|.*\\.[^/]+$).*)",
   ],
 };

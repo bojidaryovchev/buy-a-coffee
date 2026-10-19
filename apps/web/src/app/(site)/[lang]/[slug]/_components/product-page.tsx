@@ -22,10 +22,10 @@ import { SystemBadge } from "@/components/catalog/system-badge";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { getRelatedProducts } from "@/lib/catalog/queries";
 import type { ProductDetailView } from "@/lib/catalog/types";
-import { productMetaDescription, productPageTitle } from "./product-meta";
+import { productMetaDescription, productPageTitle, productTitleWords } from "./product-meta";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
-import { breadcrumbJsonLd, productImageUrls, productJsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/seo/json-ld";
 import { shareMetadata } from "@/lib/seo/share";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { siteConfig } from "@/config/site";
@@ -40,6 +40,7 @@ import {
   sectionPathForCategory,
 } from "@/lib/routes";
 import { consumablesCopy, vendingCopy } from "../../../../../../content/vending";
+import { robotsFor } from "@/lib/seo/robots";
 
 /**
  * A product page, at `/<locale>/<product slug>`.
@@ -49,7 +50,6 @@ import { consumablesCopy, vendingCopy } from "../../../../../../content/vending"
  */
 export function productMetadata(locale: Locale, product: ProductDetailView): Metadata {
   const description = productMetaDescription(product).slice(0, 300);
-  const photographs = productImageUrls(product);
 
   return {
     title: { absolute: productPageTitle(product) },
@@ -58,23 +58,21 @@ export function productMetadata(locale: Locale, product: ProductDetailView): Met
     alternates: localeAlternates(locale, (each) => productHref(each, product)),
     ...shareMetadata({
       locale,
-      title: product.name,
+      // The same words the `<title>` is made of, as on every page.
+      title: productTitleWords(product),
       description,
       path: productHref(locale, product),
       /**
-       * The product's own photograph when there is one — a picture of the bag
-       * earns more clicks than the shop's mark — and the generated card when
-       * there is not, which `shareMetadata` falls back to: an unphotographed
-       * product once shared with no image of any kind.
-       *
-       * "When there is one" means a real photograph. A stored image whose URL
-       * is not ours resolves to the placeholder drawing, and that must never
-       * be offered as the picture of a product; `productImageUrls` drops it.
+       * The product's own card (`[slug]/opengraph-image.tsx`): the whole
+       * pack on white beside its name, system, price and price per cup.
+       * Not the photograph itself, which is 800 × 1200 and which every
+       * network cropped to a band across the label; a product with no real
+       * photograph gets the same card without one, never the placeholder.
        */
-      image: photographs[0],
+      image: "generated",
     }),
     // A product we no longer sell should not keep attracting search traffic.
-    robots: product.status === "active" ? undefined : { index: false, follow: true },
+    robots: robotsFor(product.status === "active"),
   };
 }
 

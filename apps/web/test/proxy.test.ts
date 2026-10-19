@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
@@ -27,7 +28,9 @@ vi.mock("@/lib/catalog/slug-exists", () => ({
   },
 }));
 
-import { catalogLookup, config, isUntouched, proxy } from "@/proxy";
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import { NOT_FOUND, catalogLookup, config, isUntouched, proxy } from "@/proxy";
 
 beforeEach(() => {
   catalog.slugs = new Set([
@@ -106,7 +109,7 @@ describe("a path under a locale", () => {
 describe("a catalog slug that names nothing", () => {
   it("is sent to the 404 Next renders on the server", async () => {
     for (const path of ["/bg/no-such-product", "/bg/marki/no-such-brand"]) {
-      expect(rewrittenTo(await proxy(request(path))), path).toBe("/_not-found");
+      expect(rewrittenTo(await proxy(request(path))), path).toBe(NOT_FOUND);
     }
   });
 
@@ -124,7 +127,7 @@ describe("a catalog slug that names nothing", () => {
 
   it("goes for a landing listing with nothing to list, and not for one that lists something", async () => {
     // Static folders both; only the catalog knows which has products today.
-    expect(rewrittenTo(await proxy(request("/bg/bezkofeinovo-kafe")))).toBe("/_not-found");
+    expect(rewrittenTo(await proxy(request("/bg/bezkofeinovo-kafe")))).toBe(NOT_FOUND);
     expect(passesThrough(await proxy(request("/bg/lavazza-kapsuli")))).toBe(true);
     expect(catalog.asked).toEqual(["landing:bezkofeinovo-kafe", "landing:lavazza-kapsuli"]);
   });
@@ -198,10 +201,70 @@ describe("the pre-locale URLs", () => {
   });
 });
 
+/**
+ * Every URL pattern the app answers, read from the folders under `src/app`:
+ * pages, route handlers and metadata images. Groups and slots add no segment;
+ * `[x]` is one segment, `[...x]` one or more, `[[...x]]` any number.
+ */
+function routePatterns(): RegExp[] {
+  const app = path.resolve(import.meta.dirname, "../src/app");
+  const segmentPattern = (name: string): string | null => {
+    if (/^\(.*\)$/.test(name) || name.startsWith("@")) return null;
+    if (/^\[\[\.\.\..+\]\]$/.test(name)) return "(?:/.*)?";
+    if (/^\[\.\.\..+\]$/.test(name)) return "/.+";
+    if (/^\[.+\]$/.test(name)) return "/[^/]+";
+    return `/${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`;
+  };
+  const patterns: RegExp[] = [];
+  const walk = (directory: string, prefix: string) => {
+    const entries = readdirSync(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const part = segmentPattern(entry.name);
+        walk(path.join(directory, entry.name), prefix + (part ?? ""));
+      } else if (/^(page|route)\.(ts|tsx)$/.test(entry.name)) {
+        patterns.push(new RegExp(`^${prefix || "/"}$`));
+      } else if (/^(opengraph|twitter)-image\.(ts|tsx|png|jpg)$/.test(entry.name)) {
+        // `opengraph-image`, with Next's hash suffix and an image id.
+        const name = entry.name.replace(/\..+$/, "");
+        patterns.push(new RegExp(`^${prefix}/${name}(?:-[a-z0-9]+)?(?:/[^/]+)?$`));
+      }
+    }
+  };
+  walk(app, "");
+  return patterns;
+}
+
+describe("the 404's target", () => {
+  /* Vercel answers Next's own `/_not-found` route with 200, so a dead link
+     rewritten there was a soft 404 in production while `next start` said 404.
+     A path no route matches is a 404 on both. */
+  it("is not Next's /_not-found route", () => {
+    expect(NOT_FOUND).not.toMatch(/^\/_not-found(\/|$)/);
+  });
+
+  it("matches no route in the app", () => {
+    const patterns = routePatterns();
+    // The walk found the routes it is meant to: one of each kind.
+    for (const known of ["/bg", "/bg/kafe-kapsuli", "/bg/marki/lavazza", "/media/a/b.jpg"]) {
+      expect(
+        patterns.some((pattern) => pattern.test(known)),
+        known,
+      ).toBe(true);
+    }
+    expect(patterns.filter((pattern) => pattern.test(NOT_FOUND))).toEqual([]);
+  });
+
+  it("is not a path the proxy would serve as a page", () => {
+    expect(isUntouched(NOT_FOUND)).toBe(false);
+    expect(NOT_FOUND.split("/")[1]).not.toMatch(/^(bg|en)$/);
+  });
+});
+
 describe("everything else", () => {
   it("is the global 404, for a locale that is switched off as for no locale at all", async () => {
     for (const path of ["/en", "/en/brands", "/nope", "/this-route-does-not-exist", "/de/x"]) {
-      expect(rewrittenTo(await proxy(request(path))), path).toBe("/_not-found");
+      expect(rewrittenTo(await proxy(request(path))), path).toBe(NOT_FOUND);
     }
   });
 });
@@ -216,6 +279,9 @@ describe("what it never touches", () => {
     "/robots.txt",
     "/llms.txt",
     "/opengraph-image",
+    "/bg/kafe-kapsuli/opengraph-image-1x2y3z/card-0f3a9c27b1d4",
+    "/bg/marki/lavazza/opengraph-image-1x2y3z/card-0f3a9c27b1d4",
+    "/bg/blog/kak-se-pravi-espreso/opengraph-image-qi18xk/card-5be0d1c2a3f4",
     "/manifest.webmanifest",
     "/favicon.ico",
     "/icon.png",
@@ -229,12 +295,24 @@ describe("what it never touches", () => {
     expect(passesThrough(await proxy(request(path)))).toBe(true);
   });
 
+  /* Compiled the way Next compiles it (`unstable_doesMiddlewareMatch`, Next's
+     own testing helper), not as a plain RegExp: Next runs a matcher through
+     path-to-regexp and adds the `.json`/RSC variants, and a test that read
+     the string itself could pass on a matcher Next would read differently. */
   it("is kept from running there at all by the matcher", () => {
-    const [source] = config.matcher;
-    const matcher = new RegExp(`^${source}$`);
-    for (const path of untouched) expect(matcher.test(path), path).toBe(false);
-    for (const path of ["/", "/bg", "/bg/marki", "/products/x", "/administrator", "/apiary"]) {
-      expect(matcher.test(path), path).toBe(true);
+    const matches = (url: string) => unstable_doesMiddlewareMatch({ config, url });
+    for (const path of untouched) expect(matches(path), path).toBe(false);
+    for (const path of [
+      "/",
+      "/bg",
+      "/bg/marki",
+      "/bg/kafe-kapsuli?page=2",
+      "/products/x",
+      "/administrator",
+      "/apiary",
+      "/bg/kafe-kapsuli/opengraph-imagery",
+    ]) {
+      expect(matches(path), path).toBe(true);
     }
   });
 });

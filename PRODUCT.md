@@ -105,7 +105,8 @@ quick-order form; a cart that sends one order request for everything in it;
 the recommendation wizard and its result page; machine-compatibility pages by
 brand and model; search with typeahead in both alphabets; contact form;
 newsletter consent capture; legal pages; an admin panel for order requests,
-messages and the shared mailbox.
+messages, the shared mailbox and the newsletter — the list, and a composer that
+sends to it with each reader's own unsubscribe link.
 
 **Also built, to the standard in `DESIGN.md`:** machine-first navigation; system
 badge and intensity scale on every card; add to cart from the card; a facts
@@ -125,8 +126,6 @@ it has products.
 - Reviews, ratings and question-and-answer sections. See below.
 - Prices, discounts or stock that differ from the source's.
 - Loyalty schemes, coupons and countdown promotions.
-- Sending newsletters. Consent is collected and managed; sending is a separate
-  decision.
 - Lifestyle and stock photography. The imagery is the product packshots and our
   own drawings of capsule shapes.
 - A dark theme.

@@ -26,6 +26,9 @@ infra/terraform/*.tfvars
 infra/terraform/.terraform.lock.hcl
 infra/terraform/build/
 
+# Rendered mail, from `pnpm --filter @catalog/web email:preview`
+.email-previews/
+
 # Playwright
 test-results/
 playwright-report/

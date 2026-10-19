@@ -12,7 +12,7 @@
  * supplier's statements: its name (`products.name`) and its pack field, kept
  * verbatim in `source_data` by every sync there has ever been.
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@catalog/db";
 import { products } from "@catalog/db/schema";
 import {
@@ -153,7 +153,9 @@ const cupPrice = (name: string, price: string | null, columns: PackColumns): str
  * Read every product and plan what the rule would change.
  *
  * Every product, whatever its status: a removed product keeps its page, and
- * its page prints a price per cup like any other.
+ * its page prints a price per cup like any other. Except a product whose size
+ * the catalog copywriter's research corrected (`pack_override_value`): the
+ * supplier's statements are what was wrong about it.
  */
 export async function planPackSizes(
   db: Database,
@@ -177,7 +179,13 @@ export async function planPackSizes(
       sourceData: products.sourceData,
     })
     .from(products)
-    .where(options.sourceSiteId ? eq(products.sourceSiteId, options.sourceSiteId) : undefined)
+    .where(
+      and(
+        options.sourceSiteId ? eq(products.sourceSiteId, options.sourceSiteId) : undefined,
+        // A size research corrected is not the supplier's to decide again.
+        isNull(products.packOverrideValue),
+      ),
+    )
     .orderBy(products.name, products.sourceKey);
 
   const changes: PackSizeChange[] = [];

@@ -19,7 +19,8 @@
 #
 # Configuration needed at hook-up (names only; none exist yet, and the job
 # fails fast with a clear message while any is missing):
-#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN
+#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN, INDEXNOW_KEY (optional: the
+#              key the storefront serves; announces changed product pages)
 #   variables  STORAGE_DRIVER, STORAGE_PUBLIC_BASE_URL, CRAWL_USER_AGENT
 #
 # Exit codes of the CLI (apps/scraper/src/cli.ts), each reported by its own
@@ -127,6 +128,9 @@ jobs:
       - name: Run sync
         id: sync
         env:
+          # Changed product pages are announced to IndexNow when the key is set.
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+          SITE_URL: https://buy-a-coffee.com
           DRY_RUN: ${{ inputs.dry_run }}
           PRODUCT_LIMIT: ${{ inputs.product_limit }}
         run: |

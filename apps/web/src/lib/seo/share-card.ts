@@ -1,3 +1,5 @@
+import { siteConfig } from "@/config/site";
+
 /**
  * The share card's URL.
  *
@@ -17,3 +19,9 @@
  * from here and the bare path serves the same bytes.
  */
 export const SHARE_CARD = "/opengraph-image";
+
+/** The card's size, as `app/opengraph-image.tsx` draws it. */
+export const SHARE_CARD_SIZE = { width: 1200, height: 630 } as const;
+
+/** What the card shows, for `og:image:alt` and `twitter:image:alt`. */
+export const SHARE_CARD_ALT = `${siteConfig.name} — кафе на зърна, капсули и дози, подбрани с грижа`;

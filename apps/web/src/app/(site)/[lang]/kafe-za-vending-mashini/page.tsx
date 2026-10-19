@@ -11,11 +11,13 @@ import {
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
+import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { href } from "@/lib/routes";
 import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
 import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
 import { vendingCopy, vendingMeta } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
+import { robotsFor } from "@/lib/seo/robots";
 
 /**
  * Vending zone: coffee for people who fill machines.
@@ -66,21 +68,23 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     instant: (contents?.instant ?? 0) > 0,
     beans: blends.length > 0 || (contents !== null && contents.instant < contents.products),
   });
-  const metaTitle = meta.title;
+  // Page two and later name themselves (`lib/seo/pagination.ts`).
+  const page = listingPage(query);
+  const metaTitle = pagedTitle(meta.title, page);
   const description = metaDescription(meta.description, cupRange);
 
   return {
     title: pageTitle(metaTitle),
     description,
-    // Filtered and paginated views of the listing consolidate on the clean page.
-    alternates: pageAlternates(locale, section.path),
+    // Filtered and sorted views of the listing consolidate on the clean page.
+    alternates: pageAlternates(locale, `${section.path}${pageQuery(page)}`),
     ...shareMetadata({
       locale,
       title: metaTitle,
       description,
-      path: href(locale, section.path),
+      path: href(locale, `${section.path}${pageQuery(page)}`),
     }),
-    robots: shouldIndexListing(query) ? undefined : { index: false, follow: true },
+    robots: robotsFor(shouldIndexListing(query)),
   };
 }
 

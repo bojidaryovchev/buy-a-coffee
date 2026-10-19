@@ -82,6 +82,8 @@ export const whichCapsule: Article = {
   title: "Видове капсули за кафе: коя пасва на вашата машина",
   description:
     "Капсулите за кафе се делят по системи, не по марки: Nespresso, Dolce Gusto, Lavazza A Modo Mio, Lavazza Blue и Caffitaly. Как да познаете своята по капсулата и по машината.",
+  metaDescription:
+    "Капсулите се делят по системи, не по марки: Nespresso, Dolce Gusto, Lavazza A Modo Mio, Lavazza Blue и Caffitaly. Как да познаете своята.",
   publishedAt: "2026-10-09",
   // For one link only: the Lavazza capsules listing exists while it has products.
   usesCatalog: true,

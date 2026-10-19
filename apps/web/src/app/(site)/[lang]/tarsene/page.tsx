@@ -12,6 +12,8 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { NOINDEX } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * Search results.
@@ -37,11 +39,11 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const title = query.q ? `Търсене: ${query.q}` : "Търсене";
   const description = `Търсене в асортимента на ${siteConfig.name}.`;
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, routes.search),
     ...shareMetadata({ locale, title, description, path: href(locale, routes.search) }),
-    robots: { index: false, follow: true },
+    robots: NOINDEX,
   };
 }
 

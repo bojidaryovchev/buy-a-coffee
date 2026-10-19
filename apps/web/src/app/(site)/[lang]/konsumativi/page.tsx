@@ -4,9 +4,12 @@ import { BUSINESS_SECTIONS, getSectionListing, sectionListsProducts } from "@/li
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
+import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { href } from "@/lib/routes";
 import { consumablesCopy } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
+import { robotsFor } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * Consumables: what the word covers, and how to ask.
@@ -38,18 +41,22 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const query = parseCatalogQuery(await searchParams);
   const indexable = shouldIndexListing(query) && (await sectionListsProducts(section.id));
 
+  // Page two and later name themselves (`lib/seo/pagination.ts`).
+  const page = listingPage(query);
+  const title = pagedTitle(consumablesCopy.metaTitle, page);
+
   return {
-    title: consumablesCopy.metaTitle,
+    title: pageTitle(title),
     description: consumablesCopy.metaDescription,
-    // Filtered and paginated views of the listing consolidate on the clean page.
-    alternates: pageAlternates(locale, section.path),
+    // Filtered and sorted views of the listing consolidate on the clean page.
+    alternates: pageAlternates(locale, `${section.path}${pageQuery(page)}`),
     ...shareMetadata({
       locale,
-      title: consumablesCopy.metaTitle,
+      title,
       description: consumablesCopy.metaDescription,
-      path: href(locale, section.path),
+      path: href(locale, `${section.path}${pageQuery(page)}`),
     }),
-    robots: indexable ? undefined : { index: false, follow: true },
+    robots: robotsFor(indexable),
   };
 }
 

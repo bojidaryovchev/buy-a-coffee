@@ -1,4 +1,5 @@
 import "server-only";
+import type { OrderLine } from "@/lib/orders/lines";
 
 /**
  * Notification abstraction.
@@ -22,6 +23,10 @@ export interface Notification {
   readonly kind: "order_inquiry" | "contact_message" | "newsletter_signup" | "sync_alert";
   readonly subject: string;
   readonly summary: string;
+  /** An order's lines, under the owner's names for the products, so the mail
+   *  can draw them as a table. `summary` still says the same in text: it is the
+   *  message's text part, and what the log sink would print. */
+  readonly lines?: readonly OrderLine[];
   /** Reference to the stored row, so the shop can look up the details. A
    *  `sync_alert` has no row of its own: it is the condition and the day
    *  (`breaker_open:2026-10-10`), which is also what it is deduplicated on. */

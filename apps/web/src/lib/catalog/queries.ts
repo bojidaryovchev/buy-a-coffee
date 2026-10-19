@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNotNull, ne, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
@@ -12,6 +13,7 @@ import {
 import { db } from "@/lib/db";
 import { isProductId } from "@/lib/cart/cart";
 import { resolveImageUrl } from "./images";
+import { productPageChangedAt } from "./page-changed";
 import { brandDisplayName } from "./brand-display";
 import { discountPercent, toPerServingView, toPriceView, unitPriceView } from "./format";
 import type { CatalogQuery } from "./filters";
@@ -134,6 +136,8 @@ const nameColumns = {
     where pc.product_id = ${products.id} and c.source_key is not null
     order by c.source_key
   )`,
+  /** Set when research corrected the pack size; see `displayName`. */
+  packOverrideValue: products.packOverrideValue,
 } as const;
 
 const productColumns = {
@@ -153,7 +157,8 @@ const productColumns = {
   brandSlug: brands.slug,
   brandName: brands.name,
   brandSourceKey: brands.sourceKey,
-  lastChangedAt: products.lastChangedAt,
+  // When the page last changed, ours included - not only the source's change.
+  lastChangedAt: productPageChangedAt,
 } as const;
 
 type ProductRow = {
@@ -164,6 +169,7 @@ type ProductRow = {
   sourceKey: string;
   previousSourceKeys: string[] | null;
   categorySourceKeys: string[] | null;
+  packOverrideValue: string | null;
   price: string | null;
   oldPrice: string | null;
   currency: string | null;
@@ -202,6 +208,8 @@ function displayName(row: ProductRow) {
     categoryKeys: row.categorySourceKeys,
     packValue: row.weightValue,
     packUnit: row.weightUnit,
+    // A researched size is the size: the name's own figure was the error.
+    packAuthoritative: row.packOverrideValue !== null,
   });
 }
 
@@ -1084,9 +1092,21 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryView | nu
   return flatten(await getCategoryTree()).find((category) => category.slug === slug) ?? null;
 }
 
+/**
+ * Every active brand, with how many products it has on sale.
+ *
+ * Read once per request (React `cache`): a brand's page, its metadata and its
+ * share card's metadata all look the brand up in this list. The result is
+ * shared between the callers of one request, so it is never mutated.
+ */
 export async function listBrands(
   options: { withProductsOnly?: boolean } = {},
 ): Promise<readonly BrandView[]> {
+  const all = await loadBrands();
+  return options.withProductsOnly ? all.filter((brand) => brand.productCount > 0) : all;
+}
+
+const loadBrands = cache(async (): Promise<readonly BrandView[]> => {
   const [rows, counts] = await Promise.all([
     db
       .select({
@@ -1109,7 +1129,7 @@ export async function listBrands(
 
   const countByBrand = new Map(counts.map((row) => [row.brandId, row.count]));
 
-  const mapped = rows.map((row) => ({
+  return rows.map((row) => ({
     id: row.id,
     slug: row.slug,
     sourceKey: row.sourceKey,
@@ -1119,9 +1139,7 @@ export async function listBrands(
     description: row.description,
     productCount: countByBrand.get(row.id) ?? 0,
   }));
-
-  return options.withProductsOnly ? mapped.filter((brand) => brand.productCount > 0) : mapped;
-}
+});
 
 export async function getBrandBySlug(slug: string): Promise<BrandView | null> {
   return (await listBrands()).find((brand) => brand.slug === slug) ?? null;
@@ -1262,7 +1280,7 @@ export async function listAllProductSlugs(): Promise<
   ReadonlyArray<{ slug: string; updatedAt: Date | null }>
 > {
   return db
-    .select({ slug: products.slug, updatedAt: products.lastChangedAt })
+    .select({ slug: products.slug, updatedAt: productPageChangedAt })
     .from(products)
     .where(isVisible)
     .orderBy(asc(products.slug));

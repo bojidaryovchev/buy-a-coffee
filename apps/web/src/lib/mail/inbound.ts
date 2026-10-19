@@ -1,7 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { siteConfig } from "@/config/site";
+import { composeForwardHtml } from "@/emails/forward";
 import { MAIL_ADDRESS, MAIL_DOMAIN, NOTIFY_TO } from "./identity";
+import { autoReplySignal } from "./auto-reply";
 import { hasAddresses, isAddressedToDomain, isSentFromDomain } from "./recipients";
 import {
   addMessage,
@@ -164,6 +166,21 @@ export async function handleInboundEmail(
     }
   }
 
+  /* A machine's answer — an out-of-office, an autoresponder, a ticket number —
+     is neither filed nor forwarded (`auto-reply.ts`). Filed, it would open a
+     conversation the panel counts as owing a reply, and every newsletter would
+     bring a handful; forwarded, it would ring the owner's phone for nothing.
+     It stays among Resend's received emails for anybody who wants to read it.
+     Answered 200 like any other "understood, nothing to do": a retry would
+     reach the same verdict. */
+  const automatic = autoReplySignal(email.headers);
+  if (automatic) {
+    console.info(
+      JSON.stringify({ level: "info", msg: "inbound.auto_reply", emailId, signal: automatic }),
+    );
+    return { status: "ignored", reason: `автоматичен отговор (${automatic})` };
+  }
+
   const { data: list } = await resend.emails.receiving.attachments.list({ emailId });
   const held = list?.data ?? [];
 
@@ -230,16 +247,12 @@ export async function handleInboundEmail(
 
   const text = [...envelope, "", "---", "", email.text ?? "(празно съобщение)"].join("\n");
 
-  /* Built as a string and not as JSX, because the body it wraps is the sender's
-     own markup and React would escape it. The greys are the ink tokens'
-     approximate values written literally: mail clients do not resolve CSS
-     custom properties, so `var(--color-ink-500)` would render as nothing. */
+  /* The envelope band is drawn in the shop's palette (`emails/forward.tsx`)
+     and the sender's own markup goes under it untouched: it is their message,
+     and React would escape it, so it is put in place after rendering. A
+     message with no HTML part is forwarded as text only, as it arrived. */
   const html = email.html
-    ? `<div style="font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;color:#6b7671">${envelope
-        .map((line) => `${escapeHtml(line)}<br>`)
-        .join(
-          "",
-        )}</div><hr style="border:0;border-top:1px solid #dbe0dd;margin:16px 0">${email.html}`
+    ? await composeForwardHtml(envelope, email.html, MAIL_ADDRESS)
     : undefined;
 
   /* Reply-To points at the customer so that pressing Reply answers them and not
@@ -262,10 +275,6 @@ export async function handleInboundEmail(
   }
 
   return { status: "forwarded", id: sent.data.id };
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**

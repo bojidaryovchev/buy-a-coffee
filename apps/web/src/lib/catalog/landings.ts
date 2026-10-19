@@ -348,6 +348,12 @@ export interface LandingAvailability {
   readonly systems: Readonly<Record<BrewingSystemId, number>>;
   /** Lavazza's stored brand slug while it has products on sale, for the link to its page. */
   readonly lavazzaBrandSlug: string | null;
+  /**
+   * The ids of the products each landing lists, so the sitemap can date a
+   * landing by the newest change among them. Optional: a caller that only
+   * asks which landings exist need not supply it.
+   */
+  readonly members?: Readonly<Record<LandingId, readonly string[]>>;
 }
 
 export function landingAvailability(rows: readonly LandingRow[]): LandingAvailability {
@@ -369,6 +375,9 @@ export function landingAvailability(rows: readonly LandingRow[]): LandingAvailab
     groups: perLanding((entry) => entry.groups.map((group) => group.key)),
     systems,
     lavazzaBrandSlug: rows.find((row) => isLavazza(row) && row.brandSlug)?.brandSlug ?? null,
+    members: perLanding((entry) =>
+      entry.groups.flatMap((group) => group.items.map((item) => item.id)),
+    ),
   };
 }
 

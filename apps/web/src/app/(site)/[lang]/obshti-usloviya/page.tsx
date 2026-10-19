@@ -5,6 +5,8 @@ import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { pageTitle } from "@/lib/seo/title";
+import { termsMeta } from "@/lib/seo/page-meta";
 
 interface PageProps {
   params: Promise<LangParams>;
@@ -12,16 +14,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
+  const { title, description } = termsMeta();
   return {
-    title: termsOfService.title,
-    description: termsOfService.summary,
+    title: pageTitle(title),
+    description,
     alternates: pageAlternates(locale, routes.terms),
-    ...shareMetadata({
-      locale,
-      title: termsOfService.title,
-      description: termsOfService.summary,
-      path: href(locale, routes.terms),
-    }),
+    ...shareMetadata({ locale, title, description, path: href(locale, routes.terms) }),
   };
 }
 

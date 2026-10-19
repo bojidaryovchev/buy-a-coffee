@@ -50,17 +50,63 @@ function hoursAvailable(commerce: CommerceConfig): Array<Record<string, unknown>
     }));
 }
 
+/**
+ * The shop as one entity, wherever it is named.
+ *
+ * Every page carries the `Organization` (the layout emits it), so a product's
+ * `seller`, an article's `publisher` and the `WebSite`'s `publisher` refer to
+ * it by this `@id` instead of describing a second, nameless organisation each
+ * time. On the origin, not under a locale: the shop is one company in every
+ * language it may one day speak.
+ */
+export const ORGANIZATION_ID = `${absoluteUrl("/")}#organization`;
+
+/**
+ * The mark Google may show beside the shop's results: square, 512 px (it asks
+ * for at least 112), on the paper ground, so it reads on white. The same file
+ * the web app manifest names, written by `pnpm brand:assets`.
+ */
+export const ORGANIZATION_LOGO = { path: "/icon-512.png", width: 512, height: 512 } as const;
+
+/** A reference to the shop, for a node that is not the `Organization` itself. */
+export function organizationRef(): Record<string, unknown> {
+  return { "@type": "Organization", "@id": ORGANIZATION_ID, name: siteConfig.name };
+}
+
+/**
+ * The shop's profiles elsewhere, as absolute URLs. Empty while
+ * `siteConfig.social` is: a `sameAs` that names no real profile is a claim
+ * about an identity the shop does not have.
+ */
+export function socialProfiles(
+  social: Readonly<Record<string, string>> = siteConfig.social,
+): string[] {
+  return Object.values(social)
+    .map((url) => url.trim())
+    .filter((url) => /^https:\/\/[^/]+\.[^/]+/i.test(url));
+}
+
 export function organizationJsonLd(
   locale: Locale,
   commerce: CommerceConfig = siteConfig.commerce,
+  social: Readonly<Record<string, string>> = siteConfig.social,
 ): Record<string, unknown> {
   const hours = hoursAvailable(commerce);
+  const profiles = socialProfiles(social);
   const base: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": ORGANIZATION_ID,
     name: siteConfig.name,
     url: absoluteUrl(href(locale, routes.home)),
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteUrl(ORGANIZATION_LOGO.path),
+      width: ORGANIZATION_LOGO.width,
+      height: ORGANIZATION_LOGO.height,
+    },
     description: getDictionary(locale).site.description,
+    ...(profiles.length > 0 ? { sameAs: profiles } : {}),
     contactPoint: [
       {
         "@type": "ContactPoint",
@@ -114,12 +160,15 @@ export function organizationJsonLd(
  * structured data actively wrong.
  */
 export function webSiteJsonLd(locale: Locale): Record<string, unknown> {
+  const home = absoluteUrl(href(locale, routes.home));
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${home}#website`,
     name: siteConfig.name,
-    url: absoluteUrl(href(locale, routes.home)),
+    url: home,
     inLanguage: HTML_LANG[locale],
+    publisher: { "@id": ORGANIZATION_ID },
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -256,6 +305,56 @@ export function brandJsonLd(brand: {
   };
 }
 
+/**
+ * A GTIN, when the record holds a real one: 8, 12, 13 or 14 digits whose last
+ * is the GS1 check digit of the rest. Spaces and dashes a supplier types are
+ * dropped first. Anything else is not a GTIN, and an invalid one is a
+ * structured-data error, not a harmless extra.
+ */
+export function validGtin(raw: string | null | undefined): string | null {
+  const digits = (raw ?? "").replace(/[\s-]/g, "");
+  if (!/^(\d{8}|\d{12,14})$/.test(digits)) return null;
+  const body = digits.slice(0, -1);
+  const sum = [...body]
+    .reverse()
+    .reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === Number(digits.at(-1)) ? digits : null;
+}
+
+/**
+ * The pack's weight, as a quantity a machine can read: grams as
+ * `QuantitativeValue` with the UN/CEFACT code `GRM`.
+ *
+ * Only grams. A count of capsules or pods is not a weight, and the stored text
+ * ("1 кг.", "16 бр.") is not a value — `weight` as a plain string is invalid
+ * for `Product`. So a product sold by the piece, by volume, or with no
+ * normalised size has no `weight` at all.
+ */
+export function productWeight(pack: ProductDetailView["pack"]): Record<string, unknown> | null {
+  if (pack?.unit !== "g") return null;
+  const grams = Number(pack.value);
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  return { "@type": "QuantitativeValue", value: grams, unitCode: "GRM" };
+}
+
+/**
+ * What the offer says about availability.
+ *
+ * An active product says what the record says. One that is not active is not
+ * on sale, and its page says so ("Този продукт вече не се предлага"), so its
+ * structured data must not say `InStock` behind it: a product the sync has
+ * lost track of for now (`missing`) is `OutOfStock`; one taken off the
+ * catalog (`removed`) is `Discontinued`. Both pages are `noindex`; this is
+ * for every other reader of the markup.
+ */
+export function offerAvailability(
+  product: Pick<ProductDetailView, "status" | "availability">,
+): string {
+  if (product.status === "removed") return "https://schema.org/Discontinued";
+  if (product.status !== "active") return "https://schema.org/OutOfStock";
+  return availabilitySchemaUrl(product.availability);
+}
+
 export function productJsonLd(
   product: ProductDetailView,
   locale: Locale,
@@ -264,6 +363,8 @@ export function productJsonLd(
   const images = productImageUrls(product);
   // The product code, when the record holds one. Blank is not a code.
   const sku = product.sku?.trim();
+  const gtin = validGtin(product.gtin);
+  const weight = productWeight(product.pack);
   const url = absoluteUrl(productHref(locale, product));
 
   const data: Record<string, unknown> = {
@@ -275,8 +376,8 @@ export function productJsonLd(
     ...(images.length > 0 ? { image: images } : {}),
     ...(product.brand ? { brand: brandJsonLd(product.brand) } : {}),
     ...(sku ? { sku } : {}),
-    ...(product.gtin ? { gtin: product.gtin } : {}),
-    ...(product.weight ? { weight: product.weight } : {}),
+    ...(gtin ? { gtin } : {}),
+    ...(weight ? { weight } : {}),
   };
 
   // An Offer without a price is invalid structured data, so it is omitted
@@ -286,9 +387,11 @@ export function productJsonLd(
       "@type": "Offer",
       price: product.price.amount,
       priceCurrency: product.price.currency,
-      availability: availabilitySchemaUrl(product.availability),
+      availability: offerAvailability(product),
+      // Everything the shop sells is new, sealed retail packs.
+      itemCondition: "https://schema.org/NewCondition",
       url,
-      seller: { "@type": "Organization", name: siteConfig.name },
+      seller: organizationRef(),
       /*
        * Shipping and returns leave the site here as machine-readable claims
        * that a search engine may print next to the price. That is a different

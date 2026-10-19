@@ -121,8 +121,14 @@ export interface Article {
   readonly previousSlugs?: readonly string[];
   /** The page's single `h1`, and the `headline` of its structured data. */
   readonly title: string;
-  /** One or two sentences: meta description, share text, and the index teaser. */
+  /** One or two sentences: the lead under the title, and the index teaser. */
   readonly description: string;
+  /**
+   * The meta description and share text, when `description` runs past what a
+   * search result shows (160 characters, `lib/seo/description.ts`). The same
+   * thing said shorter, never something else.
+   */
+  readonly metaDescription?: string;
   /** Calendar date of first publication, `YYYY-MM-DD`. Never a guess. */
   readonly publishedAt: string;
   /** Calendar date of the last substantive edit, when there has been one. */

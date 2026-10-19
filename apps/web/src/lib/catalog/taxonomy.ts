@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
@@ -38,8 +39,13 @@ export async function getCategorySourceKey(slug: string): Promise<string | null>
  * categories are read for the brewing systems they name, and instant coffee
  * is in none, whatever shelf it is filed on; `brandHasInstantCoffee` says
  * whether the brand has any.
+ *
+ * Read once per request (React `cache`): a brand's page, its metadata and its
+ * share card's metadata all ask the same question.
  */
-export async function listBrandCategoryKeys(brandSlug: string): Promise<readonly CategoryKey[]> {
+export const listBrandCategoryKeys = cache(async function listBrandCategoryKeys(
+  brandSlug: string,
+): Promise<readonly CategoryKey[]> {
   return db
     .selectDistinct({ slug: categories.slug, sourceKey: categories.sourceKey })
     .from(products)
@@ -48,14 +54,16 @@ export async function listBrandCategoryKeys(brandSlug: string): Promise<readonly
     .innerJoin(categories, eq(categories.id, productCategories.categoryId))
     .where(and(eq(products.status, "active"), eq(brands.slug, brandSlug), isNotInstantCoffee))
     .orderBy(asc(categories.slug));
-}
+});
 
-/** Whether a brand has instant coffee on sale, by the products' own names. */
-export async function brandHasInstantCoffee(brandSlug: string): Promise<boolean> {
+/** Whether a brand has instant coffee on sale, by the products' own names. Once per request. */
+export const brandHasInstantCoffee = cache(async function brandHasInstantCoffee(
+  brandSlug: string,
+): Promise<boolean> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(products)
     .innerJoin(brands, eq(brands.id, products.brandId))
     .where(and(eq(products.status, "active"), eq(brands.slug, brandSlug), isInstantCoffee));
   return (row?.count ?? 0) > 0;
-}
+});

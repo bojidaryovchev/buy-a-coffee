@@ -60,7 +60,8 @@ import MachineBrandPage, {
   dynamicParams,
   generateMetadata as machineMetadata,
 } from "@/app/(site)/[lang]/za-kafemashina/[brand]/page";
-import { absoluteUrl } from "@/config/site";
+import { absoluteUrl, siteConfig } from "@/config/site";
+import { INDEXABLE } from "@/lib/seo/robots";
 import { systemShelfLabel } from "../content/landing-copy";
 import { CALLBACK_SENTENCE } from "../content/order-callback";
 import { MACHINE_BRANDS } from "@/content/machines";
@@ -157,7 +158,9 @@ describe("a landing listing with nothing to list", () => {
 describe("a landing listing with products", () => {
   it("describes itself with the range of what it lists, and its own canonical", async () => {
     const metadata = await landingMetadata("bg", "lavazzaCapsules");
-    expect(metadata.title).toBe("Капсули Lavazza (Лаваца): Blue и за Nespresso");
+    expect(metadata.title).toEqual({
+      absolute: `Капсули Lavazza (Лаваца): Blue и за Nespresso | ${siteConfig.name}`,
+    });
     expect(metadata.description).toMatch(/От 0,33\s€ до 0,48\s€ на чаша\./);
     // The one sentence every page uses for how ordering works.
     expect(metadata.description).toContain(CALLBACK_SENTENCE);
@@ -276,18 +279,20 @@ describe("the machine-brand pages", () => {
   it("titles Tchibo for Cafissimo and every other brand generically", async () => {
     state.systemListing = { ...TWO_GROUPS, groups: [TWO_GROUPS.groups[0]!], count: 2 };
     const tchibo = await machineMetadata(params("tchibo"));
-    expect(tchibo.title).toBe(
-      "Капсули за Tchibo Cafissimo (Чибо Кафисимо) — пасват капсулите Caffitaly",
-    );
+    expect(tchibo.title).toEqual({
+      absolute: "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
+    });
     expect(tchibo.description).toMatch(
       /2 вида капсули Caffitaly\. От 0,33\s€ до 0,48\s€ на чаша\./,
     );
 
     const krups = await machineMetadata(params("krups"));
-    expect(krups.title).toBe("Капсули и кафе за кафемашини Krups — кой модел какво приема");
-    expect((await machineMetadata(params("jura"))).title).toBe(
-      "Кафе за кафемашини Jura — кой модел какво приема",
-    );
+    expect(krups.title).toEqual({
+      absolute: "Капсули и кафе за кафемашини Krups — какво пасва",
+    });
+    expect((await machineMetadata(params("jura"))).title).toEqual({
+      absolute: `Кафе за кафемашини Jura — какво пасва | ${siteConfig.name}`,
+    });
   });
 
   it("leads the Tchibo page with which capsules fit, lists them, then the models", async () => {
@@ -385,12 +390,32 @@ describe("the consumables page", () => {
   it("indexes again by itself once the catalog files a product under it", async () => {
     state.consumablesListed = true;
     const metadata = await consumablesMetadata(props());
-    expect(metadata.robots).toBeUndefined();
+    /* Stated, not left undefined: `robots: undefined` erases the layout's
+       directive rather than inheriting it (`lib/seo/robots.ts`). */
+    expect(metadata.robots).toEqual(INDEXABLE);
     expect(metadata.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi"));
     // A filtered view of the listing still consolidates on the clean page.
-    expect((await consumablesMetadata(props({ sort: "price-asc" }))).robots).toEqual({
-      index: false,
-      follow: true,
+    const sorted = await consumablesMetadata(props({ sort: "price-asc" }));
+    expect(sorted.robots).toEqual({ index: false, follow: true });
+    expect(sorted.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi"));
+  });
+
+  /* Page two is not indexed, but it is a page of its own: its own canonical,
+     its own title. Naming page one while asking not to be indexed mixed two
+     signals (`lib/seo/pagination.ts`). */
+  it("names page two as itself, under a title that says which page it is", async () => {
+    state.consumablesListed = true;
+    const second = await consumablesMetadata(props({ page: "2" }));
+    expect(second.robots).toEqual({ index: false, follow: true });
+    expect(second.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi?page=2"));
+    expect(second.alternates?.languages).toEqual({
+      bg: absoluteUrl("/bg/konsumativi?page=2"),
+      "x-default": absoluteUrl("/bg/konsumativi?page=2"),
     });
+    expect(JSON.stringify(second.title)).toContain("— страница 2");
+    expect(second.openGraph).toMatchObject({ url: absoluteUrl("/bg/konsumativi?page=2") });
+    // Sorted and on page two is still an arrangement of the clean listing.
+    const sortedSecond = await consumablesMetadata(props({ page: "2", sort: "price-asc" }));
+    expect(sortedSecond.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi"));
   });
 });

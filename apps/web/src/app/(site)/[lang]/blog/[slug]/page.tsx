@@ -19,11 +19,14 @@ import {
   summariseArticle,
 } from "@/lib/journal";
 import { articleJsonLd } from "@/lib/seo/article-json-ld";
+import { articleCard } from "@/lib/seo/og/article-card";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { NOINDEX } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * One journal article.
@@ -67,19 +70,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const article = getArticle(slug);
   // A moved article has no metadata of its own: the page answers 308 instead.
   if (!article && getMovedArticle(slug)) return {};
-  if (!article) return { title: "Статията не е намерена", robots: { index: false, follow: true } };
+  if (!article) return { title: "Статията не е намерена", robots: NOINDEX };
 
   const summary = summariseArticle(article);
 
   return {
-    title: summary.title,
-    description: summary.description,
+    title: pageTitle(summary.title),
+    description: summary.metaDescription,
     alternates: pageAlternates(locale, summary.href),
     ...shareMetadata({
       locale,
       title: summary.title,
-      description: summary.description,
+      description: summary.metaDescription,
       path: href(locale, summary.href),
+      // Its own card, named in full: the same address its structured data gives.
+      image: articleCard(summary, locale),
       article: {
         publishedTime: articleDate(summary.publishedAt).toISOString(),
         modifiedTime: articleDate(summary.modifiedAt).toISOString(),
@@ -116,7 +121,10 @@ export default async function JournalArticlePage({ params }: PageProps) {
   return (
     <div className="shell pb-16">
       <JsonLd id="ld-breadcrumbs" data={breadcrumbJsonLd(breadcrumbs)} />
-      <JsonLd id="ld-article" data={articleJsonLd(summary, locale)} />
+      <JsonLd
+        id="ld-article"
+        data={articleJsonLd({ ...summary, image: articleCard(summary, locale).url }, locale)}
+      />
       <Breadcrumbs items={breadcrumbs} />
 
       <article>

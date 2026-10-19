@@ -64,7 +64,9 @@ for (const landing of LANDINGS) {
       await page.goto(landing.path);
       const description = await page.locator('meta[name="description"]').getAttribute("content");
       expect(description).toMatch(/\d,\d\d\s€(?: до (?:≈ )?\d+,\d\d\s€)? на чаша/);
+      // The callback, whole, within the 160 characters a result shows.
       expect(description).toMatch(/телефон/);
+      expect([...description!].length).toBeLessThanOrEqual(160);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         "href",
         new RegExp(`${landing.path}$`),
@@ -172,7 +174,7 @@ test.describe("the Tchibo machine page", () => {
     const response = await page.goto(path);
     expect(response?.status()).toBe(200);
     await expect(page.locator("h1")).toHaveText("Капсули за Tchibo Cafissimo");
-    await expect(page).toHaveTitle(/^Капсули за Tchibo Cafissimo \(Чибо Кафисимо\)/);
+    await expect(page).toHaveTitle(/^Капсули за Tchibo Cafissimo \(Чибо\) — пасват Caffitaly/);
     await expectNoHeadingSkips(page);
 
     const cards = page.locator(`main ${PRODUCT_LINK}`);
@@ -212,7 +214,7 @@ test.describe("the Tchibo machine page", () => {
 test("another machine brand keeps the generic heading and lists no products", async ({ page }) => {
   await page.goto(BG.machineBrand("krups"));
   await expect(page.locator("h1")).toHaveText("Кафемашини Krups: какво им пасва");
-  await expect(page).toHaveTitle(/^Капсули и кафе за кафемашини Krups — кой модел какво приема/);
+  await expect(page).toHaveTitle(/^Капсули и кафе за кафемашини Krups — какво пасва/);
   await expect(page.locator(`main ${PRODUCT_LINK}`)).toHaveCount(0);
 });
 

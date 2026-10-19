@@ -8,6 +8,8 @@ import {
   type LandingId,
 } from "@/lib/catalog/landings";
 import { systemCategory } from "@/lib/routes";
+import { fitDescription } from "@/lib/seo/description";
+import { TITLE_LIMIT, titleLength } from "@/lib/seo/title";
 import { categoryNameFor } from "./category-copy";
 import {
   getBrewingSystem,
@@ -76,10 +78,16 @@ const sentence = (text: string): string => `${text.charAt(0).toUpperCase()}${tex
 /** The order is by phone callback; every meta description ends on it. */
 export { CALLBACK_SENTENCE };
 
-/** Range and callback: the two things a search snippet of ours can say. */
-function closing(facts: LandingFacts): string {
+/**
+ * Range and callback: the two things a search snippet of ours can say, in
+ * that order, after the page's own sentences. `fitDescription` keeps each
+ * only while the description still fits a result.
+ */
+function closing(facts: LandingFacts): readonly string[] {
   const range = cupRangeText(facts);
-  return [range ? sentence(range) : null, CALLBACK_SENTENCE].filter(Boolean).join(" ");
+  return [range ? sentence(range) : null, CALLBACK_SENTENCE].filter(
+    (part): part is string => part !== null,
+  );
 }
 
 /* --- Naming a system in a sentence -------------------------------------- */
@@ -136,14 +144,21 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
     h1: "Капсули Lavazza",
     title: ({ systems }) => {
       const names = systems.map((system) => LAVAZZA_TITLE_NAMES[system.id] ?? system.name);
-      return names.length > 0
-        ? `Капсули Lavazza (Лаваца): ${joinList(names)}`
-        : "Капсули Lavazza (Лаваца)";
+      const listed = `Капсули Lavazza (Лаваца): ${joinList(names)}`;
+      if (names.length === 0) return "Капсули Lavazza (Лаваца)";
+      // The systems by name while they fit a search result; past that, the
+      // page says how it is arranged and its heading lists them.
+      return titleLength(listed) <= TITLE_LIMIT ? listed : "Капсули Lavazza (Лаваца) по системи";
     },
     description: (facts) =>
-      `Капсули Lavazza, подредени по система: ${joinList(
-        facts.systems.map((system) => system.name),
-      )}. ${closing(facts)}`,
+      fitDescription(
+        // The systems by their short names, as the title gives them, so the
+        // range and the callback still fit a search result after them.
+        `Капсули Lavazza по система: ${joinList(
+          facts.systems.map((system) => LAVAZZA_TITLE_NAMES[system.id] ?? system.name),
+        )}.`,
+        ...closing(facts),
+      ),
     intro: ({ systems }) =>
       systems.length > 1
         ? [
@@ -168,11 +183,14 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
     title: ({ commonPack }) =>
       `Кафе на зърна Lavazza (Лаваца) — ${commonPack ? `${commonPack}, ` : ""}цена на чаша`,
     description: (facts) =>
-      `${sentence(
-        `${pluralize(facts.count, "вид", "вида")} кафе на зърна Lavazza${
-          facts.commonPack ? ` в пакет от ${facts.commonPack}` : ""
-        }`,
-      )} ${closing(facts)}`,
+      fitDescription(
+        sentence(
+          `${pluralize(facts.count, "вид", "вида")} кафе на зърна Lavazza${
+            facts.commonPack ? ` в пакет от ${facts.commonPack}` : ""
+          }`,
+        ),
+        ...closing(facts),
+      ),
     intro: ({ count, commonPack }) => [
       `Тук е цялото кафе на зърна Lavazza, което предлагаме: ${pluralize(count, "вид", "вида")}${
         commonPack ? `, всеки в пакет от ${commonPack}` : ""
@@ -191,11 +209,13 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
       return words.length > 0 ? `Безкофеиново кафе — ${joinList(words)}` : "Безкофеиново кафе";
     },
     description: (facts) =>
-      `Безкофеиново кафе на ${joinList(
-        facts.methods.map((method) => METHOD_WORDS[method]),
-      )}. Общо ${pluralize(facts.count, "продукт", "продукта")} без кофеин, по системата на машината. ${closing(
-        facts,
-      )}`,
+      fitDescription(
+        // Products without caffeine, not coffees: two of them are drinks.
+        `Безкофеиново кафе на ${joinList(
+          facts.methods.map((method) => METHOD_WORDS[method]),
+        )} — ${pluralize(facts.count, "продукт", "продукта")} без кофеин.`,
+        ...closing(facts),
+      ),
     intro: ({ count }) => [
       `Тук е всичко без кофеин в магазина: ${pluralize(
         count,
@@ -227,9 +247,12 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
       return `${lead} — подредени по цена на чаша`;
     },
     description: (facts) =>
-      `Продуктите с най-ниска цена на чаша във всяка система: ${joinList(
-        facts.methods.map((method) => METHOD_WORDS[method]),
-      )}. ${closing(facts)}`,
+      fitDescription(
+        `Продуктите с най-ниска цена на чаша във всяка система: ${joinList(
+          facts.methods.map((method) => METHOD_WORDS[method]),
+        )}.`,
+        ...closing(facts),
+      ),
     intro: ({ methods }) => [
       "Цената на кутията не казва колко струва едно кафе: в различните опаковки има различен брой чаши. Затова тук подреждаме по цена на чаша.",
       `За всяка система показваме до ${CHEAPEST_PER_SYSTEM} продукта с най-ниска цена на чаша сред тези, които могат да се поръчат в момента.`,
@@ -268,7 +291,7 @@ export const landingLabels = {
   findMachine: "Намерете машината си по марка и модел",
   orderHeading: "Поръчка по телефона",
   orderBody:
-    "Няма количка и плащане онлайн. Оставяте телефон на страницата на продукта и ние ви се обаждаме, за да потвърдим поръчката. Можете и направо да ни позвъните:",
+    "Плащане онлайн няма. Събирате продуктите в количката или оставяте телефон на страницата на продукта, а ние ви се обаждаме, за да потвърдим поръчката. Можете и направо да ни позвъните:",
   llmsHeading: "Подбрани списъци",
 } as const;
 
@@ -283,12 +306,15 @@ export const landingLabels = {
  */
 export const machineBrandCopy = {
   title: (brandName: string, hasCapsuleMachines: boolean) =>
-    `${hasCapsuleMachines ? "Капсули и кафе" : "Кафе"} за кафемашини ${brandName} — кой модел какво приема`,
+    `${hasCapsuleMachines ? "Капсули и кафе" : "Кафе"} за кафемашини ${brandName} — какво пасва`,
   h1: (brandName: string) => `Кафемашини ${brandName}: какво им пасва`,
   description: (brandName: string, hasCapsuleMachines: boolean) =>
-    hasCapsuleMachines
-      ? `Коя капсула пасва на всеки модел ${brandName} — и какво от асортимента ни можете да поръчате за него. ${CALLBACK_SENTENCE}`
-      : `Какво кафе приема всеки модел ${brandName} — и какво от асортимента ни можете да поръчате за него. ${CALLBACK_SENTENCE}`,
+    fitDescription(
+      hasCapsuleMachines
+        ? `Коя капсула пасва на всеки модел ${brandName} — и какво от асортимента ни можете да поръчате за него.`
+        : `Какво кафе приема всеки модел ${brandName} — и какво от асортимента ни можете да поръчате за него.`,
+      CALLBACK_SENTENCE,
+    ),
 } as const;
 
 /**
@@ -309,17 +335,19 @@ export interface MachineBrandFeature {
 
 export const machineBrandFeatures: Readonly<Record<string, MachineBrandFeature>> = {
   tchibo: {
-    title: "Капсули за Tchibo Cafissimo (Чибо Кафисимо) — пасват капсулите Caffitaly",
+    title: "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
     h1: "Капсули за Tchibo Cafissimo",
     system: "caffitaly",
     lead: "По-долу са капсулите Caffitaly, които предлагаме в момента, с цената на чаша под всяка кутия. След тях са моделите Cafissimo, за които знаем, че приемат този формат.",
     listHeading: "Капсули Caffitaly, които стават за Cafissimo",
     description: (facts) =>
-      `Машините Tchibo Cafissimo приемат формата Caffitaly. ${
+      fitDescription(
+        "Машините Tchibo Cafissimo приемат формата Caffitaly.",
         facts.count > 0
-          ? `${sentence(`${pluralize(facts.count, "вид", "вида")} капсули Caffitaly`)} `
-          : ""
-      }${closing(facts)}`,
+          ? sentence(`${pluralize(facts.count, "вид", "вида")} капсули Caffitaly`)
+          : null,
+        ...closing(facts),
+      ),
   },
 };
 
@@ -349,7 +377,10 @@ export const machineKindCopy: Readonly<
   vending: {
     title: "Вендинг машини и автомати на зърна — какво кафе приемат",
     h1: "Вендинг машини: какво им пасва",
-    description: `Какво кафе приемат вендинг машините и автоматите на зърна — и какво от асортимента ни можете да поръчате за тях. ${CALLBACK_SENTENCE}`,
+    description: fitDescription(
+      "Какво кафе приемат вендинг машините и автоматите на зърна — и какво от асортимента ни можете да поръчате за тях.",
+      CALLBACK_SENTENCE,
+    ),
   },
 };
 

@@ -64,6 +64,20 @@
       "when": 1792405415322,
       "tag": "0008_order_inquiry_items",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792423517150,
+      "tag": "0009_newsletter_campaigns",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792428891888,
+      "tag": "0010_catalog_copywriter",
+      "breakpoints": true
     }
   ]
 }

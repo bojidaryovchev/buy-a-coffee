@@ -48,7 +48,8 @@ export default async function AdminPanelLayout({ children }: { children: React.R
             <span className="font-sans font-normal text-ink-500"> · Администрация</span>
           </Link>
 
-          <nav className="flex items-center gap-4 text-sm">
+          {/* Wraps rather than scrolls: six screens do not fit one line on a phone. */}
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <Link href="/admin/zayavki" className="text-ink-500 hover:text-ink-900">
               Заявки
             </Link>
@@ -68,6 +69,9 @@ export default async function AdminPanelLayout({ children }: { children: React.R
             </Link>
             <Link href="/admin/sinhron" className="text-ink-500 hover:text-ink-900">
               Синхронизация
+            </Link>
+            <Link href="/admin/tekstove" className="text-ink-500 hover:text-ink-900">
+              Текстове
             </Link>
           </nav>
 

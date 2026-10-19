@@ -522,7 +522,8 @@ export type EnrichmentColumn = (typeof ENRICHMENT_COLUMNS)[number];
 
 /**
  * What a move may write besides the key itself. Never the slug, never the
- * copy, never what enrichment stored.
+ * copy or its provenance, never a researched pack correction, never what
+ * enrichment stored.
  */
 export type ProductMoveColumns = Omit<
   PgUpdateSetSource<typeof products>,
@@ -539,6 +540,16 @@ export type ProductMoveColumns = Omit<
   | "descriptionHtmlOverride"
   | "retailPriceOverride"
   | "retailOldPriceOverride"
+  | "copyOrigin"
+  | "copySourceHash"
+  | "copyWrittenAt"
+  | "copyModel"
+  | "copyAttempts"
+  | "copyLastError"
+  | "packOverrideValue"
+  | "packOverrideUnit"
+  | "factsCheckedAt"
+  | "factsResearch"
 >;
 
 export interface ProductMoveInput {

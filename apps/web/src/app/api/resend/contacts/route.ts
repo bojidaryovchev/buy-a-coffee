@@ -1,13 +1,16 @@
 import { handleContactEvent } from "@/lib/newsletter/webhook";
 
 /**
- * Resend's contact webhook: unsubscribes made in Resend, back into our list —
- * an opt-out of this site's topic, or "unsubscribe from everything". See
- * `lib/newsletter/webhook.ts` for which events count and why.
+ * Resend's contact and delivery webhook: unsubscribes made in Resend, back
+ * into our list — an opt-out of this site's topic, "unsubscribe from
+ * everything", a deleted contact — and permanent bounces and complaints of our
+ * newsletter's copies. See `lib/newsletter/webhook.ts` for which events count
+ * and why.
  *
  * Register https://buy-a-coffee.com/api/resend/contacts in the Resend dashboard
- * under Webhooks, subscribed to `contact.updated` and `contact.deleted`, and put
- * the signing secret it hands back into RESEND_CONTACTS_WEBHOOK_SECRET. Its own
+ * under Webhooks, subscribed to `contact.updated`, `contact.topics.updated`,
+ * `contact.deleted`, `email.bounced` and `email.complained`, and put the
+ * signing secret it hands back into RESEND_CONTACTS_WEBHOOK_SECRET. Its own
  * endpoint and its own secret rather than a second event type on /api/inbound:
  * the two can then be rotated, paused and replayed independently, and a failure
  * in one never shows up as retries of the other.

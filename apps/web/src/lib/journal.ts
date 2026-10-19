@@ -26,6 +26,8 @@ export interface ArticleSummary {
   readonly href: `/${string}`;
   readonly title: string;
   readonly description: string;
+  /** What a search result and a shared link show: `metaDescription`, else `description`. */
+  readonly metaDescription: string;
   /** `YYYY-MM-DD`. */
   readonly publishedAt: string;
   /** `YYYY-MM-DD`; equals `publishedAt` until the article is revised. */
@@ -83,6 +85,7 @@ function summarise(article: Article): ArticleSummary {
     href: articlePath(article.slug),
     title: article.title,
     description: article.description,
+    metaDescription: article.metaDescription ?? article.description,
     publishedAt: article.publishedAt,
     modifiedAt,
     lastModified: articleDate(modifiedAt),

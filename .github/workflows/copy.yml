@@ -1,0 +1,230 @@
+# Catalog copywriter: our own text for synced products, after every sync.
+#
+# Runs `pnpm catalog:copy --apply` (apps/scraper/src/commands-catalog.ts):
+# products the sync brought in without copy of ours get a description written
+# by Claude Code headless (`claude -p` with the repository skill
+# `.claude/skills/catalog-copy`), and products whose pack size looks wrong are
+# researched on the web. Every text passes an originality audit before it is
+# written; see packages/scraper-core/src/catalog/copywriter/.
+#
+# It runs on the owner's Claude subscription: `claude setup-token` (on the
+# owner's machine) prints a long-lived token, stored here as the secret
+# CLAUDE_CODE_OAUTH_TOKEN. Without that secret the job says so in its summary
+# and succeeds - the shop works without the copywriter; products just keep
+# their generated one-sentence descriptions until it runs.
+#
+# LOGS ARE PUBLIC (see sync.yml). The job prints product slugs, counts and
+# audit verdicts only. Never add a step that echoes the environment, runs with
+# `set -x`, or prints a secret. ANTHROPIC_API_KEY is set empty on purpose: if
+# it were ever added to this repository it would silently take precedence over
+# the subscription token and bill the API instead.
+#
+# Configuration (names only):
+#   secrets    DATABASE_URL, CLAUDE_CODE_OAUTH_TOKEN, INDEXNOW_KEY (optional:
+#              the same key the storefront serves; announces changed pages)
+#   variables  COPY_LIMIT (products per run, default 40),
+#              CLAUDE_COPY_MODEL (default claude-opus-5-5)
+
+name: Catalog copywriter
+
+on:
+  workflow_run:
+    workflows: ["Catalog sync"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Run the model and write (off: print the plan only)"
+        type: boolean
+        default: false
+      limit:
+        description: "Products this run (blank for the default)"
+        type: string
+        required: false
+        default: ""
+      slugs:
+        description: "Only these products, comma-separated (blank for all)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Its own group, not the sync's: a copy run may overlap a sync safely. Every
+# write it makes is guarded in the statement itself (copy only over machine
+# copy; a pack only by id), and the sync keeps a researched size
+# (`keepResearchedPack`). Sharing the sync's group would let the platform drop
+# a pending run of one in favour of the other.
+concurrency:
+  group: catalog-copy
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    name: Write catalog copy
+    # After a successful SCHEDULED sync (not after a manual dry run), or by
+    # hand; never on a fork.
+    if: >-
+      !github.event.repository.fork &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Secrets are given only to the steps that use them, never to the job: the
+    # install steps run third-party install scripts.
+    env:
+      NODE_VERSION: "22"
+      # The version this was tested with; raise it deliberately.
+      CLAUDE_CODE_VERSION: "2.1.302"
+    steps:
+      - name: Check configuration
+        id: config
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          LIMIT: ${{ inputs.limit || vars.COPY_LIMIT }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error title=Copywriter is not configured::Missing secret DATABASE_URL."
+            exit 1
+          fi
+          if [ -n "$LIMIT" ] && ! [[ "$LIMIT" =~ ^[1-9][0-9]{0,3}$ ]]; then
+            echo "::error title=Bad input::limit must be a positive whole number."
+            exit 1
+          fi
+          node -e '
+            try {
+              const u = new URL(process.env.DATABASE_URL);
+              for (const v of [decodeURIComponent(u.password), u.hostname]) {
+                if (v) console.log("::add-mask::" + v);
+              }
+            } catch {
+              console.log("::error title=Copywriter is not configured::DATABASE_URL is not a valid URL.");
+              process.exit(1);
+            }
+          '
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::notice title=Copywriter skipped::Secret CLAUDE_CODE_OAUTH_TOKEN is not set (run 'claude setup-token' and add it under Settings > Secrets and variables > Actions)."
+            {
+              echo "### Catalog copywriter: skipped"
+              echo
+              echo "The secret CLAUDE_CODE_OAUTH_TOKEN is not set. Run \`claude setup-token\` and add its output as that secret."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.ready == 'true'
+        with:
+          # No GitHub token left in .git/config for anything later to find.
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        if: steps.config.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.config.outputs.ready == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+
+      # Never fails by itself: the exit code is judged by the steps after the
+      # summary, so the summary is written in every case.
+      - name: Run copywriter
+        id: copy
+        if: steps.config.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Empty on purpose: set, it would bill the API instead of the subscription.
+          ANTHROPIC_API_KEY: ""
+          CLAUDE_COPY_MODEL: ${{ vars.CLAUDE_COPY_MODEL }}
+          # Changed product pages are announced to IndexNow when the key is set.
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+          SITE_URL: https://buy-a-coffee.com
+          APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
+          LIMIT: ${{ inputs.limit || vars.COPY_LIMIT }}
+          SLUGS: ${{ inputs.slugs }}
+        run: |
+          args=()
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          if [ -n "$LIMIT" ]; then args+=(--limit "$LIMIT"); fi
+          if [ -n "$SLUGS" ]; then args+=(--slug "$SLUGS"); fi
+          set +e
+          pnpm catalog:copy "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/copy.out"
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          echo "Copywriter exited with code $code"
+
+      - name: Job summary
+        if: always() && steps.copy.outcome != 'skipped'
+        env:
+          EXIT_CODE: ${{ steps.copy.outputs.exit_code }}
+        run: |
+          node - <<'EOF'
+          const fs = require("node:fs");
+          const file = `${process.env.RUNNER_TEMP}/copy.out`;
+          const out = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+          const code = process.env.EXIT_CODE || "unknown";
+          const verdict = {
+            0: "succeeded",
+            1: "configuration error (is the Claude token valid?)",
+            2: "stopped early or some batches failed",
+            3: "failed",
+          }[code] ?? `unknown (exit ${code})`;
+
+          let result = null;
+          let block = null;
+          for (const line of out.split(/\r?\n/)) {
+            if (line === "{") block = [line];
+            else if (block && line === "}") {
+              block.push(line);
+              try {
+                const parsed = JSON.parse(block.join("\n"));
+                if (parsed && parsed.command === "catalog:copy") result = parsed;
+              } catch {}
+              block = null;
+            } else if (block) block.push(line);
+          }
+
+          const lines = [`### Catalog copywriter: ${verdict}`, ""];
+          if (result) {
+            lines.push(result.note, "");
+            lines.push("| Field | Value |", "| --- | --- |");
+            for (const key of ["model", "planned", "deferred", "batches", "copyWritten", "copyRejected", "researched", "packsCorrected", "failedBatches", "stopped"]) {
+              lines.push(`| ${key} | ${String(result[key]).replace(/\|/g, "\\|")} |`);
+            }
+            if (result.givenUp?.length) lines.push("", `Left for the owner after repeated failures: ${result.givenUp.join(", ")}`);
+          } else {
+            lines.push("No structured result was printed. See the log of the previous step.");
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          EOF
+
+      - name: "FAILED - stopped early (exit 2): usage limit, or batches failed"
+        if: steps.copy.outputs.exit_code == '2'
+        run: |
+          echo "::error title=Copywriter stopped early::A usage limit was reached or some batches failed. Nothing was written for those products; the next run retries them. See the summary."
+          exit 1
+
+      - name: "FAILED - misconfigured (exit 1): the Claude CLI could not run or sign in"
+        if: steps.copy.outputs.exit_code == '1'
+        run: |
+          echo "::error title=Copywriter misconfigured::The Claude CLI could not start or sign in. Is CLAUDE_CODE_OAUTH_TOKEN current? Tokens from 'claude setup-token' last a year."
+          exit 1
+
+      - name: "FAILED - crashed"
+        if: steps.copy.outputs.exit_code != '' && steps.copy.outputs.exit_code != '0' && steps.copy.outputs.exit_code != '1' && steps.copy.outputs.exit_code != '2'
+        run: |
+          echo "::error title=Copywriter failed::The copywriter exited with code ${{ steps.copy.outputs.exit_code }}. See the 'Run copywriter' log."
+          exit 1

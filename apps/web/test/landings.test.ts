@@ -22,6 +22,7 @@ import {
 import { relatedLandingLinks, type RelatedLink } from "@/lib/catalog/related-landings";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
 import { href, isReservedSlug } from "@/lib/routes";
+import { DESCRIPTION_LIMIT } from "@/lib/seo/description";
 import {
   CALLBACK_SENTENCE,
   cheapestGroupNote,
@@ -514,11 +515,17 @@ describe("the copy", () => {
     );
   });
 
-  it("puts the per-cup range and the phone callback in every description", () => {
+  it("puts the per-cup range in every description, and the callback wherever it fits", () => {
     for (const id of LANDING_IDS) {
       const description = landingCopy[id].description(facts());
       expect(description).toMatch(/[Оо]т 0,33\s€ до 0,48\s€ на чаша\./);
-      expect(description.endsWith(CALLBACK_SENTENCE)).toBe(true);
+      // Left out whole, never cut: only when the description has no room for it.
+      if (!description.endsWith(CALLBACK_SENTENCE)) {
+        expect([...`${description} ${CALLBACK_SENTENCE}`].length).toBeGreaterThan(
+          DESCRIPTION_LIMIT,
+        );
+      }
+      expect([...description].length).toBeLessThanOrEqual(DESCRIPTION_LIMIT);
     }
     expect(machineBrandFeatures.tchibo?.description(facts({ count: 9 }))).toMatch(
       /9 вида капсули Caffitaly\. От 0,33\s€ до 0,48\s€ на чаша\./,
@@ -582,17 +589,15 @@ describe("the copy", () => {
 
   it("titles the machine pages: Tchibo for Cafissimo, the rest generically", () => {
     expect(machineBrandFeatures.tchibo?.title).toBe(
-      "Капсули за Tchibo Cafissimo (Чибо Кафисимо) — пасват капсулите Caffitaly",
+      "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
     );
     expect(machineBrandFeatures.tchibo?.h1).toBe("Капсули за Tchibo Cafissimo");
     expect(machineBrandCopy.title("Krups", true)).toBe(
-      "Капсули и кафе за кафемашини Krups — кой модел какво приема",
+      "Капсули и кафе за кафемашини Krups — какво пасва",
     );
     expect(machineBrandCopy.h1("Krups")).toBe("Кафемашини Krups: какво им пасва");
     // A maker of bean-to-cup machines only is not promised capsules.
-    expect(machineBrandCopy.title("Jura", false)).toBe(
-      "Кафе за кафемашини Jura — кой модел какво приема",
-    );
+    expect(machineBrandCopy.title("Jura", false)).toBe("Кафе за кафемашини Jura — какво пасва");
   });
 
   it("keeps „капсули Lavazza“ and „без кофеин“ out of every other title", () => {

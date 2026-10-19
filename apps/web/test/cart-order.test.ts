@@ -238,14 +238,15 @@ describe("the confirmation mail", () => {
       callback: "Ще ви се обадим утре, в работно време.",
     });
 
-  it("goes out under the order's thread subject, with its reference", () => {
+  it("goes out under the order's thread subject, with its reference", async () => {
     expect(recordReference(ID)).toBe("A1B2C3D4");
-    expect(mail(null).subject).toBe(orderThreadSubject(ID));
-    expect(mail(null).text).toContain("Референцията ѝ е A1B2C3D4.");
+    const { subject, text } = await mail(null);
+    expect(subject).toBe(orderThreadSubject(ID));
+    expect(text).toContain("Референцията ѝ е A1B2C3D4.");
   });
 
-  it("names the products as the shop does, with prices and the sum", () => {
-    const { text } = mail(null);
+  it("names the products as the shop does, with prices and the sum", async () => {
+    const { text } = await mail(null);
     expect(text).toMatch(
       /2 × Lavazza Super Crema — кафе на зърна, 1 кг — 19,90\s€ за брой, 39,80\s€/,
     );
@@ -253,18 +254,20 @@ describe("the confirmation mail", () => {
     expect(text).toMatch(/Сума на продуктите: 39,80\s€, без 1 продукт с цена при запитване/);
   });
 
-  it("prints back the number it will ring and says when", () => {
-    const { text } = mail("Иван");
+  it("prints back the number it will ring and says when", async () => {
+    const { text } = await mail("Иван");
     expect(text.startsWith("Здравейте, Иван,")).toBe(true);
     expect(text).toContain("Ще ви се обадим утре, в работно време. Ще звъним на +359888123456.");
-    expect(mail(null).text.startsWith("Здравейте,\n")).toBe(true);
+    expect((await mail(null)).text.startsWith("Здравейте,\n")).toBe(true);
   });
 
-  it("promises nothing the call has not confirmed, and ends with the shop's signature", () => {
-    const { text, html } = mail(null);
+  it("promises nothing the call has not confirmed, and ends with the shop's signature", async () => {
+    const { text, html } = await mail(null);
     expect(text).toContain("поръчка има едва след този разговор");
     expect(text).toMatch(/\n--\n/);
-    expect(html).toContain("white-space:pre-wrap");
+    // The HTML part is the letterhead template; `emails.test.ts` checks it in full.
+    expect(html).toContain('lang="bg"');
+    expect(html).toContain("поръчка има едва след този разговор");
     expect(html).not.toContain("<script");
   });
 });

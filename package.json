@@ -29,6 +29,7 @@
     "catalog:verify": "pnpm --filter @catalog/scraper cli catalog:verify",
     "catalog:link": "pnpm --filter @catalog/scraper cli catalog:link",
     "catalog:enrich": "pnpm --filter @catalog/scraper cli catalog:enrich",
+    "catalog:copy": "pnpm --filter @catalog/scraper cli catalog:copy",
     "test:e2e": "pnpm --filter @catalog/web test:e2e",
     "reference:coverage": "pnpm --filter @catalog/web reference:coverage",
     "measure:budgets": "pnpm --filter @catalog/web measure:budgets",

@@ -1,5 +1,5 @@
 import "server-only";
-import { asHtml } from "./html";
+import { composeOwnerNotificationEmail } from "@/emails/owner-notification";
 import { MAIL_FROM, NOTIFY_TO, adminUrl } from "./identity";
 import type { Notification, NotificationSink } from "@/lib/notifications";
 
@@ -40,6 +40,41 @@ const LABEL: Record<Notification["kind"], string> = {
   sync_alert: "проблем със синхронизацията на каталога",
 };
 
+/** The few words over the heading in the HTML part. */
+const HEADLINE: Record<Notification["kind"], string> = {
+  order_inquiry: "Нова заявка",
+  contact_message: "Ново съобщение",
+  newsletter_signup: "Нов абонат",
+  sync_alert: "Синхронизация",
+};
+
+/**
+ * Both parts of the notification mail. The text part reads as it always has:
+ * the summary, the link, and under the signature delimiter what this is and
+ * where the contact details are. The HTML part says the same in the
+ * letterhead, with an order's lines as a table. Exported for
+ * `test/owner-notices.test.ts`, which checks what reaches it.
+ */
+export function composeNotificationEmail(
+  notification: Notification,
+): Promise<{ text: string; html: string }> {
+  return composeOwnerNotificationEmail({
+    label: HEADLINE[notification.kind],
+    subject: notification.subject,
+    summary: notification.summary,
+    ...(notification.lines ? { lines: notification.lines } : {}),
+    link: adminUrl(DESTINATION[notification.kind](notification.recordId)),
+    footnote: [
+      `Автоматично известие за ${LABEL[notification.kind]}.`,
+      /* An operational alert holds no customer, so the reassurance would be a
+         non-sequitur in it. */
+      ...(notification.kind === "sync_alert"
+        ? []
+        : ["Данните за контакт са в записа, не в това писмо."]),
+    ],
+  });
+}
+
 /**
  * Send, or throw.
  *
@@ -55,21 +90,7 @@ export const resendSink: NotificationSink = {
     if (!key) throw new Error("RESEND_API_KEY is not set");
     if (!NOTIFY_TO) throw new Error("MAIL_TO is not set");
 
-    const link = adminUrl(DESTINATION[notification.kind](notification.recordId));
-
-    const text = [
-      notification.summary,
-      "",
-      `Отворете в панела: ${link}`,
-      "",
-      "--",
-      `Автоматично известие за ${LABEL[notification.kind]}.`,
-      /* An operational alert holds no customer, so the reassurance would be a
-         non-sequitur in it. */
-      ...(notification.kind === "sync_alert"
-        ? []
-        : ["Данните за контакт са в записа, не в това писмо."]),
-    ].join("\n");
+    const { text, html } = await composeNotificationEmail(notification);
 
     const { Resend } = await import("resend");
     const { error } = await new Resend(key).emails.send({
@@ -77,7 +98,7 @@ export const resendSink: NotificationSink = {
       to: NOTIFY_TO,
       subject: notification.subject,
       text,
-      html: asHtml(text),
+      html,
     });
 
     if (error) throw new Error(error.message);

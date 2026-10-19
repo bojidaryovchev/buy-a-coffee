@@ -1,25 +1,30 @@
 import "server-only";
 import { Resend } from "resend";
 import { findSubscriberByEmail, unsubscribeByEmail } from "@/lib/forms/unsubscribe";
+import { recordDeliveryProblem } from "./bounces";
 
 /**
- * Resend's contact events, back into our list.
+ * Resend's contact and delivery events, back into our list.
  *
- * The other half of `sync.ts`. Every broadcast carries Resend's own unsubscribe
- * link, and using it changes the contact in Resend — not the row here. Without
- * this the admin panel would go on showing as active someone who left, and the
- * operator's "add to newsletter" would tell them the address is still on the
- * list.
+ * The other half of `sync.ts`. Resend's own pages — the preference page, its
+ * "unsubscribe from everything", the dashboard — change the contact in Resend,
+ * not the row here, and our newsletter is sent to the rows here without asking
+ * Resend. Without this, somebody who left there would go on receiving it.
  *
  * ONE ACCOUNT, FOUR SITES (see `sync.ts`), which decides what counts as leaving
  * THIS list:
  *
  *   - this site's topic switched to `opt_out` — the person left our newsletter
  *     from Resend's preference page, or the owner did it in the dashboard;
- *   - `unsubscribed: true` on the contact — "unsubscribe from everything",
- *     which silences every broadcast on the account, ours included;
+ *   - `unsubscribed: true` on the contact (`contact.updated`) — "unsubscribe
+ *     from everything". Resend applies it to broadcasts only, not to mail sent
+ *     through its API as ours is, so it is honoured here or nowhere: the
+ *     person asked for no mail at all;
  *   - `contact.deleted` — nothing will reach the address any more, whatever
- *     this table says.
+ *     this table says;
+ *   - `email.bounced` (permanent) and `email.complained` for a copy of OUR
+ *     newsletter, matched on Resend's id for that copy (`bounces.ts`) and
+ *     never on the address alone: the account's mail is four sites' mail.
  *
  * Each of those stamps `unsubscribed_at`; the row is never deleted. Anything
  * else is ignored — in particular a topic switched back to `opt_in`, because
@@ -37,9 +42,15 @@ import { findSubscriberByEmail, unsubscribeByEmail } from "@/lib/forms/unsubscri
  * Its own secret, RESEND_CONTACTS_WEBHOOK_SECRET, and not RESEND_WEBHOOK_SECRET:
  * that one belongs to the inbound-mail endpoint, and the two are rotated,
  * paused and replayed independently.
+ *
+ * EVENTS TO ENABLE on this webhook (https://buy-a-coffee.com/api/resend/contacts):
+ * `contact.updated`, `contact.topics.updated`, `contact.deleted`,
+ * `email.bounced`, `email.complained`. Anything else it receives is answered
+ * 200 and ignored.
  */
 
-type UnsubscribeReason = "topic_opt_out" | "global_unsubscribe" | "deleted";
+type UnsubscribeReason =
+  "topic_opt_out" | "global_unsubscribe" | "deleted" | "bounced" | "complained";
 
 export type ContactEventResult =
   /** The row was stamped. `reason` says which of the three it was. */
@@ -103,6 +114,9 @@ export async function handleContactEvent(
    * answers the question without a topic lookup.
    */
   const type = event.type as string;
+  if (type === "email.bounced" || type === "email.complained") {
+    return deliveryProblem(type, event.data as DeliveryEventData, event.created_at);
+  }
   if (
     type !== "contact.updated" &&
     type !== "contact.deleted" &&
@@ -198,5 +212,65 @@ export async function handleContactEvent(
     }
   } catch (error) {
     return { status: "failed", error: describe("recording the unsubscribe", error) };
+  }
+}
+
+/** Resend's bounce types are Amazon SES's: Permanent, Transient, Undetermined. */
+export function isPermanentBounce(bounce: { type?: string } | undefined): boolean {
+  return bounce?.type?.trim().toLowerCase() === "permanent";
+}
+
+interface DeliveryEventData {
+  email_id?: string;
+  bounce?: { type?: string; subType?: string; message?: string };
+}
+
+/**
+ * A bounce or a complaint. Only a permanent bounce counts — a full mailbox or
+ * a server that was down for an hour is not the address saying no — and only
+ * for a copy of our newsletter, which `recordDeliveryProblem` finds by the
+ * event's `email_id` alone.
+ */
+async function deliveryProblem(
+  type: "email.bounced" | "email.complained",
+  data: DeliveryEventData,
+  createdAt: string,
+): Promise<ContactEventResult> {
+  const emailId = data.email_id ?? "";
+  if (!emailId) return { status: "ignored", reason: "event without an email id" };
+
+  let problem: "bounced" | "complained";
+  let detail: string;
+  if (type === "email.bounced") {
+    if (!isPermanentBounce(data.bounce)) {
+      return { status: "ignored", reason: `bounce ${data.bounce?.type ?? "of unknown type"}` };
+    }
+    problem = "bounced";
+    detail = [
+      "Върнато за постоянно",
+      [data.bounce?.subType, data.bounce?.message].filter(Boolean).join(": "),
+    ]
+      .filter(Boolean)
+      .join(" — ");
+  } else {
+    problem = "complained";
+    detail = "Получателят го отбеляза като спам.";
+  }
+
+  const at = new Date(createdAt);
+  try {
+    const outcome = await recordDeliveryProblem(
+      problem,
+      emailId,
+      detail,
+      Number.isNaN(at.getTime()) ? new Date() : at,
+    );
+    if (outcome === "recorded") return { status: "unsubscribed", event: type, reason: problem };
+    return {
+      status: "ignored",
+      reason: outcome === "not_ours" ? "not a copy of this site's newsletter" : "already recorded",
+    };
+  } catch (error) {
+    return { status: "failed", error: describe(`recording the ${problem}`, error) };
   }
 }

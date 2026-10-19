@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
@@ -71,7 +72,25 @@ function scopeCondition(scope: ListingScope): SQL | undefined {
   }
 }
 
-export async function getListingFacts(scope: ListingScope): Promise<ListingFacts> {
+/**
+ * The facts of one listing. Read once per request for a listing named by
+ * kind and slug (React `cache`, keyed by those two, since a scope is a new
+ * object at every call): a page's metadata and its share card's metadata ask
+ * for the same one. A hand-picked set is read each time.
+ */
+export function getListingFacts(scope: ListingScope): Promise<ListingFacts> {
+  if (scope.kind === "products") return readListingFacts(scope);
+  return listingFactsOf(scope.kind, "slug" in scope ? scope.slug : "");
+}
+
+const listingFactsOf = cache(
+  (kind: Exclude<ListingScope["kind"], "products">, slug: string): Promise<ListingFacts> =>
+    readListingFacts(
+      kind === "category" || kind === "brand" ? { kind, slug } : ({ kind } as ListingScope),
+    ),
+);
+
+async function readListingFacts(scope: ListingScope): Promise<ListingFacts> {
   // An empty hand-picked set lists nothing, and `in ()` is not valid SQL.
   if (scope.kind === "products" && scope.slugs.length === 0) {
     return { productCount: 0, cupRange: null, uniformPieceCount: null };

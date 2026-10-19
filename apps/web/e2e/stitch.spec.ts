@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { BG } from "./support/paths";
+import { SHOP, characters, shopTitle } from "./support/titles";
 
 /**
  * The seams between the journal, the landing listings and the titled listing
@@ -15,26 +16,24 @@ import { BG } from "./support/paths";
  * that computed them with the code under test would pass whatever it said.
  */
 
-const SHOP = "Buy a Coffee";
-
 test.describe("one title format", () => {
   /* One page of every kind: a template title and an absolute one end alike. */
   const TITLES: ReadonlyArray<readonly [path: string, title: string]> = [
     [BG.beans, "Кафе на зърна — цена за кг и на чаша"],
     [BG.lavazzaCapsules, "Капсули Lavazza (Лаваца): Blue, A Modo Mio и за Nespresso"],
     [BG.decaf, "Безкофеиново кафе — капсули, дози и зърна"],
-    [BG.journal, "Блог"],
+    [BG.journal, "Блог за кафе: съвети за капсули, зърна и цена на чаша"],
     ["/bg/blog/vidove-kapsuli-za-kafe", "Видове капсули за кафе: коя пасва на вашата машина"],
     [BG.wizard, "Кое кафе е за вас"],
     [BG.machines, "Кои капсули пасват на моята машина"],
-    [BG.machineBrand("krups"), "Капсули и кафе за кафемашини Krups — кой модел какво приема"],
+    [BG.machineBrand("krups"), "Капсули и кафе за кафемашини Krups — какво пасва"],
     [BG.delivery, "Доставка и плащане"],
   ];
 
   for (const [path, title] of TITLES) {
-    test(`${path} ends with the bar and the shop's name`, async ({ page }) => {
+    test(`${path} ends with the bar and the shop's name, while it fits`, async ({ page }) => {
       await page.goto(path);
-      await expect(page).toHaveTitle(`${title} | ${SHOP}`);
+      await expect(page).toHaveTitle(shopTitle(title));
     });
   }
 
@@ -52,7 +51,11 @@ test.describe("one title format", () => {
     ]) {
       await page.goto(path);
       const title = await page.title();
-      expect(title.endsWith(` | ${SHOP}`), `${path}: ${title}`).toBe(true);
+      // The bar and the name, or — where they would run past sixty — neither.
+      if (!title.endsWith(` | ${SHOP}`)) {
+        expect(characters(`${title} | ${SHOP}`), `${path}: ${title}`).toBeGreaterThan(60);
+      }
+      expect(characters(title), `${path}: ${title}`).toBeLessThanOrEqual(60);
       expect(title, path).not.toContain(`— ${SHOP}`);
     }
   });
@@ -63,7 +66,10 @@ test.describe("one title format", () => {
     page,
   }) => {
     await page.goto(BG.journal);
-    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Блог");
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      "Блог за кафе: съвети за капсули, зърна и цена на чаша",
+    );
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", SHOP);
   });
 });

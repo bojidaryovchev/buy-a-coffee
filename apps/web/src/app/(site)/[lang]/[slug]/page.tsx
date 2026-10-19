@@ -7,6 +7,7 @@ import { href } from "@/lib/routes";
 import { businessSectionForCategory } from "../_lib/category-scope";
 import { CategoryPage, categoryMetadata } from "./_components/category-page";
 import { ProductPage, productMetadata } from "./_components/product-page";
+import { NOINDEX } from "@/lib/seo/robots";
 
 /**
  * Every category and every product, at the first level under the locale:
@@ -34,7 +35,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const locale = shippingLocale(lang);
   const resolved = await resolveSlug(locale, slug);
   if (!resolved || resolved.kind === "redirect") {
-    return { title: "Страницата не е намерена", robots: { index: false, follow: true } };
+    return { title: "Страницата не е намерена", robots: NOINDEX };
   }
   return resolved.kind === "category"
     ? categoryMetadata(locale, resolved.category, await searchParams)

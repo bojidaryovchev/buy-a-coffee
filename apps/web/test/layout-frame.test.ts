@@ -12,7 +12,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const catalog = vi.hoisted(() => ({
   tree: [] as unknown[],
-  products: [] as { slug: string; updatedAt: Date | null }[],
+  products: [] as Array<{
+    slug: string;
+    updatedAt: Date | null;
+    brandSlug?: string | null;
+    categoryKeys?: string[];
+    reduced?: boolean;
+    images?: string[];
+  }>,
   brands: [] as { slug: string; name: string }[],
   consumablesListed: false,
   /** Products each landing listing holds; zero means the page does not exist. */
@@ -31,6 +38,17 @@ vi.mock("@/lib/catalog/queries", () => ({
   listProducts: async () => ({ items: [] }),
   countPromotions: async () => catalog.promotions,
   countInstantCoffee: async () => 0,
+}));
+vi.mock("@/lib/catalog/sitemap-queries", () => ({
+  listSitemapProducts: async () =>
+    catalog.products.map((product) => ({
+      id: product.slug,
+      brandSlug: null,
+      categoryKeys: [],
+      reduced: false,
+      images: [],
+      ...product,
+    })),
 }));
 vi.mock("@/lib/catalog/vending", () => ({
   sectionListsProducts: async () => catalog.consumablesListed,
@@ -565,6 +583,67 @@ describe("the sitemap", () => {
 
     const product = entries.find((entry) => entry.url === absoluteUrl("/bg/kapsuli-a"));
     expect(product?.lastModified).toEqual(new Date("2026-05-01T00:00:00.000Z"));
+  });
+
+  it("lists a product's photographs, on the host they live on, and a brand's logo", async () => {
+    const blob = "https://j6xpmlta50zfdxeo.public.blob.vercel-storage.com/catalog/a/b/c.jpg";
+    catalog.products = [
+      {
+        slug: "kapsuli-a",
+        updatedAt: new Date("2026-05-01T00:00:00.000Z"),
+        images: [blob, "/media/catalog/d.jpg"],
+      },
+      { slug: "kapsuli-b", updatedAt: null },
+    ];
+    catalog.brands = [{ slug: "lavazza", name: "Lavazza" }];
+    const entries = await sitemap();
+    const product = entries.find((entry) => entry.url === absoluteUrl("/bg/kapsuli-a"));
+    expect(product?.images).toEqual([blob, absoluteUrl("/media/catalog/d.jpg")]);
+    // No photograph, no image entry — never an empty list or the placeholder.
+    const bare = entries.find((entry) => entry.url === absoluteUrl("/bg/kapsuli-b"));
+    expect(bare).not.toHaveProperty("images");
+    const brand = entries.find((entry) => entry.url === absoluteUrl("/bg/marki/lavazza"));
+    expect(brand?.images).toEqual([absoluteUrl("/brand-logos/lavazza.svg")]);
+  });
+
+  it("dates every listing by the newest change among what it shows, never by now", async () => {
+    const may = new Date("2026-05-01T00:00:00.000Z");
+    const june = new Date("2026-06-01T00:00:00.000Z");
+    const july = new Date("2026-07-01T00:00:00.000Z");
+    catalog.products = [
+      { slug: "a", updatedAt: may, brandSlug: "bianchi", categoryKeys: ["nespresso"] },
+      { slug: "b", updatedAt: june, brandSlug: "bianchi", categoryKeys: ["kafe-dozi"] },
+      { slug: "c", updatedAt: july, brandSlug: null, categoryKeys: ["dolce-gusto"], reduced: true },
+    ];
+    catalog.promotions = 1;
+    const entries = await sitemap();
+    const dated = (path: string) =>
+      entries.find((entry) => entry.url === absoluteUrl(path))?.lastModified;
+
+    // A system's shelf: its own product; the capsule parent: the newest under it.
+    expect(dated("/bg/nespresso-kapsuli")).toEqual(may);
+    expect(dated("/bg/kafe-kapsuli")).toEqual(july);
+    expect(dated("/bg/kafe-dozi")).toEqual(june);
+    expect(dated("/bg/marki/bianchi")).toEqual(june);
+    expect(dated("/bg/promotsii")).toEqual(july);
+    for (const hub of ["/bg", "/bg/kategorii", "/bg/marki"]) expect(dated(hub)).toEqual(july);
+    // A shelf with nothing on it has no date to give.
+    expect(dated("/bg/caffitaly-kapsuli")).toBeUndefined();
+  });
+
+  it("dates a legal page by its text, and gives the undated pages no date at all", async () => {
+    const entries = await sitemap();
+    const dated = (path: string) =>
+      entries.find((entry) => entry.url === absoluteUrl(path))?.lastModified;
+    for (const path of ["/bg/poveritelnost", "/bg/obshti-usloviya", "/bg/biskvitki"]) {
+      expect(dated(path)).toBeInstanceOf(Date);
+      expect((dated(path) as Date).getTime()).toBeLessThan(Date.now());
+    }
+    for (const path of ["/bg/izbor-na-kafe", "/bg/za-kafemashina", "/bg/kontakti"]) {
+      const entry = entries.find((candidate) => candidate.url === absoluteUrl(path));
+      expect(entry, path).toBeDefined();
+      expect(entry).not.toHaveProperty("lastModified");
+    }
   });
 
   it("lists nothing twice", async () => {

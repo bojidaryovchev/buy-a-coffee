@@ -63,7 +63,16 @@ export default function robots(): MetadataRoute.Robots {
           "/*?aromas=",
           "/*?category=",
           "/*?sort=",
-          "/*?page=",
+          /*
+           * Not `?page=`. The second page of a listing is `noindex, follow`
+           * with its canonical on the first, so it never competes with it in
+           * results — but it is the only page that links the products the
+           * first one has no room for. Disallowed, a crawl of 19 October 2026
+           * found products whose one link from a page a crawler may fetch was
+           * on page two of their listing and brand, reachable through the
+           * sitemap alone. A filter or a sort before `page` stays disallowed
+           * by its own line above.
+           */
           // The wizard's answer permutations. The unanswered wizard and the
           // machine pages stay crawlable; every answered state is the same
           // page with different state, exactly like a filtered listing.

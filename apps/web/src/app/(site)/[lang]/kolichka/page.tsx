@@ -7,6 +7,8 @@ import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 import { CartView } from "./_components/cart-view";
+import { NOINDEX } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * The cart, at `/bg/kolichka`.
@@ -37,7 +39,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   return {
-    title: TITLE,
+    title: pageTitle(TITLE),
     description: DESCRIPTION,
     alternates: pageAlternates(locale, routes.cart),
     ...shareMetadata({
@@ -46,7 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: DESCRIPTION,
       path: href(locale, routes.cart),
     }),
-    robots: { index: false, follow: true },
+    robots: NOINDEX,
   };
 }
 

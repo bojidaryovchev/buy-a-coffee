@@ -27,6 +27,8 @@ import {
   systemShelfLabel,
   type LandingFacts,
 } from "../../../../../content/landing-copy";
+import { NOINDEX } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 /**
  * The four landing listings, at `/<locale>/<their slug>`.
@@ -62,16 +64,23 @@ export async function landingMetadata(locale: Locale, id: LandingId): Promise<Me
   const view = await getLanding(id);
   const copy = landingCopy[id];
   // The page itself answers 404; this is only what that response is titled.
-  if (view.count === 0) return { title: copy.h1, robots: { index: false, follow: true } };
+  if (view.count === 0) return { title: copy.h1, robots: NOINDEX };
 
   const facts = factsOf(view);
   const title = copy.title(facts);
   const description = copy.description(facts);
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, LANDING_PATHS[id]),
-    ...shareMetadata({ locale, title, description, path: href(locale, LANDING_PATHS[id]) }),
+    ...shareMetadata({
+      locale,
+      title,
+      description,
+      path: href(locale, LANDING_PATHS[id]),
+      // Its own card (`opengraph-image.tsx` in the landing's folder).
+      image: "generated",
+    }),
   };
 }
 

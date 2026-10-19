@@ -45,7 +45,7 @@ export async function listHeroShelfCandidates(
 
   const rows = await db.execute(sql`
     select system_id, id, slug, name, source_key, previous_source_keys, weight_value,
-           weight_unit, brand_key, brand_name, category_keys,
+           weight_unit, pack_override_value, brand_key, brand_name, category_keys,
            object_key, public_url, alt, width, height, rank
     from (
       select
@@ -57,6 +57,7 @@ export async function listHeroShelfCandidates(
         p.previous_source_keys,
         p.weight_value,
         p.weight_unit,
+        p.pack_override_value,
         b.source_key as brand_key,
         b.name as brand_name,
         array(
@@ -127,6 +128,7 @@ export async function listHeroShelfCandidates(
       categoryKeys: row.category_keys as string[] | null,
       packValue: row.weight_value as string | null,
       packUnit: row.weight_unit as string | null,
+      packAuthoritative: row.pack_override_value !== null && row.pack_override_value !== undefined,
     }).full;
     candidates.push({
       id: String(row.id),

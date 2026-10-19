@@ -5,6 +5,8 @@ import { siteConfig } from "@/config/site";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/json-ld";
 import { shareDefaults } from "@/lib/seo/share";
 import { TITLE_TEMPLATE } from "@/lib/seo/title";
+import { INDEXABLE } from "@/lib/seo/robots";
+import { siteVerification } from "@/lib/seo/verification";
 import { JsonLd } from "@/components/seo/json-ld";
 import { HTML_LANG, SHIPPING_LOCALES } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -32,7 +34,9 @@ import "../../globals.css";
  * locales are prerendered.
  *
  * The indexable `robots` lives here rather than above, so the admin cannot
- * inherit it. Canonical and `hreflang` do not: Next shallow-merges
+ * inherit it. A page that is indexable only some of the time states its own
+ * through `robotsFor` (`lib/seo/robots.ts`): `robots: undefined` does not
+ * inherit this one, it erases it. Canonical and `hreflang` do not: Next shallow-merges
  * `alternates`, so every page declares both together (`lib/seo/alternates.ts`).
  */
 export function generateStaticParams(): LangParams[] {
@@ -50,6 +54,7 @@ export async function generateMetadata({
   const locale = await localeFrom(params);
   const { site } = getDictionary(locale);
   const title = `${siteConfig.name} — ${site.tagline}`;
+  const verification = siteVerification();
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -57,6 +62,16 @@ export async function generateMetadata({
     title: { default: title, template: TITLE_TEMPLATE },
     description: site.description,
     applicationName: siteConfig.name,
+    /*
+     * Added to an iPhone's home screen, the shop opens standalone under its
+     * short name, the one the manifest gives Android. iOS reads neither the
+     * manifest's `display` nor `theme_color` for this, only these tags.
+     * `black`: the page starts below a dark status bar, which sits against
+     * the pine strip at the top of every page; `default` would put a white
+     * bar above it, and `black-translucent` would lay the clock over the
+     * strip's phone number.
+     */
+    appleWebApp: { capable: true, title: siteConfig.shortName, statusBarStyle: "black" },
     formatDetection: { telephone: true },
     /*
      * For sharing, the layout says only what is true of every page: that it is
@@ -71,11 +86,9 @@ export async function generateMetadata({
      * and `e2e/i18n.spec.ts` fails on it. See `lib/seo/share.ts`.
      */
     ...shareDefaults(locale),
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: { index: true, follow: true, "max-image-preview": "large" },
-    },
+    robots: INDEXABLE,
+    // Search Console and Bing ownership tags, only once the owner supplies them.
+    ...(verification ? { verification } : {}),
   };
 }
 

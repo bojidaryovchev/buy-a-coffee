@@ -62,6 +62,8 @@ export default defineConfig({
         env: {
           ADMIN_PASSWORD: "e2e-only-not-a-real-password",
           ADMIN_SESSION_SECRET: "e2e-only-not-a-real-session-secret-0123456789",
+          // Served at /<key>.txt for `seo-audit.spec.ts`; no spec submits anything.
+          INDEXNOW_KEY: "e2e-only-indexnow-key-0123",
         },
         timeout: 120_000,
         stdout: "ignore",

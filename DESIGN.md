@@ -1770,7 +1770,9 @@ brewing system — an `h2`, one sentence and its grid, cheapest per cup first.
 **Body.** `lg:grid lg:grid-cols-[240px_1fr] lg:gap-8`.
 
 **Filter rail** (`lg` and up). `sticky top-[header height + 16px]`,
-`max-h-[calc(100dvh-…)] overflow-y-auto`. `FilterPanel`:
+`max-h-[calc(100dvh-…)] overflow-y-auto scrollbar-quiet`. The rail is the only
+scroll container; nothing inside it scrolls (the phone sheet follows the same
+rule). `FilterPanel`:
 
 - Head: "Филтри" in the Label style; when filters are active, a link "Изчисти
   всички (n)" in `text-xs text-pine-700 underline`.
@@ -1779,8 +1781,12 @@ font-semibold text-ink-900` and a chevron that rotates when open:
   1. **Система** — on listings that mix systems (search, brand, promotions,
      "Капсули"). Each option carries `data-system` and shows the system's
      16 px icon before the name.
-  2. **Марка** — hidden on a brand page. Scrolls internally past 8 options
-     (`max-h-64 overflow-y-auto`). Each option shows the brand's logo at size
+  2. **Марка** — hidden on a brand page. Any group of 11 or more options
+     shows its first 8 (most products first) and folds the rest into a
+     `<details>` whose summary reads "Покажи още {n}" / "Покажи по-малко" in
+     `text-sm text-pine-700`; it renders open when a folded option is
+     selected. Never an inner scroll box: it drew a second scrollbar beside
+     the rail's. Each option shows the brand's logo at size
      `facet` (`alt=""`, the name follows) between the checkbox and the name;
      a brand with no logo keeps the empty box, so the names line up. The row
      is the box's 40 px from `lg` (`lg:min-h-10`), and 44 px below it like
@@ -2403,6 +2409,38 @@ works.
 - `.skip-link` is the first focusable element and jumps to `main`.
 - Focus order follows reading order. A dialog traps focus and returns it.
 
+### Mail
+
+`src/emails/`, React Email, rendered to an HTML string by `renderEmail` and
+sent with a plain-text twin. Every message the shop sends is drawn in
+`EmailLayout`: the order confirmation, the owner's notifications, a reply from
+the panel and the newsletter. The inbound forward is the exception — a band
+over a stranger's own message, in the same palette.
+
+**Anatomy.** `paper` page; a 600 px `paper-raised` sheet with a `line` hairline,
+`rounded-md` and a 4 px `pine-900` top edge; the lockup at 200 px
+(`public/email-logo.png`, flattened on white so a client that darkens the
+message leaves it legible); content; then, under the sheet in `text-xs
+ink-500`, the shop's name, phone, address, hours and legal line — and, in a
+newsletter, why the reader gets it and the link to leave, first.
+
+**Type and colour.** Literata → Georgia for headings, the system sans for the
+rest (no web font loads in mail). Sizes from the scale, 11 px floor. Only the
+pairings in "Measured contrast": ink on paper tones, `pine-700` links, `paper`
+on `pine-900` buttons, `pine-900` on `pine-100` and ink on `caution-100`
+callouts. No gold, no clay.
+
+**Blocks.** `Heading`, `Paragraph`, `Button` (primary pine, secondary
+outlined), `Divider`, `KeyValueRows`, `OrderLines` (two columns: name with
+"2 бр. × 19,90 €" under it, the line total right; the sum and what it leaves
+out), `Callout`, `ImageBlock` (alt required), `AttachmentList`, `Signature`.
+
+**Never.** A relative URL, a `<style>` block, a colour not in `theme.ts`, an
+image that carries meaning without its text, HTML from the newsletter
+composer (its body is a Markdown subset, `emails/markdown.ts`, drawn by these
+components). `pnpm --filter @catalog/web email:preview` renders every template
+to files; `test/emails.test.ts` checks the rules above on the rendered HTML.
+
 ## Do's and Don'ts
 
 ### Do
@@ -2523,5 +2561,8 @@ against the code on 9 October 2026.
 - **Done. Controls with fixed heights.** Buttons, fields and the search field
   are `min-h-*` with padding.
 - **Done. Hex copies of `paper`** — `app/manifest.ts` (`background_color`) and
-  `app/opengraph-image.tsx` (`PAPER`) — hold the new `#faf6ee`; the mail
-  templates hold no copy of it. `pine-900` is unchanged (`#002c1d`).
+  `app/opengraph-image.tsx` (`PAPER`) — hold the new `#faf6ee`. The mail
+  letterhead holds the palette as hex in one file, `src/emails/theme.ts`,
+  because mail clients resolve no custom property; `test/emails.test.ts`
+  fails on a colour in a rendered message that is not in it. `pine-900` is
+  unchanged (`#002c1d`).

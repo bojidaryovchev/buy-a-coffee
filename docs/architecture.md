@@ -128,7 +128,7 @@ in. In order:
    `/categories/<slug>` is let through to a route handler,
    `app/categories/[slug]/route.ts`, which redirects in one hop.
 4. Anything else — a first segment that is not a shipping locale, `/en` while
-   English is off — is rewritten to Next's `/_not-found`.
+   English is off — is rewritten to the 404 (`NOT_FOUND` in `proxy.ts`).
 
 The admin panel, the API, `/media`, Next's internals, the share card and every
 file with an extension are excluded twice: by the matcher, and by `isUntouched`
@@ -137,13 +137,22 @@ in the same file.
 **The 404 is rendered on the server, and the proxy decides it.** In Next.js 16
 a page that calls `notFound()` answers with the right status and an empty
 `<html id="__next_error__">` that JavaScript fills in; with scripts off the
-page is blank. The one 404 Next renders as finished HTML is the `/_not-found`
-route, drawn by `src/app/global-not-found.tsx` (enabled by
-`experimental.globalNotFound` in `next.config.ts`), and only routing can send a
-request there. So for the URLs whose existence only the database knows, the
-proxy asks first: `catalogLookup` names the slug, `slugExists` in
-`lib/catalog/slug-exists.ts` answers, and a slug that names nothing is
-rewritten to `/_not-found`. Three kinds are checked:
+page is blank. The one 404 Next renders as finished HTML is the global one,
+drawn by `src/app/global-not-found.tsx` (enabled by
+`experimental.globalNotFound` in `next.config.ts`) for a URL no route matches,
+and only routing can send a request there. So for the URLs whose existence
+only the database knows, the proxy asks first: `catalogLookup` names the slug,
+`slugExists` in `lib/catalog/slug-exists.ts` answers, and a slug that names
+nothing is rewritten to `NOT_FOUND`, a path no route matches.
+
+**Not to Next's `/_not-found` route**, which it used to be. `next start`
+answers that route with 404; Vercel serves it as the prerendered page it is,
+with 200, so every dead link on production was a soft 404 — `noindex`, but a
+200 — while `/bg/a/b/c`, which matches nothing, was a real 404 all along.
+`test/proxy.test.ts` checks `NOT_FOUND` against every route under `src/app`.
+The 404 carries one robots tag, the `noindex` Next writes into every
+not-found render; the route's own address, `/_not-found`, is answered with
+`X-Robots-Tag: noindex` (`next.config.ts`). Three kinds are checked:
 
 | Kind          | URL                              | Exists when                                                                                                                         |
 | ------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -447,8 +456,11 @@ returns.
 Every control is an ordinary link, so filtering works without JavaScript, each
 view is shareable and bookmarkable, and the back button behaves. Selected
 filters are repeated as chips with a remove link each. On a phone the filters
-sit in a `<details>` disclosure. Filtered, sorted and paginated permutations are
-`noindex`, and the canonical tag always points at the clean first page.
+sit in a `<details>` disclosure. Filtered and sorted permutations are
+`noindex`, and their canonical tag points at the clean first page. Page two
+and later of the clean listing are `noindex, follow` too, but canonical to
+themselves and titled „— страница 2“: they are where a crawler finds the
+products page one has no room for (`lib/seo/pagination.ts`).
 
 ## Product availability and removal
 
@@ -1060,10 +1072,21 @@ is withheld.
   name (`og:site_name` carries the name) and its own description. Every page
   under `(site)/[lang]` that declares a canonical calls it, the shared builders
   `categoryMetadata`, `productMetadata` and `landingMetadata` included. A
-  product passes its photograph as the image when it has a real one, and every
-  other page shares the generated card (`SHARE_CARD` in `lib/seo/share-card.ts`,
-  drawn by `app/opengraph-image.tsx`); an article passes its dates and shares
-  as an `article`. A `noindex` view — a filtered or sorted listing, search, an
+  product, a category, a brand, a landing listing and an article each have a
+  card of their own, drawn on request by the `opengraph-image.tsx` beside the
+  page (`lib/seo/og/`: the pack whole on white beside its name, system, price
+  and price per cup; a listing's heading, count and cup range beside three
+  packs), and pass `image: "generated"`, which names no image so that Next
+  attaches the segment's file with its width, height and `alt`. A card's
+  id is a hash of what it shows (`cardId` in `lib/seo/og/data.ts`), so its URL
+  changes with a price and a network never keeps showing the old one; an
+  article names its card's URL itself, because the same URL is its
+  `Article.image` (`lib/seo/og/article-card.ts`). Every other
+  page shares the shop's card (`SHARE_CARD` in `lib/seo/share-card.ts`, drawn
+  by `app/opengraph-image.tsx`), named with its size and `alt`. The cards
+  draw with the site's own Literata and Inter, cut to Latin and Cyrillic, from
+  `apps/web/assets/og/` (`lib/seo/og/fonts.ts`); an article passes its dates
+  and shares as an `article`. A `noindex` view — a filtered or sorted listing, search, an
   answered wizard state — shares as its canonical. The unsubscribe page has no
   canonical and sends no `og:url`. `test/share.test.ts` reads the source and
   fails on a page that declares alternates without `shareMetadata`, or that
@@ -1071,13 +1094,21 @@ is withheld.
   every page") checks the tags a production build sends, and a new page type
   is added to its `pages` list.
 - `app/global-not-found.tsx` sets its own `metadataBase`, because no layout is
-  above it. One `metadataBase` warning is still printed at build. The likely
+  above it. A few `metadataBase` warnings are still printed at build. The likely
   cause, not a proven one, is that `app/opengraph-image.tsx` sits at the root,
   above the segment whose layout sets the base, so Next resolves it once
   without one before the layout's explicit image replaces it. No page sends a
   `localhost` URL; the browser suite asserts that.
 - `Organization`, `WebSite`, `Product` (with `sku` once enrichment has read the
-  code), `BreadcrumbList`, `ItemList` and `Article` JSON-LD. Shipping and return
+  code), `BreadcrumbList`, `ItemList` and `Article` JSON-LD. The organisation
+  is one node, `<origin>/#organization`, with its square logo; the offer's
+  `seller`, the website's and an article's `publisher` refer to it. A pack's
+  weight is a `QuantitativeValue` in grams (never the stored text, never a
+  count of capsules), a GTIN is published only when its check digit holds, and
+  a product off sale is `OutOfStock` or `Discontinued`, never `InStock`.
+  `test/helpers/structured-data.ts` checks every block against schema.org's
+  vocabulary and Google's requirements, offline, in the unit and browser
+  suites. Shipping and return
   policies appear on the offer only once the owner has confirmed the terms. The
   company's legal identity is omitted until it is filled in, rather than
   published as an invented identifier. No `aggregateRating` or reviews: the shop

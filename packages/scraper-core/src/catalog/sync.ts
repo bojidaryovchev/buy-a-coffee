@@ -385,6 +385,12 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
           // change type exists to prevent — and no slug is allocated.
           const productId = change.productId as string;
           const contentChanged = change.changedFields.includes("semanticHash");
+          const movedColumns = productColumns({
+            product,
+            syncRunId,
+            searchName,
+            brandId: product.brandKey ? (brandMap.get(product.brandKey) ?? null) : null,
+          });
           await applyProductMove(db, {
             syncRunId,
             productId,
@@ -395,12 +401,8 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
               sourceVariantKey: product.sourceVariantKey,
             },
             set: {
-              ...productColumns({
-                product,
-                syncRunId,
-                searchName,
-                brandId: product.brandKey ? (brandMap.get(product.brandKey) ?? null) : null,
-              }),
+              ...movedColumns,
+              ...keepResearchedPack(movedColumns),
               removedAt: null,
               lastSeenAt: sql`now()`,
               // A bare rename is not a content change.
@@ -695,8 +697,9 @@ async function upsertProduct(
 ): Promise<string> {
   const { product } = input;
 
+  const columns = productColumns(input);
   const values = {
-    ...productColumns(input),
+    ...columns,
     sourceSiteId: input.sourceSiteId,
     sourceKey: product.sourceKey,
     sourceUrl: product.sourceUrl,
@@ -712,6 +715,7 @@ async function upsertProduct(
       target: [products.sourceSiteId, products.sourceKey],
       set: {
         ...values,
+        ...keepResearchedPack(columns),
         // `slug` is intentionally omitted: it is allocated once and frozen.
         slug: sql`${products.slug}`,
         removedAt: null,
@@ -724,6 +728,27 @@ async function upsertProduct(
 
   if (!row) throw new Error(`Failed to upsert product ${product.sourceKey}`);
   return row.id;
+}
+
+/**
+ * The listing's pack columns - or, where research corrected the size, the
+ * row's own.
+ *
+ * A product with `pack_override_value` set was found by the catalog
+ * copywriter to be listed at the wrong size (see the column's comment); its
+ * pack columns hold the corrected size and the cups that follow from it, and
+ * the listing's figure must not put the wrong one back every six hours.
+ * Only an UPDATE can read the current row, so this is for the conflict branch
+ * of the upsert and for a move - a row being inserted has no correction.
+ */
+function keepResearchedPack(columns: ReturnType<typeof productColumns>) {
+  const corrected = sql`${products.packOverrideValue} is not null`;
+  return {
+    weightValue: sql`case when ${corrected} then ${products.weightValue} else ${columns.weightValue}::numeric end`,
+    weightUnit: sql`case when ${corrected} then ${products.weightUnit} else ${columns.weightUnit}::text end`,
+    servings: sql`case when ${corrected} then ${products.servings} else ${columns.servings}::numeric end`,
+    servingsEstimated: sql`case when ${corrected} then ${products.servingsEstimated} else ${columns.servingsEstimated}::boolean end`,
+  } satisfies ProductMoveColumns;
 }
 
 /**

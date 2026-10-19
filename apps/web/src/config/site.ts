@@ -289,8 +289,21 @@ export const siteConfig: SiteConfig = {
  */
 export const usingPlaceholderBrand = (): boolean => !siteConfig.legal.isComplete;
 
-/** Absolute URL for canonical tags, sitemaps and structured data. */
+/**
+ * Absolute URL for canonical tags, sitemaps and structured data.
+ *
+ * A URL that is already absolute is returned as it is. Product photographs
+ * live on the image host (`NEXT_PUBLIC_IMAGE_BASE_URL`, the Blob store), so in
+ * production `resolveImageUrl` hands back `https://….blob.vercel-storage.com/…`;
+ * prefixing the site's origin onto that once produced
+ * `https://buy-a-coffee.com/https://…` in every product's `og:image`,
+ * `twitter:image` and Product `image` — a 308 to a 404. Only a path is ours to
+ * anchor.
+ */
 export function absoluteUrl(pathname: string): string {
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(pathname)) return pathname;
+  // Protocol-relative: the scheme is ours, the host is not.
+  if (pathname.startsWith("//")) return `${new URL(siteConfig.url).protocol}${pathname}`;
   const base = siteConfig.url.replace(/\/+$/, "");
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return `${base}${path}`;

@@ -137,6 +137,19 @@ function CheckboxLink({
   );
 }
 
+/**
+ * A long group shows its first options and folds the rest away.
+ *
+ * It used to scroll inside itself, which put a second scrollbar beside the
+ * rail's own: the rail is already the scroll container on a desktop, and so is
+ * the sheet on a phone. A `<details>` folds the rest instead — no JavaScript,
+ * and the expanded state is announced. Options arrive most products first, so
+ * the fold keeps the likeliest picks in view.
+ */
+const FOLD_AFTER = 8;
+/** Folding fewer than this away would hide less than the toggle costs. */
+const FOLD_MIN_HIDDEN = 3;
+
 function MultiGroup({
   title,
   values,
@@ -153,21 +166,48 @@ function MultiGroup({
   filterKey: MultiFilterKey;
 }) {
   if (values.length === 0) return null;
+
+  const folds = values.length >= FOLD_AFTER + FOLD_MIN_HIDDEN;
+  const shown = folds ? values.slice(0, FOLD_AFTER) : values;
+  const folded = folds ? values.slice(FOLD_AFTER) : [];
+  // A selected option is never out of sight: its fold renders open.
+  const foldOpen = folded.some((facet) => selected.includes(facet.value));
+
+  const option = (facet: FacetValue) => (
+    <CheckboxLink
+      key={facet.value}
+      href={hrefFor(basePath, toggleFilterValue(query, filterKey, facet.value))}
+      checked={selected.includes(facet.value)}
+      label={facet.label}
+      count={facet.count}
+      {...(filterKey === "system" ? { systemId: facet.value } : {})}
+    />
+  );
+
   return (
     <FilterGroup title={title}>
-      {/* The padding is room for the focus ring, which a scroll container would clip. */}
-      <ul className="-mx-1 max-h-64 overflow-y-auto p-1">
-        {values.map((facet) => (
-          <CheckboxLink
-            key={facet.value}
-            href={hrefFor(basePath, toggleFilterValue(query, filterKey, facet.value))}
-            checked={selected.includes(facet.value)}
-            label={facet.label}
-            count={facet.count}
-            {...(filterKey === "system" ? { systemId: facet.value } : {})}
-          />
-        ))}
-      </ul>
+      <ul className="py-1">{shown.map(option)}</ul>
+      {folded.length > 0 && (
+        // A named group: the panel's own `<details>` is `group` already, and
+        // its chevron must not turn when this one opens.
+        <details open={foldOpen} className="group/fold">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-sm px-1 text-sm whitespace-nowrap text-pine-700 underline-offset-4 hover:underline lg:min-h-9 [&::-webkit-details-marker]:hidden">
+            <span className="group-open/fold:hidden">Покажи още {folded.length}</span>
+            <span className="hidden group-open/fold:inline">Покажи по-малко</span>
+            <svg
+              aria-hidden
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5 transition-transform group-open/fold:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+          <ul className="pb-1">{folded.map(option)}</ul>
+        </details>
+      )}
     </FilterGroup>
   );
 }

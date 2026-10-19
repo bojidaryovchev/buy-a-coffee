@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { OG_LOCALE, SHIPPING_LOCALES, type Locale } from "@/i18n/config";
-import { SHARE_CARD } from "./share-card";
+import { SHARE_CARD, SHARE_CARD_ALT, SHARE_CARD_SIZE } from "./share-card";
 
 /**
  * What a page says about itself when its link is shared: `openGraph` and
@@ -46,10 +46,18 @@ export interface ShareInput {
    */
   readonly path: string;
   /**
-   * A picture of the page's own subject, as an absolute URL: a product's
-   * photograph. Every other page shares the generated card.
+   * What the page shares as its picture.
+   *
+   *  - `"generated"`: the page's own card, drawn by the `opengraph-image.tsx`
+   *    beside it — a product, a category, a brand, an article. No `images`
+   *    are named here at all, which is what lets Next attach that file with
+   *    its width, height, type and `alt`; `twitter:image` follows it.
+   *  - an absolute URL, or the picture described in full: one that is already
+   *    the right shape — an article's card, which its structured data names
+   *    at the same address (`lib/seo/og/article-card.ts`).
+   *  - nothing: the shop's card (`app/opengraph-image.tsx`).
    */
-  readonly image?: string | null;
+  readonly image?: "generated" | string | ShareImage | null;
   /** Set by an article: its type and its dates, as ISO strings. */
   readonly article?: {
     readonly publishedTime: string;
@@ -59,6 +67,15 @@ export interface ShareInput {
 
 type Share = Required<Pick<Metadata, "openGraph" | "twitter">>;
 
+/** A picture named with what a preview lays it out by. */
+export interface ShareImage {
+  readonly url: string;
+  readonly width: number;
+  readonly height: number;
+  readonly alt: string;
+  readonly type: string;
+}
+
 /** The locales a page is also published in; empty while one locale ships. */
 const alternateLocales = (locale: Locale): string[] =>
   SHIPPING_LOCALES.filter((other) => other !== locale).map((other) => OG_LOCALE[other]);
@@ -67,8 +84,22 @@ const alternateLocales = (locale: Locale): string[] =>
  * The image, named explicitly. Setting `openGraph` at all drops the one
  * inherited from `app/opengraph-image.tsx` (see `share-card.ts`), and `undefined`
  * is the one value that must never reach `images`: it shares as a grey box.
+ * The shop's card is named with its size and `alt`, which a network uses to
+ * lay the preview out before it has fetched the picture, and a screen reader
+ * says.
  */
-const imagesOf = (image?: string | null) => [{ url: image || absoluteUrl(SHARE_CARD) }];
+const imagesOf = (image?: string | ShareImage | null) => [
+  typeof image === "object" && image !== null
+    ? { ...image }
+    : image
+      ? { url: image }
+      : {
+          url: absoluteUrl(SHARE_CARD),
+          ...SHARE_CARD_SIZE,
+          alt: SHARE_CARD_ALT,
+          type: "image/png",
+        },
+];
 
 /** What the storefront layout declares for every page beneath it. */
 export function shareDefaults(locale: Locale): Share {
@@ -96,7 +127,9 @@ export function shareMetadata({
   image,
   article,
 }: ShareInput): Share {
-  const images = imagesOf(image);
+  // A generated card is the page segment's own file, which Next attaches only
+  // while the page names no `images` of its own: not even an empty list.
+  const pictures = image === "generated" ? {} : { images: imagesOf(image) };
   const common = {
     siteName: siteConfig.name,
     title,
@@ -105,12 +138,12 @@ export function shareMetadata({
     url: absoluteUrl(path),
     locale: OG_LOCALE[locale],
     alternateLocale: alternateLocales(locale),
-    images,
+    ...pictures,
   };
   return {
     openGraph: article
       ? { type: "article", ...common, ...article }
       : { type: "website", ...common },
-    twitter: { card: "summary_large_image", title, description, images },
+    twitter: { card: "summary_large_image", title, description, ...pictures },
   };
 }

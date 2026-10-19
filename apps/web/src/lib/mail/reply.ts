@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { asHtml } from "./html";
-import { MAIL_FROM, MAIL_SIGNATURE } from "./identity";
+import { composeReplyEmail } from "@/emails/reply";
+import { MAIL_ADDRESS, MAIL_FROM, MAIL_SIGNATURE } from "./identity";
 import { contactThreadSubject, orderThreadSubject, recordReference } from "./reference";
 import {
   addMessage,
@@ -93,7 +93,17 @@ export async function sendReply(
   if (references.length > 0) headers.References = references.join(" ");
 
   const subject = replySubject(thread.subject);
-  const text = [body.trim(), "", ...SIGNATURE].join("\n");
+  /* The text part is the body and the signature, as it always was, and it is
+     also what the mailbox stores below; the HTML part is the same letter in
+     the letterhead (`emails/reply.tsx`). */
+  const { text, html } = await composeReplyEmail(
+    {
+      body,
+      senderAddress: MAIL_ADDRESS,
+      attachments: files.map((f) => ({ filename: f.filename, size: f.size })),
+    },
+    SIGNATURE,
+  );
 
   const { Resend } = await import("resend");
   const resend = new Resend(key);
@@ -102,7 +112,7 @@ export async function sendReply(
     from: MAIL_FROM,
     to,
     subject,
-    html: asHtml(text),
+    html,
     text,
     ...(Object.keys(headers).length > 0 ? { headers } : {}),
     ...(files.length > 0

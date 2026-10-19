@@ -61,6 +61,38 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
 
+    /**
+     * What Chrome's install sheet shows before someone installs: the richer
+     * dialog, rather than a bare "Install app?", needs one `narrow` picture
+     * for a phone and one `wide` for a desktop. Real pages of the shop, taken
+     * from a production build by `scripts/pwa-screenshots.ts` — not mock-ups,
+     * which would promise a screen the shop does not have. Sizes as written
+     * are checked against the files by `test/manifest.test.ts`.
+     */
+    screenshots: [
+      {
+        src: "/screenshots/home-narrow.jpg",
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow",
+        label: "Началната страница на телефон: кафе по машината, която имате",
+      },
+      {
+        src: "/screenshots/product-narrow.jpg",
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow",
+        label: "Продукт на телефон: опаковката, цената и цената на чаша",
+      },
+      {
+        src: "/screenshots/home-wide.jpg",
+        sizes: "1920x1080",
+        type: "image/jpeg",
+        form_factor: "wide",
+        label: "Началната страница на компютър",
+      },
+    ],
+
     /* The two things someone who installed this would open it for. */
     shortcuts: [
       {

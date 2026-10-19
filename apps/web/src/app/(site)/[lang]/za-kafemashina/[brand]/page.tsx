@@ -25,6 +25,8 @@ import {
   machineBrandNames,
   type LandingFacts,
 } from "../../../../../../content/landing-copy";
+import { NOINDEX } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 export const revalidate = 300;
 
@@ -78,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { lang, brand: slug } = await params;
   const locale = shippingLocale(lang);
   const brand = getMachineBrand(slug);
-  if (!brand) return { title: "Марката не е намерена", robots: { index: false, follow: true } };
+  if (!brand) return { title: "Марката не е намерена", robots: NOINDEX };
 
   const feature = machineBrandFeatures[brand.slug];
 
@@ -88,7 +90,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : machineBrandDescription(brand);
 
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, routes.machineBrand(brand.slug)),
     ...shareMetadata({

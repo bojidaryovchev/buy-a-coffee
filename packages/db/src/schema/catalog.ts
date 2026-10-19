@@ -211,6 +211,37 @@ export const products = pgTable(
     descriptionTextOverride: text("description_text_override"),
     descriptionHtmlOverride: text("description_html_override"),
 
+    /**
+     * Who wrote the override copy above, and from what.
+     *
+     * `copyOrigin` is `hand` for the curated file (`content/product-copy.ts`,
+     * written by `copy:apply`), `ai` for the catalog copywriter
+     * (`@catalog/scraper-core/catalog/copywriter`), and `edited` for an AI text
+     * the owner corrected in the admin. Only `ai` copy is ever rewritten by the
+     * machine: a person's words are never overwritten by one.
+     *
+     * `copySourceHash` is a hash of the facts the copy was written from (name,
+     * the source's description, pack, stated facts) - not `semanticHash`, which
+     * also moves with the price. When the hash of a product's current facts
+     * stops matching, its AI copy is stale and is written again.
+     *
+     * `copyAttempts`/`copyLastError` count consecutive failed attempts (the
+     * text did not pass the originality audit, or the run failed), so a product
+     * the copywriter cannot handle stops being retried every six hours and is
+     * shown to the owner instead.
+     *
+     * `copyWrittenAt` is when the override text was last written, whoever
+     * wrote it: the sitemap and the page date themselves by it
+     * (`productPageChangedAt` in the storefront). `copyModel` names the model
+     * behind `ai` copy.
+     */
+    copyOrigin: text("copy_origin"),
+    copySourceHash: text("copy_source_hash"),
+    copyWrittenAt: timestamp("copy_written_at", { withTimezone: true }),
+    copyModel: text("copy_model"),
+    copyAttempts: smallint("copy_attempts").notNull().default(0),
+    copyLastError: text("copy_last_error"),
+
     /** Raw pack-size text plus its normalised form. */
     weight: text("weight"),
     weightValue: numeric("weight_value", { precision: 14, scale: 4 }),
@@ -224,6 +255,30 @@ export const products = pgTable(
      */
     servings: numeric("servings", { precision: 14, scale: 4 }),
     servingsEstimated: boolean("servings_estimated"),
+
+    /**
+     * A researched correction of the pack size, and the research behind it.
+     *
+     * The sync owns the pack columns above and rewrites them every run from
+     * what the source lists. When the source contradicts itself (a name saying
+     * 18 pods over a pack field saying 100) or the result is implausible, the
+     * catalog copywriter researches the product on the open web. If it finds
+     * the size stated consistently by independent sources, and it differs from
+     * ours, the correction is written here *and* applied to the pack columns -
+     * and while it is set, the sync's upsert leaves the pack columns alone
+     * (`keepResearchedPack`), so the next run does not undo it. Clearing
+     * `packOverrideValue` (the admin's "Текстове" screen) hands the pack back
+     * to the source on the next sync, and the size turned down is kept in
+     * `factsResearch.rejected` so research never applies it again by itself.
+     *
+     * `factsResearch` keeps every check, applied or not - the verdict, the
+     * values found, the sources and the confidence - so the owner can see why a
+     * size changed, or why one that looked wrong was confirmed.
+     */
+    packOverrideValue: numeric("pack_override_value", { precision: 14, scale: 4 }),
+    packOverrideUnit: text("pack_override_unit"),
+    factsCheckedAt: timestamp("facts_checked_at", { withTimezone: true }),
+    factsResearch: jsonb("facts_research").$type<Record<string, unknown>>(),
 
     /**
      * Stated facts about the coffee, read from the source's product page.

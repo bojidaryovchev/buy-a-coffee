@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { SEEDED_FORMER_SLUGS } from "../scripts/reference-former-slugs";
+import { shopTitle } from "./support/titles";
 
 /**
  * A product's and a brand's identity on this site, as a crawler and a customer
@@ -148,7 +149,8 @@ test.describe("the product page", () => {
 
   test("is titled <Brand> <Line> — <format>, <qty> | <shop>", async ({ page }) => {
     await page.goto(`/bg/${CAPSULE.slug}`);
-    await expect(page).toHaveTitle(new RegExp(`^${CAPSULE.name} \\| \\S`));
+    // The shop's name follows while the whole fits sixty characters.
+    await expect(page).toHaveTitle(shopTitle(CAPSULE.name));
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
       CAPSULE.name,

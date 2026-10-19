@@ -23,6 +23,11 @@ const store = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/forms/unsubscribe", () => store);
 
+/* Bounces and complaints are matched against our deliveries in the database;
+   that half is `newsletter-campaigns.integration.test.ts`. */
+const bounces = vi.hoisted(() => ({ recordDeliveryProblem: vi.fn() }));
+vi.mock("@/lib/newsletter/bounces", () => bounces);
+
 const topics = vi.hoisted(() => ({ list: vi.fn() }));
 
 /* The real SDK — its `webhooks.verify` is part of what is tested — with the one
@@ -382,5 +387,84 @@ describe("the route's status codes", () => {
     store.unsubscribeByEmail.mockRejectedValue(new Error("connection reset"));
     const body = contactEvent("contact.deleted");
     expect((await post(body, svix(sign(body)))).status).toBe(500);
+  });
+});
+
+describe("bounces and complaints", () => {
+  /* Matched on Resend's id for the copy and nothing else: the account's mail
+     is four sites' mail, and an address alone could be another site's. */
+  const emailEvent = (
+    type: "email.bounced" | "email.complained",
+    extra: Record<string, unknown> = {},
+  ) =>
+    JSON.stringify({
+      type,
+      created_at: "2026-10-19T11:00:00.000Z",
+      data: {
+        email_id: "re_copy_1",
+        created_at: "2026-10-19T10:59:00.000Z",
+        from: "Buy a Coffee <info@buy-a-coffee.com>",
+        to: ["ivan@firma.bg"],
+        subject: "Новите кафета",
+        message_id: "<x@resend>",
+        ...extra,
+      },
+    });
+
+  it("takes a permanent bounce of one of our copies off the list", async () => {
+    bounces.recordDeliveryProblem.mockResolvedValue("recorded");
+    const result = await deliver(
+      emailEvent("email.bounced", {
+        bounce: { type: "Permanent", subType: "General", message: "550 no such user" },
+      }),
+    );
+    expect(result).toEqual({ status: "unsubscribed", event: "email.bounced", reason: "bounced" });
+    expect(bounces.recordDeliveryProblem).toHaveBeenCalledWith(
+      "bounced",
+      "re_copy_1",
+      expect.stringContaining("550 no such user"),
+      new Date("2026-10-19T11:00:00.000Z"),
+    );
+    // Never by address.
+    expect(store.findSubscriberByEmail).not.toHaveBeenCalled();
+    expect(store.unsubscribeByEmail).not.toHaveBeenCalled();
+  });
+
+  it("ignores a bounce that is not permanent", async () => {
+    const result = await deliver(
+      emailEvent("email.bounced", {
+        bounce: { type: "Transient", subType: "MailboxFull", message: "" },
+      }),
+    );
+    expect(result).toMatchObject({ status: "ignored" });
+    expect(bounces.recordDeliveryProblem).not.toHaveBeenCalled();
+  });
+
+  it("takes a complaint off the list", async () => {
+    bounces.recordDeliveryProblem.mockResolvedValue("recorded");
+    const result = await deliver(emailEvent("email.complained"));
+    expect(result).toEqual({
+      status: "unsubscribed",
+      event: "email.complained",
+      reason: "complained",
+    });
+    expect(bounces.recordDeliveryProblem).toHaveBeenCalledWith(
+      "complained",
+      "re_copy_1",
+      expect.any(String),
+      expect.any(Date),
+    );
+  });
+
+  it("answers 200 for another site's mail, which matches no copy of ours", async () => {
+    bounces.recordDeliveryProblem.mockResolvedValue("not_ours");
+    const result = await deliver(emailEvent("email.complained"));
+    expect(result).toEqual({ status: "ignored", reason: "not a copy of this site's newsletter" });
+  });
+
+  it("fails, so Resend retries, when the database does", async () => {
+    bounces.recordDeliveryProblem.mockRejectedValue(new Error("connection reset"));
+    const result = await deliver(emailEvent("email.complained"));
+    expect(result).toMatchObject({ status: "failed" });
   });
 });

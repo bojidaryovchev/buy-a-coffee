@@ -1,21 +1,20 @@
 import type { MetadataRoute } from "next";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { SHIPPING_LOCALES } from "@/i18n/config";
-import {
-  countPromotions,
-  getCategoryTree,
-  listAllProductSlugs,
-  listBrands,
-} from "@/lib/catalog/queries";
-import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
+import { countPromotions, getCategoryTree, listBrands } from "@/lib/catalog/queries";
+import { BUSINESS_SECTIONS, type BusinessSection } from "@/lib/catalog/business-sections";
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_IDS, LANDING_PATHS } from "@/lib/catalog/landings";
-import { sectionListsProducts } from "@/lib/catalog/vending";
+import { listSitemapProducts, type SitemapProduct } from "@/lib/catalog/sitemap-queries";
+import type { CategoryView } from "@/lib/catalog/types";
+import { listVendingBlends, sectionListsProducts } from "@/lib/catalog/vending";
 import { JOURNAL_PATH, listArticles } from "@/lib/journal";
 import { isSectionCategory } from "@/components/layout/navigation";
+import { LEGAL_REVISIONS } from "@/content/legal-revisions";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { languageAlternates, type LocalePath } from "@/lib/seo/alternates";
 import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
+import { brandLogoFor } from "../../content/brand-logos";
 
 /**
  * Sitemap.
@@ -41,10 +40,20 @@ import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes
  * the set belongs to the page. While Bulgarian alone ships, that is one `bg`
  * entry per page with a `bg` and an `x-default` alternate.
  *
- * `lastModified` is a real date wherever the data holds one — a product's last
- * genuine change, an article's revision date, the newest article for the
- * journal's index. Everywhere else it is the time of generation, which is the
- * honest answer for a page assembled from the live catalog.
+ * **`lastModified` is a real date or nothing.** A product's is its last
+ * genuine change. A listing's — a category, a brand, a landing, the
+ * promotions, the vending section, the home page and the two indexes — is the
+ * newest change among the products it shows. An article's is its revision
+ * date, the journal's its newest article's, a legal page's the day its text
+ * last changed (`content/legal-revisions.ts`). The pages nothing dates — the
+ * wizard, the machine finder, delivery, contact — carry none. It used to be
+ * the time of generation for all of those, which moves on every fetch; Google
+ * learns to ignore a `lastmod` like that, and then ignores the true ones too.
+ *
+ * **Images.** A product lists its photographs (image sitemaps, which Google
+ * reads for image search — an image pack is on 23 of the 28 result pages in
+ * `docs/seo.md` §4), and a brand page lists the brand's logo where we hold
+ * one. Absolute URLs, on the image host where the photographs live.
  *
  * Every URL appears once. The two business sections are listed by their own
  * pages; the day the sync files products under them, the categories behind
@@ -55,9 +64,10 @@ export const revalidate = 3600;
 
 interface Page {
   readonly path: LocalePath;
-  readonly lastModified: Date;
+  readonly lastModified: Date | undefined;
   readonly changeFrequency: NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
   readonly priority: number;
+  readonly images?: readonly string[];
 }
 
 const at =
@@ -65,58 +75,134 @@ const at =
   (locale) =>
     href(locale, canonical);
 
+/** The newest of the dates given, or undefined when none is known. */
+function newest(dates: ReadonlyArray<Date | null | undefined>): Date | undefined {
+  let latest: Date | undefined;
+  for (const date of dates) if (date && (!latest || date > latest)) latest = date;
+  return latest;
+}
+
+const changed = (products: readonly SitemapProduct[]) =>
+  newest(products.map((product) => product.updatedAt));
+
+function flatten(nodes: readonly CategoryView[]): CategoryView[] {
+  return nodes.flatMap((node) => [node, ...flatten(node.children)]);
+}
+
+/** Every key a category and the categories under it are filed by. */
+function subtreeKeys(category: CategoryView): Set<string> {
+  return new Set(
+    flatten([category]).flatMap((node) => [node.slug, ...(node.sourceKey ? [node.sourceKey] : [])]),
+  );
+}
+
+const filedUnder = (products: readonly SitemapProduct[], keys: ReadonlySet<string>) =>
+  products.filter((product) => product.categoryKeys.some((key) => keys.has(key)));
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [productSlugs, categories, brands, consumablesListed, landings, promotionCount] =
+  const [products, categories, brands, consumablesListed, landings, promotionCount, blends] =
     await Promise.all([
-      listAllProductSlugs(),
+      listSitemapProducts(),
       getCategoryTree(),
       listBrands({ withProductsOnly: true }),
       sectionListsProducts("consumables"),
       getLandingAvailability(),
       countPromotions(),
+      listVendingBlends(),
     ]);
 
-  const now = new Date();
+  const allCategories = flatten(categories);
+  const catalogChanged = changed(products);
+
+  /** What a business section lists: its category's shelf, and for vending the blends. */
+  const sectionChanged = (section: BusinessSection, extraSlugs: readonly string[] = []) => {
+    const keys = new Set(
+      allCategories
+        .filter(
+          (category) =>
+            section.categoryKeys.includes(category.slug) ||
+            (category.sourceKey !== null && section.categoryKeys.includes(category.sourceKey)),
+        )
+        .flatMap((category) => [...subtreeKeys(category)]),
+    );
+    const slugs = new Set(extraSlugs);
+    return changed(
+      products.filter(
+        (product) => slugs.has(product.slug) || product.categoryKeys.some((key) => keys.has(key)),
+      ),
+    );
+  };
+
+  const landingChanged = (members: readonly string[] | undefined) => {
+    const ids = new Set(members ?? []);
+    return changed(products.filter((product) => ids.has(product.id)));
+  };
+
+  const legalChanged = (slug: string) => {
+    const revision = LEGAL_REVISIONS[slug];
+    return revision ? new Date(`${revision.revisedAt}T00:00:00.000Z`) : undefined;
+  };
+
   const page = (
     path: LocalePath,
     changeFrequency: Page["changeFrequency"],
     priority: number,
-    lastModified: Date = now,
-  ): Page => ({ path, changeFrequency, priority, lastModified });
+    lastModified: Date | undefined,
+    images?: readonly string[],
+  ): Page => ({ path, changeFrequency, priority, lastModified, images });
 
   const pages: Page[] = [
-    page(at(routes.home), "daily", 1),
-    page(at(routes.categories), "weekly", 0.8),
-    page(at(routes.brands), "weekly", 0.7),
-    ...(promotionCount > 0 ? [page(at(routes.promotions), "daily", 0.7)] : []),
-    page(at(routes.wizard), "monthly", 0.8),
-    page(at(routes.machines), "monthly", 0.7),
-    page(at(BUSINESS_SECTIONS.vending.path), "weekly", 0.6),
-    ...(consumablesListed ? [page(at(BUSINESS_SECTIONS.consumables.path), "weekly", 0.6)] : []),
+    page(at(routes.home), "daily", 1, catalogChanged),
+    page(at(routes.categories), "weekly", 0.8, catalogChanged),
+    page(at(routes.brands), "weekly", 0.7, catalogChanged),
+    ...(promotionCount > 0
+      ? [
+          page(
+            at(routes.promotions),
+            "daily",
+            0.7,
+            changed(products.filter((product) => product.reduced)),
+          ),
+        ]
+      : []),
+    page(at(routes.wizard), "monthly", 0.8, undefined),
+    page(at(routes.machines), "monthly", 0.7, undefined),
+    page(
+      at(BUSINESS_SECTIONS.vending.path),
+      "weekly",
+      0.6,
+      sectionChanged(
+        BUSINESS_SECTIONS.vending,
+        blends.map((blend) => blend.slug),
+      ),
+    ),
+    ...(consumablesListed
+      ? [
+          page(
+            at(BUSINESS_SECTIONS.consumables.path),
+            "weekly",
+            0.6,
+            sectionChanged(BUSINESS_SECTIONS.consumables),
+          ),
+        ]
+      : []),
     // Listings, so they change as often as the shelves they are cut from.
     ...LANDING_IDS.filter((id) => landings.counts[id] > 0).map((id) =>
-      page(at(LANDING_PATHS[id]), "daily", 0.8),
+      page(at(LANDING_PATHS[id]), "daily", 0.8, landingChanged(landings.members?.[id])),
     ),
-    page(at(routes.delivery), "monthly", 0.5),
-    page(at(routes.contact), "monthly", 0.5),
-    page(at(routes.privacy), "yearly", 0.2),
-    page(at(routes.terms), "yearly", 0.2),
-    page(at(routes.cookies), "yearly", 0.2),
+    page(at(routes.delivery), "monthly", 0.5, undefined),
+    page(at(routes.contact), "monthly", 0.5, undefined),
+    page(at(routes.privacy), "yearly", 0.2, legalChanged("privacy")),
+    page(at(routes.terms), "yearly", 0.2, legalChanged("terms")),
+    page(at(routes.cookies), "yearly", 0.2, legalChanged("cookies")),
   ];
 
   // The journal costs nothing to list: its articles are files, not rows.
   const articles = siteConfig.features.blog ? listArticles() : [];
-  const newestArticle = articles.reduce<Date | null>(
-    (latest, article) =>
-      latest === null || article.lastModified > latest ? article.lastModified : latest,
-    null,
-  );
+  const newestArticle = newest(articles.map((article) => article.lastModified));
 
   // The index is only worth advertising once it lists something.
   if (newestArticle) pages.push(page(at(JOURNAL_PATH), "weekly", 0.4, newestArticle));
-
-  const flattenCategories = (nodes: typeof categories): typeof categories =>
-    nodes.flatMap((node) => [node, ...flattenCategories(node.children)]);
 
   pages.push(
     /*
@@ -125,14 +211,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * our own data rather than the catalog, so they are stable enough to
      * advertise.
      */
-    ...MACHINE_BRANDS.map((brand) => page(at(routes.machineBrand(brand.slug)), "monthly", 0.6)),
-    ...flattenCategories(categories)
+    ...MACHINE_BRANDS.map((brand) =>
+      page(at(routes.machineBrand(brand.slug)), "monthly", 0.6, undefined),
+    ),
+    ...allCategories
       .filter((category) => !isSectionCategory(category, BUSINESS_SECTIONS))
-      .map((category) => page((locale) => categoryHref(locale, category), "daily", 0.8)),
-    ...brands.map((brand) => page((locale) => brandHref(locale, brand), "weekly", 0.6)),
-    ...productSlugs.map((product) =>
+      .map((category) =>
+        page(
+          (locale) => categoryHref(locale, category),
+          "daily",
+          0.8,
+          changed(filedUnder(products, subtreeKeys(category))),
+        ),
+      ),
+    ...brands.map((brand) => {
+      const logo = brandLogoFor(brand.slug);
+      return page(
+        (locale) => brandHref(locale, brand),
+        "weekly",
+        0.6,
+        changed(products.filter((product) => product.brandSlug === brand.slug)),
+        logo ? [absoluteUrl(logo.file)] : undefined,
+      );
+    }),
+    ...products.map((product) =>
       // The catalog sync only moves `updatedAt` when the product genuinely changed.
-      page((locale) => productHref(locale, product), "weekly", 0.9, product.updatedAt ?? now),
+      page(
+        (locale) => productHref(locale, product),
+        "weekly",
+        0.9,
+        product.updatedAt ?? undefined,
+        product.images.map((image) => absoluteUrl(image)),
+      ),
     ),
     ...articles.map((article) => page(at(article.href), "monthly", 0.5, article.lastModified)),
   );
@@ -141,10 +251,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const languages = languageAlternates(entry.path);
     return SHIPPING_LOCALES.map((locale) => ({
       url: absoluteUrl(entry.path(locale)),
-      lastModified: entry.lastModified,
+      ...(entry.lastModified ? { lastModified: entry.lastModified } : {}),
       changeFrequency: entry.changeFrequency,
       priority: entry.priority,
       alternates: { languages },
+      ...(entry.images && entry.images.length > 0 ? { images: [...entry.images] } : {}),
     }));
   });
 

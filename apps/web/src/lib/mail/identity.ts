@@ -1,11 +1,13 @@
 import "server-only";
-import { siteConfig, absoluteUrl } from "@/config/site";
+import { siteConfig } from "@/config/site";
+import { mailUrl } from "@/emails/theme";
 
 /**
  * Who this shop sends as, resolved once.
  *
- * Three senders share it — the notification to the shop, the inbound forward,
- * and the admin's reply — and they must not each read `MAIL_FROM` their own
+ * Every sender shares it — the notification to the shop, the inbound forward,
+ * the admin's reply, the order confirmation and the newsletter — and they
+ * must not each read `MAIL_FROM` their own
  * way. The one that got it wrong would be whichever was added last, and the
  * symptom is a preview deploy quietly sending as the live brand.
  *
@@ -60,8 +62,9 @@ export const MAIL_SIGNATURE: readonly string[] = [
  * A link into the panel, absolute.
  *
  * Notification mail is read on a phone, away from the machine the panel was
- * last open on, so a relative path is useless. `absoluteUrl` derives it from
- * `NEXT_PUBLIC_SITE_URL`, which means a misconfigured origin produces a link to
- * localhost rather than a broken page — visible, and only in our own mail.
+ * last open on, so a relative path is useless. `mailUrl` points it at the
+ * deployment that sent it — `NEXT_PUBLIC_SITE_URL`, else a preview's own
+ * `VERCEL_URL` — so a preview's notification opens the preview's panel, whose
+ * database holds the record.
  */
-export const adminUrl = (path: string): string => absoluteUrl(path);
+export const adminUrl = (path: string): string => mailUrl(path);

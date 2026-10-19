@@ -34,43 +34,26 @@ import { LANDING_IDS } from "../src/lib/catalog/landings.ts";
 import { plainText } from "../src/lib/journal.ts";
 import { BREWING_SYSTEMS } from "../src/lib/recommend/systems.ts";
 import {
+  MAX_INTERNAL_RUN_WORDS,
   MAX_SOURCE_OVERLAP,
-  type ReferencePage,
-  type ReferenceProduct,
-  normalizeForComparison,
+  MAX_SOURCE_RUN_WORDS,
+  longestSharedRun,
   overlapRatio,
-  shingles,
-} from "./copy-audit.ts";
+  sharedShare,
+} from "@catalog/shared";
+import type { ReferencePage, ReferenceProduct } from "./copy-audit.ts";
 
-/**
- * The longest verbatim run of words a piece may share with a source text.
- *
- * Why a second measure beside `MAX_SOURCE_OVERLAP`: that ratio is the share of
- * the *source's* phrasing that survives, which is the right question for a
- * rewrite of that source. These pieces are not rewrites of any one description;
- * they are long texts of our own, and a lifted sentence is a small share of a
- * long source description (10 words of 60 is 11 %) while being exactly the
- * duplicate content the check exists to catch. So the ratio still applies
- * unchanged, and a run is judged on its own length.
- *
- * Eight words is the length of a sentence's worth of wording, not a coincidence
- * of vocabulary. Measured on the current content the longest run shared with
- * any source text is four words ("кафе за вендинг и автоматични"), so the
- * limit is twice the highest honest value.
+/*
+ * `MAX_SOURCE_RUN_WORDS` (8) and `MAX_INTERNAL_RUN_WORDS` (15), with the run
+ * and share measures, live in `@catalog/shared` beside the overlap ratio, so the
+ * catalog copywriter applies the same limits to machine-written copy. Why
+ * eight: a lifted sentence is a small share of a long source description yet
+ * exactly the duplicate this exists to catch, and the longest honest run on
+ * the current content is four words. Why fifteen between our own pieces: they
+ * legitimately repeat a stock explanation in their own words; a pasted
+ * sentence is what duplicates content, and the longest honest run is eleven.
  */
-export const MAX_SOURCE_RUN_WORDS = 8;
-
-/**
- * The longest verbatim run two of our own pieces may share.
- *
- * Higher than the source limit on purpose. Pieces on one site legitimately
- * repeat a stock explanation: the category introductions each say, in their
- * own words, that capsules of different systems do not fit each other's
- * machines. What duplicates content is a whole sentence or paragraph pasted
- * between pages. Measured on the current content the longest shared run is 11
- * words; 15 is a full sentence.
- */
-export const MAX_INTERNAL_RUN_WORDS = 15;
+export { MAX_INTERNAL_RUN_WORDS, MAX_SOURCE_RUN_WORDS, longestSharedRun, sharedShare };
 
 /** A piece of our own writing: what to call it and every word of it. */
 export interface OwnPiece {
@@ -110,40 +93,6 @@ export function collectStrings(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(collectStrings);
   if (value && typeof value === "object") return Object.values(value).flatMap(collectStrings);
   return [];
-}
-
-/**
- * Longest run of consecutive words two texts have in common, after folding
- * case and punctuation the same way the shingles do.
- */
-export function longestSharedRun(a: string, b: string): number {
-  const wordsA = normalizeForComparison(a).split(" ").filter(Boolean);
-  const wordsB = normalizeForComparison(b).split(" ").filter(Boolean);
-  let best = 0;
-  let previous = new Array<number>(wordsB.length + 1).fill(0);
-  for (let i = 1; i <= wordsA.length; i += 1) {
-    const current = new Array<number>(wordsB.length + 1).fill(0);
-    for (let j = 1; j <= wordsB.length; j += 1) {
-      if (wordsA[i - 1] === wordsB[j - 1]) {
-        current[j] = (previous[j - 1] ?? 0) + 1;
-        if ((current[j] as number) > best) best = current[j] as number;
-      }
-    }
-    previous = current;
-  }
-  return best;
-}
-
-/** Share of the smaller text's five-word phrases that the other also contains. */
-export function sharedShare(a: string, b: string): number {
-  const sa = shingles(a);
-  const sb = shingles(b);
-  const smaller = sa.size <= sb.size ? sa : sb;
-  const larger = smaller === sa ? sb : sa;
-  if (smaller.size === 0) return 0;
-  let shared = 0;
-  for (const shingle of smaller) if (larger.has(shingle)) shared += 1;
-  return shared / smaller.size;
 }
 
 export function auditOwnContent(

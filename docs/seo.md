@@ -801,6 +801,52 @@ both words (`KIND_SYNONYMS` in `apps/web/src/lib/catalog/search-synonyms.ts`).
 The vending page's title adds „на зърна и разтворимо“ while it lists both,
 and keeps its owned term, „кафе за вендинг машини“.
 
+### Search and sharing, finished (19 October 2026)
+
+An audit of production found the gaps a crawler and a share preview meet,
+outside the study's subject. What was fixed, and where:
+
+- **Product images.** `absoluteUrl` prefixed the site's origin onto the image
+  host's absolute URLs, so every product's `og:image`, `twitter:image` and
+  Product `image` was `https://buy-a-coffee.com/https://…blob…` — a 308 to a 404. An absolute URL now passes through (`apps/web/src/config/site.ts`).
+- **Share cards.** Products, categories, brands, the four landings and the
+  articles each draw their own 1200 × 630 card beside the page
+  (`opengraph-image.tsx`, `apps/web/src/lib/seo/og/`), in the site's faces
+  with Cyrillic (`apps/web/assets/og/`), with `og:image` width, height and
+  `alt` and `twitter:image:alt`. The 800 × 1200 packshots were cropped to a
+  band by every network. A card's URL ends in a hash of what it shows
+  (`card-<12 hex>`), so a new price, name or photograph is a new URL a network
+  has not cached; a card is kept a week at the edge, a minute when a picture
+  it names failed to arrive (`apps/web/src/lib/seo/og/data.ts`, `card.tsx`).
+- **Robots.** Five templates wrote `robots: undefined` meaning "inherit", which
+  erased the layout's `index, follow` and `max-image-preview:large`. Every page
+  now states its directive through `apps/web/src/lib/seo/robots.ts`.
+- **Soft 404s.** Dead links were rewritten to Next's `/_not-found`, which
+  Vercel serves with 200. They are now rewritten to a path no route matches,
+  a 404 on both hosts, with one robots tag (`apps/web/src/proxy.ts`).
+- **Structured data.** One `Organization` with `@id` and a square logo, referred
+  to by the offer's seller and the publishers; weight as a quantity in grams;
+  no `InStock` on a product off sale; a GTIN only when its check digit holds.
+  Checked offline against schema.org's vocabulary
+  (`apps/web/test/helpers/structured-data.ts`).
+- **Sitemap.** Product photographs and brand logos as image entries; a
+  listing's `lastmod` is the newest change among its products, a legal page's
+  the day its text changed (`apps/web/src/content/legal-revisions.ts`), and the
+  pages nothing dates carry none rather than the time of generation.
+- **Pagination.** Page two and later of a clean listing are `noindex, follow`,
+  canonical to themselves rather than to page one, and titled „— страница 2“;
+  a filtered or sorted view still names the clean first page
+  (`apps/web/src/lib/seo/pagination.ts`).
+- **Meta descriptions** of the contact, legal and journal pages, written for a
+  result (`apps/web/src/lib/seo/page-meta.ts`); shorter meta descriptions for
+  the articles whose lead runs past 160.
+- **IndexNow** (`packages/shared/src/indexnow.ts`, key file at `/<key>.txt`,
+  `pnpm --filter @catalog/web indexnow:submit`), **Search Console and Bing
+  verification tags** from `GOOGLE_SITE_VERIFICATION` and
+  `BING_SITE_VERIFICATION`, and the web app manifest's **screenshots** and the
+  **iOS home-screen tags**. All three env vars are empty until the owner
+  supplies them, and nothing is printed or sent while they are.
+
 ### Deliberate deviations
 
 - **The shop's name is printed "Buy a Coffee", not "Buy-a-Coffee".** Every
@@ -811,10 +857,26 @@ and keeps its owned term, „кафе за вендинг машини“.
   machine page, so the two tables of this study pull against each other. The
   built title is "Капсули Caffitaly (Кафитали) — цена на чаша"; the listing's
   description and introduction say it fits Cafissimo and link to that page.
-- **Titles are not held to sixty characters.** §12 asks for fifty to sixty,
-  and its own examples run longer once the name is added. Nothing enforces a
-  length. The one place the figure is used is the brand title, which adds
-  "— цена на чаша" only while the whole title stays within sixty.
+- **Sixty characters, and the shop's name is what gives way.** §12 asks for
+  fifty to sixty and its own examples run longer once the name is added. Until
+  19 October 2026 nothing enforced a length and 133 of 278 titles ran past
+  sixty, mostly products, so a result cut the name and part of the size. Now
+  `fullTitle` (`apps/web/src/lib/seo/title.ts`) adds `| Buy a Coffee` only
+  while the whole stays within sixty; Google prints the site's name above the
+  result anyway. A product whose name alone is longer gives way in the order
+  §2.2 ranks its parts: the word „капсули“ (the system's name implies it), then
+  the size, then everything after brand and line (`productTitleWords`). The
+  machine pages end „— какво пасва“ instead of „— кой модел какво приема“, and
+  the Tchibo page reads „Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly“:
+  the study's 72-character title would have been cut in every result.
+  `test/metadata-quality.test.ts` and `e2e/seo-audit.spec.ts` hold every
+  template and every URL in the sitemap to it.
+- **A description carries the callback only while it fits 160 characters.**
+  §12 gives every description the price-per-cup range and the callback. A
+  snippet is cut at about 160 characters, mid-sentence, so the callback — the
+  same sentence on every page — is left out whole where it would be cut
+  (`fitDescription`, `apps/web/src/lib/seo/description.ts`). The decaf and
+  Lavazza-capsule descriptions were reworded so that today it fits on both.
 - **No figure is typed into a title.** §12 writes "100 бр." into the Lavazza
   Blue title, "1 кг" into the Lavazza beans title, a list of systems into the
   Lavazza capsules title and a list of formats into the decaf title. Each is

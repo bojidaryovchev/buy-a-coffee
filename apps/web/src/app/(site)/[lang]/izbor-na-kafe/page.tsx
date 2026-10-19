@@ -41,6 +41,8 @@ import { shippingLocale, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
+import { robotsFor } from "@/lib/seo/robots";
+import { pageTitle } from "@/lib/seo/title";
 
 export const revalidate = 300;
 
@@ -72,7 +74,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     "Няколко въпроса за машината и вкуса ви, и ви казваме кое кафе от асортимента ни пасва — с цена на чаша, не на опаковка.";
 
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: pageAlternates(locale, routes.wizard),
     ...shareMetadata({ locale, title, description, path: href(locale, routes.wizard) }),
@@ -81,7 +83,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
      * permutation is the same page with different state, and letting search
      * engines collect them would be the filtered-listing problem again.
      */
-    robots: started ? { index: false, follow: true } : undefined,
+    robots: robotsFor(!started),
   };
 }
 
