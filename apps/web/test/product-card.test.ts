@@ -86,9 +86,35 @@ describe("ProductCard: what it shows", () => {
     expect(heading?.className).toContain("line-clamp-3");
   });
 
-  it("puts the packshot on a white, unpadded, square well", () => {
+  it("stands a live cut-out on its well, with a contact shadow and the lift", () => {
+    const root = card({
+      image: {
+        url: "/media/catalog/aa/bb/photo.jpg",
+        alt: "Кутия Bianchi Gusto Forte",
+        width: 800,
+        height: 1200,
+        cutout: { url: "/media/cutouts/cc/dd/cut.png", width: 300, height: 500 },
+      },
+    });
+    const well = root.querySelector("article > div")!;
+    expect(well.getAttribute("data-pack")).toBe("cutout");
+    expect(well.className).toContain("aspect-square");
+    expect(well.className).toContain("pack-lift");
+    expect(well.className).toContain("to-paper-sunken");
+    const image = well.querySelector("img")!;
+    expect(image.getAttribute("src")).toContain("cutouts");
+    expect(image.className).toBe("object-contain object-bottom");
+    expect(image.getAttribute("alt")).toBe("Кутия Bianchi Gusto Forte");
+    // As wide as a 3:5 pack stands: 0.6 × 77 % of the well, less 4 %.
+    const shadow = well.querySelector(".pack-shadow") as HTMLElement;
+    expect(shadow.getAttribute("aria-hidden")).toBe("true");
+    expect(parseFloat(shadow.style.width)).toBeCloseTo(0.6 * 0.77 * 96, 1);
+  });
+
+  it("puts a photo with no cut-out on a white, unpadded, square well", () => {
     const root = card();
     const well = root.querySelector("article > div");
+    expect(well?.getAttribute("data-pack")).toBe("photo");
     expect(well?.className).toContain("aspect-square");
     expect(well?.className).toContain("bg-well");
     expect(well?.className).not.toMatch(/\bp[xy]?-\d/);
@@ -170,7 +196,8 @@ describe("ProductCard: equal heights", () => {
 
   it("keeps every row's box whatever the product is missing", () => {
     const full = rows(card());
-    expect(full).toHaveLength(6);
+    // System, brand line, name, intensity, and the price block with its control.
+    expect(full).toHaveLength(5);
     for (const missing of [
       { systemId: null },
       { intensity: null },
@@ -230,9 +257,10 @@ describe("ProductCard: links and controls", () => {
     expect(text(control.querySelector(".sr-only"))).toBe(
       "Добави в количката: Капсули DG Bianchi Gusto Forte Espresso 16 бр.",
     );
-    // „Добави“ on a narrow card, the whole label when the card has room.
-    expect(text(control.querySelector("[aria-hidden='true']:not(svg)"))).toBe("Добави в количката");
-    expect(control.querySelector(".hidden")?.className).toContain("@[12rem]:inline");
+    // „Добави“ on every card: beside the price from 13rem, under it below.
+    expect(text(control.querySelector("[aria-hidden='true']:not(svg)"))).toBe("Добави");
+    expect(control.className).toContain("w-full");
+    expect(control.className).toContain("@[13rem]:w-auto");
     // Above the stretched link, or the click would land on the product link.
     expect(control.className).toContain("relative");
     expect(control.className).toContain("z-10");

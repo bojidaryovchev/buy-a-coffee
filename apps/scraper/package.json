@@ -10,6 +10,7 @@
     "sync:catalog": "tsx src/cli.ts sync",
     "reference:export": "tsx src/cli.ts reference",
     "images:gc": "tsx src/cli.ts images:gc",
+    "images:cutout": "tsx src/cli.ts images:cutout",
     "build:lambda": "node scripts/build-lambda.mjs"
   },
   "dependencies": {

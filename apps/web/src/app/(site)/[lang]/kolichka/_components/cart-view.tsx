@@ -5,9 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CartOrderForm } from "@/components/forms/cart-order-form";
 import { DeliveryPaymentBlock } from "@/components/commerce/delivery-payment-block";
 import { QuantityStepper } from "@/components/cart/quantity-stepper";
-import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
-import { ProductImage } from "@/components/catalog/product-image";
-import { CartIcon, CloseIcon } from "@/components/layout/icons";
+import { CloseIcon } from "@/components/layout/icons";
+import { Cup } from "@/components/illustrations/drawings";
 import {
   AvailabilityBadge,
   ButtonLink,
@@ -21,6 +20,7 @@ import { cartStore, useCart } from "@/lib/cart/store";
 import type { CartProductView } from "@/lib/cart/view";
 import { lineTotal, orderSum, productCount } from "@/lib/orders/lines";
 import { href, productHref, routes } from "@/lib/routes";
+import { PackWell } from "@/components/catalog/pack-well";
 
 /**
  * The cart page's body: the lines, what they add up to, and the order form.
@@ -169,7 +169,6 @@ export function CartView({ locale }: { locale: Locale }) {
   if (lines.length === 0) {
     return (
       <EmptyState
-        icon={<CartIcon className="mb-4 h-10 w-10 text-ink-300" />}
         title="Количката е празна"
         description="Изберете кафе от каталога и го добавете тук — или ни се обадете и ще поръчаме заедно."
         action={
@@ -331,19 +330,24 @@ function CartLineRow({
         tabIndex={-1}
         aria-hidden
         // `self-start`: a flex row would stretch the well to the row's height.
-        className="relative block aspect-square w-16 shrink-0 self-start overflow-hidden rounded-sm border border-line bg-well sm:w-20"
+        className="block w-16 shrink-0 self-start sm:w-20"
       >
-        {product?.image ? (
-          <ProductImage
-            src={product.image.url}
-            alt=""
-            fill
-            sizes="80px"
-            className="object-contain"
-          />
-        ) : (
-          <ImagePlaceholder />
-        )}
+        <PackWell
+          image={
+            product?.image
+              ? {
+                  url: product.image.url,
+                  alt: "",
+                  width: null,
+                  height: null,
+                  cutout: product.image.cutout,
+                }
+              : null
+          }
+          alt=""
+          sizes="80px"
+          className="aspect-square rounded-sm"
+        />
       </Link>
 
       <div className="min-w-0 flex-1">
@@ -443,14 +447,25 @@ function Skeleton({ count }: { count: number }) {
 function PlacedView({ placed, locale }: { placed: Placed; locale: Locale }) {
   return (
     <div className="max-w-2xl">
-      <div role="status" className="rounded-md border border-pine-500 bg-pine-100 p-5">
-        <h2 className="font-display text-xl font-semibold text-pine-900">Заявката е получена</h2>
-        {placed.reference && (
-          <p className="mt-1 text-sm text-ink-700">
-            Референция: <span className="font-semibold tabular-nums">{placed.reference}</span>
-          </p>
-        )}
-        <p className="mt-2 text-base text-ink-700">{placed.message}</p>
+      {/*
+        The shop's one celebration (DESIGN.md, "Motion"): the glass fills and
+        steams beside the confirmation. The words are there from the first
+        frame and are what the status announces; the glass is decoration.
+      */}
+      <div
+        role="status"
+        className="flex items-start gap-5 rounded-md border border-pine-500 bg-pine-100 p-5"
+      >
+        <Cup pour steam className="hidden w-20 shrink-0 sm:block" />
+        <div>
+          <h2 className="font-display text-xl font-semibold text-pine-900">Заявката е получена</h2>
+          {placed.reference && (
+            <p className="mt-1 text-sm text-ink-700">
+              Референция: <span className="font-semibold tabular-nums">{placed.reference}</span>
+            </p>
+          )}
+          <p className="mt-2 text-base text-ink-700">{placed.message}</p>
+        </div>
       </div>
 
       {placed.lines.length > 0 && (

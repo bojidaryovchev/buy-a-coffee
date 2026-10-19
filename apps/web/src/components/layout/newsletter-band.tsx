@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
+import { CupRing } from "@/components/illustrations/drawings";
 import { siteConfig } from "@/config/site";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 
@@ -11,7 +12,7 @@ import type { Dictionary } from "@/i18n/dictionaries/bg";
  * the field room for a whole address and the offer a heading of its own.
  *
  * The ground is `paper-raised`, a step lighter than the page, between two
- * hairlines: the Vending Zone band above it on the home page is `pine-900`,
+ * hairlines: the Vending Zone band above it on the home page is `espresso-900`,
  * and two dark bands must not stack, nor may the signup read as part of the
  * `paper-sunken` footer under it. It has the same anatomy as that band —
  * heading and one sentence on the left, the action on the right, stacked on a
@@ -33,10 +34,14 @@ export function NewsletterBand({ dict }: { dict: Dictionary }) {
     <aside
       aria-labelledby={headingId}
       data-newsletter-band=""
-      className="border-t border-line bg-paper-raised"
+      className="relative isolate overflow-hidden border-t border-line bg-paper-raised"
     >
       <div className="shell grid gap-6 py-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center lg:gap-16">
-        <div>
+        <div className="relative">
+          {/* The ring a cup left on the paper, faint, under the heading's
+              first words and cut by the band's edges (DESIGN.md, "Imagery").
+              Drawn, decorative, never in the way. */}
+          <CupRing className="pointer-events-none absolute top-1/2 -left-24 -z-10 hidden h-48 w-48 -translate-y-1/2 rotate-12 md:block" />
           <h2 id={headingId} className="font-display text-2xl font-semibold text-ink-900">
             {dict.newsletter.heading}
           </h2>

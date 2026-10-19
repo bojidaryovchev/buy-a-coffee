@@ -3,7 +3,7 @@ import { HomeView } from "@/components/home/home-view";
 import { siteConfig } from "@/config/site";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listHeroShelfCandidates } from "@/lib/catalog/home-queries";
-import { selectHeroShelf } from "@/lib/catalog/home-shelf";
+import { selectHeroShelf, selectHeroStillLife } from "@/lib/catalog/home-shelf";
 import { getListingFacts } from "@/lib/catalog/listing-facts";
 import {
   getCatalogSummary,
@@ -92,6 +92,7 @@ export default async function HomePage({ params }: PageProps) {
       brands={brands}
       systemCounts={systemCounts}
       shelf={selectHeroShelf(shelfCandidates)}
+      stillLife={selectHeroStillLife(shelfCandidates)}
       newArrivals={newArrivals}
       promotions={promotions.items}
       articles={siteConfig.features.blog ? listArticles({ limit: 3 }) : []}

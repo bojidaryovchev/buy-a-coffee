@@ -2,7 +2,14 @@ import "server-only";
 import { cache } from "react";
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
+import {
+  brands,
+  categories,
+  imageCutouts,
+  productCategories,
+  productImages,
+  products,
+} from "@catalog/db/schema";
 import {
   formatListingLabel,
   packServings,
@@ -215,8 +222,7 @@ function displayName(row: ProductRow) {
 
 function toCard(
   row: ProductRow,
-  image:
-    { url: string; alt: string | null; width: number | null; height: number | null } | undefined,
+  image: StoredImage | undefined,
   options: { readonly resolveUrl?: boolean } = {},
 ): ProductCardView {
   const price = toPriceView(row.price, row.currency);
@@ -269,6 +275,15 @@ function toCard(
           alt: name.full,
           width: image.width,
           height: image.height,
+          cutout: image.cutout
+            ? {
+                ...image.cutout,
+                url:
+                  options.resolveUrl === false
+                    ? image.cutout.url
+                    : resolveImageUrl(image.cutout.url),
+              }
+            : null,
         }
       : null,
     shortDescription: null,
@@ -293,12 +308,41 @@ function toCard(
 }
 
 /** Load the primary image for many products in one query. */
+/**
+ * A product photo as read, before its URLs are resolved: object keys, and the
+ * photo's cut-out when one is live (DESIGN.md, "Imagery").
+ */
+interface StoredImage {
+  readonly url: string;
+  readonly alt: string | null;
+  readonly width: number | null;
+  readonly height: number | null;
+  readonly cutout?: {
+    readonly url: string;
+    readonly width: number | null;
+    readonly height: number | null;
+  } | null;
+}
+
+/** A photo's cut-out, joined when it may be shown: made and agreed, or approved. */
+const liveCutout = and(
+  eq(imageCutouts.sourceContentHash, productImages.sourceContentHash),
+  inArray(imageCutouts.status, ["auto", "approved"]),
+  isNotNull(imageCutouts.objectKey),
+);
+
+function cutoutOf(row: {
+  cutoutKey: string | null;
+  cutoutWidth: number | null;
+  cutoutHeight: number | null;
+}): StoredImage["cutout"] {
+  return row.cutoutKey
+    ? { url: row.cutoutKey, width: row.cutoutWidth, height: row.cutoutHeight }
+    : null;
+}
+
 async function loadPrimaryImages(productIds: readonly string[]) {
-  if (productIds.length === 0)
-    return new Map<
-      string,
-      { url: string; alt: string | null; width: number | null; height: number | null }
-    >();
+  if (productIds.length === 0) return new Map<string, StoredImage>();
 
   const rows = await db
     .select({
@@ -309,8 +353,12 @@ async function loadPrimaryImages(productIds: readonly string[]) {
       width: productImages.width,
       height: productImages.height,
       ordinal: productImages.ordinal,
+      cutoutKey: imageCutouts.objectKey,
+      cutoutWidth: imageCutouts.width,
+      cutoutHeight: imageCutouts.height,
     })
     .from(productImages)
+    .leftJoin(imageCutouts, liveCutout)
     .where(
       and(
         inArray(productImages.productId, [...productIds]),
@@ -320,10 +368,7 @@ async function loadPrimaryImages(productIds: readonly string[]) {
     )
     .orderBy(asc(productImages.ordinal));
 
-  const map = new Map<
-    string,
-    { url: string; alt: string | null; width: number | null; height: number | null }
-  >();
+  const map = new Map<string, StoredImage>();
   for (const row of rows) {
     if (map.has(row.productId)) continue; // first by ordinal wins
     // The object key, not the stored absolute URL: the key is resolved against
@@ -331,7 +376,13 @@ async function loadPrimaryImages(productIds: readonly string[]) {
     // a row that still remembers the old host.
     const url = row.objectKey ?? row.publicUrl;
     if (!url) continue;
-    map.set(row.productId, { url, alt: row.alt, width: row.width, height: row.height });
+    map.set(row.productId, {
+      url,
+      alt: row.alt,
+      width: row.width,
+      height: row.height,
+      cutout: cutoutOf(row),
+    });
   }
   return map;
 }
@@ -808,8 +859,12 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
         alt: productImages.alt,
         width: productImages.width,
         height: productImages.height,
+        cutoutKey: imageCutouts.objectKey,
+        cutoutWidth: imageCutouts.width,
+        cutoutHeight: imageCutouts.height,
       })
       .from(productImages)
+      .leftJoin(imageCutouts, liveCutout)
       .where(and(eq(productImages.productId, typed.id), eq(productImages.status, "active")))
       .orderBy(asc(productImages.ordinal)),
     db
@@ -836,6 +891,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
   const images = imageRows
     .map((image) => {
       const url = image.objectKey ?? image.publicUrl;
+      const cutout = cutoutOf(image);
       return url
         ? {
             url: resolveImageUrl(url),
@@ -843,6 +899,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
             alt: displayName(typed).full,
             width: image.width,
             height: image.height,
+            cutout: cutout ? { ...cutout, url: resolveImageUrl(cutout.url) } : null,
           }
         : null;
     })
@@ -855,13 +912,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetailView 
     .filter((image, index, all) => all.findIndex((other) => other.url === image.url) === index);
 
   // `images` already carry resolved URLs, so resolution is disabled here.
-  const card = toCard(
-    typed,
-    images[0]
-      ? { url: images[0].url, alt: images[0].alt, width: images[0].width, height: images[0].height }
-      : undefined,
-    { resolveUrl: false },
-  );
+  const card = toCard(typed, images[0], { resolveUrl: false });
 
   return {
     ...card,

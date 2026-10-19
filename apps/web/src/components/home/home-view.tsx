@@ -1,5 +1,5 @@
 import type { CommerceConfig } from "@/config/site";
-import type { HeroShelfItem } from "@/lib/catalog/home-shelf";
+import type { HeroShelfItem, StillLifePack } from "@/lib/catalog/home-shelf";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
 import type { ArticleSummary } from "@/lib/journal";
 import { HomeHero } from "./hero";
@@ -37,6 +37,8 @@ export interface HomeData {
   /** Products per brewing system. */
   readonly systemCounts: SystemCounts;
   readonly shelf: readonly HeroShelfItem[];
+  /** The hero's still life of cut-out packs; empty while fewer than three are live. */
+  readonly stillLife?: readonly StillLifePack[];
   readonly newArrivals: readonly ProductCardView[];
   readonly promotions: readonly ProductCardView[];
   /** Empty when the journal is switched off or has nothing published. */
@@ -52,6 +54,7 @@ export function HomeView({
   brands,
   systemCounts,
   shelf,
+  stillLife = [],
   newArrivals,
   promotions,
   articles,
@@ -67,6 +70,7 @@ export function HomeView({
         brandCount={stockedBrands.length}
         productCount={productCount}
         shelf={shelf}
+        stillLife={stillLife}
         systemsHref={hasSystems ? `#${SYSTEMS_ANCHOR}` : null}
       />
       <DeliveryPromise commerce={commerce} />

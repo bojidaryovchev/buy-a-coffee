@@ -1,4 +1,10 @@
-import type { Availability, PriceView, ProductCardView, ProductStatus } from "@/lib/catalog/types";
+import type {
+  CutoutView,
+  Availability,
+  PriceView,
+  ProductCardView,
+  ProductStatus,
+} from "@/lib/catalog/types";
 
 /**
  * A product as the cart page shows it, and as `/api/cart` sends it.
@@ -19,7 +25,12 @@ export interface CartProductView {
   readonly title: string;
   /** "Кафе на зърна, 1 кг". */
   readonly detail: string | null;
-  readonly image: { readonly url: string; readonly alt: string } | null;
+  readonly image: {
+    readonly url: string;
+    readonly alt: string;
+    /** The photo cut out, when one is live (DESIGN.md, "Imagery"). */
+    readonly cutout: CutoutView | null;
+  } | null;
   /** Null for "Цена при запитване". */
   readonly price: PriceView | null;
   /** "0,35 € на чаша", or null. */
@@ -55,7 +66,9 @@ export function toCartProductView(card: ProductCardView, status: ProductStatus):
     name: card.name,
     title: card.title ?? card.name,
     detail: card.detail ?? null,
-    image: card.image ? { url: card.image.url, alt: card.image.alt } : null,
+    image: card.image
+      ? { url: card.image.url, alt: card.image.alt, cutout: card.image.cutout ?? null }
+      : null,
     price: card.price,
     servingPrice: card.servingPrice?.formatted ?? null,
     availability: card.availability,

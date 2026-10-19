@@ -29,6 +29,10 @@ infra/terraform/build/
 # Rendered mail, from `pnpm --filter @catalog/web email:preview`
 .email-previews/
 
+# Python, for tools/cutout
+__pycache__/
+*.pyc
+
 # Playwright
 test-results/
 playwright-report/

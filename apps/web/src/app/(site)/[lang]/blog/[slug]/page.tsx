@@ -27,6 +27,7 @@ import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 import { NOINDEX } from "@/lib/seo/robots";
 import { pageTitle } from "@/lib/seo/title";
+import { ArticleDrawing } from "@/components/journal/article-drawing";
 
 /**
  * One journal article.
@@ -129,6 +130,8 @@ export default async function JournalArticlePage({ params }: PageProps) {
 
       <article>
         <header className="mb-8 max-w-prose">
+          {/* The article's drawing over its title (DESIGN.md, "Imagery"). */}
+          <ArticleDrawing slug={summary.slug} className="mb-6" />
           <p className="text-2xs tracking-wide text-ink-500 uppercase">
             <time dateTime={summary.publishedAt}>
               {formatArticleDate(summary.publishedAt, locale)}

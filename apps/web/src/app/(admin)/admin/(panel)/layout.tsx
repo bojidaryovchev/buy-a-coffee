@@ -73,6 +73,9 @@ export default async function AdminPanelLayout({ children }: { children: React.R
             <Link href="/admin/tekstove" className="text-ink-500 hover:text-ink-900">
               Текстове
             </Link>
+            <Link href="/admin/snimki" className="text-ink-500 hover:text-ink-900">
+              Снимки
+            </Link>
           </nav>
 
           {/* Out to the shop. Same tab, no target="_blank": this is navigation

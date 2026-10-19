@@ -24,6 +24,7 @@
     "sync:catalog": "pnpm --filter @catalog/scraper sync:catalog",
     "reference:export": "pnpm --filter @catalog/scraper reference:export",
     "images:gc": "pnpm --filter @catalog/scraper images:gc",
+    "images:cutout": "pnpm --filter @catalog/scraper cli images:cutout",
     "images:push": "pnpm --filter @catalog/scraper cli images:push",
     "images:verify": "pnpm --filter @catalog/scraper cli images:verify",
     "catalog:verify": "pnpm --filter @catalog/scraper cli catalog:verify",

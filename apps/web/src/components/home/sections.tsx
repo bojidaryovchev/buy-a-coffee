@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { SystemIcon } from "@/components/catalog/system-icon";
 import { BrandLogo } from "@/components/catalog/brand-logo";
+import { Crema } from "@/components/illustrations/drawings";
+import { ArticleDrawing } from "@/components/journal/article-drawing";
+import { CartIcon, PhoneIcon } from "@/components/layout/icons";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { ButtonLink, SectionHeading } from "@/components/ui/primitives";
 import {
@@ -161,7 +164,12 @@ export function stockedSystems(counts: SystemCounts) {
   );
 }
 
-const TILE_SHAPE = "group flex h-full flex-col rounded-md border border-t-4 p-4 transition-colors";
+/*
+ * No border and no coloured top rule (Phase K): the wash carries the tile, the
+ * system's capsule tips out of it on hover, and the tiles rise into place as
+ * the row scrolls into view (`.reveal-on-scroll`; DESIGN.md, "Motion").
+ */
+const TILE_SHAPE = "group reveal-on-scroll flex h-full flex-col rounded-md p-4 transition-colors";
 
 export function ShopBySystem({
   counts,
@@ -187,11 +195,15 @@ export function ShopBySystem({
             <Link
               href={categoryHref(locale, systemCategory(system))}
               data-system={system.id}
-              className={`${TILE_SHAPE} border-line border-t-(--system) bg-(--system-wash) hover:border-(--system)`}
+              className={`${TILE_SHAPE} bg-(--system-wash)`}
             >
               {/* Its capsule, in its colour, above its name (DESIGN.md, "System icon"). */}
-              <SystemIcon systemId={system.id} size="lg" className="mb-3" />
-              <h3 className="font-display text-lg font-semibold text-ink-900 md:text-xl">
+              <SystemIcon
+                systemId={system.id}
+                size="lg"
+                className="tile-capsule mb-3 h-10 w-12.5"
+              />
+              <h3 className="font-display text-lg font-semibold text-ink-900 underline-offset-4 group-hover:underline md:text-xl">
                 {system.name}
               </h3>
               <p className="mt-1 line-clamp-2 text-sm text-ink-700">{system.summary}</p>
@@ -206,13 +218,15 @@ export function ShopBySystem({
             </Link>
           </li>
         ))}
-        <li className="on-pine">
+        <li className="on-espresso">
           <Link
             href={href(locale, routes.machines)}
-            className={`${TILE_SHAPE} border-pine-900 bg-pine-900 text-paper hover:border-pine-700 hover:bg-pine-700`}
+            className={`${TILE_SHAPE} bg-espresso-900 text-paper`}
           >
-            <h3 className="font-display text-lg font-semibold md:text-xl">Не знаете системата?</h3>
-            <p className="mt-1 text-sm text-pine-200">Намерете машината си по марка и модел.</p>
+            <h3 className="font-display text-lg font-semibold underline-offset-4 group-hover:underline md:text-xl">
+              Не знаете системата?
+            </h3>
+            <p className="mt-1 text-sm text-espresso-200">Намерете машината си по марка и модел.</p>
             <p className="mt-auto pt-4 text-xs font-semibold text-gold-300">
               Намери по машина <span aria-hidden>→</span>
             </p>
@@ -229,7 +243,7 @@ export function WizardEntry({ locale }: { readonly locale: Locale }) {
   return (
     <section className="bg-paper-sunken py-12 md:py-16">
       <div className="shell">
-        <div className="rounded-md bg-gold-100 p-6 md:grid md:grid-cols-2 md:items-center md:gap-10 md:p-8">
+        <div className="relative overflow-hidden rounded-md bg-gold-100 p-6 md:grid md:grid-cols-[1fr_auto_auto] md:items-center md:gap-10 md:p-8">
           <div>
             <h2 className="font-display text-2xl font-semibold text-ink-900 md:text-3xl">
               Кое кафе е за вас?
@@ -241,6 +255,8 @@ export function WizardEntry({ locale }: { readonly locale: Locale }) {
               Започнете
             </ButtonLink>
           </div>
+          {/* The cup the questions end in: crema from above (DESIGN.md, "Imagery"). */}
+          <Crema className="reveal-on-scroll hidden h-36 w-auto md:block" />
           <ol className="hidden gap-3 md:grid">
             {STEP_SEQUENCE.map((step, index) => (
               <li key={step} className="flex items-center gap-3 text-base text-ink-900">
@@ -336,32 +352,83 @@ export function NewArrivals({
 /* --- 7. How ordering works ----------------------------------------------- */
 
 const ORDER_STEPS = [
-  "Сложете в количката кафето, което искате.",
-  "Оставете телефонния си номер.",
-  "Звъним ви, за да потвърдим и да уговорим доставката.",
+  { text: "Сложете в количката кафето, което искате.", Icon: CartIcon },
+  { text: "Оставете име, телефон и къде да доставим.", Icon: FormIcon },
+  { text: "Звъним ви, за да потвърдим и да уговорим доставката.", Icon: PhoneIcon },
 ] as const;
 
+/** A filled-in form: the order form's one step. 24 px line icon, `currentColor`. */
+function FormIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+
+/*
+ * Three drawings joined by the curl from the mark, which draws itself as the
+ * section scrolls past (`.draw-on-scroll`; DESIGN.md, "Motion"). It replaces
+ * three bordered boxes, and shows how short the way is. The numbers stay: the
+ * order is information.
+ */
 export function HowOrderingWorks() {
   return (
     <section className="border-t border-line">
       <div className="shell py-12 md:py-16">
         <SectionHeading title="Поръчката е на една стъпка" />
-        <ol className="grid gap-4 md:grid-cols-3">
-          {ORDER_STEPS.map((step, index) => (
-            <li
-              key={step}
-              className="flex items-start gap-4 rounded-md border border-line bg-paper-raised p-5"
-            >
-              <span
-                aria-hidden
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xs bg-gold-500 text-sm font-semibold text-ink-900 tabular-nums"
+        <div className="relative">
+          {/* From the first square's centre to the last's (the columns'
+              centres, a sixth in from each side), level with the squares'
+              middles, so the wave stays in the squares' band and clear of
+              the sentences. The width is set, not left to `auto`: an SVG
+              takes its width from its viewBox and would ignore `right`. */}
+          <svg
+            aria-hidden
+            viewBox="0 0 1000 60"
+            preserveAspectRatio="none"
+            className="absolute top-0 left-[16.667%] hidden h-14 w-[66.667%] overflow-visible md:block"
+          >
+            <path
+              d="M0 30C80 -10 170 70 250 30S420 -10 500 30S670 70 750 30S920 -10 1000 30"
+              pathLength={1}
+              fill="none"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              className="draw-on-scroll stroke-gold-600"
+            />
+          </svg>
+          <ol className="relative grid gap-8 md:grid-cols-3 md:gap-6">
+            {ORDER_STEPS.map(({ text, Icon }, index) => (
+              <li
+                key={text}
+                className="flex items-start gap-4 md:flex-col md:items-center md:text-center"
               >
-                {index + 1}
-              </span>
-              <p className="text-base text-ink-900">{step}</p>
-            </li>
-          ))}
-        </ol>
+                <span
+                  aria-hidden
+                  className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-paper-raised text-pine-700"
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-xs bg-gold-500 text-xs font-semibold text-ink-900 tabular-nums">
+                    {index + 1}
+                  </span>
+                </span>
+                <p className="max-w-[28ch] pt-3 text-base text-ink-900 md:pt-0">{text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
         <p className="mt-5 text-sm text-ink-500">
           Без регистрация и без плащане на сайта. Предпочитате да говорим?{" "}
           <a
@@ -399,20 +466,26 @@ export function HomeBrands({
             </ButtonLink>
           }
         />
-        {/* Logo tiles (DESIGN.md, "Brand logo"): the logo's alt is the name;
-            a brand with no logo shows its name in the same box, so the row
-            stays even. On a phone twenty tiles would stack ten deep, so
-            they become one scrolling row; the padding keeps the focus ring
-            inside the scroller's clip. */}
-        <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:grid md:grid-cols-4 md:gap-3 md:overflow-visible md:p-0 lg:grid-cols-6">
+        {/* An open wall of logos (DESIGN.md, "Brand logo"): no box round each,
+            only the hairlines between them — each cell's 1 px ring, the two
+            rings of neighbours meeting in the 1 px gap, the outer ones clipped,
+            so a short last row ends open rather than on a grey block. The
+            logo's alt is the name; a brand with no
+            logo shows its name in the same cell, so the rows stay even. On a
+            phone twenty cells would stack ten deep, so they become one
+            scrolling row; the padding keeps the focus ring inside its clip. */}
+        <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:grid md:grid-cols-4 md:gap-px md:overflow-hidden md:p-0 lg:grid-cols-6">
           {stocked.map((brand) => (
-            <li key={brand.slug} className="shrink-0 snap-start scroll-ml-4">
+            <li
+              key={brand.slug}
+              className="shrink-0 snap-start scroll-ml-4 bg-paper md:ring-1 md:ring-line"
+            >
               <Link
                 href={brandHref(locale, brand)}
-                // `relative` keeps the visually hidden count inside the tile;
+                // `relative` keeps the visually hidden count inside the cell;
                 // unanchored, it would sit outside the scroller's clip and
                 // widen the whole page on a phone.
-                className="relative flex h-full items-center justify-center rounded-md border border-line bg-paper-raised p-3 transition-colors hover:border-pine-500"
+                className="relative flex h-full min-h-20 items-center justify-center p-3 transition-colors hover:bg-paper-raised"
               >
                 <BrandLogo brand={brand} size="tile" />
                 <span className="sr-only">
@@ -455,7 +528,9 @@ export function JournalTeaser({
         <ul className="grid gap-4 md:grid-cols-3">
           {latest.map((article) => (
             <li key={article.slug}>
-              <article className="relative flex h-full flex-col rounded-md border border-line bg-paper-raised p-5 transition-colors hover:border-line-strong">
+              {/* A tone step, not a box: the white card on the sunken band. */}
+              <article className="group relative flex h-full flex-col rounded-md bg-paper-raised p-5">
+                <ArticleDrawing slug={article.slug} className="mb-4" />
                 <p className="text-xs text-ink-500">
                   <time dateTime={article.publishedAt}>
                     {formatArticleDate(article.publishedAt, locale)}
@@ -464,7 +539,7 @@ export function JournalTeaser({
                 <h3 className="mt-1.5 font-display text-lg font-semibold text-ink-900 md:text-xl">
                   <Link
                     href={href(locale, article.href)}
-                    className="underline-offset-4 after:absolute after:inset-0 hover:underline"
+                    className="underline-offset-4 group-hover:underline after:absolute after:inset-0"
                   >
                     {article.title}
                   </Link>
@@ -488,18 +563,22 @@ export function VendingBand({ locale }: { readonly locale: Locale }) {
      * above it: `data-ends-on-band` closes the gap (`globals.css`), and the
      * newsletter band or the footer meets it edge to edge.
      */
-    <section data-ends-on-band="" className="on-pine bg-pine-900 text-paper">
+    /*
+     * On espresso, the second dark ground, so the page does not close on the
+     * green it opened with (DESIGN.md, "Second ground — espresso").
+     */
+    <section data-ends-on-band="" className="on-espresso bg-espresso-900 text-paper">
       <div className="shell flex flex-col gap-5 py-12 md:flex-row md:items-center md:justify-between md:gap-10 md:py-16">
         <div>
           <h2 className="font-display text-2xl font-semibold md:text-3xl">Вендинг зона</h2>
-          <p className="mt-2 max-w-[60ch] text-base text-pine-200">
+          <p className="mt-2 max-w-[60ch] text-base text-espresso-200">
             Зареждате вендинг автомат или кафемашините в офиса? Събрали сме кафето от каталога,
             което е за такава работа.
           </p>
         </div>
         <ButtonLink
           href={href(locale, BUSINESS_SECTIONS.vending.path)}
-          variant="on-pine"
+          variant="on-espresso"
           size="lg"
           className="w-full shrink-0 md:w-auto"
         >

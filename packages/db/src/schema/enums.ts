@@ -63,6 +63,19 @@ export const changeTypeEnum = pgEnum("change_type", [
 
 export const imageStatusEnum = pgEnum("image_status", ["active", "orphaned", "failed"]);
 
+/**
+ * Where a packshot's cut-out stands (`image_cutouts`). `auto` and `approved`
+ * are live; `pending` waits for a person; `rejected` keeps the white well and is
+ * never made again; `failed` is retried a few times by the next run.
+ */
+export const cutoutStatusEnum = pgEnum("cutout_status", [
+  "auto",
+  "pending",
+  "approved",
+  "rejected",
+  "failed",
+]);
+
 export const snapshotReasonEnum = pgEnum("snapshot_reason", [
   "parser_error",
   "page_type_change",

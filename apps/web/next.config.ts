@@ -34,8 +34,8 @@ function parseImageHost(url: string | undefined): URL | null {
 const imageHost = parseImageHost(process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.trim());
 
 /**
- * `/media/catalog/…` and `/media/newsletter/…`: our image store, from our own
- * address, for mail.
+ * `/media/catalog/…`, `/media/cutouts/…` and `/media/newsletter/…`: our image
+ * store, from our own address, for mail.
  *
  * A newsletter whose pictures all come from `*.public.blob.vercel-storage.com`
  * is a message whose images are on a domain that is not the sender's, which
@@ -51,12 +51,14 @@ const imageHost = parseImageHost(process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.trim())
  * key to its URL. With no host configured (a laptop) there is no rewrite and
  * `app/media/[...key]` serves the same paths from disk, as it always has.
  *
- * Two prefixes only, the two mail uses, each its own rule, and a key made of
- * plain segments only — letters, digits, `.`, `_`, `-`, none starting with a
- * dot — so `/media` cannot be made to fetch anything else from the store:
- * not `..`, not an encoded `%2F` the store might decode into a slash. Every
- * key the catalog and the uploads write is of that shape (`catalog/ab/cd/
- * <hash>.jpg`, `newsletter/<uuid>/<name>-<suffix>.pdf`). Next matches a rule's
+ * Three prefixes only — the catalog's photographs, the packs cut out of them
+ * (DESIGN.md, "Imagery") and the newsletter's uploads — each its own rule,
+ * and a key made of plain segments only — letters, digits, `.`, `_`, `-`,
+ * none starting with a dot — so `/media` cannot be made to fetch anything
+ * else from the store: not `..`, not an encoded `%2F` the store might decode
+ * into a slash. Every key the catalog, the cut-outs and the uploads write is of
+ * that shape (`catalog/ab/cd/<hash>.jpg`, `cutouts/ab/cd/<hash>.png`,
+ * `newsletter/<uuid>/<name>-<suffix>.pdf`). Next matches a rule's
  * source without regard to case and cannot be told otherwise for one rule, so
  * each destination names its prefix literally, in lower case: `/media/CATALOG/
  * x` can only ever reach `<base>/catalog/x`. `src/emails/media.ts` writes
@@ -69,7 +71,7 @@ const imageHost = parseImageHost(process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.trim())
  * store through `next/image` (`remotePatterns`), and `/media` is same-origin,
  * which `img-src 'self'` already allows.
  */
-const MEDIA_PREFIXES = ["catalog", "newsletter"] as const;
+const MEDIA_PREFIXES = ["catalog", "cutouts", "newsletter"] as const;
 /** One path segment of a store key: no slash, no `%`, not starting with a dot. */
 const MEDIA_SEGMENT = "[A-Za-z0-9_-][A-Za-z0-9._-]*";
 const MEDIA_KEY = `${MEDIA_SEGMENT}(?:/${MEDIA_SEGMENT})*`;

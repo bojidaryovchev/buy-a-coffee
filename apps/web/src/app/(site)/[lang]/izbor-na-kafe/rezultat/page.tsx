@@ -24,6 +24,7 @@ import { shareMetadata } from "@/lib/seo/share";
 import { categoryHref, href, routes, systemCategory } from "@/lib/routes";
 import { NOINDEX } from "@/lib/seo/robots";
 import { pageTitle } from "@/lib/seo/title";
+import { Crema } from "@/components/illustrations/drawings";
 
 export const revalidate = 300;
 
@@ -100,18 +101,24 @@ export default async function WizardResultPage({ params, searchParams }: PagePro
       />
 
       <div className="mx-auto max-w-3xl">
-        <header className="mb-6">
-          <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-3xl">
-            {shortCircuited ? "Ето какво имаме за вашата машина" : "Ето какво бихме ви предложили"}
-          </h1>
-          <p className="mt-2 max-w-prose text-base text-ink-500">
-            {machine
-              ? `За ${machine.brand.name} ${machine.model.name} — система ${system.name}.`
-              : `За система ${system.name}.`}{" "}
-            {shortCircuited
-              ? "За тази система асортиментът ни е малък, затова ги показваме всичките, вместо да ви задаваме въпроси."
-              : "Подредени по това колко пасват на отговорите ви."}
-          </p>
+        {/* The cup the questions end in, over the answer (DESIGN.md, "Imagery"). */}
+        <header className="mb-6 flex items-start gap-6">
+          <Crema className="hidden h-24 w-auto shrink-0 sm:block" />
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-ink-900 md:text-3xl">
+              {shortCircuited
+                ? "Ето какво имаме за вашата машина"
+                : "Ето какво бихме ви предложили"}
+            </h1>
+            <p className="mt-2 max-w-prose text-base text-ink-500">
+              {machine
+                ? `За ${machine.brand.name} ${machine.model.name} — система ${system.name}.`
+                : `За система ${system.name}.`}{" "}
+              {shortCircuited
+                ? "За тази система асортиментът ни е малък, затова ги показваме всичките, вместо да ви задаваме въпроси."
+                : "Подредени по това колко пасват на отговорите ви."}
+            </p>
+          </div>
         </header>
 
         <AnswerSummary

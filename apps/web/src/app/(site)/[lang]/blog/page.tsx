@@ -12,6 +12,7 @@ import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 import { pageTitle } from "@/lib/seo/title";
 import { JOURNAL_META } from "@/lib/seo/page-meta";
+import { ArticleDrawing } from "@/components/journal/article-drawing";
 
 /**
  * Journal index.
@@ -92,23 +93,27 @@ export default async function JournalPage({ params }: PageProps) {
         <ol className="max-w-3xl divide-y divide-line border-y border-line">
           {articles.map((article) => (
             <li key={article.slug}>
-              <article className="py-6">
-                <p className="text-2xs tracking-wide text-ink-500 uppercase">
-                  <time dateTime={article.publishedAt}>
-                    {formatArticleDate(article.publishedAt, locale)}
-                  </time>
-                </p>
-                <h2 className="mt-1.5 font-display text-xl font-semibold text-ink-900 md:text-2xl">
-                  <Link
-                    href={href(locale, article.href)}
-                    // Vertical padding on an inline link widens what a finger
-                    // can hit without moving a line of the layout.
-                    className="py-2 underline-offset-4 hover:text-pine-700 hover:underline"
-                  >
-                    {article.title}
-                  </Link>
-                </h2>
-                <p className="mt-2 max-w-prose text-sm text-ink-700">{article.description}</p>
+              {/* Each article's drawing beside it (DESIGN.md, "Imagery"). */}
+              <article className="flex gap-6 py-6">
+                <ArticleDrawing slug={article.slug} className="hidden w-24 shrink-0 sm:flex" />
+                <div className="min-w-0">
+                  <p className="text-2xs tracking-wide text-ink-500 uppercase">
+                    <time dateTime={article.publishedAt}>
+                      {formatArticleDate(article.publishedAt, locale)}
+                    </time>
+                  </p>
+                  <h2 className="mt-1.5 font-display text-xl font-semibold text-ink-900 md:text-2xl">
+                    <Link
+                      href={href(locale, article.href)}
+                      // Vertical padding on an inline link widens what a finger
+                      // can hit without moving a line of the layout.
+                      className="py-2 underline-offset-4 hover:text-pine-700 hover:underline"
+                    >
+                      {article.title}
+                    </Link>
+                  </h2>
+                  <p className="mt-2 max-w-prose text-sm text-ink-700">{article.description}</p>
+                </div>
               </article>
             </li>
           ))}

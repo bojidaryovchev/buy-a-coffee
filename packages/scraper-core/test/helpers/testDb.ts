@@ -115,6 +115,7 @@ export async function resetTestDatabase(db: Database): Promise<void> {
       sync_changes,
       sync_runs,
       catalog_baselines,
+      image_cutouts,
       product_images,
       product_categories,
       products,

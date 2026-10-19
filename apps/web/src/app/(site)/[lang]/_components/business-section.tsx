@@ -14,6 +14,7 @@ import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import type { Locale } from "@/i18n/config";
 import { href, productHref, routes, targetHref } from "@/lib/routes";
 import type { BusinessSectionCopy } from "../../../../../content/vending";
+import { CurlSteps } from "@/components/ui/curl-steps";
 
 /**
  * The page body shared by the two business sections, `/bg/kafe-za-vending-mashini`
@@ -166,19 +167,7 @@ export function BusinessSectionView({
         <h2 className="font-display text-2xl font-semibold text-ink-900">
           {copy.ordering.heading}
         </h2>
-        <ol className="mt-5 space-y-3 text-base text-ink-700">
-          {copy.ordering.steps.map((step, index) => (
-            <li key={step} className="flex gap-3">
-              <span
-                aria-hidden
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-xs bg-pine-700 text-2xs font-semibold text-paper"
-              >
-                {index + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
+        <CurlSteps steps={copy.ordering.steps} className="mt-5" />
         {copy.ordering.note && <p className="mt-4 text-sm text-ink-500">{copy.ordering.note}</p>}
       </section>
 

@@ -46,7 +46,8 @@ export async function listHeroShelfCandidates(
   const rows = await db.execute(sql`
     select system_id, id, slug, name, source_key, previous_source_keys, weight_value,
            weight_unit, pack_override_value, brand_key, brand_name, category_keys,
-           object_key, public_url, alt, width, height, rank
+           object_key, public_url, alt, width, height, cutout_key, cutout_width,
+           cutout_height, rank
     from (
       select
         s.system_id,
@@ -72,6 +73,9 @@ export async function listHeroShelfCandidates(
         img.alt,
         img.width,
         img.height,
+        cut.object_key as cutout_key,
+        cut.width as cutout_width,
+        cut.height as cutout_height,
         row_number() over (
           partition by s.system_id
           order by p.first_seen_at desc, p.name asc, p.id asc
@@ -88,7 +92,7 @@ export async function listHeroShelfCandidates(
        )
       left join brands b on b.id = p.brand_id
       join lateral (
-        select pi.object_key, pi.public_url, pi.alt, pi.width, pi.height
+        select pi.object_key, pi.public_url, pi.alt, pi.width, pi.height, pi.source_content_hash
         from product_images pi
         where pi.product_id = p.id
           and pi.status = 'active'
@@ -96,6 +100,11 @@ export async function listHeroShelfCandidates(
         order by pi.ordinal asc
         limit 1
       ) img on true
+      -- The photo's cut-out, when one is live (DESIGN.md, "Imagery").
+      left join image_cutouts cut
+        on cut.source_content_hash = img.source_content_hash
+       and cut.status in ('auto', 'approved')
+       and cut.object_key is not null
     ) ranked
     where rank <= ${limit}
     order by system_id, rank
@@ -141,6 +150,13 @@ export async function listHeroShelfCandidates(
         alt: name,
         width: row.width === null ? null : Number(row.width),
         height: row.height === null ? null : Number(row.height),
+        cutout: row.cutout_key
+          ? {
+              url: resolveImageUrl(String(row.cutout_key)),
+              width: row.cutout_width === null ? null : Number(row.cutout_width),
+              height: row.cutout_height === null ? null : Number(row.cutout_height),
+            }
+          : null,
       },
     });
   }

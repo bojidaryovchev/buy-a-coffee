@@ -166,6 +166,9 @@ describe("the /media rewrite", () => {
     expect(route(rewrites.beforeFiles, "/media/catalog/ab/cd/abcd.jpg")).toBe(
       `${STORE}/catalog/ab/cd/abcd.jpg`,
     );
+    expect(route(rewrites.beforeFiles, "/media/cutouts/ab/cd/abcd.png")).toBe(
+      `${STORE}/cutouts/ab/cd/abcd.png`,
+    );
     expect(
       route(rewrites.beforeFiles, "/media/newsletter/6f1c/ceni-x1Y.pdf", { download: "1" }),
     ).toBe(`${STORE}/newsletter/6f1c/ceni-x1Y.pdf?download=1`);

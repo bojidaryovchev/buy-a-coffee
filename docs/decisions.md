@@ -867,3 +867,44 @@ packs are not returnable, unopened ones are, and a wrong or damaged delivery is 
 complaint the shop remedies whatever the packaging. The standard withdrawal form
 (Annex 6 to art. 52) is printed under the terms. A lawyer's read still clears the
 draft notice.
+
+## Packs cut out, decoration drawn
+
+**Every product photo is cut out to transparency, and the storefront stands
+the pack on its well.** Decided with the owner on 19 October 2026 (Phase K).
+The source's photographs are square shots on light-grey grounds letterboxed
+onto white canvases; inside a white well each drew a grey rectangle, and packs
+sat at random scales. A cut-out, trimmed and standing with a contact shadow,
+removes both.
+
+**Two models, combined, then a shape check; a person only where they
+disagree.** One background-removal model is fooled by a picture printed on a
+box: on 13 of the shop's packs BiRefNet lite missed two (it cut round the
+printed cup), and BiRefNet full missed one of those worse and got the other
+right. A pixel is the pack if either model says so; the two agreed on 99.8 %
+or more of the pixels of every pack they both got right and on about 50 % of
+the two they did not, so their agreement decides what a person looks at. The
+shape check then fills enclosed holes and any gap reaching deep into the pack
+(more than 0.3 of its size; badge and seal gaps reached 0.26 at most), and
+snaps a dented pack that nearly fills its bounding box to it. The result was
+13 of 13 usable. A cut-out goes live by itself only when the models agreed and
+nothing was filled; the owner approves or rejects the rest on /admin/snimki,
+and a rejection is final: the pack keeps its white well and is never cut
+again.
+
+**Cut-outs are keyed by the photo's hash, stored as PNG, and made after the
+sync, not during it.** A photo two products share is cut once; a changed photo
+gets a new hash and a new cut-out. PNG because share cards accept only JPEG and
+PNG; browsers get AVIF and WebP through the image optimizer anyway. The models
+are about 1.2 GB and run on CPU, so the work is its own workflow after each
+scheduled sync (`cutout.yml`), like the copywriter, and never slows the sync
+or touches its secrets. The Python tool sees the photos and nothing else; the
+Node command does every write. A cut-out is a field beside the photo, not a
+replacement: each surface opts in through `PackWell`, and email and share
+cards keep the photo until they do.
+
+**Decoration is drawn, never photographed.** Beans, steam, a cup, crema, a
+cup ring and a spill are inline SVG in five drawing tones: a few hundred bytes
+each, no request, never an LCP candidate, and recolourable. Photographs of
+beans or cups would weigh 50–200 KB each, could become the LCP element, need
+a licence, and compete with the packs, which are the only photographs.

@@ -225,7 +225,8 @@ describe("what the cart page is told about a product", () => {
       name: card.name,
       title: "Lavazza Super Crema",
       detail: "Кафе на зърна, 1 кг",
-      image: { url: "/media/a.jpg", alt: "Lavazza Super Crema" },
+      // The cut-out too, when one is live: none on this card.
+      image: { url: "/media/a.jpg", alt: "Lavazza Super Crema", cutout: null },
       price: card.price,
       servingPrice: "≈ 0,14 € на чаша",
       availability: "in_stock",
