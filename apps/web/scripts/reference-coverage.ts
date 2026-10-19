@@ -88,8 +88,12 @@ const FEATURE_COVERAGE: Record<string, Implementation> = {
     tests: ["e2e/catalog.spec.ts"],
   },
   "quick-order": {
-    implementation: "Quick-order form on every product page, stored in order_inquiries",
-    files: ["src/components/forms/quick-order-form.tsx"],
+    implementation:
+      "„Поръчай“ on every product page opens the cart's order form (name, phone, delivery), stored in order_inquiries",
+    files: [
+      "src/components/cart/add-to-cart-panel.tsx",
+      "src/components/forms/cart-order-form.tsx",
+    ],
     tests: ["e2e/quick-order.spec.ts", "test/forms.test.ts"],
   },
   "newsletter-signup": {
@@ -312,8 +316,8 @@ function filter(implementation: string): Implementation {
 
 const FORM_COVERAGE: Record<string, Implementation> = {
   "quick-order": {
-    implementation: "Quick-order form, POSTs to our own server action",
-    files: ["src/components/forms/quick-order-form.tsx"],
+    implementation: "The cart's order form, POSTs to our own server action",
+    files: ["src/components/forms/cart-order-form.tsx"],
     tests: ["test/forms.test.ts"],
   },
   newsletter: {

@@ -17,9 +17,10 @@ import type * as Retention from "@/lib/retention-run";
 import { isDatabaseAvailable, runMigrationFile, useTestDatabase } from "./helpers/test-db";
 
 /**
- * Orders against a real database: the cart's action, the quick order writing
- * its line through the same table, retention taking an order's lines with it,
- * and the migration that made the table, run twice over rows of the old shape.
+ * Orders against a real database: the cart's action with who the order is for
+ * and where it goes, retention taking an order's lines with it, and the
+ * migrations that made the lines and the delivery columns, run twice over rows
+ * of the old shape.
  *
  * The notification sink records instead of sending, and the confirmation mail
  * is a spy, so nothing here can reach a mail provider.
@@ -52,6 +53,19 @@ const form = (fields: Record<string, string>): FormData => {
   for (const [key, value] of Object.entries(fields)) data.set(key, value);
   return data;
 };
+
+/** Who the order is for and where it goes, as the form posts them. */
+const TO_ADDRESS = {
+  firstName: "Иван",
+  lastName: "Петров",
+  phone: "0888 123 456",
+  deliveryMethod: "address",
+  deliveryCourier: "econt",
+  deliveryCity: "Пловдив",
+  deliveryPostcode: "4000",
+  deliveryAddress: "ул. Иван Вазов 12, ет. 3, ап. 7",
+  deliveryOffice: "",
+} as const;
 
 suite("orders and their lines (integration)", () => {
   let db: Database;
@@ -126,7 +140,7 @@ suite("orders and their lines (integration)", () => {
   const cart = (lines: Array<Record<string, unknown>>, fields: Record<string, string> = {}) =>
     actions.submitCartOrder(
       IDLE,
-      form({ lines: JSON.stringify(lines), phone: "0888 123 456", website: "", ...fields }),
+      form({ lines: JSON.stringify(lines), ...TO_ADDRESS, website: "", ...fields }),
     );
 
   const items = () => db.select().from(orderInquiryItems).orderBy(asc(orderInquiryItems.position));
@@ -145,7 +159,8 @@ suite("orders and their lines (integration)", () => {
         { productId: a, quantity: 2, unitPrice: "0.01" },
         { productId: b, quantity: 1 },
       ],
-      { email: "ivan@example.test", customerName: "Иван" },
+      // A field the form no longer has is not read either.
+      { email: "ivan@example.test", customerName: "Някой друг" },
     );
 
     expect(result).toMatchObject({
@@ -159,6 +174,16 @@ suite("orders and their lines (integration)", () => {
       quantity: 3,
       phone: "+359888123456",
       sourcePage: "/bg/kolichka",
+      // The full name too, for anything that reads only that column.
+      customerName: "Иван Петров",
+      firstName: "Иван",
+      lastName: "Петров",
+      deliveryMethod: "address",
+      deliveryCourier: "econt",
+      deliveryCity: "Пловдив",
+      deliveryPostcode: "4000",
+      deliveryAddress: "ул. Иван Вазов 12, ет. 3, ап. 7",
+      deliveryOffice: null,
     });
     expect(result.status === "success" && result.reference).toBe(
       inquiry!.id.slice(0, 8).toUpperCase(),
@@ -190,18 +215,83 @@ suite("orders and their lines (integration)", () => {
     expect(sent[0]!.summary).toContain("цена при запитване");
     expect(sent[0]!.summary).not.toContain("888");
     expect(sent[0]!.summary).not.toContain("ivan@");
+    // Nor who it is for or where it goes: those are in the record.
+    for (const detail of ["Петров", "Вазов", "Пловдив", "4000"]) {
+      expect(sent[0]!.subject + sent[0]!.summary).not.toContain(detail);
+    }
 
     // The customer gets the confirmation, under the shop's names.
     expect(confirmations).toHaveLength(1);
     expect(confirmations[0]).toMatchObject({
       id: inquiry!.id,
       email: "ivan@example.test",
-      customerName: "Иван",
+      customerName: "Иван Петров",
       phone: "+359888123456",
+      // Printed back like the phone, so a wrong address is noticed now.
+      delivery: ["До адрес с Еконт", "ул. Иван Вазов 12, ет. 3, ап. 7", "4000 Пловдив"],
     });
     expect(confirmations[0]!.lines.map((line) => line.name)).toEqual(
       lines.map((line) => line.displayName),
     );
+  });
+
+  it("stores an office delivery without the street typed before the switch", async () => {
+    const a = await add({ slug: "a", name: "A" });
+    const result = await cart([{ productId: a, quantity: 1 }], {
+      email: "ivan@example.test",
+      deliveryMethod: "office",
+      deliveryCourier: "boxnow",
+      deliveryOffice: "до Kaufland, ул. Пазарска",
+      // Left in the hidden fields from before the switch.
+      deliveryPostcode: "4000",
+      deliveryAddress: "ул. Иван Вазов 12",
+    });
+
+    expect(result.status).toBe("success");
+    const [inquiry] = await db.select().from(orderInquiries);
+    expect(inquiry).toMatchObject({
+      deliveryMethod: "office",
+      deliveryCourier: "boxnow",
+      deliveryCity: "Пловдив",
+      deliveryOffice: "до Kaufland, ул. Пазарска",
+      deliveryPostcode: null,
+      deliveryAddress: null,
+    });
+    expect(confirmations[0]!.delivery).toEqual([
+      "До автомат BOX NOW",
+      "до Kaufland, ул. Пазарска",
+      "Пловдив",
+    ]);
+  });
+
+  it("refuses an order with no name or delivery, under each field, keeps what was typed, and stores nothing", async () => {
+    const a = await add({ slug: "a", name: "A" });
+    const result = await cart([{ productId: a, quantity: 1 }], {
+      firstName: "",
+      lastName: "",
+      deliveryCourier: "boxnow",
+      deliveryCity: "",
+      deliveryPostcode: "40",
+      deliveryAddress: "",
+    });
+
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Поправете отбелязаните полета и изпратете отново.",
+      fieldErrors: {
+        firstName: "Въведете името си.",
+        lastName: "Въведете фамилията си.",
+        deliveryCourier: "Изберете куриер.",
+        deliveryCity: "Въведете населеното място.",
+        deliveryPostcode: "Въведете пощенския код: 4 цифри, например 4000.",
+        deliveryAddress: "Въведете улица и номер, или квартал, блок, вход и апартамент.",
+      },
+      values: { phone: "0888 123 456", deliveryPostcode: "40", deliveryCourier: "boxnow" },
+    });
+    // The honeypot is never handed back.
+    expect(result.status === "error" && result.values).not.toHaveProperty("website");
+    expect(await db.select().from(orderInquiries)).toHaveLength(0);
+    expect(sent).toEqual([]);
   });
 
   it("sends no confirmation when no address was given", async () => {
@@ -267,7 +357,7 @@ suite("orders and their lines (integration)", () => {
     });
     const forged = await actions.submitCartOrder(
       IDLE,
-      form({ lines: "{not json", phone: "0888 123 456", website: "" }),
+      form({ lines: "{not json", ...TO_ADDRESS, website: "" }),
     );
     expect(forged).toMatchObject({
       status: "error",
@@ -297,54 +387,6 @@ suite("orders and their lines (integration)", () => {
     expect(row).toMatchObject({ email: "buyer@example.test", consentSource: "cart_form" });
   });
 
-  it("writes a quick order's one product as one line, priced, with a reference", async () => {
-    const a = await add({ slug: "a", name: "Капсули DG Borbone Rossa 16 бр.", price: "5.60" });
-
-    const result = await actions.submitOrderInquiry(
-      IDLE,
-      form({
-        productSlug: "a",
-        phone: "0888 123 456",
-        quantity: "3",
-        email: "maria@example.test",
-        website: "",
-      }),
-    );
-
-    expect(result).toMatchObject({
-      status: "success",
-      reference: expect.stringMatching(/^[0-9A-F]{8}$/),
-    });
-    const [inquiry] = await db.select().from(orderInquiries);
-    // The old columns, as a quick order has always filled them…
-    expect(inquiry).toMatchObject({
-      productId: a,
-      productSlug: "a",
-      quantity: 3,
-      sourcePage: "/bg/a",
-    });
-    // …and the line, in the shape a cart's lines have.
-    const lines = await items();
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({
-      inquiryId: inquiry!.id,
-      productId: a,
-      productName: "Капсули DG Borbone Rossa 16 бр.",
-      quantity: 3,
-      unitPrice: "5.60",
-      currency: "EUR",
-    });
-    expect(sent[0]!.subject).toBe("Нова заявка за поръчка: Капсули DG Borbone Rossa 16 бр.");
-    expect(sent[0]!.summary).toMatch(
-      /3 × Капсули DG Borbone Rossa 16 бр\. — 5,60\s€ за брой, 16,80\s€/,
-    );
-    expect(confirmations).toHaveLength(1);
-    expect(confirmations[0]!.lines[0]).toMatchObject({
-      quantity: 3,
-      unitPrice: { amount: "5.60" },
-    });
-  });
-
   it("deletes an order's lines with it when retention deletes the order", async () => {
     const a = await add({ slug: "a", name: "A" });
     await cart([{ productId: a, quantity: 1 }]);
@@ -370,22 +412,49 @@ suite("orders and their lines (integration)", () => {
     expect(line).toMatchObject({ productId: null, productName: "A", productSlug: "a" });
   });
 
+  it("keeps older enquiries and the delivery of new ones however often the delivery migration runs", async () => {
+    const a = await add({ slug: "a", name: "A" });
+    // One from before the form asked for a delivery, and one after.
+    await db.insert(orderInquiries).values({ phone: "+359888000001", customerName: "Мария" });
+    await cart([{ productId: a, quantity: 1 }]);
+
+    const { sql: client, close: closeClient } = createDatabase({ url, max: 1 });
+    try {
+      await runMigrationFile(client, "0011_order_delivery");
+      await runMigrationFile(client, "0011_order_delivery");
+    } finally {
+      await closeClient();
+    }
+
+    const rows = await db.select().from(orderInquiries).orderBy(asc(orderInquiries.phone));
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      customerName: "Мария",
+      firstName: null,
+      deliveryMethod: null,
+      deliveryCity: null,
+    });
+    expect(rows[1]).toMatchObject({
+      customerName: "Иван Петров",
+      deliveryMethod: "address",
+      deliveryCity: "Пловдив",
+    });
+  });
+
   it("gives every older enquiry its line, once, however often the migration runs", async () => {
     const a = await add({ slug: "a", name: "Старо кафе" });
     // Two rows of the shape the table had before the cart, and one with no product.
-    await db
-      .insert(orderInquiries)
-      .values([
-        {
-          phone: "+359888000001",
-          productId: a,
-          productName: "Старо кафе",
-          productSlug: "a",
-          quantity: 4,
-        },
-        { phone: "+359888000002", productName: "Изтрит продукт", productSlug: "gone", quantity: 1 },
-        { phone: "+359888000003" },
-      ]);
+    await db.insert(orderInquiries).values([
+      {
+        phone: "+359888000001",
+        productId: a,
+        productName: "Старо кафе",
+        productSlug: "a",
+        quantity: 4,
+      },
+      { phone: "+359888000002", productName: "Изтрит продукт", productSlug: "gone", quantity: 1 },
+      { phone: "+359888000003" },
+    ]);
     // And one the new code wrote, which already has its line.
     await cart([{ productId: a, quantity: 1 }]);
 

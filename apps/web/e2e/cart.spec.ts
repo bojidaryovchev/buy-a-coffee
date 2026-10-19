@@ -1,11 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BG, PRODUCT_LINK, expectProductPage } from "./support/paths";
 import { asDistinctVisitor, waitForHydration } from "./support/hydration";
+import { aPhoneNumber, fillOrder, orderForm } from "./support/order-form";
 
 /**
  * The cart, end to end: products added from a listing and from a product
  * page, the cart page asking the server what they cost, and one order request
- * for all of them — written to our own database, like the quick order's.
+ * for all of them, with who it is for and where it goes — written to our own
+ * database.
  *
  * Every test starts with an empty cart: a Playwright context is a fresh
  * browser profile, so `localStorage` is empty.
@@ -50,9 +52,8 @@ test("two products from a listing go into one order request, and the cart is emp
   await page.getByRole("button", { name: "Един брой повече" }).first().click();
   await expect(summary).toContainText("(3 бр.)");
 
-  // A number of its own, so the duplicate check never answers for another spec.
-  const phone = `0887 ${String(Math.floor(Math.random() * 900) + 100)} ${String(Math.floor(Math.random() * 900) + 100)}`;
-  await summary.getByLabel(/телефонен номер/i).fill(phone);
+  // A name, a number of its own and a delivery: everything the form requires.
+  await fillOrder(orderForm(page), aPhoneNumber());
   await summary.getByRole("button", { name: "Изпрати заявката" }).click();
 
   const answer = page.getByRole("status").filter({ hasText: "Заявката е получена" });
@@ -66,7 +67,7 @@ test("two products from a listing go into one order request, and the cart is emp
   expect(await page.evaluate(() => window.localStorage.getItem("buy-a-coffee.cart"))).toBeNull();
 });
 
-test("a product page adds the chosen quantity, and keeps the quick order beside it", async ({
+test("a product page adds the chosen quantity, and „Поръчай“ then opens the cart without adding it again", async ({
   page,
 }) => {
   await page.goto(BG.capsules);
@@ -80,8 +81,12 @@ test("a product page adds the chosen quantity, and keeps the quick order beside 
   await expect(panel).toContainText("В количката: 2 бр.");
   await expect(page.getByRole("link", { name: "Количка, 2 броя" })).toBeVisible();
 
-  // The quick order is still there, for this one product by phone.
-  await expect(panel.getByRole("button", { name: "Поискай обаждане" })).toBeVisible();
+  // Already in the cart: „Поръчай“ goes to the order form and adds nothing.
+  await panel.getByRole("button", { name: "Поръчай", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${BG.cart}$`));
+  const summary = page.getByRole("complementary", { name: "Сума и поръчка" });
+  await expect(summary).toContainText("(2 бр.)");
+  await expect(orderForm(page)).toBeVisible();
 });
 
 test("an empty cart says so and points back to the shelves", async ({ page }) => {

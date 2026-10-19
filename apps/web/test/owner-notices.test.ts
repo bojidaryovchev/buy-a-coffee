@@ -34,20 +34,31 @@ async function mailFor(notice: Parameters<typeof composeNotificationEmail>[0]) {
 }
 
 describe("the order notification", () => {
+  /* The record as the order form now stores it: with where it goes, as the
+     label lines the customer's confirmation prints. */
+  const order = {
+    ...orderRecordFixture,
+    delivery: ["До адрес с Еконт", "ул. Опълченска 46, вх. Б, ап. 12", "1303 София"],
+  };
+
   it("names the products and the sum", async () => {
-    const { html, text } = await mailFor(orderNotice(orderRecordFixture));
+    const { html, text } = await mailFor(orderNotice(order));
     expect(text).toContain("Super Crema 1кг");
     expect(html).toContain("Napoli ESE 50");
     expect(text).toMatch(/Сума на продуктите: 39,80\s€/);
   });
 
   it("carries none of the customer's contact details, in either part", async () => {
-    const { html, text } = await mailFor(orderNotice(orderRecordFixture));
+    const { html, text } = await mailFor(orderNotice(order));
     for (const part of [html, text]) {
-      for (const phone of forms(orderRecordFixture.phone)) expect(part).not.toContain(phone);
-      expect(part).not.toContain(orderRecordFixture.email);
-      expect(part).not.toContain(orderRecordFixture.customerName);
+      for (const phone of forms(order.phone)) expect(part).not.toContain(phone);
+      expect(part).not.toContain(order.email);
+      expect(part).not.toContain(order.customerName);
       expect(part).not.toContain("Звънете след 17:00");
+      // Nor where the parcel goes: the street, the place, or how it is sent.
+      for (const line of order.delivery) expect(part).not.toContain(line);
+      expect(part).not.toContain("Опълченска");
+      expect(part).not.toContain("1303");
     }
     // And says where they are instead.
     expect(text).toContain("Данните за контакт са в записа, не в това писмо.");

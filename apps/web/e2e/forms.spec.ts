@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
-import { BG, PRODUCT_LINK, expectProductPage } from "./support/paths";
+import { BG } from "./support/paths";
 import { asDistinctVisitor, waitForHydration } from "./support/hydration";
+import { fillOrder, openCartWithAProduct, orderField, orderForm } from "./support/order-form";
 
 /**
  * The storefront's forms when the button is pressed.
@@ -11,7 +12,7 @@ import { asDistinctVisitor, waitForHydration } from "./support/hydration";
  * carry `noValidate`, so the browser's own bubbles never show; our messages
  * stand under the fields instead, tied to them with `aria-describedby`.
  *
- * What these prove, for the quick order, the contact form (and the vending
+ * What these prove, for the order form, the contact form (and the vending
  * page's enquiry, which is the same form) and the newsletter:
  *
  *   - with JavaScript, pressing the button with nothing filled in shows our
@@ -19,7 +20,9 @@ import { asDistinctVisitor, waitForHydration } from "./support/hydration";
  *     nothing; one bad value is named for what is wrong with it;
  *   - without JavaScript the same press is a POST, and the page comes back with
  *     the server's messages in the same places — the same sentences, word for
- *     word — and what was typed still in the fields;
+ *     word — and what was typed still in the fields. Not the order form: the
+ *     cart it sends is in the browser, so without a script there is no form,
+ *     and the page says so;
  *   - with JavaScript, an error only the server can find still lands where the
  *     browser's would.
  *
@@ -33,6 +36,12 @@ const MESSAGE = {
   emailMissing: "Въведете имейл адреса си.",
   emailFormat: "Въведете целия имейл адрес, например ivan@example.com.",
   nameMissing: "Въведете името си.",
+  lastNameMissing: "Въведете фамилията си.",
+  courierMissing: "Изберете куриер.",
+  cityMissing: "Въведете населеното място.",
+  postcodeMissing: "Въведете пощенския код: 4 цифри, например 4000.",
+  addressMissing: "Въведете улица и номер, или квартал, блок, вход и апартамент.",
+  officeMissing: "Напишете кой офис или автомат, например „Пловдив Център“.",
   messageMissing: "Напишете съобщението си.",
   checkFields: "Поправете отбелязаните полета и изпратете отново.",
 } as const;
@@ -77,36 +86,33 @@ async function withoutScript<T>(browser: Browser, run: (page: Page) => Promise<T
   }
 }
 
-/** The address of the first product on the capsule listing. */
-async function aProduct(page: Page): Promise<string> {
-  await page.goto(BG.capsules);
-  const href = await page.locator(PRODUCT_LINK).first().getAttribute("href");
-  expect(href).toBeTruthy();
-  return href!;
-}
+test.describe("the order form", () => {
+  const phone = (page: Page) => orderField(orderForm(page), "Телефонен номер");
+  const submit = (page: Page) => orderForm(page).getByRole("button", { name: "Изпрати заявката" });
 
-test.describe("the quick order", () => {
-  const orderForm = (page: Page) =>
-    page.locator("form").filter({ hasText: /поръчка на една стъпка/i });
-  const phone = (page: Page) => orderForm(page).getByLabel(/телефонен номер/i);
-  const submit = (page: Page) => orderForm(page).getByRole("button", { name: /поискай обаждане/i });
-
-  test("with JavaScript: our message under the phone, focus on it, nothing sent", async ({
+  test("with JavaScript: our messages under every required field, focus on the first, nothing sent", async ({
     page,
   }) => {
-    const product = await aProduct(page);
-    await page.goto(product);
-    await expectProductPage(page);
-    await waitForHydration(page);
+    await openCartWithAProduct(page);
+    const form = orderForm(page);
     const sent = countActions(page);
 
-    expect(await orderForm(page).evaluate((form) => (form as HTMLFormElement).noValidate)).toBe(
-      true,
-    );
+    expect(await form.evaluate((element) => (element as HTMLFormElement).noValidate)).toBe(true);
     await submit(page).click();
-    await expectError(phone(page), MESSAGE.phoneMissing);
-    await expect(phone(page)).toBeFocused();
-    await expect(orderForm(page).getByText(MESSAGE.checkFields)).toBeVisible();
+    for (const [name, message] of [
+      ["Име", MESSAGE.nameMissing],
+      ["Фамилия", MESSAGE.lastNameMissing],
+      ["Телефонен номер", MESSAGE.phoneMissing],
+      ["Пощенски код", MESSAGE.postcodeMissing],
+      ["Населено място", MESSAGE.cityMissing],
+      ["Адрес", MESSAGE.addressMissing],
+    ] as const) {
+      await expectError(orderField(form, name), message);
+    }
+    // The courier's choices share one message, under the group.
+    await expectError(form.getByRole("radio", { name: "Еконт" }), MESSAGE.courierMissing);
+    await expect(orderField(form, "Име")).toBeFocused();
+    await expect(form.getByText(MESSAGE.checkFields)).toBeVisible();
 
     // One bad value: the message names what is wrong, and follows the typing.
     await phone(page).fill("0888 12");
@@ -118,19 +124,43 @@ test.describe("the quick order", () => {
     expect(sent()).toBe(0);
   });
 
+  test("with JavaScript: a delivery to an office asks for the office, not for a street", async ({
+    page,
+  }) => {
+    await openCartWithAProduct(page);
+    const form = orderForm(page);
+    const sent = countActions(page);
+
+    await form.getByRole("radio", { name: "До офис или автомат" }).check();
+    await expect(orderField(form, "Пощенски код")).toHaveCount(0);
+    await expect(orderField(form, "Адрес")).toHaveCount(0);
+
+    // BOX NOW delivers to its lockers only, so it is offered here, and the
+    // field then asks for the locker.
+    await form.getByRole("radio", { name: "BOX NOW" }).check();
+    await submit(page).click();
+    await expectError(orderField(form, "Автомат BOX NOW"), MESSAGE.officeMissing);
+
+    // Back to an address: BOX NOW is no longer offered, nor left chosen.
+    await form.getByRole("radio", { name: "До адрес" }).check();
+    await expect(form.getByRole("radio", { name: "BOX NOW" })).toHaveCount(0);
+    await expect(form.getByRole("radio", { name: "Еконт" })).not.toBeChecked();
+    await expect(orderField(form, "Адрес")).toBeVisible();
+    expect(sent()).toBe(0);
+  });
+
   test("with JavaScript: an email in the optional fields is checked, and its fields open", async ({
     page,
   }) => {
-    const product = await aProduct(page);
-    await page.goto(product);
-    await waitForHydration(page);
+    await openCartWithAProduct(page);
+    const form = orderForm(page);
     const sent = countActions(page);
 
-    await phone(page).fill("0888 123 456");
+    await fillOrder(form, "0888 123 456");
     // Open the disclosure, type a half address, close it again.
-    const summary = orderForm(page).locator("summary");
+    const summary = form.locator("summary");
     await summary.click();
-    const email = orderForm(page).getByLabel("Имейл", { exact: true });
+    const email = form.getByLabel("Имейл", { exact: true });
     await email.fill("ivan@");
     await summary.click();
     await expect(email).toBeHidden();
@@ -142,31 +172,14 @@ test.describe("the quick order", () => {
     expect(sent()).toBe(0);
   });
 
-  test("without JavaScript: the server's messages, the same words, in the same place", async ({
+  test("without JavaScript: no form that could not send, and the phone instead", async ({
     browser,
-    page,
   }) => {
-    const product = await aProduct(page);
     await withoutScript(browser, async (bare) => {
-      await bare.goto(product);
-      await submit(bare).click();
-      await expectError(phone(bare), MESSAGE.phoneMissing);
-      await expect(orderForm(bare).getByText(MESSAGE.checkFields)).toBeVisible();
-
-      await phone(bare).fill("0888 12");
-      await phone(bare).press("Enter");
-      await expectError(phone(bare), MESSAGE.phoneShort);
-      // What was typed came back with the answer.
-      await expect(phone(bare)).toHaveValue("0888 12");
-
-      // And the form still orders.
-      await phone(bare).fill(
-        `0886 ${String(Math.floor(Math.random() * 900) + 100)} ${String(Math.floor(Math.random() * 900) + 100)}`,
-      );
-      await phone(bare).press("Enter");
-      await expect(bare.locator("#order").getByRole("status")).toContainText(
-        /заявката е получена/i,
-      );
+      await bare.goto(BG.cart);
+      await expect(bare.getByText(/Количката работи с включен JavaScript/)).toBeVisible();
+      await expect(bare.locator('main a[href^="tel:"]').first()).toBeVisible();
+      await expect(bare.getByRole("button", { name: "Изпрати заявката" })).toHaveCount(0);
     });
   });
 
@@ -174,19 +187,35 @@ test.describe("the quick order", () => {
     page,
   }) => {
     await asDistinctVisitor(page);
-    const product = await aProduct(page);
-    await page.goto(product);
-    await waitForHydration(page);
-    // The page's own field, pointed at a product that does not exist: the
-    // browser cannot know, the server can.
-    await orderForm(page)
-      .locator('input[name="productSlug"]')
-      .evaluate((input) => ((input as HTMLInputElement).value = "nyama-takav-produkt"));
-    await phone(page).fill("0888 123 456");
+    await openCartWithAProduct(page);
+    const form = orderForm(page);
+    /* The browser sends a product it has; on the way out it becomes one the
+       shop does not have, which only the server can find. */
+    const productId = await page.evaluate(
+      () =>
+        (
+          JSON.parse(window.localStorage.getItem("buy-a-coffee.cart") ?? "{}") as {
+            lines: Array<{ productId: string }>;
+          }
+        ).lines[0]!.productId,
+    );
+    await page.route(
+      (url) => url.pathname === BG.cart,
+      async (route, request) => {
+        if (request.method() !== "POST") return route.continue();
+        const body = request.postData() ?? "";
+        await route.continue({
+          postData: body.replaceAll(productId, "00000000-0000-4000-8000-000000000000"),
+        });
+      },
+    );
+    await fillOrder(form, "0888 123 456");
     await submit(page).click();
-    await expect(orderForm(page).locator("[aria-live]")).toContainText("Не намерихме този продукт");
-    // The number stays in the field.
+
+    await expect(form.locator("[aria-live]")).toContainText("вече не се предлага");
+    // What was typed stays in the fields.
     await expect(phone(page)).toHaveValue("0888 123 456");
+    await expect(orderField(form, "Адрес")).toHaveValue("ул. Иван Вазов 12");
   });
 });
 

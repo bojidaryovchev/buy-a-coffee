@@ -20,8 +20,6 @@ export type AnalyticsEvent =
   | { name: "view_brand"; brandSlug: string; resultCount: number }
   | { name: "search"; query: string; resultCount: number }
   | { name: "filter_applied"; filter: string; value: string; resultCount: number }
-  | { name: "quick_order_started"; productSlug: string }
-  | { name: "quick_order_submitted"; productSlug: string; outcome: "success" | "error" }
   /*
    * The cart. Products and counts, never who: the order's phone number stays
    * in the form. `source` says which control was used, so the card's button

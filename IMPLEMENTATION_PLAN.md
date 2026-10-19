@@ -790,7 +790,16 @@ passes.
       `/bg/za-kafemashina`. From Phase J: logo files for Molini (its owner is
       Rema Caffè, Plovdiv) and Eurocaf (the source knows who supplies it) —
       Excelsior's was made from its shop's SVG on 19 October; and a word to the source about the illy tin it still lists
-      as 100 pods.
+      as 100 pods. **19 October: the business answers are in** (free from
+      exactly €49.00, the courier's tariff below it, dispatch 1 business day
+      and 1–2 in transit, Econt, Speedy and BOX NOW, cash on delivery only,
+      returns of unopened packs at the customer's cost, weekdays 09–18) and
+      `confirmedByOwner` is set; the Terms now state the Article 57 exclusion
+      (opened packs) and carry the standard withdrawal form, so
+      `check:launch` passes. Still open here: the lawyer's read (it clears the
+      draft notice), social links, the source's written permission, the
+      capsule check, the two logos and the illy word. The crawler's contact is
+      the shop's contact page (18 October).
 - [x] **H2 · Image store** — create it; put its token in the local environment
       and in the repository's secrets; `pnpm images:push`; `pnpm images:verify`.
       **Done 18 October:** Blob store `buy-a-coffee-images` (public, `fra1`),

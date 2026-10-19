@@ -18,9 +18,9 @@ import type * as Page from "@/app/(site)/[lang]/byuletin/otpisvane/page";
 import { isDatabaseAvailable, runMigrationFile, useTestDatabase } from "./helpers/test-db";
 
 /**
- * Newsletter consent, end to end against a real database: the two ticked
- * checkboxes, the operator's "add to newsletter", the unsubscribe token and the
- * page that uses it, and `closed_at`.
+ * Newsletter consent, end to end against a real database: the ticked boxes on
+ * the order form and the contact form, the operator's "add to newsletter", the
+ * unsubscribe token and the page that uses it, and `closed_at`.
  *
  * Next.js request APIs are replaced with small fakes, and the notification sink
  * with one that records, so nothing here can reach a mail provider.
@@ -74,6 +74,8 @@ suite("newsletter consent (integration)", () => {
   let admin: typeof Admin;
   let unsubscribeModule: typeof Unsubscribe;
   let page: typeof Page;
+  /** The one product the orders here are for. */
+  let productId: string;
 
   beforeAll(async () => {
     ({ db, close, url } = await useTestDatabase("newsletter_consent"));
@@ -100,15 +102,19 @@ suite("newsletter consent (integration)", () => {
         canonicalHost: "example.test",
       })
       .returning({ id: sourceSites.id });
-    await db.insert(products).values({
-      sourceSiteId: site!.id,
-      sourceKey: "consent-coffee",
-      sourceUrl: "https://example.test/consent-coffee/",
-      sourcePath: "/consent-coffee/",
-      slug: "consent-coffee",
-      semanticHash: "consent-test",
-      name: "Тестово кафе",
-    });
+    const [product] = await db
+      .insert(products)
+      .values({
+        sourceSiteId: site!.id,
+        sourceKey: "consent-coffee",
+        sourceUrl: "https://example.test/consent-coffee/",
+        sourcePath: "/consent-coffee/",
+        slug: "consent-coffee",
+        semanticHash: "consent-test",
+        name: "Тестово кафе",
+      })
+      .returning({ id: products.id });
+    productId = product!.id;
   });
 
   afterAll(async () => {
@@ -126,10 +132,22 @@ suite("newsletter consent (integration)", () => {
 
   const subscribers = () => db.select().from(newsletterSubscribers);
 
+  /** An order from the cart's form, for the one product, to a courier's office. */
   const order = (extra: Record<string, string> = {}) =>
-    actions.submitOrderInquiry(
+    actions.submitCartOrder(
       IDLE,
-      form({ productSlug: "consent-coffee", phone: "0888 123 456", website: "", ...extra }),
+      form({
+        lines: JSON.stringify([{ productId, quantity: 1 }]),
+        firstName: "Мария",
+        lastName: "Иванова",
+        phone: "0888 123 456",
+        deliveryMethod: "office",
+        deliveryCourier: "speedy",
+        deliveryCity: "Варна",
+        deliveryOffice: "Варна Център",
+        website: "",
+        ...extra,
+      }),
     );
 
   const contact = (extra: Record<string, string> = {}) =>
@@ -144,7 +162,7 @@ suite("newsletter consent (integration)", () => {
       }),
     );
 
-  describe("the quick order", () => {
+  describe("the order form", () => {
     it("does not subscribe anyone when the box is not ticked", async () => {
       const result = await order({ email: "buyer@example.test" });
       expect(result.status).toBe("success");
@@ -158,7 +176,7 @@ suite("newsletter consent (integration)", () => {
       expect(result.status).toBe("success");
 
       const [row] = await subscribers();
-      expect(row).toMatchObject({ email: "buyer@example.test", consentSource: "quick_order_form" });
+      expect(row).toMatchObject({ email: "buyer@example.test", consentSource: "cart_form" });
       expect(row!.unsubscribedAt).toBeNull();
       expect(row!.consentAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
       expect(row!.unsubscribeToken).toMatch(/^[0-9a-f]{64}$/);

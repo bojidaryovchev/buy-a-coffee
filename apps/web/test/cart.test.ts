@@ -30,7 +30,7 @@ const C = "33333333-3333-4333-8333-333333333333";
 const id = (index: number) => `${String(index).padStart(8, "0")}-0000-4000-8000-000000000000`;
 
 describe("clampQuantity", () => {
-  it("keeps a quantity from 1 to 99, as the quick order does", () => {
+  it("keeps a quantity from 1 to 99, as the order form's lines do", () => {
     expect(clampQuantity(5)).toBe(5);
     expect(clampQuantity(0)).toBe(1);
     expect(clampQuantity(-3)).toBe(1);

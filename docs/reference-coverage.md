@@ -17,7 +17,7 @@ Every capability observed on the reference site, and what implements it here. Th
 | Product characteristics list | Composition, origin and roast as stated facts in the product page's facts table; the full list is stored | test/product-facts.test.ts | PASS |
 | Catalog filtering | URL-driven filters on every listing | test/filters.test.ts, e2e/catalog.spec.ts | PASS |
 | Promotions | /bg/promotsii | e2e/catalog.spec.ts | PASS |
-| Quick order by phone | Quick-order form on every product page, stored in order_inquiries | e2e/quick-order.spec.ts, test/forms.test.ts | PASS |
+| Quick order by phone | „Поръчай“ on every product page opens the cart's order form (name, phone, delivery), stored in order_inquiries | e2e/quick-order.spec.ts, test/forms.test.ts | PASS |
 | Newsletter signup | Footer newsletter form, stored in newsletter_subscribers | test/forms.test.ts | PASS |
 | Related products | Related products on product pages (category, then brand) | e2e/product.spec.ts | PASS |
 | Breadcrumb navigation | Breadcrumbs plus BreadcrumbList structured data | e2e/product.spec.ts | PASS |
@@ -59,7 +59,7 @@ Every capability observed on the reference site, and what implements it here. Th
 | Reference capability | Our implementation | Test | Status |
 | --- | --- | --- | --- |
 | Newsletter signup (email) | Newsletter form, POSTs to our own server action | test/forms.test.ts | PASS |
-| Quick order (phone) | Quick-order form, POSTs to our own server action | test/forms.test.ts | PASS |
+| Quick order (phone) | The cart's order form, POSTs to our own server action | test/forms.test.ts | PASS |
 
 ## Routes with no counterpart in the reference
 

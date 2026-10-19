@@ -19,9 +19,12 @@ vi.mock("@/lib/forms/actions", () => actions);
 
 /** The page the test is "on", for the notice, which belongs to one page. */
 const route = vi.hoisted(() => ({ pathname: "/bg/kafe-kapsuli" }));
+/** Where „Поръчай“ sends the browser. */
+const router = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "bg" }),
   usePathname: () => route.pathname,
+  useRouter: () => router,
 }));
 
 vi.mock("next/image", async () => {
@@ -52,6 +55,7 @@ beforeEach(() => {
   cartStore.clear();
   window.localStorage.clear();
   actions.submitCartOrder.mockReset();
+  router.push.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -102,7 +106,23 @@ describe("the product page's panel", () => {
     expect(screen.getByRole("spinbutton", { name: "Количество" })).toHaveProperty("value", "1");
   });
 
-  it("is hidden without JavaScript, where the quick order below is the panel", () => {
+  it("puts the product in the cart once with „Поръчай“, and opens the cart", async () => {
+    render(createElement(AddToCartPanel, { productId: A, slug: "a", name: "Продукт А" }));
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Един брой повече" })),
+    );
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Поръчай" })));
+
+    expect(stored()).toEqual([{ productId: A, slug: "a", quantity: 2 }]);
+    expect(router.push).toHaveBeenCalledWith("/bg/kolichka");
+
+    // Already in the cart: a second press opens the cart and adds nothing.
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Поръчай" })));
+    expect(stored()).toEqual([{ productId: A, slug: "a", quantity: 2 }]);
+    expect(router.push).toHaveBeenCalledTimes(2);
+  });
+
+  it("is hidden without JavaScript, where the page offers the phone instead", () => {
     const host = document.createElement("div");
     host.innerHTML = renderToStaticMarkup(
       createElement(AddToCartPanel, { productId: A, slug: "a", name: "Продукт А" }),
@@ -244,6 +264,23 @@ function serve(products: CartProductView[]) {
   return fetch;
 }
 
+/**
+ * Fill the order form as a customer would: a name, a number, and a delivery
+ * to an address, which is the method chosen to begin with.
+ */
+async function fillOrder(phone = "0888 123 456") {
+  const field = (name: string) => screen.getByRole("textbox", { name });
+  await act(async () => {
+    fireEvent.change(field("Име"), { target: { value: "Иван" } });
+    fireEvent.change(field("Фамилия"), { target: { value: "Петров" } });
+    fireEvent.change(field("Телефонен номер"), { target: { value: phone } });
+    fireEvent.click(screen.getByRole("radio", { name: "Еконт" }));
+    fireEvent.change(field("Пощенски код"), { target: { value: "4000" } });
+    fireEvent.change(field("Населено място"), { target: { value: "Пловдив" } });
+    fireEvent.change(field("Адрес"), { target: { value: "ул. Иван Вазов 12" } });
+  });
+}
+
 function fill(lines: Array<{ productId: string; quantity: number }>) {
   window.localStorage.setItem(
     CART_STORAGE_KEY,
@@ -329,9 +366,7 @@ describe("the cart page", () => {
     ]);
     await screen.findByRole("link", { name: "Lavazza" });
 
-    fireEvent.change(screen.getByLabelText(/Телефонен номер/), {
-      target: { value: "0888 123 456" },
-    });
+    await fillOrder();
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
     );
@@ -343,6 +378,8 @@ describe("the cart page", () => {
     // Ids and quantities only, and only what can be ordered.
     expect(JSON.parse(String(sent.get("lines")))).toEqual([{ productId: A, quantity: 2 }]);
     expect(sent.get("phone")).toBe("0888 123 456");
+    expect(sent.get("firstName")).toBe("Иван");
+    expect(sent.get("deliveryCourier")).toBe("econt");
 
     expect(await screen.findByRole("heading", { name: "Заявката е получена" })).toBeTruthy();
     expect(screen.getByText("A1B2C3D4")).toBeTruthy();
@@ -362,9 +399,7 @@ describe("the cart page", () => {
     fill([{ productId: A, quantity: 1 }]);
     await screen.findByRole("link", { name: "Lavazza" });
 
-    fireEvent.change(screen.getByLabelText(/Телефонен номер/), {
-      target: { value: "0888 123 456" },
-    });
+    await fillOrder();
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
     );

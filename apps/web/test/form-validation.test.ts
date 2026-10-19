@@ -6,15 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { z } from "zod";
 import {
+  CART_MESSAGES,
   CHECK_EMAIL_MESSAGE,
   CHECK_FIELDS_MESSAGE,
   CONTACT_MESSAGES,
+  DELIVERY_MESSAGES,
   EMAIL_MESSAGES,
   PHONE_MESSAGES,
-  QUANTITY_MESSAGES,
+  cartOrderSchema,
   contactSchema,
   newsletterSchema,
-  orderInquirySchema,
   toFieldErrors,
   unsubscribeSchema,
   type FormState,
@@ -41,7 +42,7 @@ import {
  */
 
 const actions = vi.hoisted(() => ({
-  submitOrderInquiry: vi.fn(),
+  submitCartOrder: vi.fn(),
   submitContactMessage: vi.fn(),
   subscribeToNewsletter: vi.fn(),
 }));
@@ -57,7 +58,7 @@ vi.mock("@/lib/admin-actions", () => admin);
 
 import { ContactForm } from "@/components/forms/contact-form";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
-import { QuickOrderForm } from "@/components/forms/quick-order-form";
+import { CartOrderForm } from "@/components/forms/cart-order-form";
 import { UnsubscribeForm } from "@/components/forms/unsubscribe-form";
 import { LoginForm } from "@/components/admin/login-form";
 import { ReplyForm } from "@/components/admin/reply-form";
@@ -87,6 +88,31 @@ function describedMessage(field: HTMLElement): string | null {
   return error?.textContent ?? null;
 }
 
+/** The order form as the cart page draws it, for one product. */
+const LINES = [{ productId: "11111111-1111-4111-8111-111111111111", quantity: 2 }] as const;
+const orderForm = (props: { onPlaced?: () => void } = {}) =>
+  createElement(CartOrderForm, {
+    lines: LINES,
+    onPlaced: props.onPlaced ?? vi.fn(),
+    onCartRefused: vi.fn(),
+  });
+
+/** A text field of the order form by its label, without the required mark. */
+const textbox = (name: string) => screen.getByRole("textbox", { name });
+
+/** Everything the order form requires, filled in for a delivery to an address. */
+async function fillOrder() {
+  await act(async () => {
+    fireEvent.change(textbox("Име"), { target: { value: "Иван" } });
+    fireEvent.change(textbox("Фамилия"), { target: { value: "Петров" } });
+    fireEvent.change(textbox("Телефонен номер"), { target: { value: "0888 123 456" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Еконт" }));
+    fireEvent.change(textbox("Пощенски код"), { target: { value: "4000" } });
+    fireEvent.change(textbox("Населено място"), { target: { value: "Пловдив" } });
+    fireEvent.change(textbox("Адрес"), { target: { value: "ул. Иван Вазов 12" } });
+  });
+}
+
 /** The FormData an action was called with: `(state, formData)` or `(formData)`. */
 function sentData(spy: ReturnType<typeof vi.fn>, call = 0): FormData {
   const args = spy.mock.calls[call] ?? [];
@@ -114,29 +140,50 @@ describe("one schema, one message, whoever finds the problem", () => {
     return parsed.success ? {} : toFieldErrors(parsed.error);
   }
 
+  /** A complete order, to spoil one thing at a time. */
+  const order = {
+    lines: JSON.stringify(LINES),
+    firstName: "Иван",
+    lastName: "Петров",
+    phone: "0888 123 456",
+    deliveryMethod: "address",
+    deliveryCourier: "econt",
+    deliveryCity: "Пловдив",
+    deliveryPostcode: "4000",
+    deliveryAddress: "ул. Иван Вазов 12",
+    deliveryOffice: "",
+  };
+
   const cases: [string, z.ZodTypeAny, Record<string, unknown>][] = [
-    ["empty order", orderInquirySchema, { productSlug: "x", phone: "" }],
-    ["short phone", orderInquirySchema, { productSlug: "x", phone: "0888 12" }],
-    ["letters in the phone", orderInquirySchema, { productSlug: "x", phone: "0888 abc 456" }],
-    ["long phone", orderInquirySchema, { productSlug: "x", phone: "+359 888 123 456 789 01" }],
     [
-      "bad optional fields",
-      orderInquirySchema,
+      "empty order",
+      cartOrderSchema,
       {
-        productSlug: "x",
-        phone: "0888 123 456",
-        email: "ivan@",
-        quantity: "0",
-        notes: "x".repeat(1001),
-        customerName: "x".repeat(121),
+        ...order,
+        firstName: "",
+        lastName: "",
+        phone: "",
+        deliveryCourier: "",
+        deliveryCity: "",
+        deliveryPostcode: "",
+        deliveryAddress: "",
       },
     ],
-    ["too many", orderInquirySchema, { productSlug: "x", phone: "0888123456", quantity: "120" }],
+    ["short phone", cartOrderSchema, { ...order, phone: "0888 12" }],
+    ["letters in the phone", cartOrderSchema, { ...order, phone: "0888 abc 456" }],
+    ["long phone", cartOrderSchema, { ...order, phone: "+359 888 123 456 789 01" }],
+    ["bad optional fields", cartOrderSchema, { ...order, email: "ivan@", notes: "x".repeat(1001) }],
     [
-      "half a number",
-      orderInquirySchema,
-      { productSlug: "x", phone: "0888123456", quantity: "1.5" },
+      "an office with no office named",
+      cartOrderSchema,
+      { ...order, deliveryMethod: "office", deliveryCourier: "boxnow", deliveryOffice: "" },
     ],
+    [
+      "BOX NOW to an address, and a long name",
+      cartOrderSchema,
+      { ...order, deliveryCourier: "boxnow", lastName: "x".repeat(61) },
+    ],
+    ["an emptied cart", cartOrderSchema, { ...order, lines: "[]" }],
     ["empty contact", contactSchema, { name: "", email: "", message: "" }],
     [
       "short contact",
@@ -169,7 +216,7 @@ describe("one schema, one message, whoever finds the problem", () => {
 
   it("picks the message that names the problem", () => {
     const phone = (value: string) =>
-      serverMessages(orderInquirySchema, { productSlug: "x", phone: value }).phone;
+      serverMessages(cartOrderSchema, { ...order, phone: value }).phone;
     expect(phone("")).toBe(PHONE_MESSAGES.missing);
     expect(phone("0888 12")).toBe(PHONE_MESSAGES.short);
     expect(phone("0888-abc")).toBe(PHONE_MESSAGES.characters);
@@ -184,10 +231,25 @@ describe("one schema, one message, whoever finds the problem", () => {
       message: CONTACT_MESSAGES.messageMissing,
     });
     expect(serverMessages(newsletterSchema, { email: "ivan@" }).email).toBe(EMAIL_MESSAGES.format);
-    expect(
-      serverMessages(orderInquirySchema, { productSlug: "x", phone: "0888123456", quantity: "" })
-        .quantity,
-    ).toBe(QUANTITY_MESSAGES.low);
+    expect(serverMessages(cartOrderSchema, { ...order, deliveryPostcode: "400" })).toEqual({
+      deliveryPostcode: DELIVERY_MESSAGES.postcode,
+    });
+    expect(serverMessages(cartOrderSchema, { ...order, deliveryCourier: "boxnow" })).toEqual({
+      deliveryCourier: DELIVERY_MESSAGES.courier,
+    });
+    expect(serverMessages(cartOrderSchema, { ...order, lines: "[]" }).lines).toBe(
+      CART_MESSAGES.empty,
+    );
+    /* A line the page could not have written (too many, half a unit) comes
+       only from a hand-made post, and is answered with a reload. The browser
+       files it under the line's own path, which no field shows; the server's
+       answer is the form's line. */
+    for (const quantity of [120, 1.5]) {
+      const lines = JSON.stringify([{ ...LINES[0], quantity }]);
+      expect(serverMessages(cartOrderSchema, { ...order, lines })).toEqual({
+        lines: CART_MESSAGES.changed,
+      });
+    }
   });
 
   it("puts an error on a hidden admin field in the form's line, not under a field", () => {
@@ -209,16 +271,15 @@ describe("one schema, one message, whoever finds the problem", () => {
     expect(statusChangeSchema.safeParse({ id: "a", status: "lost" }).success).toBe(false);
     expect(unsubscribeSchema.safeParse({ token: "a".repeat(64), locale: "bg" }).success).toBe(true);
     // react-hook-form reports a ticked box as `true`; the browser posts "on".
-    expect(
-      orderInquirySchema.parse({ productSlug: "x", phone: "0888123456", newsletterConsent: true })
-        .newsletterConsent,
-    ).toBe(true);
+    expect(cartOrderSchema.parse({ ...order, newsletterConsent: true }).newsletterConsent).toBe(
+      true,
+    );
   });
 });
 
 describe("in the server's HTML", () => {
   const forms = [
-    ["the quick order", createElement(QuickOrderForm, { productSlug: "kafe" })],
+    ["the order form", orderForm()],
     ["the contact form", createElement(ContactForm)],
     ["the newsletter", createElement(NewsletterForm, { source: "footer" })],
     [
@@ -386,43 +447,109 @@ describe("pressing the button", () => {
     await waitFor(() => expect(screen.getByText(/Твърде много опити/)).toBeTruthy());
   });
 
-  it("opens the order form's optional fields when the error is in them", async () => {
-    render(createElement(QuickOrderForm, { productSlug: "kafe" }));
-    fireEvent.change(screen.getByLabelText(/Телефонен номер/), {
-      target: { value: "0888 123 456" },
+  it("shows every error of the order form under its field, focuses the first, sends nothing", async () => {
+    render(orderForm());
+    await press("Изпрати заявката");
+
+    for (const [field, text] of [
+      [textbox("Име"), DELIVERY_MESSAGES.firstName],
+      [textbox("Фамилия"), DELIVERY_MESSAGES.lastName],
+      [textbox("Телефонен номер"), PHONE_MESSAGES.missing],
+      // The courier's choices share one message; the first of them stands for all.
+      [screen.getByRole("radio", { name: "Еконт" }), DELIVERY_MESSAGES.courier],
+      [textbox("Пощенски код"), DELIVERY_MESSAGES.postcode],
+      [textbox("Населено място"), DELIVERY_MESSAGES.city],
+      [textbox("Адрес"), DELIVERY_MESSAGES.address],
+    ] as const) {
+      expect(field.getAttribute("aria-invalid")).toBe("true");
+      expect(describedMessage(field)).toBe(text);
+    }
+    // The delivery method is chosen to begin with, and the optional fields
+    // are not refused for being empty.
+    expect(screen.getByRole("radio", { name: "До адрес" })).toHaveProperty("checked", true);
+    expect(screen.getByLabelText("Имейл").getAttribute("aria-invalid")).toBeNull();
+
+    expect(document.activeElement).toBe(textbox("Име"));
+    expect(screen.getByText(CHECK_FIELDS_MESSAGE)).toBeTruthy();
+    expect(actions.submitCartOrder).not.toHaveBeenCalled();
+  });
+
+  it("asks for the office instead of a street when the parcel goes to an office", async () => {
+    render(orderForm());
+    await act(async () => {
+      fireEvent.click(screen.getByRole("radio", { name: "До офис или автомат" }));
     });
+    expect(screen.queryByRole("textbox", { name: "Пощенски код" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Адрес" })).toBeNull();
+
+    // BOX NOW is offered for an office, and the field then asks for its locker.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("radio", { name: "BOX NOW" }));
+    });
+    await press("Изпрати заявката");
+    expect(describedMessage(textbox("Автомат BOX NOW"))).toBe(DELIVERY_MESSAGES.office);
+
+    // Back to an address: BOX NOW does not deliver there, so it is neither
+    // offered nor left chosen.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("radio", { name: "До адрес" }));
+    });
+    expect(screen.queryByRole("radio", { name: "BOX NOW" })).toBeNull();
+    for (const courier of screen.getAllByRole("radio", { name: /Еконт|Спиди/ })) {
+      expect(courier).toHaveProperty("checked", false);
+    }
+    expect(textbox("Адрес")).toBeTruthy();
+    expect(actions.submitCartOrder).not.toHaveBeenCalled();
+  });
+
+  it("opens the order form's optional fields when the error is in them", async () => {
+    render(orderForm());
+    await fillOrder();
     fireEvent.change(screen.getByLabelText("Имейл"), { target: { value: "ivan@" } });
     const details = document.querySelector("details")!;
     details.open = false;
-    await press("Поискай обаждане");
+    await press("Изпрати заявката");
 
     const email = screen.getByLabelText("Имейл");
     expect(details.open).toBe(true);
     expect(document.activeElement).toBe(email);
     expect(describedMessage(email)).toBe(EMAIL_MESSAGES.format);
-    expect(actions.submitOrderInquiry).not.toHaveBeenCalled();
+    expect(actions.submitCartOrder).not.toHaveBeenCalled();
   });
 
-  it("refuses an empty phone with the order form's own sentence", async () => {
-    render(createElement(QuickOrderForm, { productSlug: "kafe" }));
-    await press("Поискай обаждане");
-    const phone = screen.getByLabelText(/Телефонен номер/);
-    expect(describedMessage(phone)).toBe(PHONE_MESSAGES.missing);
-    expect(document.activeElement).toBe(phone);
-  });
-
-  it("sends the order with its product and a normal number", async () => {
-    actions.submitOrderInquiry.mockResolvedValue({ status: "success", message: "Благодарим ви." });
-    render(createElement(QuickOrderForm, { productSlug: "kafe" }));
-    fireEvent.change(screen.getByLabelText(/Телефонен номер/), {
-      target: { value: "0888 123 456" },
+  it("sends the order once, with its lines, the name, the delivery and the number as typed", async () => {
+    const answer = { status: "success", message: "Благодарим ви.", reference: "A1B2C3D4" } as const;
+    actions.submitCartOrder.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(answer), 20)),
+    );
+    const onPlaced = vi.fn();
+    render(orderForm({ onPlaced }));
+    await fillOrder();
+    const button = screen.getByRole("button", { name: "Изпрати заявката" });
+    await act(async () => {
+      fireEvent.click(button);
+      fireEvent.click(button);
     });
-    await press("Поискай обаждане");
-    await waitFor(() => expect(screen.getByText("Заявката е получена")).toBeTruthy());
-    const data = sentData(actions.submitOrderInquiry);
-    expect(data.get("productSlug")).toBe("kafe");
-    expect(data.get("phone")).toBe("0888 123 456");
-    expect(data.get("quantity")).toBe("1");
+
+    await waitFor(() =>
+      expect(onPlaced).toHaveBeenCalledWith({ message: "Благодарим ви.", reference: "A1B2C3D4" }),
+    );
+    expect(actions.submitCartOrder).toHaveBeenCalledTimes(1);
+    const data = sentData(actions.submitCartOrder);
+    expect(JSON.parse(String(data.get("lines")))).toEqual(LINES);
+    expect(Object.fromEntries(data)).toMatchObject({
+      firstName: "Иван",
+      lastName: "Петров",
+      phone: "0888 123 456",
+      deliveryMethod: "address",
+      deliveryCourier: "econt",
+      deliveryCity: "Пловдив",
+      deliveryPostcode: "4000",
+      deliveryAddress: "ул. Иван Вазов 12",
+    });
+    // The honeypot goes too, for the server to look at; the box was not ticked.
+    expect(data.has("website")).toBe(true);
+    expect(data.get("newsletterConsent")).toBeNull();
   });
 
   it("refuses an empty newsletter address under the field", async () => {

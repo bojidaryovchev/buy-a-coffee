@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { PRODUCT_LINK, expectProductPage } from "./support/paths";
 import { expectNoSourceReference, findSourceUrls } from "./support/source-guard";
 
-/** Product detail, images, related products and the quick-order flow. */
+/** Product detail, images, related products and the order panel. */
 
 async function openFirstProduct(page: Page) {
   await page.goto("/bg/kafe-kapsuli");
@@ -92,27 +92,13 @@ test("an unknown product slug returns 404", async ({ page }) => {
   expect(response?.status()).toBe(404);
 });
 
-test("quick-order form validates without submitting anything", async ({ page }) => {
+test("the order panel leads into the cart's form and sends nothing itself", async ({ page }) => {
   await openFirstProduct(page);
 
-  const form = page.locator("form").filter({ hasText: /поръчка на една стъпка/i });
-  await expect(form).toBeVisible();
-
-  const phone = form.getByLabel(/телефонен номер/i);
-  await expect(phone).toBeVisible();
-
-  // An obviously invalid number must be rejected before anything is stored.
-  await phone.fill("12");
-  await form.getByRole("button", { name: /поискай обаждане/i }).click();
-
-  // Either the browser's own constraint validation or our server-side message.
-  await expect(
-    page
-      .getByText(/валиден телефонен номер|проверете отбелязаните полета/i)
-      .first()
-      .or(phone),
-  ).toBeVisible();
-
-  // Nothing should have been reported as a successful order.
-  await expect(page.getByText(/заявката е получена/i)).toHaveCount(0);
+  // Every order is sent from the cart's form; the panel has the two ways in.
+  const panel = page.locator("#order");
+  await expect(panel.getByRole("button", { name: /^Добави в количката$/ })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Поръчай", exact: true })).toBeVisible();
+  await expect(panel.locator("form")).toHaveCount(0);
+  await expect(panel.getByRole("textbox")).toHaveCount(0);
 });

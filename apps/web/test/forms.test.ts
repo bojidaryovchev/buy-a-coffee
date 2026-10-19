@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  cartOrderSchema,
   contactSchema,
   newsletterSchema,
   normalizePhone,
-  orderInquirySchema,
   toFieldErrors,
 } from "@/lib/forms/schemas";
 import { createRateLimiter, idempotencyKey } from "@/lib/rate-limit";
@@ -28,53 +28,60 @@ describe("normalizePhone", () => {
   });
 });
 
-describe("orderInquirySchema", () => {
-  const valid = { productSlug: "coffee-1", phone: "0888 123 456", quantity: 2 };
+describe("cartOrderSchema", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const linesOf = (quantity: number) => JSON.stringify([{ productId: A, quantity }]);
+  const valid = {
+    lines: linesOf(2),
+    firstName: "Иван",
+    lastName: "Петров",
+    phone: "0888 123 456",
+    deliveryMethod: "address",
+    deliveryCourier: "econt",
+    deliveryCity: "Пловдив",
+    deliveryPostcode: "4000",
+    deliveryAddress: "ул. Иван Вазов 12",
+  };
 
-  it("accepts a minimal valid enquiry", () => {
-    const result = orderInquirySchema.safeParse(valid);
+  it("accepts a minimal valid order", () => {
+    const result = cartOrderSchema.safeParse(valid);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.phone).toBe("+359888123456");
-      expect(result.data.quantity).toBe(2);
+      expect(result.data.lines).toEqual([{ productId: A, quantity: 2 }]);
     }
-  });
-
-  it("defaults the quantity to one", () => {
-    const result = orderInquirySchema.safeParse({ productSlug: "x", phone: "0888123456" });
-    expect(result.success && result.data.quantity).toBe(1);
   });
 
   it("rejects an obviously invalid phone number", () => {
     for (const phone of ["", "123", "not a phone", "++++++"]) {
-      expect(orderInquirySchema.safeParse({ ...valid, phone }).success).toBe(false);
+      expect(cartOrderSchema.safeParse({ ...valid, phone }).success).toBe(false);
     }
   });
 
   it("rejects an absurd quantity", () => {
-    expect(orderInquirySchema.safeParse({ ...valid, quantity: 0 }).success).toBe(false);
-    expect(orderInquirySchema.safeParse({ ...valid, quantity: 1000 }).success).toBe(false);
+    expect(cartOrderSchema.safeParse({ ...valid, lines: linesOf(0) }).success).toBe(false);
+    expect(cartOrderSchema.safeParse({ ...valid, lines: linesOf(1000) }).success).toBe(false);
   });
 
   it("bounds the notes field", () => {
-    expect(orderInquirySchema.safeParse({ ...valid, notes: "x".repeat(2000) }).success).toBe(false);
+    expect(cartOrderSchema.safeParse({ ...valid, notes: "x".repeat(2000) }).success).toBe(false);
   });
 
   it("rejects a filled honeypot", () => {
     // A bot that fills every field is caught here and stores nothing.
-    const result = orderInquirySchema.safeParse({ ...valid, website: "http://spam.test" });
+    const result = cartOrderSchema.safeParse({ ...valid, website: "http://spam.test" });
     expect(result.success).toBe(false);
     if (!result.success) expect(toFieldErrors(result.error).website).toBeDefined();
   });
 
   it("accepts an empty honeypot", () => {
-    expect(orderInquirySchema.safeParse({ ...valid, website: "" }).success).toBe(true);
+    expect(cartOrderSchema.safeParse({ ...valid, website: "" }).success).toBe(true);
   });
 
   it("accepts an optional email but rejects a malformed one", () => {
-    expect(orderInquirySchema.safeParse({ ...valid, email: "" }).success).toBe(true);
-    expect(orderInquirySchema.safeParse({ ...valid, email: "a@b.co" }).success).toBe(true);
-    expect(orderInquirySchema.safeParse({ ...valid, email: "not-an-email" }).success).toBe(false);
+    expect(cartOrderSchema.safeParse({ ...valid, email: "" }).success).toBe(true);
+    expect(cartOrderSchema.safeParse({ ...valid, email: "a@b.co" }).success).toBe(true);
+    expect(cartOrderSchema.safeParse({ ...valid, email: "not-an-email" }).success).toBe(false);
   });
 });
 

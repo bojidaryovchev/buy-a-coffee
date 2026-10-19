@@ -40,7 +40,7 @@ import { href, productHref, routes } from "@/lib/routes";
  * none), asking the server, the cart, and after the order the answer. An
  * empty cart says so and points back to the shelves. Nothing here works
  * without JavaScript, because the cart is in the browser; the page says that
- * in a `<noscript>` and offers the phone and the product pages' quick order.
+ * in a `<noscript>` and offers the phone.
  */
 
 type Quote =

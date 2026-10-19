@@ -10,7 +10,7 @@ import {
   consentSourceLabel,
   isOperatorConsentBasis,
 } from "@/lib/forms/consent";
-import { contactSchema, orderInquirySchema } from "@/lib/forms/schemas";
+import { cartOrderSchema, contactSchema } from "@/lib/forms/schemas";
 import { isPlausibleToken, maskEmail } from "@/lib/forms/unsubscribe-token";
 import { MANUAL_LINK_RUN_KIND, evaluateSyncHealth, type SyncRunSnapshot } from "@/lib/sync-health";
 import {
@@ -30,16 +30,25 @@ import {
 import { privacyPolicy } from "@/content/legal";
 
 describe("the consent checkbox in the schemas", () => {
-  const order = { productSlug: "x", phone: "0888123456" };
+  const order = {
+    lines: JSON.stringify([{ productId: "11111111-1111-4111-8111-111111111111", quantity: 1 }]),
+    firstName: "Иван",
+    lastName: "Петров",
+    phone: "0888123456",
+    deliveryMethod: "office",
+    deliveryCourier: "speedy",
+    deliveryCity: "Варна",
+    deliveryOffice: "Варна Център",
+  };
   const contact = { name: "Мария", email: "m@example.test", message: "Здравейте, имам въпрос." };
 
   it("is unticked unless the browser sent it", () => {
-    expect(orderInquirySchema.parse(order).newsletterConsent).toBe(false);
+    expect(cartOrderSchema.parse(order).newsletterConsent).toBe(false);
     expect(contactSchema.parse(contact).newsletterConsent).toBe(false);
   });
 
   it("is ticked for what a checkbox sends", () => {
-    expect(orderInquirySchema.parse({ ...order, newsletterConsent: "on" }).newsletterConsent).toBe(
+    expect(cartOrderSchema.parse({ ...order, newsletterConsent: "on" }).newsletterConsent).toBe(
       true,
     );
     expect(contactSchema.parse({ ...contact, newsletterConsent: "on" }).newsletterConsent).toBe(
@@ -49,7 +58,7 @@ describe("the consent checkbox in the schemas", () => {
 
   it("cannot be the reason a form is refused", () => {
     for (const odd of [null, "", "off", "no", "false", 7, {}]) {
-      expect(orderInquirySchema.safeParse({ ...order, newsletterConsent: odd }).success).toBe(true);
+      expect(cartOrderSchema.safeParse({ ...order, newsletterConsent: odd }).success).toBe(true);
       expect(contactSchema.safeParse({ ...contact, newsletterConsent: odd }).success).toBe(true);
     }
   });

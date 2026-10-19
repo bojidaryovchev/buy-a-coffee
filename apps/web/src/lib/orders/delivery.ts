@@ -69,7 +69,8 @@ function withCourier(courier: string): string {
 /** How it goes, as the first line of a label: "До адрес с Еконт", "До автомат BOX NOW". */
 function methodLine(order: StoredDelivery): string {
   const courier = courierName(order.deliveryCourier);
-  if (order.deliveryMethod === "address") return courier ? `До адрес ${withCourier(courier)}` : "До адрес";
+  if (order.deliveryMethod === "address")
+    return courier ? `До адрес ${withCourier(courier)}` : "До адрес";
   if (order.deliveryCourier === "boxnow") return "До автомат BOX NOW";
   return courier ? `До офис на ${courier}` : "До офис на куриер";
 }

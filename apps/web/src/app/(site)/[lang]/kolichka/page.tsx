@@ -71,15 +71,13 @@ export default async function CartPage({ params }: PageProps) {
       <div className="mt-6 md:mt-8">
         {/*
           The cart is in the browser and cannot be read without a script. Say
-          so, and say what works: every product page's quick order is a plain
-          form, and the phone number is on every page. The cart's skeleton is
+          so, and say what works: the phone number, which is on every page. The cart's skeleton is
           not drawn then, because it would wait for ever.
         */}
         <noscript>
           <div className="rounded-md border border-line bg-caution-100 p-4 md:p-5">
             <p className="text-sm text-ink-700">
-              Количката работи с включен JavaScript. Без него можете да поръчате от страницата на
-              всеки продукт — оставяте номер и ви се обаждаме — или да ни се обадите на{" "}
+              Количката работи с включен JavaScript. Без него можете да поръчате по телефона:{" "}
               <a
                 href={`tel:${siteConfig.contact.phoneHref}`}
                 className="font-medium whitespace-nowrap text-ink-900 underline underline-offset-2 hover:no-underline"

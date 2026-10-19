@@ -17,8 +17,11 @@ export const LEGAL_REVISIONS: Readonly<
   Record<string, { readonly revisedAt: string; readonly fingerprint: string }>
 > = {
   // All three changed with the cart (19 October 2026): what an order request
-  // holds, and the cart in the browser's storage.
-  privacy: { revisedAt: "2026-10-19", fingerprint: "ca9a0d96596f7ef2" },
-  terms: { revisedAt: "2026-10-19", fingerprint: "ca0b44aaf4170a64" },
+  // holds, and the cart in the browser's storage. Privacy and terms changed
+  // again the same day: an order's name and delivery, the courier as a
+  // recipient, the owner's commercial terms, the art. 57 exclusion and the
+  // withdrawal form.
+  privacy: { revisedAt: "2026-10-19", fingerprint: "9ab04c57311b54e1" },
+  terms: { revisedAt: "2026-10-19", fingerprint: "253e1d4f558e0446" },
   cookies: { revisedAt: "2026-10-19", fingerprint: "ea0ac0fbbe69e84e" },
 };

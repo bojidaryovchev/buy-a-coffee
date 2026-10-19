@@ -70,8 +70,6 @@ const EVENTS: AnalyticsEvent[] = [
   { name: "view_brand", brandSlug: "b", resultCount: 0 },
   { name: "search", query: "кафе", resultCount: 2 },
   { name: "filter_applied", filter: "f", value: "v", resultCount: 1 },
-  { name: "quick_order_started", productSlug: "a" },
-  { name: "quick_order_submitted", productSlug: "a", outcome: "success" },
   { name: "add_to_cart", productSlug: "a", quantity: 2, source: "product_page" },
   { name: "cart_order_submitted", lineCount: 2, unitCount: 3, outcome: "success" },
   { name: "newsletter_submitted", outcome: "error" },

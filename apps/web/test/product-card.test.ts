@@ -223,7 +223,7 @@ describe("ProductCard: links and controls", () => {
 
   it("server-renders the cart control as a link to the order form on the product page", () => {
     // A link until the page hydrates, and for good without JavaScript: the
-    // product page's quick order works with no script (test/cart-controls.test.ts
+    // product page's order panel then offers the phone (test/cart-controls.test.ts
     // covers the button it becomes).
     const control = card().querySelectorAll("a")[1]!;
     expect(control.getAttribute("href")).toBe("/bg/kapsuli-dg-bianchi-gusto-forte-16-br#order");

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { MAX_CART_LINES } from "@/lib/cart/cart";
 import { cartBlock, toCartProductView } from "@/lib/cart/view";
-import { CART_MESSAGES, PHONE_MESSAGES, cartOrderSchema, toFieldErrors } from "@/lib/forms/schemas";
+import {
+  CART_MESSAGES,
+  EMAIL_MESSAGES,
+  PHONE_MESSAGES,
+  cartOrderSchema,
+  toFieldErrors,
+} from "@/lib/forms/schemas";
 import { FORM_CONSENT_SOURCES, consentSourceLabel } from "@/lib/forms/consent";
 import { composeOrderConfirmation } from "@/lib/mail/confirmation";
 import { orderThreadSubject, recordReference } from "@/lib/mail/reference";
@@ -32,9 +38,19 @@ describe("cartOrderSchema", () => {
     { productId: A, quantity: 2 },
     { productId: B, quantity: 1 },
   ]);
-  const valid = { lines, phone: "0888 123 456" };
+  const valid = {
+    lines,
+    firstName: "Иван",
+    lastName: "Петров",
+    phone: "0888 123 456",
+    deliveryMethod: "address",
+    deliveryCourier: "econt",
+    deliveryCity: "Пловдив",
+    deliveryPostcode: "4000",
+    deliveryAddress: "ул. Иван Вазов 12",
+  };
 
-  it("accepts lines and a phone number, and nothing else is required", () => {
+  it("accepts lines, a name, a phone number and a delivery, and nothing else is required", () => {
     const result = cartOrderSchema.safeParse(valid);
     expect(result.success).toBe(true);
     if (!result.success) return;
@@ -46,13 +62,15 @@ describe("cartOrderSchema", () => {
     expect(result.data.newsletterConsent).toBe(false);
   });
 
-  it("asks for the phone in the quick order's words", () => {
-    const missing = cartOrderSchema.safeParse({ lines, phone: "" });
+  it("asks for the phone in the words every form uses", () => {
+    const missing = cartOrderSchema.safeParse({ ...valid, phone: "" });
     expect(missing.success).toBe(false);
-    if (!missing.success) expect(toFieldErrors(missing.error).phone).toBe(PHONE_MESSAGES.missing);
+    if (!missing.success)
+      expect(toFieldErrors(missing.error)).toEqual({ phone: PHONE_MESSAGES.missing });
 
-    const short = cartOrderSchema.safeParse({ lines, phone: "0888" });
-    if (!short.success) expect(toFieldErrors(short.error).phone).toBe(PHONE_MESSAGES.short);
+    const short = cartOrderSchema.safeParse({ ...valid, phone: "0888" });
+    expect(short.success).toBe(false);
+    if (!short.success) expect(toFieldErrors(short.error)).toEqual({ phone: PHONE_MESSAGES.short });
   });
 
   it("refuses an empty cart and says so", () => {
@@ -98,10 +116,12 @@ describe("cartOrderSchema", () => {
     expect(result.success && result.data.lines).toEqual([{ productId: A, quantity: 1 }]);
   });
 
-  it("refuses a filled honeypot, and validates the optional fields as the quick order does", () => {
+  it("refuses a filled honeypot, and checks the optional email and note when they are given", () => {
     expect(cartOrderSchema.safeParse({ ...valid, website: "spam" }).success).toBe(false);
     const email = cartOrderSchema.safeParse({ ...valid, email: "not-an-address" });
     expect(email.success).toBe(false);
+    if (!email.success)
+      expect(toFieldErrors(email.error)).toEqual({ email: EMAIL_MESSAGES.format });
     expect(cartOrderSchema.safeParse({ ...valid, notes: "x".repeat(1001) }).success).toBe(false);
     expect(
       cartOrderSchema.safeParse({ ...valid, email: "Ivan@Example.com", newsletterConsent: "on" }),
@@ -225,7 +245,7 @@ describe("what the cart page is told about a product", () => {
 
 describe("the confirmation mail", () => {
   const ID = "a1b2c3d4-0000-4000-8000-000000000000";
-  const mail = (customerName: string | null) =>
+  const mail = (customerName: string | null, delivery: readonly string[] | null = null) =>
     composeOrderConfirmation({
       id: ID,
       email: "ivan@example.com",
@@ -236,6 +256,7 @@ describe("the confirmation mail", () => {
         { name: "Kimbo Napoli — капсули", quantity: 1, unitPrice: null },
       ],
       callback: "Ще ви се обадим утре, в работно време.",
+      delivery,
     });
 
   it("goes out under the order's thread subject, with its reference", async () => {
@@ -259,6 +280,22 @@ describe("the confirmation mail", () => {
     expect(text.startsWith("Здравейте, Иван,")).toBe(true);
     expect(text).toContain("Ще ви се обадим утре, в работно време. Ще звъним на +359888123456.");
     expect((await mail(null)).text.startsWith("Здравейте,\n")).toBe(true);
+  });
+
+  it("prints back where the order goes, so a wrong address is noticed now", async () => {
+    const delivery = ["До адрес с Еконт", "ул. Иван Вазов 12, ет. 3, ап. 7", "4000 Пловдив"];
+    const { text, html } = await mail("Иван Петров", delivery);
+    expect(text).toContain(["Къде доставяме:", ...delivery].join("\n"));
+    const joined = html.replace(/<!-- -->/g, "");
+    expect(joined).toContain("Къде доставяме");
+    for (const line of delivery) expect(joined).toContain(line);
+    expect(text).toContain("Ако номерът или адресът са сгрешени");
+  });
+
+  it("leaves the delivery out for an order that has none", async () => {
+    const { text, html } = await mail(null);
+    expect(text).not.toContain("Къде доставяме");
+    expect(html).not.toContain("Къде доставяме");
   });
 
   it("promises nothing the call has not confirmed, and ends with the shop's signature", async () => {
