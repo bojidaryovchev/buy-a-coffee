@@ -1,5 +1,8 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalizeForComparison } from "@catalog/shared";
+import { COMPATIBILITY_WORDING, compatibilityProblems } from "@catalog/shared/compatibility-copy";
 import {
   type ReviewContext,
   correctionHeldBack,
@@ -509,6 +512,67 @@ describe("auditGeneratedCopy", () => {
     expect(audit(GOOD_COPY, workItem(), { bodies: own }).ok).toBe(true);
   });
 
+  it("rejects a compatibility promise the machine's maker contradicts, and says what to write", () => {
+    const capsules = workItem({
+      title: "Rema Caffè Espresso",
+      format: "Капсули за Dolce Gusto",
+      pack: { label: "16 бр.", inName: null, inPackField: null, mayState: true },
+    });
+    const loose = audit(
+      withBody("16 капсули, съвместими с машини Dolce Gusto, по една на чаша."),
+      capsules,
+    );
+    expect(loose.ok).toBe(false);
+    expect(loose.problems).toEqual([
+      expect.stringMatching(
+        /^съвместимост: „машини Dolce Gusto“ включва и машините Dolce Gusto NEO.*„съвместими с класическите машини Dolce Gusto \(не NEO\)“$/,
+      ),
+    ]);
+    expect(
+      audit(
+        withBody(`16 капсули, ${COMPATIBILITY_WORDING.dolceGusto}, по една на чаша.`),
+        capsules,
+      ),
+    ).toEqual({ ok: true, problems: [] });
+    // Naming the format is what the product is, not a promise about machines.
+    expect(
+      audit(withBody("Капсули за Dolce Gusto с плътно тяло и гъста крема."), capsules).ok,
+    ).toBe(true);
+
+    const nespresso = workItem({ format: "Капсули за Nespresso" });
+    expect(
+      audit(withBody("Подходящи за домашните машини Nespresso и за офиса."), nespresso).problems,
+    ).toContainEqual(expect.stringMatching(/^съвместимост: „домашните машини Nespresso“.*Vertuo/));
+    expect(
+      audit(withBody("Подходящи за машини Nespresso Original, не с Vertuo."), nespresso).ok,
+    ).toBe(true);
+
+    const caffitaly = workItem({ format: "Капсули за Caffitaly" });
+    expect(
+      audit(withBody("Формата приемат и машините K-fee, и Tchibo Cafissimo."), caffitaly).problems,
+    ).toEqual([
+      expect.stringMatching(/^съвместимост: „K-fee“.*отделна система/),
+      expect.stringMatching(/^съвместимост: „Cafissimo“.*само нейните капсули/),
+    ]);
+    expect(
+      audit(
+        withBody(
+          "Формата приемат и машините Tchibo Cafissimo, но Tchibo препоръчва в тях само собствените си капсули.",
+        ),
+        caffitaly,
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("names each broken rule once, however many sentences break it", () => {
+    const copy = withBody(
+      "Съвместими с машини Dolce Gusto на Krups.",
+      "Подходящи за всички машини Dolce Gusto у дома.",
+    );
+    const problems = audit(copy).problems.filter((problem) => problem.startsWith("съвместимост"));
+    expect(problems).toHaveLength(1);
+  });
+
   it("reads pack sizes in the forms copy writes them", () => {
     expect(
       statedPackSizes(
@@ -766,6 +830,44 @@ describe("reviewBatch", () => {
     expect(unreadable.decisions[0]?.copy.status).toBe("rejected");
   });
 
+  it("rejects an answer that promises the wrong machines, with the reason the owner will see", async () => {
+    const dg = candidate({
+      id: "dg",
+      slug: "rema-dg-espresso",
+      name: "Капсули DG Rema Caffè Espresso 16 бр.",
+      categoryKeys: ["dolce-gusto"],
+      weightValue: "16.0000",
+      weightUnit: "pc",
+    });
+    const item = workItem({
+      id: "dg",
+      slug: "rema-dg-espresso",
+      format: "Капсули за Dolce Gusto",
+      pack: { label: "16 бр.", inName: null, inPackField: null, mayState: true },
+    });
+    const answer = (sentence: string) => ({
+      products: [{ id: "dg", copy: withBody(sentence), research: null }],
+    });
+    const ctx = () => context({ candidates: new Map([[dg.id, dg]]) });
+
+    const loose = await reviewBatch(
+      [item],
+      answer("Капсулите пасват на всички машини Dolce Gusto."),
+      ctx(),
+    );
+    expect(loose.decisions[0]?.copy).toEqual({
+      status: "rejected",
+      problems: [expect.stringMatching(/^съвместимост: „машини Dolce Gusto“/)],
+    });
+
+    const right = await reviewBatch(
+      [item],
+      answer("Капсулите пасват на класическите машини Dolce Gusto (не NEO)."),
+      ctx(),
+    );
+    expect(right.decisions[0]?.copy.status).toBe("accepted");
+  });
+
   it("does not accept the same summary for two products in one batch", async () => {
     const first = candidate({ id: "first" });
     const second = candidate({ id: "second" });
@@ -786,6 +888,34 @@ describe("reviewBatch", () => {
       }),
     );
     expect(review.decisions.map((d) => d.copy.status)).toEqual(["accepted", "rejected"]);
+  });
+});
+
+/* --- The skill ------------------------------------------------------------------- */
+
+describe("the catalog-copy skill", () => {
+  const skillFile = path.resolve(
+    import.meta.dirname,
+    "../../../.claude/skills/catalog-copy/SKILL.md",
+  );
+
+  it("tells the model the compatibility wording the audit holds it to", async () => {
+    const skill = await readFile(skillFile, "utf8");
+    for (const wording of Object.values(COMPATIBILITY_WORDING)) expect(skill).toContain(wording);
+    for (const phrase of ["машини Dolce Gusto", "домашни машини Nespresso", "K-fee", "Cafissimo"]) {
+      expect(skill).toContain(phrase);
+    }
+  });
+
+  it("shows examples of the house style that the audit would let through", async () => {
+    const skill = await readFile(skillFile, "utf8");
+    const examples = [...skill.matchAll(/```json\r?\n([\s\S]*?)```/g)].map(
+      (match) => JSON.parse(match[1] as string) as { summary: string; body: string[] },
+    );
+    expect(examples.length).toBeGreaterThan(0);
+    for (const example of examples) {
+      expect(compatibilityProblems([example.summary, ...example.body])).toEqual([]);
+    }
   });
 });
 

@@ -65,6 +65,16 @@ The copy replaces the supplier's description on our product page. The same produ
 - Never mention prices, currency, discounts, delivery, stock, any shop's name or any web address.
 - No health claims and no superlatives you cannot back up ("най-доброто кафе").
 
+**Which machines it fits** - checked automatically after you answer; a text that breaks a rule here is thrown away.
+
+A sentence about the machines a capsule fits is a promise to the customer. The machine makers' own statements decide it, not the name on the machine, and the supplier's data (`attributes`, `characteristics`, `sourceDescription`) often words it too broadly. Whatever the batch file says, write the fit like this:
+
+- **Dolce Gusto.** The Dolce Gusto NEO machines take only NEO paper pods; a classic Dolce Gusto capsule does not go in them. So never write a bare „машини Dolce Gusto“, „машините Dolce Gusto“ or „за Dolce Gusto машини“. Write „съвместими с класическите машини Dolce Gusto (не NEO)“. Name NEO only to exclude it.
+- **Nespresso.** Vertuo is a home machine too, and takes only Vertuo capsules. So never write „домашни машини Nespresso“ or „домашните машини Nespresso“, and never a bare „машини Nespresso“. Write „съвместими с класическите машини Nespresso (Original)“ or „машини Nespresso Original“; you may add „не с Vertuo“. Name Vertuo only to exclude it.
+- **K-fee** is a system of its own (K-fee's capsules and Aldi's EXPRESSI), not the Caffitaly format. Never say Caffitaly capsules fit, suit or work in K-fee machines. If you name K-fee at all, it is to say „K-fee е отделна система“.
+- **Tchibo Cafissimo** takes the Caffitaly format, but Tchibo says only its own capsules should be used in it. If the copy says the capsules fit a Cafissimo, the same text must give Tchibo's word too, for example „Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули“. Otherwise leave Cafissimo out.
+- Naming the format as what the product is needs no qualifier: „Капсули за Dolce Gusto“, „капсули за Nespresso“, „капсули Caffitaly“.
+
 **Pack size**
 
 - If `pack.mayState` is false, an earlier check left the size unsettled: do **not** state any pack size or piece count in the copy, whatever you find.
@@ -105,4 +115,4 @@ The copy replaces the supplier's description on our product page. The same produ
 
 ## Before you answer
 
-Check every product: one entry per `id`; `copy` present exactly where `task.writeCopy` is true and `research` exactly where `task.research` is true; no prices, shop names or web addresses in the copy; no pack size in the copy of a product whose size you corrected or could not settle.
+Check every product: one entry per `id`; `copy` present exactly where `task.writeCopy` is true and `research` exactly where `task.research` is true; no prices, shop names or web addresses in the copy; every sentence about machines in the wording of "Which machines it fits"; no pack size in the copy of a product whose size you corrected or could not settle.

@@ -28,6 +28,7 @@
     "check:launch": "tsx scripts/check-launch.ts",
     "copy:apply": "tsx scripts/apply-product-copy.ts",
     "copy:todo": "tsx scripts/copy-todo.ts",
+    "copy:compat": "tsx scripts/copy-compat.ts",
     "mail:prune-foreign": "tsx scripts/mail-prune-foreign.ts",
     "catalog:reslug": "tsx scripts/catalog-reslug.ts",
     "catalog:pack-size": "tsx scripts/catalog-pack-size.ts"

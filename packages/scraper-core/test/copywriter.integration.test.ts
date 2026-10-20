@@ -323,6 +323,58 @@ describeIntegration("catalog copywriter (integration)", () => {
     });
   });
 
+  it("publishes nothing that promises the wrong machines, and records why", async () => {
+    await sync(catalog());
+    const model = fakeModel();
+    const loose: { id?: string } = {};
+    // The stand-in model, but one product's text says „машини Dolce Gusto“ (NEO included).
+    const generate: CopyGenerator = async (request) => {
+      const answer = await model.generate(request);
+      const batch = model.batches.at(-1) as CopyBatch;
+      const output = answer.output as CopyOutput;
+      return {
+        ...answer,
+        output: {
+          products: output.products.map((product) => {
+            const item = batch.products.find((candidate) => candidate.id === product.id);
+            if (loose.id || !product.copy || item?.task.research !== false) return product;
+            loose.id = product.id;
+            return {
+              ...product,
+              copy: {
+                ...product.copy,
+                body: [
+                  ...product.copy.body,
+                  "Капсулите са съвместими с машини Dolce Gusto на Krups и De'Longhi.",
+                ],
+              },
+            };
+          }),
+        },
+      };
+    };
+
+    const result = await run(generate);
+    expect(result).toMatchObject({ copyWritten: 12, copyRejected: 1, failedBatches: 0 });
+    const [row] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, loose.id ?? ""));
+    expect(row).toMatchObject({
+      descriptionTextOverride: null,
+      descriptionHtmlOverride: null,
+      copyOrigin: null,
+      copyAttempts: 1,
+      copyLastError: expect.stringMatching(
+        /^съвместимост: „машини Dolce Gusto“ включва и машините Dolce Gusto NEO/,
+      ),
+    });
+
+    // The product stays in the plan, to be written again in the corrected words.
+    const again = await run(fakeModel().generate, { apply: false });
+    expect(again.planned.map((planned) => planned.slug)).toEqual([row?.slug]);
+  });
+
   it("never replaces a text a person published while the model was writing", async () => {
     await sync(catalog());
     const model = fakeModel(async (batch) => {

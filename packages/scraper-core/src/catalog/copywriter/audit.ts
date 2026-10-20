@@ -8,6 +8,7 @@ import {
   parseWeight,
   shingles,
 } from "@catalog/shared";
+import { compatibilityProblems } from "@catalog/shared/compatibility-copy";
 import type { CopyWorkItem, GeneratedCopy } from "./contract.ts";
 
 /**
@@ -20,7 +21,9 @@ import type { CopyWorkItem, GeneratedCopy } from "./contract.ts";
  * sentence, or its previous copy) and the failure is recorded against it.
  *
  * The originality measures are the same functions and limits the CI audit of
- * the hand-written file uses (`@catalog/shared/copy-originality`).
+ * the hand-written file uses (`@catalog/shared/copy-originality`), and the
+ * compatibility rules the same ones its test holds the hand-written file to
+ * (`@catalog/shared/compatibility-copy`).
  */
 
 export interface CopyAuditContext {
@@ -188,6 +191,20 @@ export function auditGeneratedCopy(
   if (URL_LIKE.test(all)) problems.push("текстът съдържа уеб адрес");
   if (PRICE_TALK.test(all)) problems.push("текстът споменава цена или валута");
   if (/<[^>]+>/.test(all)) problems.push("текстът съдържа HTML");
+
+  /*
+   * A compatibility promise the machine's maker contradicts — „машини Dolce
+   * Gusto“, which includes NEO; „домашни машини Nespresso“, which includes
+   * Vertuo; Caffitaly in a K-fee; a Cafissimo without Tchibo's word — is the
+   * error the hand-written copy was corrected for, and a supplier's attribute
+   * („Съвместимост: Dolce Gusto“) invites it. One problem per rule: the owner
+   * needs the fix, not every sentence it applies to.
+   */
+  const compatibility = new Map<string, string>();
+  for (const problem of compatibilityProblems([summary, ...body])) {
+    if (!compatibility.has(problem.rule)) compatibility.set(problem.rule, problem.reason);
+  }
+  for (const reason of compatibility.values()) problems.push(`съвместимост: ${reason}`);
 
   const source = item.sourceDescription?.trim() ?? "";
   if (source) {

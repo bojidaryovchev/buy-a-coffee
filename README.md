@@ -270,6 +270,7 @@ From the repository root:
 | `pnpm seed:dev`                 | Add six invented products under a `seed-dev` source key                                                                 |
 | `pnpm copy:apply`               | Publish `content/product-copy.ts` into the override columns (`--dry-run` to preview)                                    |
 | `pnpm copy:todo`                | List the products that still publish the generated sentence                                                             |
+| `pnpm copy:compat`              | List copy that promises the wrong machines: database, copy file, generated sentence, supplier text (read-only)          |
 | `pnpm check:originality`        | No source branding or source copy in the storefront                                                                     |
 | `pnpm check:launch`             | Fails while a draft marker would render or a commercial term is unset or unconfirmed                                    |
 | `pnpm reference:coverage`       | Fails if the storefront misses an observed capability or `docs/reference-coverage.md` is stale                          |
