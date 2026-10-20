@@ -75,7 +75,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
   {
     id: "caffitaly",
     name: "Caffitaly",
-    summary: "Капсули Caffitaly — същият формат работи и в Tchibo Cafissimo и K-fee.",
+    summary: "Капсули за машините Caffitaly System; същият формат използва и Tchibo Cafissimo.",
     recognise:
       "Капсулата е пластмасова, 45 мм в диаметър и 27 мм висока, с почти прави стени, жлеб в долната част и заоблено дъно. Цветът ѝ зависи от марката и кафето.",
     method: "capsule",
@@ -136,6 +136,12 @@ export function systemsForMethod(method: BrewMethod): readonly BrewingSystem[] {
 export type UnsupportedSystemId =
   | "nespresso-vertuo"
   | "nespresso-professional"
+  | "dolce-gusto-neo"
+  | "k-fee"
+  | "tchibo-qbo"
+  | "caffitaly-professional"
+  | "lavazza-espresso-point"
+  | "lavazza-firma"
   | "tassimo"
   | "illy-iperespresso"
   | "k-cup"
@@ -161,6 +167,47 @@ export const UNSUPPORTED_SYSTEMS: readonly UnsupportedSystem[] = [
     name: "Nespresso Professional",
     explanation:
       "Професионалните машини Nespresso използват по-голяма капсула от домашните. Нямаме такива капсули.",
+  },
+  {
+    /* Nescafé Dolce Gusto's own FAQ: NEO takes only NEO pods and sachets, and
+       NEO pods do not go in the Original machines either. */
+    id: "dolce-gusto-neo",
+    name: "Dolce Gusto NEO",
+    explanation:
+      "NEO е отделна система на Dolce Gusto с хартиени дози и различна технология. Класическите капсули Dolce Gusto не пасват в NEO, а дози NEO нямаме.",
+  },
+  {
+    /* k-fee.com: compatible with K-fee's own capsules and Aldi Süd's EXPRESSI.
+       Caffitaly: its capsules are for Caffitaly System machines only. */
+    id: "k-fee",
+    name: "K-fee",
+    explanation:
+      "K-fee е собствена система: машините приемат капсулите на K-fee и EXPRESSI на Aldi. Капсулите Caffitaly са само за машини Caffitaly System, а капсули K-fee нямаме.",
+  },
+  {
+    id: "tchibo-qbo",
+    name: "Tchibo Qbo",
+    explanation:
+      "Машините Qbo приемат само капсулите Qbo на Tchibo, различни от Cafissimo. Нямаме капсули Qbo.",
+  },
+  {
+    // Caffitaly's own FAQ: these machines do not take Caffitaly System capsules.
+    id: "caffitaly-professional",
+    name: "Caffitaly Professional и Coffee For You",
+    explanation:
+      "Професионалните машини Caffitaly и машините Coffee For You не приемат капсулите Caffitaly System, които предлагаме. Нямаме капсули за тях.",
+  },
+  {
+    id: "lavazza-espresso-point",
+    name: "Lavazza Espresso Point",
+    explanation:
+      "Espresso Point е отделна офис система на Lavazza: капсулите ѝ не пасват в Blue и обратно. Нямаме капсули Espresso Point.",
+  },
+  {
+    id: "lavazza-firma",
+    name: "Lavazza Firma",
+    explanation:
+      "Firma е отделна офис система на Lavazza, различна от Blue и Espresso Point. Нямаме капсули Firma.",
   },
   {
     id: "tassimo",

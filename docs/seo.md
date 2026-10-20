@@ -867,8 +867,13 @@ outside the study's subject. What was fixed, and where:
   §2.2 ranks its parts: the word „капсули“ (the system's name implies it), then
   the size, then everything after brand and line (`productTitleWords`). The
   machine pages end „— какво пасва“ instead of „— кой модел какво приема“, and
-  the Tchibo page reads „Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly“:
-  the study's 72-character title would have been cut in every result.
+  the Tchibo page reads „Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly“:
+  the study's 72-character title would have been cut in every result. (It read
+  „— пасват Caffitaly“ until 20 October 2026; Tchibo tells owners to use its own
+  capsules, so the fit is now stated as one of format.) The K-fee page is the
+  one machine page without „— какво пасва“: K-fee is its own capsule system and
+  nothing here fits it, so it reads „Кафемашини K-fee — собствена система
+  капсули, не Caffitaly“.
   `test/metadata-quality.test.ts` and `e2e/seo-audit.spec.ts` hold every
   template and every URL in the sitemap to it.
 - **A description carries the callback only while it fits 160 characters.**

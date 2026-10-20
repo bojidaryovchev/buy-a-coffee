@@ -136,7 +136,7 @@ export const COMPATIBLE_MACHINE_LIMIT = 12;
  * A model appears only because the hand-written machine database says it takes
  * this system. The list is capped; which models make the cut is decided by
  * taking one from each brand in turn, in the order the database is written, so
- * a system shared by several brands (Caffitaly, Tchibo, K-fee) shows all of
+ * a system shared by several brands (Caffitaly and Tchibo) shows all of
  * them instead of twelve models of the first.
  */
 export function compatibleMachines(

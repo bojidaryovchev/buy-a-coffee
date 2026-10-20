@@ -335,7 +335,9 @@ export interface MachineBrandFeature {
 
 export const machineBrandFeatures: Readonly<Record<string, MachineBrandFeature>> = {
   tchibo: {
-    title: "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
+    /* „формат Caffitaly“, not „пасват Caffitaly“: Tchibo itself tells owners to
+       use its own capsules, so the fit is stated as one of format. */
+    title: "Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly",
     h1: "Капсули за Tchibo Cafissimo",
     system: "caffitaly",
     lead: "По-долу са капсулите Caffitaly, които предлагаме в момента, с цената на чаша под всяка кутия. След тях са моделите Cafissimo, за които знаем, че приемат този формат.",
@@ -384,14 +386,43 @@ export const machineKindCopy: Readonly<
   },
 };
 
+/**
+ * A maker whose machines take a capsule system of its own, which we do not
+ * stock. The generic title promises „какво пасва“ for machines that nothing
+ * here fits; this wording says what the system is instead. K-fee is the one:
+ * it was listed as Caffitaly-format until its own compatibility statement
+ * (k-fee.com) said otherwise.
+ */
+export const machineOwnSystemCopy: Readonly<
+  Record<string, { readonly title: string; readonly h1: string; readonly description: string }>
+> = {
+  "k-fee": {
+    title: "Кафемашини K-fee — собствена система капсули, не Caffitaly",
+    h1: "Кафемашини K-fee: собствена система капсули",
+    // No callback sentence: there is nothing here to order for these machines.
+    description: fitDescription(
+      "Машините K-fee приемат капсулите на K-fee и EXPRESSI на Aldi — собствена система, различна от Caffitaly. Капсули за нея не предлагаме.",
+    ),
+  },
+};
+
+/** The specific wording for a machine entry's page, a kind's or an own system's. */
+function machineEntryCopy(slug: string) {
+  if (Object.hasOwn(machineKindCopy, slug)) return machineKindCopy[slug];
+  if (Object.hasOwn(machineOwnSystemCopy, slug)) return machineOwnSystemCopy[slug];
+  return undefined;
+}
+
 /** The generic description of a machine entry's page: a maker's, or a kind's. */
 export function machineBrandDescription(brand: {
   readonly slug: string;
   readonly name: string;
   readonly models: ReadonlyArray<{ readonly system: string }>;
 }): string {
-  const kind = Object.hasOwn(machineKindCopy, brand.slug) ? machineKindCopy[brand.slug] : undefined;
-  return kind?.description ?? machineBrandCopy.description(brand.name, hasCapsuleMachines(brand));
+  return (
+    machineEntryCopy(brand.slug)?.description ??
+    machineBrandCopy.description(brand.name, hasCapsuleMachines(brand))
+  );
 }
 
 /**
@@ -408,7 +439,7 @@ export function machineBrandNames(brand: {
   const feature = Object.hasOwn(machineBrandFeatures, brand.slug)
     ? machineBrandFeatures[brand.slug]
     : undefined;
-  const kind = Object.hasOwn(machineKindCopy, brand.slug) ? machineKindCopy[brand.slug] : undefined;
+  const kind = machineEntryCopy(brand.slug);
   return {
     title:
       feature?.title ??

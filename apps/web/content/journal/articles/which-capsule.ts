@@ -67,13 +67,13 @@ const SYSTEM_NOTES: Partial<Record<BrewingSystemId, string>> = {
   "nespresso-original":
     "Влиза в класическите домашни машини Nespresso. Vertuo също носи името Nespresso, но е отделна система — за нея пише по-долу.",
   "dolce-gusto":
-    "Машините се правят от Krups и De'Longhi, а името на модела започва с Dolce Gusto: Piccolo, Genio, Mini Me, Infinissima.",
+    "Машините се правят от Krups и De'Longhi, а името на модела започва с Dolce Gusto: Piccolo, Genio, Mini Me, Infinissima. По-новите машини Dolce Gusto NEO са отделна система с хартиени дози: класическите капсули не влизат в тях.",
   "a-modo-mio":
-    "Това е домашната система на Lavazza. Със същите капсули работи и машината Smeg for Lavazza A Modo Mio. Не я бъркайте с Lavazza Blue — двете не са съвместими.",
+    "Това е домашната система на Lavazza. Със същите капсули работи и машината Smeg for Lavazza A Modo Mio. Не я бъркайте с офисните системи на Lavazza — Blue, Espresso Point и Firma: не са съвместими с нея.",
   caffitaly:
-    "Всички машини Caffitaly приемат един и същ формат. Същият формат работи и в Tchibo Cafissimo и в K-fee: там капсулите не са произведени от производителя на машината, а пасват по размер и форма.",
+    "Машините със знака Caffitaly System приемат един и същ формат; професионалните машини Caffitaly и Coffee For You са друг. Същия формат използва Tchibo Cafissimo: там капсулите не са произведени от производителя на машината, а пасват по размер и форма, а Tchibo препоръчва собствените си капсули. K-fee е отделна система.",
   "lavazza-blue":
-    "Това е професионалната система на Lavazza, която най-често стои в офис. Към нея са и моделите Classy.",
+    "Това е професионалната система на Lavazza, която най-често стои в офис. Към нея са и моделите Classy. Espresso Point и Firma са други офис системи на Lavazza и не приемат тези капсули.",
 };
 
 export const whichCapsule: Article = {
@@ -85,6 +85,8 @@ export const whichCapsule: Article = {
   metaDescription:
     "Капсулите се делят по системи, не по марки: Nespresso, Dolce Gusto, Lavazza A Modo Mio, Lavazza Blue и Caffitaly. Как да познаете своята.",
   publishedAt: "2026-10-09",
+  // Dolce Gusto NEO, K-fee and the Lavazza office systems, corrected.
+  updatedAt: "2026-10-20",
   // For one link only: the Lavazza capsules listing exists while it has products.
   usesCatalog: true,
 
@@ -135,7 +137,7 @@ export const whichCapsule: Article = {
 
       h2("Марката на машината не е достатъчна"),
       p(
-        "Лесно е да се подведете по марката на машината. Krups прави машини за три различни системи: Dolce Gusto, Nespresso и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има две несъвместими системи — A Modo Mio за дома и Blue за офиса, така че и „",
+        "Лесно е да се подведете по марката на машината. Krups прави машини за няколко различни системи: Dolce Gusto и Dolce Gusto NEO, Nespresso Original и Vertuo, и автоматични машини на зърна. De'Longhi прави и капсулни, и автоматични. Lavazza има няколко несъвместими системи — A Modo Mio за дома, Blue, Espresso Point и Firma за офиса, така че и „",
         linkWhile(landingHref("lavazzaCapsules", landings), "капсули Lavazza"),
         "“ не значи един вид капсула.",
       ),

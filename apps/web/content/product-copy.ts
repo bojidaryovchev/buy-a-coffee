@@ -132,7 +132,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Gusto Forte от серията Collezione Nero е сред по-силните предложения на Bianchi: интензивност 10 от 12.",
       "Профилът е плътен и наситен, с изразен аромат и малко горчивина в края — такова, каквото се очаква от кратко италианско еспресо.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "lavazza-decaffeinato-kapsuli-lavazza-blue-100-br": {
@@ -222,7 +222,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Изцяло арабика, без робуста в състава — оттам идват изтънченият аромат и липсата на груба горчивина.",
       "Интензивност 6 от 12 поставя тази капсула точно в средата: достатъчно изразена, за да е еспресо, достатъчно мека за всекидневно пиене.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-chocolate-aroma-espresso-kapsuli-dolce-gusto-16-br": {
@@ -231,7 +231,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Шоколадът се усеща като аромат в носа и в послевкуса, а вкусът в чашата остава на кафе.",
       "Интензивност 5 от 12 — в по-мекия край, с умерена сила. Работи добре и с малко мляко.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-crema-aroma-espresso-kapsuli-dolce-gusto-16-br": {
@@ -240,7 +240,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema Aroma от серията Collezione Nero е създадена с акцент върху пяната: тя излиза плътна, кадифена и се задържа дълго.",
       "Интензивност 9 от 12: наситено, но не агресивно. Тялото е плътно, а ароматът остава в чашата и след последната глътка.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-fine-aroma-espresso-kapsuli-dolce-gusto-16-br": {
@@ -249,7 +249,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Fine Aroma търси равновесие между изразен аромат и мека текстура.",
       "Интензивност 8 от 12 — достатъчно, за да има характер, без чашата да стане тежка. Вкусът е гладък, с чист завършек.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-gusto-decaf-espresso-kapsuli-dolce-gusto-16-br": {
@@ -258,7 +258,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Decaf Espresso запазва вкусовия профил на еспресото, но остава без кофеин.",
       "Интензивност 3 от 12 — леко кафе, което не натоварва. Точно затова има смисъл след вечеря или късно следобед.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br": {
@@ -267,7 +267,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Лешникът е сред малкото аромати, които стоят естествено върху кафе — препечен, леко маслен, без да залепва по небцето.",
       "Интензивност 5 от 12 и умерена сила: чашата остава лека, а ароматът води. Алтернатива за дните, в които обикновеното еспресо не върши работа.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "bianchi-irish-cream-aroma-espresso-kapsuli-dolce-gusto-16-br": {
@@ -275,7 +275,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Ароматът повтаря познатия ирландски крем-ликьор — сметана, ванилия и лека уискова нотка — но в чашата няма алкохол.",
       "Интензивност 5 от 12 и мека сила. Кафе за спокойния край на деня, а не за сутрешното събуждане.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "borbone-baileys-cappuccino-kapsuli-dolce-gusto-16-br": {
@@ -284,7 +284,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Baileys Cappuccino събира кафе, мляко и ароматния профил на известния ирландски ликьор в една капсула.",
       "Резултатът е сладка, кремообразна напитка с умерена кафеена сила — по-близо до десерт, отколкото до еспресо.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "borbone-crema-classica-kapsuli-dolce-gusto-16-br": {
@@ -293,7 +293,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema Classica пренася в капсула бленда, с който Borbone е известна: класическа италианска елегантност без излишни украси.",
       "Интензивност 8 от 10 и силен характер, но балансът се пази — вкусът е богат, кремата кадифена, горчивината под контрол.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "borbone-crema-superiore-kapsuli-dolce-gusto-16-br": {
@@ -302,7 +302,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema Superiore е с една степен по-мека от Classica: интензивност 7 от 10 и умерена сила.",
       "Акцентът пада върху текстурата — чашата е плътна и кремообразна, с аромат, който се задържа.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "borbone-lungo-sublime-kapsuli-dolce-gusto-16-br": {
@@ -311,7 +311,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Lungo Sublime е създадена за по-дългото извличане, при което водата минава повече и вкусът се разгръща по-широко.",
       "Интензивност 6 от 10: меко, но не празно кафе. Форматът, който върши работа, когато една чаша трябва да издържи по-дълго.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "molini-firenze-kapsuli-dolce-gusto-16-br": {
@@ -320,7 +320,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Firenze носи името на града и следва неговия стил — елегантен, премерен, без показност.",
       "Интензивност 10 от 12 при умерена сила: наситена чаша, в която балансът остава водещ, а не силата сама по себе си.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "molini-milano-kapsuli-dolce-gusto-16-br": {
@@ -329,7 +329,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Milano е по-модерният прочит в гамата на Molini: фин, изчистен профил без тежест.",
       "Интензивност 8 от 12 и умерена сила — подходящо за сутрешното кафе набързо.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "molini-napoli-kapsuli-dolce-gusto-16-br": {
@@ -338,7 +338,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Napoli следва неаполитанската школа: колкото по-кратко и по-плътно еспресото, толкова по-добре.",
       "Интензивност 11 от 12 и силен характер — дълбок аромат, тъмен профил и темперамент, който не се крие.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "molini-torino-kapsuli-dolce-gusto-16-br": {
@@ -347,7 +347,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Torino е на върха на скалата на Molini: интензивност 12 от 12.",
       "Въпреки силата чашата не е груба — ароматът е богат, а кремата кадифена. Кафе за тези, които започват деня с най-силното.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-arabica-gold-kapsuli-dolce-gusto-16-br": {
@@ -356,7 +356,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Arabica Gold е съставена само от арабика. Липсата на робуста означава по-малко горчивина и повече място за аромата.",
       "Вкусът е фин и елегантен, силата умерена — кафе за пиене без бързане.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-cappuccino-3in1-kapsuli-dolce-gusto-16-br": {
@@ -365,7 +365,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Cappuccino 3in1 събира трите съставки в една капсула: кафе, млечна кремообразност и премерена сладост.",
       "Пяната излиза кадифена, а напитката — хармонична, без нужда от допълнително мляко или захар.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-caramel-kapsuli-dolce-gusto-16-br": {
@@ -373,7 +373,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Карамелът тук балансира, вместо да залива: сладките нотки стоят върху ароматно еспресо, а не го заменят.",
       "Интензивност 8 от 12 и умерена сила — достатъчно кафе, за да не се получи просто сладка напитка.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-cookies-kapsuli-dolce-gusto-16-br": {
@@ -381,7 +381,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Cookies съчетава богатия аромат на еспресо със сладките нотки на прясно изпечена бисквитка — масло, ванилия и препечено тесто.",
       "Интензивност 8 от 12: кафето отдолу остава изразено, а ароматът върви с него, вместо да го покрива.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-cortado-kapsuli-dolce-gusto-16-br": {
@@ -390,7 +390,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Cortado е испанската мярка за равновесие: точно толкова мляко, колкото да смекчи еспресото, без да го удави.",
       "Напитката излиза гладка и кремообразна, с лек сладък нюанс и умерена сила.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br": {
@@ -399,7 +399,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crème Brûlée следва френския десерт — карамелизирана коричка отгоре, кремообразна основа отдолу.",
       "Съставът е безкофеинов и с лека сила, което го прави подходящ за края на деня. Вкусът е деликатно карамелен, текстурата — кремообразна.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-forte-kapsuli-dolce-gusto-16-br": {
@@ -408,7 +408,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Forte няма претенции за финес. Целта е сила: плътно тяло, мощен вкус и изразен аромат.",
       "Кафе за сутрешната чаша, която трябва да свърши работа, или за края на тежък обяд.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-gusto-satin-kapsuli-dolce-gusto-16-br": {
@@ -417,7 +417,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Gusto Satin носи името си от текстурата: чашата е гладка и кадифена, без грапавините на силните блендове.",
       "Силата е лека, а балансът — водещ.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-hazelnut-kapsuli-dolce-gusto-16-br": {
@@ -426,7 +426,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Печеният лешник дава леко сладък, маслен профил, който ляга естествено върху еспресото.",
       "Интензивност 8 от 12 — по-изразена основа от обичайното при ароматизираните капсули, така че кафето не изчезва зад аромата.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-intenso-kapsuli-dolce-gusto-16-br": {
@@ -434,7 +434,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Intenso е на самия връх на скалата: интензивност 12 от 12.",
       "Плътно тяло, наситен вкус и дълъг послевкус.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-irish-cream-kapsuli-dolce-gusto-16-br": {
@@ -442,7 +442,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Irish Cream в изпълнение на Rema Caffè: сметанов, ванилов профил с характерната ликьорна нотка, положен върху кафе с умерена сила.",
       "Чашата е сладка и обгръщаща, но кафеената основа остава разпознаваема.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "rema-caffe-matcha-kapsuli-dolce-gusto-16-br": {
@@ -451,7 +451,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Matcha Latte излиза извън кафето: основата е натурален зелен чай мача, а не еспресо.",
       "Комбинацията с нежна млечна пяна дава мека, леко тревиста напитка с ниско съдържание на кофеин.",
-      "16 капсули, съвместими с машини Dolce Gusto.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "elia-vending-aroma-kafe-na-zarna-1-kg": {
@@ -748,7 +748,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Arte Classico е класическото предложение на Bianchi Caffè за системата Nespresso.",
       "Интензивност 9 от 12: богат и балансиран аромат, плътно тяло и силен характер без излишна острота.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "bianchi-colombia-kapsuli-nespresso-10-br": {
@@ -757,7 +757,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Arte Colombia залага на един от най-разпознаваемите произходи в света на кафето.",
       "Ароматът е фин и изискан, тялото средно, а интензивността — 6 от 12. Капсула за тези, които търсят деликатност, а не сила.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "bianchi-costa-rica-kapsuli-nespresso-10-br": {
@@ -766,7 +766,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Arte Costa Rica носи характера на Централна Америка: чиста, ясна чаша с жива киселинност.",
       "Интензивност 6 от 12 — мек, но изразителен профил.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "bianchi-hazelnut-kapsuli-nespresso-10-br": {
@@ -775,7 +775,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Печеният лешник ляга върху балансирана кафеена основа, без да я покрива.",
       "Интензивност 5 от 12 — леко и сладко изкушение за момента, в който обикновеното еспресо не е това, което искате.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "lavazza-crema-e-gusto-classico-kapsuli-nespresso-10-br": {
@@ -784,7 +784,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema e Gusto Classico пренася един от най-известните блендове на Lavazza в системата Nespresso.",
       "Интензивност 12 от 13: наситен вкус, плътна крема и балансиран профил в италиански стил.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "lavazza-crema-e-gusto-forte-kapsuli-nespresso-10-br": {
@@ -793,7 +793,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema e Gusto Forte е най-силният вариант в серията: интензивност 13 от 13.",
       "Плътно тяло, смел характер и наситен аромат — капсулата за тези, които искат кафето да води.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "lavazza-crema-e-gusto-ricco-kapsuli-nespresso-10-br": {
@@ -802,7 +802,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Crema e Gusto Ricco е на върха на своята скала: интензивност 12 от 12.",
       "Богат, енергичен профил с плътно тяло и изразена крема — италианското еспресо в най-наситената му форма.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "molini-firenze-kapsuli-nespresso-10-br": {
@@ -811,7 +811,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Firenze в капсула за Nespresso запазва тосканския прочит: премерен, елегантен, без показност.",
       "Интензивност 8 от 12 при умерена сила — богат вкус, в който балансът остава водещ.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "molini-napoli-kapsuli-nespresso-10-br": {
@@ -820,7 +820,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Napoli носи интензивната сила на Южна Италия в системата Nespresso.",
       "Интензивност 10 от 12: мощен, плътен вкус и дълбок аромат за любителите на силното еспресо.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "molini-torino-kapsuli-nespresso-10-br": {
@@ -829,7 +829,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Torino е най-силното предложение на Molini за Nespresso: интензивност 12 от 12.",
       "Плътен и наситен вкус с дълбок аромат, вдъхновен от северноиталианската традиция на тъмното изпичане.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-allegro-kapsuli-nespresso-10-br": {
@@ -838,7 +838,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Allegro е меката страна на гамата: балансиран профил без резки ръбове.",
       "Интензивност 8 от 12 при умерена сила — нежни аромати и спокойна чаша.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-arabica-gold-kapsuli-nespresso-10-br": {
@@ -847,7 +847,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Arabica Gold е съставена от чиста арабика — без робуста, но с интензивност 10 от 12.",
       "Комбинацията е необичайна: силата идва от изпичането и извличането, а не от робустата, така че ароматът остава деликатен и елегантен.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-caramel-kapsuli-nespresso-10-br": {
@@ -856,7 +856,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Карамелът тук е обгръщащ и плътен, а не леко подсладен намек.",
       "Интензивност 8 от 12 — кафеената основа остава достатъчно силна, за да носи сладостта, вместо да се загуби под нея.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-cookies-kapsuli-nespresso-10-br": {
@@ -865,7 +865,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Основата е 100 % арабика с нежното тяло на бразилското кафе.",
       "Върху нея ляга кремообразният карамел, който дава на капсулата характера на сладка бисквита. Интензивност 7 от 10.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-decaffeinato-kapsuli-nespresso-10-br": {
@@ -874,7 +874,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Decaffeinato запазва аромата и богатия вкус на традиционното еспресо, но без кофеин.",
       "Интензивност 6 от 12 и лека сила — подходящо за следобеда и вечерта.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-forte-kapsuli-nespresso-10-br": {
@@ -883,7 +883,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Forte е сред най-силните в гамата: интензивност 11 от 12.",
       "Мощен характер, плътно тяло и наситен послевкус — кратко еспресо без компромиси.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-fortissimo-kapsuli-nespresso-20-br": {
@@ -892,7 +892,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Fortissimo е съставен от 100 % арабика, отгледана в зелените хълмове на Бразилия.",
       "Комбинацията е рядка: интензивност 11 от 12 без грубостта на робустата, така че силата идва с кадифена мекота.",
-      "20 капсули, съвместими с домашни машини Nespresso.",
+      "20 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-gusto-satin-kapsuli-nespresso-10-br": {
@@ -901,7 +901,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Gusto Satin е най-мекото предложение в гамата: интензивност 4 от 12.",
       "Текстурата е кадифена, вкусът балансиран, а силата — ниска.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-hazelnut-kapsuli-nespresso-10-br": {
@@ -910,7 +910,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Лешникът е предаден точно — препечен и леко маслен, без изкуствена сладост.",
       "Интензивност 7 от 10 при умерена сила: основата остава изразена, ароматът я допълва.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-intenso-kapsuli-nespresso-10-br": {
@@ -919,7 +919,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Intenso е на върха на скалата: интензивност 12 от 12.",
       "Наситен вкус, плътно тяло и енергичен аромат — капсулата за любителите на най-силното еспресо.",
-      "10 капсули, съвместими с домашни машини Nespresso.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-ristretto-kapsuli-nespresso-20-br": {
@@ -928,7 +928,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Ristretto е най-краткото извличане — по-малко вода през същото количество кафе, оттам и концентрацията.",
       "Интензивност 11 от 12: плътно еспресо с богат аромат и послевкус, който се задържа дълго.",
-      "20 капсули, съвместими с домашни машини Nespresso.",
+      "20 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-supremo-kapsuli-nespresso-20-br": {
@@ -937,7 +937,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Supremo е съставена изцяло от арабика, отгледана в планинските райони на Южна Америка.",
       "Височината дава плътност на зърното и сложност на аромата. Интензивност 8 от 12 при умерена сила — премиум чаша без излишна тежест.",
-      "20 капсули, съвместими с домашни машини Nespresso.",
+      "20 капсули, съвместими с класическите машини Nespresso (Original).",
     ],
   },
   "rema-caffe-fortissimo-kafe-dozi-25-br": {
@@ -1169,14 +1169,14 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     summary:
       "Argento в капсули за Dolce Gusto — арабика и робуста с печени нотки и интензивност 10 от 10, 16 капсули.",
     body: [
-      "Капсулите са съвместими с машини Dolce Gusto. Вътре е Argento — бленд от арабика и робуста с печени нотки, наситен аромат и плътно, кремообразно тяло.",
+      "Капсулите са съвместими с класическите машини Dolce Gusto (не NEO). Вътре е Argento — бленд от арабика и робуста с печени нотки, наситен аромат и плътно, кремообразно тяло.",
       "Интензивност 10 от 10: за тези, които искат силно еспресо и от машина с капсули.",
       "В кутията има 16 капсули, по една на чаша. Ако предпочитате Argento в друг формат, има го и в дози ESE, и в капсули за Nespresso Original.",
     ],
   },
   "lollo-caffe-classico-kapsuli-dolce-gusto-16-br": {
     summary:
-      "Classico за машини Dolce Gusto: 16 капсули с уравновесения бленд на Lollo Caffè от арабика и робуста, 8 от 10 по интензивност.",
+      "Classico за класическите машини Dolce Gusto (не NEO): 16 капсули с уравновесения бленд на Lollo Caffè от арабика и робуста, 8 от 10 по интензивност.",
     body: [
       "Classico е балансираното кафе на Lollo Caffè — арабика и робуста, с печени и ядкови нотки, плътност и мекота.",
       "Интензивност 8 от 10 — изразително за сутринта, но не и най-силното, което марката прави за Dolce Gusto.",
@@ -1189,7 +1189,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Съставът е изцяло робуста, а вкусът носи какао, тютюн и подправки върху богато тяло. Интензивност 10 от 10.",
       "Заедно с Argento това е най-силното кафе на Lollo Caffè за Dolce Gusto. Разликата е в състава: Nero е само робуста, а Argento съчетава робуста с арабика.",
-      "16 капсули в кутия, съвместими с машини Dolce Gusto.",
+      "16 капсули в кутия, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "lollo-caffe-oro-kapsuli-dolce-gusto-16-br": {
@@ -1198,7 +1198,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "От четирите кафета на Lollo Caffè за Dolce Gusto Oro е с най-ниската интензивност: 7 от 10.",
       "Бленд от арабика и робуста с хармоничен вкус, деликатен аромат и златиста крема — за тези, които предпочитат мекото пред силното.",
-      "16 капсули, съвместими с машини Dolce Gusto, по една на чаша.",
+      "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO), по една на чаша.",
     ],
   },
   "lollo-caffe-afrodite-kapsuli-nespresso-10-br": {
@@ -1512,7 +1512,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Съставът не включва кафе. Напитката е от растителни екстракти, кокосово мляко и драконов плод, а вкусът е на ванилия, кокос и плодове.",
       "Тъй като е без кофеин, става и вечер, и за хора, които не пият кафе.",
-      "10 капсули, съвместими с машини Dolce Gusto.",
+      "10 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
     ],
   },
   "illy-classico-kafe-dozi-18-br": {
@@ -1547,7 +1547,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "В капсула Classico е изцяло арабика, изпечена средно, с естествена сладост и кадифено тяло.",
       "Интензивност 7 от 10 при умерена сила.",
-      "10 капсули, съвместими с класическите домашни машини Nespresso. За машините Iperespresso на illy нямаме капсули.",
+      "10 капсули, съвместими с класическите машини Nespresso (Original). За машините Iperespresso на illy нямаме капсули.",
     ],
   },
   "illy-forte-kapsuli-nespresso-10-br": {
@@ -1556,7 +1556,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Forte е по-силната капсула на illy при нас: също изцяло арабика като Classico, но изпечена по-тъмно.",
       "Профилът е на тъмен шоколад и препечен хляб, с богато тяло. Интензивност 9 от 10 при силен характер — две степени над Classico по същата скала.",
-      "10 капсули за домашни машини Nespresso Original.",
+      "10 капсули за класическите машини Nespresso (Original).",
     ],
   },
   "kimbo-amalfi-kafe-dozi-150-br": {
@@ -1726,7 +1726,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "44 капсули Arabica Gold за Nespresso Original — интензивност 10 от 12 и силен характер, в по-голямата кутия на Rema Caffe.",
     body: [
       "Arabica Gold се продава при нас и в кутия от 10 капсули. Тази съдържа 44 — за тези, които вече знаят, че вкусът им харесва, и не искат да поръчват всяка седмица.",
-      "Интензивност 10 от 12 при силен характер. Капсулите са съвместими с класическите домашни машини Nespresso Original, не с Vertuo.",
+      "Интензивност 10 от 12 при силен характер. Капсулите са съвместими с класическите машини Nespresso (Original), не с Vertuo.",
     ],
   },
   "rema-caffe-forte-kapsuli-nespresso-44-br": {
@@ -1734,7 +1734,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
       "Forte на Rema Caffe в кутия от 44 капсули за Nespresso Original — интензивност 11 от 12 за любителите на силното кафе.",
     body: [
       "Това е по-голямата опаковка на Forte, която иначе се продава по 10 капсули. Интензивност 11 от 12 и силен характер.",
-      "44 капсули са 44 чаши; при по две на ден кутията стига за около три седмици. Съвместими са с домашните машини Nespresso Original.",
+      "44 капсули са 44 чаши; при по две на ден кутията стига за около три седмици. Съвместими са с класическите машини Nespresso (Original).",
     ],
   },
   "moreno-extra-bar-kafe-na-zarna-1-kg": {
@@ -1806,7 +1806,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Идеята е неаполитанското еспресо, но от капсула: дозата и налягането са грижа на машината, а на вас остава да сложите чашата.",
       "Интензивност 8 от 10 при силен характер. Същото Aroma Blue има и в дози ESE.",
-      "50 капсули, съвместими с машини Dolce Gusto. Всяка капсула е една чаша, а голямата кутия има смисъл там, където машината се ползва от няколко души.",
+      "50 капсули, съвместими с класическите машини Dolce Gusto (не NEO). Всяка капсула е една чаша, а голямата кутия има смисъл там, където машината се ползва от няколко души.",
     ],
   },
   "moreno-aroma-espresso-kapsuli-dolce-gusto-50-br": {
@@ -1815,7 +1815,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Aroma Espresso дава кратка, плътна чаша с кремообразна текстура и наситен аромат.",
       "Интензивност 9 от 10, силен характер. В дози ESE същото име е обявено с 8 от 10 и умерена сила, така че капсулите са по-силният от двата варианта.",
-      "50 капсули, съвместими с машини Dolce Gusto; една капсула е една чаша.",
+      "50 капсули, съвместими с класическите машини Dolce Gusto (не NEO); една капсула е една чаша.",
     ],
   },
   "excelsior-emerald-kafe-na-zarna-1-kg": {

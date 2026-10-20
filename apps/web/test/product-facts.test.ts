@@ -235,7 +235,8 @@ describe("compatibility", () => {
     const caffitaly = compatibleMachines("caffitaly");
     expect(caffitaly.shown).toHaveLength(COMPATIBLE_MACHINE_LIMIT);
     expect(caffitaly.total).toBeGreaterThan(COMPATIBLE_MACHINE_LIMIT);
-    expect(caffitaly.crossFormatBrands).toEqual(["Tchibo", "K-fee"]);
+    // K-fee is its own system, not Caffitaly-format (research 08 §1.2).
+    expect(caffitaly.crossFormatBrands).toEqual(["Tchibo"]);
     expect(compatibleMachines("caffitaly", 3).shown).toHaveLength(3);
   });
 
@@ -250,7 +251,9 @@ describe("compatibility", () => {
     expect(markup).toContain("<h2");
     expect(markup).toContain("Става за тези машини");
     expect(markup).toContain(caffitaly.recognise);
-    expect(stripTags(markup)).toContain("Машините Tchibo и K-fee приемат същия формат капсула.");
+    expect(stripTags(markup)).toContain("Машините Tchibo приемат същия формат капсула.");
+    // With the maker's own caveat, not as a plain promise.
+    expect(stripTags(markup)).toContain("Производителят препоръчва собствените си капсули");
     expect(markup).toContain('href="/bg/za-kafemashina"');
     expect(markup).toContain('href="/bg/za-kafemashina/tchibo"');
     expect(stripTags(markup)).toMatch(/Показани са 12 от \d+ модела\./);

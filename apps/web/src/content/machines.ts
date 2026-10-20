@@ -27,8 +27,22 @@ import type { AnySystemId } from "@/lib/recommend/systems";
  *
  * Capsules for third-party systems fit by shared format, not by licence from
  * the machine's maker. `crossFormat` marks the entries where that distinction
- * is worth stating, and the UI states it.
+ * is worth stating, and the UI states it, with `CROSS_FORMAT_CAVEAT`.
+ *
+ * A system's name on a machine is not the same as its capsule: Dolce Gusto
+ * NEO is not Dolce Gusto, Vertuo is not Nespresso Original, K-fee is not
+ * Caffitaly, Lavazza runs four office and home systems. Each maker's own
+ * compatibility statement decides, not the logo.
  */
+
+/**
+ * Said wherever a cross-format fit is stated. Tchibo tells Cafissimo owners to
+ * use its own capsules, and its manual warns that repairs after other makers'
+ * capsules are not covered by the warranty; the customer should hear that
+ * before relying on the fit.
+ */
+export const CROSS_FORMAT_CAVEAT =
+  "Капсулите не са произведени от производителя на машината, а са съвместими по размер и форма. Производителят препоръчва собствените си капсули и може да не поеме по гаранция ремонт след капсули на друг производител.";
 
 export interface MachineModel {
   /** Unique across the whole database; used in URLs. */
@@ -67,6 +81,13 @@ const vertuo = (slug: string, name: string): MachineModel => ({
   slug,
   name,
   system: "nespresso-vertuo",
+});
+
+/** Dolce Gusto NEO: paper pods, not the classic capsule (Nescafé Dolce Gusto FAQ). */
+const dolceGustoNeo = (slug: string, name: string): MachineModel => ({
+  slug,
+  name,
+  system: "dolce-gusto-neo",
 });
 
 const dolceGusto = (slug: string, name: string, aliases?: readonly string[]): MachineModel => ({
@@ -157,7 +178,7 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
     name: "Krups",
     aliases: ["крупс"],
     summary:
-      "Krups прави машини за три различни системи. Изберете модела — марката сама по себе си не казва коя капсула пасва.",
+      "Krups прави машини за няколко несъвместими системи: Dolce Gusto и Dolce Gusto NEO, Nespresso Original и Vertuo, и автоматични на зърна. Изберете модела — марката сама по себе си не казва коя капсула пасва.",
     models: [
       dolceGusto("krups-piccolo", "Dolce Gusto Piccolo", ["пиколо"]),
       dolceGusto("krups-piccolo-xs", "Dolce Gusto Piccolo XS"),
@@ -175,11 +196,13 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       dolceGusto("krups-circolo", "Dolce Gusto Circolo"),
       dolceGusto("krups-melody", "Dolce Gusto Melody"),
       dolceGusto("krups-drop", "Dolce Gusto Drop"),
-      dolceGusto("krups-neo", "Dolce Gusto Neo"),
+      dolceGustoNeo("krups-neo", "Dolce Gusto NEO Caffè (KP8301)"),
+      dolceGustoNeo("krups-neo-latte", "Dolce Gusto NEO Latte (KP8501)"),
       nespresso("krups-nespresso-inissia", "Nespresso Inissia"),
       nespresso("krups-nespresso-essenza", "Nespresso Essenza"),
       nespresso("krups-nespresso-pixie", "Nespresso Pixie"),
       nespresso("krups-nespresso-citiz", "Nespresso CitiZ"),
+      vertuo("krups-nespresso-vertuo", "Nespresso Vertuo (всички модели)"),
       beans("krups-evidence", "Evidence (автоматична)", ["евиденс"]),
       beans("krups-arabica", "Arabica (автоматична)"),
       beans("krups-intuition", "Intuition (автоматична)"),
@@ -197,9 +220,12 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       dolceGusto("delonghi-piccolo", "Dolce Gusto Piccolo"),
       dolceGusto("delonghi-eclipse", "Dolce Gusto Eclipse"),
       dolceGusto("delonghi-infinissima", "Dolce Gusto Infinissima"),
-      nespresso("delonghi-nespresso-lattissima", "Nespresso Lattissima"),
+      dolceGustoNeo("delonghi-neo", "Dolce Gusto NEO Barista (NEO300)"),
+      // Vertuo Lattissima is a Vertuo machine; these four are Original.
+      nespresso("delonghi-nespresso-lattissima", "Nespresso Lattissima One, Touch, Pro, Gran"),
       nespresso("delonghi-nespresso-inissia", "Nespresso Inissia"),
       nespresso("delonghi-nespresso-citiz", "Nespresso CitiZ"),
+      vertuo("delonghi-nespresso-vertuo", "Nespresso Vertuo (всички модели, и Vertuo Lattissima)"),
       beans("delonghi-magnifica", "Magnifica (автоматична)", ["магнифика"]),
       beans("delonghi-magnifica-s", "Magnifica S (автоматична)"),
       beans("delonghi-magnifica-evo", "Magnifica Evo (автоматична)"),
@@ -222,7 +248,7 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
     name: "Lavazza",
     aliases: ["лаваца", "лавазза"],
     summary:
-      "Lavazza има две несъвместими системи: A Modo Mio за дома и Blue за офиса. Проверете какво пише на машината.",
+      "Lavazza има няколко несъвместими системи: A Modo Mio за дома, а за офиса Blue, Espresso Point и Firma. Проверете какво пише на машината.",
     models: [
       aModoMio("lavazza-tiny", "A Modo Mio Tiny", ["тини"]),
       aModoMio("lavazza-tiny-eco", "A Modo Mio Tiny Eco"),
@@ -244,13 +270,17 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       lavazzaBlue("lavazza-classy-mini", "Blue Classy Mini"),
       lavazzaBlue("lavazza-classy-plus", "Blue Classy Plus"),
       lavazzaBlue("lavazza-classy-compact", "Blue Classy Compact"),
+      { slug: "lavazza-ep-mini", name: "Espresso Point EP Mini", system: "lavazza-espresso-point" },
+      { slug: "lavazza-ep-2500", name: "Espresso Point EP 2500", system: "lavazza-espresso-point" },
+      { slug: "lavazza-lf-300", name: "Firma LF 300 Inovy Mini", system: "lavazza-firma" },
     ],
   },
   {
     slug: "caffitaly",
     name: "Caffitaly",
     aliases: ["кафитали"],
-    summary: "Всички машини Caffitaly приемат един и същ формат капсула.",
+    summary:
+      "Машините със знака Caffitaly System приемат един и същ формат капсула. Професионалните машини Caffitaly и Coffee For You са друг формат.",
     models: [
       caffitaly("caffitaly-s03", "S03"),
       caffitaly("caffitaly-s04", "S04"),
@@ -273,6 +303,16 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       caffitaly("caffitaly-iris", "Iris"),
       caffitaly("caffitaly-luna", "Luna"),
       caffitaly("caffitaly-maia", "Maia"),
+      {
+        slug: "caffitaly-professional",
+        name: "Caffitaly Professional (всички модели)",
+        system: "caffitaly-professional",
+      },
+      {
+        slug: "caffitaly-coffee-for-you",
+        name: "Coffee For You",
+        system: "caffitaly-professional",
+      },
     ],
   },
   {
@@ -280,7 +320,7 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
     name: "Tchibo",
     aliases: ["чибо", "кафисимо"],
     summary:
-      "Машините Cafissimo използват същия формат капсула като Caffitaly, така че капсулите Caffitaly работят в тях.",
+      "Машините Cafissimo използват формата на Caffitaly: Tchibo е партньор на системата и капсулите Caffitaly пасват в тях по размер и форма. Tchibo препоръчва собствените си капсули. Машините Qbo са друга система.",
     models: [
       caffitalyFormat("tchibo-cafissimo-classic", "Cafissimo Classic"),
       caffitalyFormat("tchibo-cafissimo-pure", "Cafissimo Pure"),
@@ -288,18 +328,21 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       caffitalyFormat("tchibo-cafissimo-latte", "Cafissimo Latte"),
       caffitalyFormat("tchibo-cafissimo-compact", "Cafissimo Compact"),
       caffitalyFormat("tchibo-cafissimo-tuttocaffe", "Cafissimo Tuttocaffè"),
+      { slug: "tchibo-qbo", name: "Qbo (всички модели)", system: "tchibo-qbo" },
     ],
   },
   {
     slug: "k-fee",
     name: "K-fee",
     aliases: ["к фи"],
-    summary: "Машините K-fee използват същия формат капсула като Caffitaly.",
+    summary:
+      "K-fee е собствена система капсули, не Caffitaly: машините приемат капсулите на K-fee и EXPRESSI на Aldi.",
+    // K-fee's current range, as k-fee.com lists it.
     models: [
-      caffitalyFormat("k-fee-one", "One"),
-      caffitalyFormat("k-fee-twins", "Twins"),
-      caffitalyFormat("k-fee-lattea", "Lattea"),
-      caffitalyFormat("k-fee-espresso", "Espresso"),
+      { slug: "k-fee-one", name: "ONE", system: "k-fee" },
+      { slug: "k-fee-square", name: "SQUARE", system: "k-fee" },
+      { slug: "k-fee-twins", name: "TWINS II", system: "k-fee" },
+      { slug: "k-fee-lattensia", name: "LATTENSIA+", system: "k-fee" },
     ],
   },
   {
