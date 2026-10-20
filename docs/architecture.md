@@ -56,6 +56,7 @@ brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 | `/bg/promotsii` [`offers`]                                             | Products with a genuine reduction. Answers 200 but is `noindex`, and out of the sitemap, while nothing is reduced                                                                                      |
 | `/bg/lavazza-kapsuli`, `/bg/kafe-na-zarna-lavazza`                     | Landing listings: Lavazza's capsules by system, and Lavazza's beans [`lavazza-capsules`, `lavazza-coffee-beans`]                                                                                       |
 | `/bg/bezkofeinovo-kafe`, `/bg/nay-evtino-na-chasha`                    | Landing listings: decaf by system, and the cheapest per cup in each system [`decaf-coffee`, `cheapest-per-cup`]                                                                                        |
+| `/bg/aromatizirano-kafe`                                               | Landing listing: flavoured, by system [`flavoured-coffee`]                                                                                                                                             |
 | `/bg/tarsene` [`search`]                                               | Server-side search over PostgreSQL                                                                                                                                                                     |
 | `/bg/kafe-za-vending-mashini` [`vending-coffee`]                       | The vending section: prose of ours around what the source files under its vending category (instant coffee since 16 October 2026, headed for what it is) and the blends named Vending; an enquiry form |
 | `/bg/konsumativi` [`consumables`]                                      | The consumables section. `noindex` and out of the sitemap while it lists no products                                                                                                                   |
@@ -158,7 +159,7 @@ not-found render; the route's own address, `/_not-found`, is answered with
 | ------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `first-level` | `/bg/<slug>`                     | a product has the slug or used to have it, whatever its status; or an active category has it as its stored slug or its landing slug |
 | `brand`       | `/bg/marki/<slug>`               | an active brand has it as its stored slug or its published slug                                                                     |
-| `landing`     | the four landing listings' paths | the landing's selection is not empty                                                                                                |
+| `landing`     | the five landing listings' paths | the landing's selection is not empty                                                                                                |
 
 The check accepts exactly what the pages accept, redirects included: a previous
 product slug and a brand's stored slug must reach their pages to be answered
@@ -479,7 +480,7 @@ already be indexed or bookmarked, and a dead end helps nobody. That page is
 
 ## Landing listings
 
-Four pages the search study found demand for and the catalog can fill. None is
+Five pages the search study found demand for and the catalog can fill. None is
 a category the source keeps; each is a rule applied to the products on sale.
 
 | Route                       | Lists                                                                                                                            |
@@ -488,6 +489,7 @@ a category the source keeps; each is a rule applied to the products on sale.
 | `/bg/kafe-na-zarna-lavazza` | Lavazza's products filed under coffee beans                                                                                      |
 | `/bg/bezkofeinovo-kafe`     | every product whose record says decaf (`attributes.decaf = 'yes'`), a group per system. A name is never read                     |
 | `/bg/nay-evtino-na-chasha`  | per system, the `CHEAPEST_PER_SYSTEM` products with the lowest price per cup among those that can be ordered and have the figure |
+| `/bg/aromatizirano-kafe`    | every product whose record says flavoured (`lower(attributes->>'aromas') = 'yes'`, the filter's test), a group per system        |
 
 | Module                                                                               | Responsibility                                                                                |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |

@@ -181,8 +181,8 @@ describe("the content as it is", () => {
     const kinds = (kind: string) => pieces.filter((p) => p.kind === kind).map((p) => p.id);
     expect(kinds("category")).toHaveLength(8);
     expect(kinds("business")).toEqual(["business:vending", "business:consumables"]);
-    // The four listings, and the machine pages with the cross-links between them.
-    expect(kinds("landing")).toHaveLength(5);
+    // The five listings, and the machine pages with the cross-links between them.
+    expect(kinds("landing")).toHaveLength(6);
     expect(kinds("journal").length).toBeGreaterThanOrEqual(4);
     for (const p of pieces) expect(p.text.trim().length, p.id).toBeGreaterThan(100);
   });

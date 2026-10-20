@@ -23,7 +23,7 @@ const catalog = vi.hoisted(() => ({
   brands: [] as { slug: string; name: string }[],
   consumablesListed: false,
   /** Products each landing listing holds; zero means the page does not exist. */
-  landings: { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 },
+  landings: { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0, flavoured: 0 },
   /** Products with a genuine reduction; zero means the promotions page is `noindex`. */
   promotions: 0,
 }));
@@ -183,7 +183,7 @@ beforeEach(() => {
   catalog.products = [{ slug: "kapsuli-a", updatedAt: new Date("2026-05-01T00:00:00.000Z") }];
   catalog.brands = [{ slug: "bianchi", name: "Bianchi" }];
   catalog.consumablesListed = false;
-  catalog.landings = { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0 };
+  catalog.landings = { lavazzaCapsules: 0, lavazzaBeans: 0, decaf: 0, cheapest: 0, flavoured: 0 };
   catalog.promotions = 0;
 });
 
@@ -192,6 +192,7 @@ const LANDING_URLS = [
   "/bg/kafe-na-zarna-lavazza",
   "/bg/bezkofeinovo-kafe",
   "/bg/nay-evtino-na-chasha",
+  "/bg/aromatizirano-kafe",
 ] as const;
 
 describe("the navigation built from the category tree", () => {
@@ -361,6 +362,16 @@ describe("the footer", () => {
     const one = markup({ ...NO_LANDINGS, counts: { ...NO_LANDINGS.counts, cheapest: 21 } });
     expect(one).not.toContain("/bg/bezkofeinovo-kafe");
     expect(one).toContain('href="/bg/nay-evtino-na-chasha"');
+  });
+
+  it("links the flavoured listing only while it lists something", () => {
+    expect(markup()).not.toContain("/bg/aromatizirano-kafe");
+    const empty = markup({ ...NO_LANDINGS, counts: { ...NO_LANDINGS.counts, decaf: 8 } });
+    expect(empty).not.toContain("/bg/aromatizirano-kafe");
+
+    const listed = markup({ ...NO_LANDINGS, counts: { ...NO_LANDINGS.counts, flavoured: 20 } });
+    expect(listed).toMatch(/href="\/bg\/aromatizirano-kafe"[^>]*>Ароматизирано кафе</);
+    expect(listed.split('href="/bg/aromatizirano-kafe"')).toHaveLength(2);
   });
 
   /* The pages with measured demand and almost no links (research 09, T1.4),
@@ -585,14 +596,30 @@ describe("the sitemap", () => {
     const none = await urls();
     for (const path of LANDING_URLS) expect(none).not.toContain(absoluteUrl(path));
 
-    catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 0, decaf: 8, cheapest: 0 };
+    catalog.landings = {
+      lavazzaCapsules: 10,
+      lavazzaBeans: 0,
+      decaf: 8,
+      cheapest: 0,
+      flavoured: 0,
+    };
     const some = await urls();
     expect(some).toContain(absoluteUrl("/bg/lavazza-kapsuli"));
     expect(some).toContain(absoluteUrl("/bg/bezkofeinovo-kafe"));
     expect(some).not.toContain(absoluteUrl("/bg/kafe-na-zarna-lavazza"));
     expect(some).not.toContain(absoluteUrl("/bg/nay-evtino-na-chasha"));
+    expect(some).not.toContain(absoluteUrl("/bg/aromatizirano-kafe"));
 
-    catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 8, decaf: 8, cheapest: 21 };
+    catalog.landings = { ...catalog.landings, flavoured: 20 };
+    expect(await urls()).toContain(absoluteUrl("/bg/aromatizirano-kafe"));
+
+    catalog.landings = {
+      lavazzaCapsules: 10,
+      lavazzaBeans: 8,
+      decaf: 8,
+      cheapest: 21,
+      flavoured: 20,
+    };
     const all = await urls();
     for (const path of LANDING_URLS) expect(all).toContain(absoluteUrl(path));
   });
@@ -831,11 +858,20 @@ describe("llms.txt", () => {
 
       catalog.consumablesListed = true;
       catalog.promotions = 2;
-      catalog.landings = { lavazzaCapsules: 10, lavazzaBeans: 8, decaf: 8, cheapest: 21 };
+      catalog.landings = {
+        lavazzaCapsules: 10,
+        lavazzaBeans: 8,
+        decaf: 8,
+        cheapest: 21,
+        flavoured: 20,
+      };
       const filled = await (await llmsRoute()).text();
       expect(filled).toContain(`(${absoluteUrl("/bg/konsumativi")})`);
       expect(filled).toContain(`(${absoluteUrl("/bg/promotsii")})`);
       for (const path of LANDING_URLS) expect(filled).toContain(`(${absoluteUrl(path)})`);
+      expect(filled).toContain(
+        `- [Ароматизирано кафе](${absoluteUrl("/bg/aromatizirano-kafe")}): Кафе и напитки с добавен аромат, разделени по система.`,
+      );
       for (const article of listArticles()) {
         expect(text).toContain(`(${absoluteUrl(bgPath(article.href))})`);
       }

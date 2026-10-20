@@ -22,6 +22,19 @@ import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
+import { FLAVOURED_DRINKS_SENTENCE, landingCopy } from "../content/landing-copy";
+import { productCopy } from "../content/product-copy";
+
+/**
+ * The products `FLAVOURED_DRINKS_SENTENCE` rests on, by the shop's slugs: the
+ * flavoured drinks for Dolce Gusto that hold no coffee. No field of the record
+ * says that a product is not coffee, so the sentence stands on the page
+ * unconditionally and is held to the catalog here instead.
+ */
+const FLAVOURED_DRINKS_WITHOUT_COFFEE = [
+  "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
+  "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
+] as const;
 
 /**
  * The landing listings against a real catalog, read-only.
@@ -87,6 +100,55 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
         new Set(filtered.items.map((product) => product.slug)),
       );
     }
+  });
+
+  it("lists as flavoured exactly what the listings' aromas filter finds in each system", async () => {
+    const view = await getLanding("flavoured");
+    for (const system of BREWING_SYSTEMS) {
+      const filtered = await listProducts({
+        query: everything({ aromas: "yes", system: system.id, sort: "price-per-cup" }),
+        includeFacets: false,
+      });
+      const group = view.groups.find((entry) => entry.key === system.id);
+      expect(new Set(group?.products.map((product) => product.slug) ?? []), system.id).toEqual(
+        new Set(filtered.items.map((product) => product.slug)),
+      );
+      // In the order the per-cup sort gives, by the printed figure (a tie may go either way).
+      expect(group?.products.map((product) => product.servingPrice?.formatted) ?? []).toEqual(
+        filtered.items.map((product) => product.servingPrice?.formatted),
+      );
+      for (const product of group?.products ?? []) expect(product.systemId).toBe(system.id);
+    }
+    // Every flagged product on sale that stands in a system is listed: none is lost between the two.
+    const flagged = await listProducts({
+      query: everything({ aromas: "yes" }),
+      includeFacets: false,
+    });
+    const inSystem = flagged.items.filter((product) => product.systemId !== null);
+    expect(view.count).toBe(inSystem.length);
+  });
+
+  it("still lists the drinks without coffee that the flavoured page says it has", async () => {
+    // The day either leaves the page, the sentence about them must go or change.
+    const view = await getLanding("flavoured");
+    const listed = new Set(view.groups.flatMap((group) => group.products.map((p) => p.slug)));
+    for (const slug of FLAVOURED_DRINKS_WITHOUT_COFFEE) {
+      expect(listed.has(slug), slug).toBe(true);
+      // And the shop's own copy for it says that it is not coffee.
+      const copy = productCopy[slug];
+      expect(copy, slug).toBeDefined();
+      expect([copy!.summary, ...copy!.body].join(" "), slug).toMatch(/без кафе|вместо кафе/);
+    }
+    const intro = landingCopy.flavoured.intro({
+      count: view.count,
+      systems: view.groups.map((group) => group.system),
+      methods: view.methods,
+      cupRange: view.cupRange,
+      commonPack: view.commonPack,
+      currency: "EUR",
+      flavours: view.flavours,
+    });
+    expect(intro.join(" ")).toContain(FLAVOURED_DRINKS_SENTENCE);
   });
 
   it("lists Lavazza's capsules and beans as the brand's own listing has them", async () => {

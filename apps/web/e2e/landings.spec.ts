@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { checkStructuredData } from "../test/helpers/structured-data";
 import { BG, PRODUCT_LINK } from "./support/paths";
 import { findSourceUrls } from "./support/source-guard";
+import { characters, shopTitle } from "./support/titles";
 import {
   expectControlsLabelled,
   expectImagesHaveAlt,
@@ -10,7 +12,7 @@ import {
 } from "./support/structure";
 
 /**
- * The four landing listings, the Tchibo machine page, and the links to them.
+ * The five landing listings, the Tchibo machine page, and the links to them.
  *
  * Asserted by shape and by link target, not by wording or by count: what each
  * page lists moves with the catalog, and which products a landing selects is
@@ -26,6 +28,7 @@ const LANDINGS = [
   { name: "Lavazza beans", path: BG.lavazzaBeans, h1: "Кафе на зърна Lavazza", grouped: false },
   { name: "decaf", path: BG.decaf, h1: "Безкофеиново кафе", grouped: true },
   { name: "cheapest per cup", path: BG.cheapestPerCup, h1: "Най-евтино на чаша", grouped: true },
+  { name: "flavoured", path: BG.flavoured, h1: "Ароматизирано кафе", grouped: true },
 ] as const;
 
 async function itemList(page: Page): Promise<{ numberOfItems: number; urls: string[] }> {
@@ -167,6 +170,125 @@ test.describe("cheapest per cup", () => {
   });
 });
 
+/*
+ * Research 09, T2.1, on the reference catalog: twenty packs flagged flavoured,
+ * over Nespresso, Dolce Gusto, Caffitaly and ESE. Which formats and flavours
+ * it names is the unit suite's (`test/landings.test.ts`); this is what a
+ * crawler and a visitor get.
+ */
+test.describe("the flavoured listing", () => {
+  test("is titled for its searches, indexable, and declares a sound item list and trail", async ({
+    page,
+  }) => {
+    const response = await page.goto(BG.flavoured);
+    expect(response?.status()).toBe(200);
+    const title = await page.title();
+    expect(title).toBe(shopTitle("Ароматизирано кафе с вкус на лешник, карамел и други"));
+    expect(characters(title)).toBeLessThanOrEqual(60);
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveText("Ароматизирано кафе");
+
+    const description = await page.locator('meta[name="description"]').getAttribute("content");
+    expect(characters(description ?? "")).toBeLessThanOrEqual(160);
+    // The formats it has, before a visitor after ground coffee clicks.
+    expect(description).toMatch(/^Кафе с вкус на лешник, карамел и други — в капсули и дози ESE\./);
+
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new RegExp(`${BG.flavoured}$`),
+    );
+    const robots = await page
+      .locator('meta[name="robots"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("content")));
+    expect(robots).toEqual(["index, follow"]);
+
+    const blocks = (await page.locator('script[type="application/ld+json"]').allTextContents()).map(
+      (text) => JSON.parse(text) as { "@type"?: string },
+    );
+    expect(blocks.map((block) => block["@type"])).toEqual(
+      expect.arrayContaining(["BreadcrumbList", "ItemList"]),
+    );
+    expect(checkStructuredData(blocks)).toEqual([]);
+  });
+
+  test("says how many it lists, with which flavours and in which formats", async ({ page }) => {
+    await page.goto(BG.flavoured);
+    const header = page.locator("main header");
+    await expect(header).toContainText(
+      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
+    );
+    await expect(header).toContainText("Някои са напитки без кафе, например мача лате.");
+    await expect(header).toContainText("Всички са в капсули и дози ESE.");
+    await expect(header).not.toContainText("всичко ароматизирано");
+    await expect(
+      page.locator("main h2", { hasText: "Ароматизирани капсули за Dolce Gusto" }),
+    ).toHaveCount(1);
+    await expect(page.locator("main h2", { hasText: "Ароматизирани дози ESE" })).toHaveCount(1);
+  });
+
+  test("opens every product it lists", async ({ page }) => {
+    await page.goto(BG.flavoured);
+    const hrefs = await page
+      .locator(`main ${PRODUCT_LINK}`)
+      .evaluateAll((nodes) => [...new Set(nodes.map((node) => node.getAttribute("href") ?? ""))]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const target of hrefs) {
+      const response = await page.request.get(target, { maxRedirects: 0 });
+      expect(response.status(), target).toBe(200);
+    }
+  });
+
+  test.describe("on a desktop", () => {
+    test.use({ viewport: { width: 1280, height: 900 } });
+
+    test("does not scroll horizontally", async ({ page }) => {
+      await page.goto(BG.flavoured);
+      await expectNoHorizontalScroll(page, BG.flavoured);
+    });
+  });
+
+  test("is linked from the footer of an ordinary page, a product and another landing", async ({
+    page,
+  }) => {
+    await page.goto(BG.flavoured);
+    const product = (await page.locator(`main ${PRODUCT_LINK}`).first().getAttribute("href"))!;
+    for (const from of [BG.home, BG.contact, BG.decaf, product]) {
+      await page.goto(from);
+      const link = page.locator(`footer a[href="${BG.flavoured}"]`);
+      await expect(link, from).toHaveCount(1);
+      await expect(link, from).toHaveText("Ароматизирано кафе");
+    }
+  });
+
+  /* The flavoured page changes no other page's words: the four landings that
+     were there before it keep the titles and headings the reference catalog
+     gave them (the listings' own are held in `titles.spec.ts`). */
+  test("leaves every other landing's title and heading as they were", async ({ page }) => {
+    for (const [path, title, h1] of [
+      [
+        BG.lavazzaCapsules,
+        "Капсули Lavazza (Лаваца): Blue, A Modo Mio и за Nespresso",
+        "Капсули Lavazza",
+      ],
+      [
+        BG.lavazzaBeans,
+        "Кафе на зърна Lavazza (Лаваца) — 1 кг, цена на чаша",
+        "Кафе на зърна Lavazza",
+      ],
+      [BG.decaf, "Безкофеиново кафе — капсули, дози и зърна", "Безкофеиново кафе"],
+      [
+        BG.cheapestPerCup,
+        "Евтини капсули и кафе на зърна — подредени по цена на чаша",
+        "Най-евтино на чаша",
+      ],
+    ] as const) {
+      await page.goto(path);
+      await expect(page, path).toHaveTitle(shopTitle(title));
+      await expect(page.locator("h1"), path).toHaveText(h1);
+    }
+  });
+});
+
 test.describe("the Tchibo machine page", () => {
   const path = BG.machineBrand("tchibo");
 
@@ -256,7 +378,7 @@ test.describe("the links to the new pages", () => {
     }
   });
 
-  test("the sitemap lists all four, and not the empty consumables page", async ({ request }) => {
+  test("the sitemap lists all five, and not the empty consumables page", async ({ request }) => {
     const xml = await (await request.get("/sitemap.xml")).text();
     for (const landing of LANDINGS) expect(xml).toContain(`${landing.path}</loc>`);
     expect(xml).toContain(`${BG.machineBrand("tchibo")}</loc>`);

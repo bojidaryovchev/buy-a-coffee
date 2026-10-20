@@ -27,11 +27,11 @@ import { brandLogoFor } from "../../content/brand-logos";
  * wizard, no legal boilerplate given artificial priority. The consumables page
  * is left out while it lists nothing, because it is `noindex` until then and a
  * sitemap entry for a page that asks not to be indexed is a contradiction. The
- * landing listings (Lavazza capsules and beans, decaf, cheapest per cup) follow
- * the same rule from the other side: each is a 404 while its selection is
- * empty, and is listed here only while it is not. The promotions page is the
- * third case: it answers 200 with nothing reduced, so that no link to it
- * breaks, but it is `noindex` then, and it is listed here only while a
+ * landing listings (Lavazza capsules and beans, decaf, cheapest per cup,
+ * flavoured) follow the same rule from the other side: each is a 404 while its
+ * selection is empty, and is listed here only while it is not. The promotions
+ * page is the third case: it answers 200 with nothing reduced, so that no link
+ * to it breaks, but it is `noindex` then, and it is listed here only while a
  * reduction exists.
  *
  * **Every page once per shipping locale, each entry carrying the page's whole

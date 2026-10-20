@@ -27,6 +27,7 @@ export const ROUTE_SEGMENTS = [
   "kafe-na-zarna-lavazza",
   "bezkofeinovo-kafe",
   "nay-evtino-na-chasha",
+  "aromatizirano-kafe",
   "dostavka-i-plashtane",
   "kontakti",
   "poveritelnost",

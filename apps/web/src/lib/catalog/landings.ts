@@ -16,40 +16,45 @@ import {
 import { packSizeLabel, resolveProductFormat } from "./fallback-copy";
 
 /**
- * The four landing listings, as selections over the catalog.
+ * The five landing listings, as selections over the catalog.
  *
- * `/bg/lavazza-kapsuli`, `/bg/kafe-na-zarna-lavazza`, `/bg/bezkofeinovo-kafe`
- * and `/bg/nay-evtino-na-chasha` are pages the market study found demand for
- * and the catalog can already fill. None of them is a category the source
- * keeps: each is a rule applied to the products on sale, written here.
+ * `/bg/lavazza-kapsuli`, `/bg/kafe-na-zarna-lavazza`, `/bg/bezkofeinovo-kafe`,
+ * `/bg/nay-evtino-na-chasha` and `/bg/aromatizirano-kafe` are pages the market
+ * study found demand for and the catalog can already fill. None of them is a
+ * category the source keeps: each is a rule applied to the products on sale,
+ * written here.
  *
  * This file is pure — rows in, a grouped and ordered selection out, no
  * database and no clock — so every rule below can be tested exhaustively. The
  * read that produces the rows, and the cards for what is selected, are in
  * `landing-queries.ts`.
  *
- * Three things hold for all four:
+ * Three things hold for all five:
  *
  *  - **A page exists only while its selection is not empty.** The route 404s,
  *    the sitemap and `llms.txt` drop it and every link to it disappears, all
  *    from `landingAvailability` below.
  *  - **A product's system is the one its categories name**, resolved exactly as
- *    the card's badge is (`resolveProductFormat`). The one thing read off a
- *    name is whether the product is instant coffee, which belongs to no system
- *    and so stands in no group on any of these pages: each compares cups
- *    within one system, and a cup of instant is not one of them.
+ *    the card's badge is (`resolveProductFormat`). What is read off a name is
+ *    never whether a product belongs on a page. It is whether the product is
+ *    instant coffee, which belongs to no system and so stands in no group on
+ *    any of these pages (each compares cups within one system, and a cup of
+ *    instant is not one of them); and, for the words of the flavoured page,
+ *    which of the two searched flavours a product its record already calls
+ *    flavoured is labelled with (`flavoursInName`).
  *  - **Price per cup is the shared helpers' figure** (`@catalog/shared`
  *    `packServings` and `pricePerServing`): the very number the card prints,
  *    kept at four decimals so that two near-identical packs still order.
  */
 
-export type LandingId = "lavazzaCapsules" | "lavazzaBeans" | "decaf" | "cheapest";
+export type LandingId = "lavazzaCapsules" | "lavazzaBeans" | "decaf" | "cheapest" | "flavoured";
 
 export const LANDING_IDS: readonly LandingId[] = [
   "lavazzaCapsules",
   "lavazzaBeans",
   "decaf",
   "cheapest",
+  "flavoured",
 ];
 
 /** Canonical paths, from `lib/routes.ts`; `href()` gives each a locale. */
@@ -58,6 +63,7 @@ export const LANDING_PATHS: Readonly<Record<LandingId, CanonicalPath>> = {
   lavazzaBeans: routes.lavazzaBeans,
   decaf: routes.decaf,
   cheapest: routes.cheapestPerCup,
+  flavoured: routes.flavoured,
 };
 
 /**
@@ -120,6 +126,8 @@ export interface LandingItem {
   readonly estimated: boolean;
   /** The pack as a customer says it („1 кг“, „100 броя“), or null. */
   readonly pack: string | null;
+  /** The searched flavours the supplier's name labels it with; see `flavoursInName`. */
+  readonly flavours: readonly Flavour[];
 }
 
 export interface LandingGroup {
@@ -156,6 +164,8 @@ export interface LandingSelection {
   readonly methods: readonly BrewMethod[];
   /** The one pack size every listed product shares („1 кг“), or null. */
   readonly commonPack: string | null;
+  /** The searched flavours the listed products are labelled with; see `flavoursInName`. */
+  readonly flavours: LandingFlavours;
 }
 
 const METHOD_ORDER: readonly BrewMethod[] = ["capsule", "pod", "beans"];
@@ -176,6 +186,7 @@ function resolve(row: LandingRow): Resolved {
     perCup: pricePerServing(row.price, servings),
     estimated: servings?.estimated ?? false,
     pack: packSizeLabel(row.weightValue, row.weightUnit),
+    flavours: flavoursInName(row.name),
     perKg: (() => {
       const unit = pricePerUnitMeasure(row.price, row.weightValue, row.weightUnit);
       return unit?.unit === "kg" ? unit.amount : null;
@@ -221,6 +232,72 @@ export const isDecaf = (row: LandingRow): boolean =>
   row.attributes.decaf?.trim().toLowerCase() === "yes";
 
 /**
+ * Flavoured is what the record says, and only that: the very test the
+ * listings' "Ароматизирано" filter applies in SQL,
+ * `lower(attributes->>'aromas') = 'yes'`. Lower-cased and nothing more, since
+ * PostgreSQL's `lower()` trims nothing, so this page and the filter cannot
+ * disagree about a product. A name that says "Hazelnut" or „лешник“ proves
+ * nothing and is never read to decide it.
+ */
+export const isFlavoured = (row: LandingRow): boolean =>
+  row.attributes.aromas?.toLowerCase() === "yes";
+
+/**
+ * The two flavours people search for by name — „кафе лешник“, „кафе с вкус на
+ * лешник“, „кафе карамел“ (research 09, T2.1) — in the order the flavoured
+ * page names them.
+ */
+export type Flavour = "hazelnut" | "caramel";
+
+export const FLAVOURS: readonly Flavour[] = ["hazelnut", "caramel"];
+
+/**
+ * The words a supplier's name uses for each flavour, matched as whole words:
+ * the English and Italian the packs are labelled in, and the Bulgarian a few
+ * names add. A crème brûlée is not caramel here, though it has a caramel top:
+ * calling it that would be our reading of the pack, not the pack's word.
+ */
+const FLAVOUR_WORDS: Readonly<Record<Flavour, readonly string[]>> = {
+  hazelnut: ["hazelnut", "nocciola", "лешник"],
+  caramel: ["caramel", "caramello", "карамел"],
+};
+
+/** Which searched flavours the products a page lists are labelled with. */
+export interface LandingFlavours {
+  /** Those some listed product is labelled with, in `FLAVOURS` order. */
+  readonly named: readonly Flavour[];
+  /** True when some listed product is labelled with neither. */
+  readonly others: boolean;
+}
+
+export const NO_FLAVOURS: LandingFlavours = { named: [], others: false };
+
+/**
+ * The searched flavours a supplier's name is labelled with: none, one or both.
+ *
+ * Read only by the flavoured page's words, whose products the record has
+ * already called flavoured: so that its title and introduction name a flavour
+ * exactly while it lists one. The day the last hazelnut pack leaves,
+ * „лешник“ leaves the title.
+ */
+export function flavoursInName(name: string): readonly Flavour[] {
+  const words = new Set(name.toLowerCase().split(/[^\p{L}\p{N}]+/u));
+  return FLAVOURS.filter((flavour) => FLAVOUR_WORDS[flavour].some((word) => words.has(word)));
+}
+
+/**
+ * Which searched flavours some items are labelled with, and whether any is
+ * labelled with neither. Asked of the whole selection here, and again by
+ * `landing-queries.ts` of the items that actually drew a card, as the count is.
+ */
+export function flavoursOf(items: readonly LandingItem[]): LandingFlavours {
+  return {
+    named: FLAVOURS.filter((flavour) => items.some((item) => item.flavours.includes(flavour))),
+    others: items.some((item) => item.flavours.length === 0),
+  };
+}
+
+/**
  * On sale, for the purposes of calling something the cheapest: listed, and not
  * marked sold out. Naming a pack the cheapest way to drink coffee when it
  * cannot be ordered would be a claim about nothing.
@@ -228,7 +305,13 @@ export const isDecaf = (row: LandingRow): boolean =>
 const canBeOrdered = (row: LandingRow): boolean => row.availability !== "out_of_stock";
 
 function strip(item: Resolved): LandingItem {
-  return { id: item.id, perCup: item.perCup, estimated: item.estimated, pack: item.pack };
+  return {
+    id: item.id,
+    perCup: item.perCup,
+    estimated: item.estimated,
+    pack: item.pack,
+    flavours: item.flavours,
+  };
 }
 
 /** Group by system, in the order given, each group cheapest per cup first. */
@@ -277,6 +360,7 @@ function selection(groups: readonly LandingGroup[]): LandingSelection {
       groups.some((group) => group.system.method === method),
     ),
     commonPack: packs.size === 1 ? (onlyPack ?? null) : null,
+    flavours: flavoursOf(items),
   };
 }
 
@@ -296,6 +380,10 @@ function selection(groups: readonly LandingGroup[]): LandingSelection {
  *    figure. Ties are broken by name, so a fourth product at exactly the third
  *    one's price is left out; nothing left out is ever cheaper than anything
  *    shown.
+ *  - **`flavoured`** — every product whose record says flavoured, a group per
+ *    system in the shop's usual order, exactly as decaf is: a flavoured
+ *    capsule fits only its own system's machine, and a flavoured product filed
+ *    under no system has no group to stand in and is left out.
  */
 export function selectLanding(id: LandingId, rows: readonly LandingRow[]): LandingSelection {
   const resolved = rows.map(resolve);
@@ -334,6 +422,13 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           resolved.filter((item) => canBeOrdered(item.row) && item.perCup !== null),
           BREWING_SYSTEMS,
           CHEAPEST_PER_SYSTEM,
+        ),
+      );
+    case "flavoured":
+      return selection(
+        groupBySystem(
+          resolved.filter((item) => isFlavoured(item.row)),
+          BREWING_SYSTEMS,
         ),
       );
   }

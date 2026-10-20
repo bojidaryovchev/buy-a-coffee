@@ -289,6 +289,7 @@ test.describe("the head of every page", () => {
     BG.lavazzaBeans,
     BG.decaf,
     BG.cheapestPerCup,
+    BG.flavoured,
     BG.brands,
     BG.brand("lavazza"),
     BG.promotions,

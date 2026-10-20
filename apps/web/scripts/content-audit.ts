@@ -182,10 +182,10 @@ export function auditOwnContent(
 
 /**
  * What a landing's copy is rendered from when it is read for this audit: every
- * brewing system and no figure. The copy is functions of the catalog's facts;
- * with every system present each one takes its longest branch, and with no
- * price range the sentences that only quote a figure drop out, which leaves
- * the prose that is ours to compare.
+ * brewing system, both searched flavours and no figure. The copy is functions
+ * of the catalog's facts; with every system present each one takes its longest
+ * branch, and with no price range the sentences that only quote a figure drop
+ * out, which leaves the prose that is ours to compare.
  */
 const LANDING_AUDIT_FACTS: LandingFacts = {
   count: 2,
@@ -194,6 +194,7 @@ const LANDING_AUDIT_FACTS: LandingFacts = {
   cupRange: null,
   commonPack: null,
   currency: "EUR",
+  flavours: { named: ["hazelnut", "caramel"], others: true },
 };
 
 /** The written content, one piece per category, business page, landing and article. */

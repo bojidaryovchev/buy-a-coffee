@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { listProductCardsByIds } from "./queries";
 import type { BrewingSystemId } from "@/lib/recommend/systems";
 import {
+  flavoursOf,
   landingAvailability,
   selectLanding,
   selectSystem,
@@ -125,13 +126,24 @@ export interface LandingView extends Omit<LandingSelection, "groups"> {
  * description is the range of the per-cup prices printed on the cards.
  *
  * A product that left the catalog between the two reads has no card and is
- * dropped, and the count is taken again from the cards actually drawn.
+ * dropped, and the count is taken again from the cards actually drawn — and
+ * so are the flavours the flavoured page's title names, so that a hazelnut
+ * pack dropped here cannot leave „лешник“ in a title over no hazelnut pack.
  */
 async function withCards(chosen: LandingSelection): Promise<LandingView> {
-  const cards = await listProductCardsByIds(
-    chosen.groups.flatMap((group) => group.items.map((item) => item.id)),
+  return withDrawnCards(
+    chosen,
+    await listProductCardsByIds(
+      chosen.groups.flatMap((group) => group.items.map((item) => item.id)),
+    ),
   );
+}
 
+/** `withCards` once the cards are read: pure, so a test can hand it cards. */
+export function withDrawnCards(
+  chosen: LandingSelection,
+  cards: ReadonlyMap<string, ProductCardView>,
+): LandingView {
   const groups = chosen.groups
     .map((group) => ({
       key: group.key,
@@ -148,6 +160,9 @@ async function withCards(chosen: LandingSelection): Promise<LandingView> {
     ...chosen,
     groups,
     count: groups.reduce((sum, group) => sum + group.products.length, 0),
+    flavours: flavoursOf(
+      chosen.groups.flatMap((group) => group.items.filter((item) => cards.has(item.id))),
+    ),
   };
 }
 

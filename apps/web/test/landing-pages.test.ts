@@ -66,7 +66,7 @@ import { systemShelfLabel } from "../content/landing-copy";
 import { CALLBACK_SENTENCE } from "../content/order-callback";
 import { MACHINE_BRANDS } from "@/content/machines";
 import type { LandingView } from "@/lib/catalog/landing-queries";
-import { LANDING_IDS } from "@/lib/catalog/landings";
+import { LANDING_IDS, NO_FLAVOURS } from "@/lib/catalog/landings";
 import type { ProductCardView } from "@/lib/catalog/types";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 
@@ -97,6 +97,7 @@ const EMPTY: LandingView = {
   cupRange: null,
   methods: [],
   commonPack: null,
+  flavours: NO_FLAVOURS,
 };
 
 const TWO_GROUPS: LandingView = {
@@ -126,6 +127,7 @@ const TWO_GROUPS: LandingView = {
   },
   methods: ["capsule"],
   commonPack: null,
+  flavours: NO_FLAVOURS,
 };
 
 const html = (element: ReactElement) => renderToStaticMarkup(element);
@@ -139,7 +141,7 @@ beforeEach(() => {
 });
 
 describe("a landing listing with nothing to list", () => {
-  it("is a 404, for every one of the four", async () => {
+  it("is a 404, for every one of them", async () => {
     state.landing = EMPTY;
     for (const id of LANDING_IDS) {
       await expect(LandingPage({ locale: "bg", id })).rejects.toBeInstanceOf(NotFound);
@@ -252,6 +254,77 @@ describe("a landing listing with products", () => {
     expect(markup.match(/<h2/g)).toHaveLength(2);
     expect(markup).not.toMatch(/<h3/);
     expect(markup).not.toContain('href="#beans"');
+  });
+
+  it("draws the flavoured page as the decaf one: one h1, a group per system, its own canonical", async () => {
+    state.landing = {
+      ...TWO_GROUPS,
+      groups: [
+        {
+          key: "nespresso-original",
+          system: system("nespresso-original"),
+          poolSize: 2,
+          lowestPerKg: null,
+          products: [
+            product("nes-caramel", "nespresso-original", "0,46"),
+            product("nes-hazelnut", "nespresso-original", "0,46"),
+          ],
+        },
+        {
+          key: "ese-pod",
+          system: system("ese-pod"),
+          poolSize: 1,
+          lowestPerKg: null,
+          products: [product("ese-hazelnut", "ese-pod", "0,36")],
+        },
+      ],
+      count: 3,
+      methods: ["capsule", "pod"],
+      flavours: { named: ["hazelnut", "caramel"], others: false },
+    } satisfies LandingView;
+
+    const metadata = await landingMetadata("bg", "flavoured");
+    // Forty-five characters: the shop's name still fits after them.
+    expect(metadata.title).toEqual({
+      absolute: `Ароматизирано кафе с вкус на лешник и карамел | ${siteConfig.name}`,
+    });
+    expect(metadata.description).toMatch(
+      /^Кафе с вкус на лешник и карамел — в капсули и дози ESE\. От 0,33\s€ до 0,48\s€ на чаша\./,
+    );
+    expect(metadata.description).toContain(CALLBACK_SENTENCE);
+    expect([...(metadata.description ?? "")].length).toBeLessThanOrEqual(160);
+    // `index, follow` is the layout's; the page states no robots of its own.
+    expect(metadata.robots).toBeUndefined();
+    expect(metadata.alternates?.canonical).toBe(absoluteUrl("/bg/aromatizirano-kafe"));
+
+    const markup = html(await LandingPage({ locale: "bg", id: "flavoured" }));
+    expect(markup.match(/<h1/g)).toHaveLength(1);
+    expect(markup).toMatch(/<h1[^>]*>Ароматизирано кафе<\/h1>/);
+    expect(markup).toMatch(
+      /<h2 id="nespresso-original-heading"[^>]*>Ароматизирани капсули за Nespresso<\/h2>/,
+    );
+    expect(markup).toMatch(/<h2 id="ese-pod-heading"[^>]*>Ароматизирани дози ESE<\/h2>/);
+    expect(markup).toContain('href="#nespresso-original"');
+    expect(markup).toContain('href="/bg/nespresso-kapsuli"');
+    expect(markup).toContain('href="/bg/kafe-dozi"');
+    // Capsules are listed, so the page sends a visitor unsure of the system to the finder.
+    expect(markup).toContain('href="/bg/za-kafemashina"');
+    expect(markup).toContain(
+      "Тук са 3 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
+    );
+    expect(markup).toContain("Всички са в капсули и дози ESE.");
+    expect(markup).not.toContain("всичко ароматизирано");
+
+    const crumbs = jsonLd(markup, "ld-breadcrumbs");
+    expect((crumbs.itemListElement as { item: string }[]).map((entry) => entry.item)).toEqual([
+      absoluteUrl("/bg"),
+      absoluteUrl("/bg/aromatizirano-kafe"),
+    ]);
+    expect(jsonLd(markup, "ld-itemlist")).toMatchObject({
+      "@type": "ItemList",
+      name: "Ароматизирано кафе",
+      numberOfItems: 3,
+    });
   });
 
   it("offers the phone, and promises nothing about stock, delivery or quality", async () => {

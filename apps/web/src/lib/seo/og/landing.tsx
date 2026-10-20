@@ -14,8 +14,8 @@ import {
 
 /**
  * The share card of a landing listing — Lavazza capsules, Lavazza beans,
- * decaf, cheapest per cup: its heading, how many products it lists and the
- * range of a cup, beside the first pack of each system it covers. Each
+ * decaf, cheapest per cup, flavoured: its heading, how many products it lists
+ * and the range of a cup, beside the first pack of each system it covers. Each
  * landing's folder holds an `opengraph-image.tsx` of a few lines that names
  * its landing; this is the rest. The landing is read with `getLanding`, which
  * the page itself reads too, once per request (React `cache`).

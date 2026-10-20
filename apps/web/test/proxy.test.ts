@@ -267,6 +267,13 @@ describe("a catalog slug that names nothing", () => {
     expect(catalog.asked).toEqual(["landing:bezkofeinovo-kafe", "landing:lavazza-kapsuli"]);
   });
 
+  it("answers the flavoured listing with the real 404 while nothing is flagged, and serves it once something is", async () => {
+    expect(rewrittenTo(await proxy(request("/bg/aromatizirano-kafe")))).toBe(NOT_FOUND);
+    catalog.slugs = new Set([...catalog.slugs, "landing:aromatizirano-kafe"]);
+    expect(passesThrough(await proxy(request("/bg/aromatizirano-kafe")))).toBe(true);
+    expect(catalog.asked).toEqual(["landing:aromatizirano-kafe", "landing:aromatizirano-kafe"]);
+  });
+
   it("is never decided by a lookup that failed: the page's own 404 is still there", async () => {
     catalog.broken = true;
     expect(passesThrough(await proxy(request("/bg/no-such-product")))).toBe(true);
@@ -295,6 +302,10 @@ describe("a catalog slug that names nothing", () => {
     expect(catalogLookup(["nay-evtino-na-chasha"])).toEqual({
       kind: "landing",
       slug: "nay-evtino-na-chasha",
+    });
+    expect(catalogLookup(["aromatizirano-kafe"])).toEqual({
+      kind: "landing",
+      slug: "aromatizirano-kafe",
     });
     expect(catalogLookup(["marki"])).toBeNull();
     expect(catalogLookup(["blog", "x"])).toBeNull();
