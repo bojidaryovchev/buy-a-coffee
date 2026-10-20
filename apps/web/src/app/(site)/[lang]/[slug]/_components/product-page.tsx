@@ -41,6 +41,8 @@ import {
 import { consumablesCopy, vendingCopy } from "../../../../../../content/vending";
 import { robotsFor } from "@/lib/seo/robots";
 import { isIndexable, isOrderable } from "@/lib/catalog/product-status";
+import { getLandingAvailability } from "@/lib/catalog/landing-queries";
+import { brandFormatLink } from "@/lib/catalog/related-landings";
 
 /**
  * A product page, at `/<locale>/<product slug>`.
@@ -98,7 +100,11 @@ export async function ProductPage({
   // Not found by the last sync, not yet given up on: said as temporary.
   const temporarilyUnavailable = unavailable && product.status === "missing";
   const outOfStock = product.availability === "out_of_stock";
-  const related = await getRelatedProducts(product, 4);
+  const [related, landings] = await Promise.all([
+    getRelatedProducts(product, 4),
+    getLandingAvailability(),
+  ]);
+  const brandFormat = brandFormatLink(locale, product, landings);
 
   const primaryCategory =
     product.categories.find((category) => category.isPrimary) ?? product.categories[0];
@@ -153,7 +159,7 @@ export async function ProductPage({
   const pack = packLabel(product.pack) ?? product.weight;
   const reduced = product.discountPercent !== null && product.oldPrice !== null;
   const descriptionHtml = sanitizeHtml(product.descriptionHtml);
-  const hasFacts = factRows(product, locale).length > 0;
+  const hasFacts = factRows(product, locale, brandFormat).length > 0;
   const hasTerms = deliveryPaymentRows(product.price).length > 0;
 
   return (
@@ -387,7 +393,7 @@ export async function ProductPage({
       {hasFacts && (
         <section className="mt-12 md:mt-16">
           <SectionHeading title="Характеристики" />
-          <FactsTable product={product} locale={locale} />
+          <FactsTable product={product} locale={locale} brandFormat={brandFormat} />
         </section>
       )}
 

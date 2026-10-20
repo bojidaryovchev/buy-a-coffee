@@ -23,6 +23,7 @@ import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 import { countPhrase } from "./plural";
 import type { Locale } from "@/i18n/config";
 import { brandHref, categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import { TCHIBO_PAIR } from "@/lib/catalog/related-landings";
 
 /**
  * The home page's sections below the hero, in DESIGN.md order ("Home page",
@@ -233,6 +234,23 @@ export function ShopBySystem({
           </Link>
         </li>
       </ul>
+      {/*
+        The Caffitaly tile is a link already, so the machine that takes the
+        same format gets its own line under the row: „tchibo cafissimo“ is
+        searched by name, and its page is the one that answers it.
+      */}
+      {systems.some(({ system }) => system.id === TCHIBO_PAIR.system) && (
+        <p className="mt-4 text-sm text-ink-700">
+          Имате Tchibo Cafissimo? Машината приема формата Caffitaly:{" "}
+          <Link
+            href={href(locale, routes.machineBrand(TCHIBO_PAIR.machineBrand))}
+            className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-6"
+          >
+            капсули за Tchibo Cafissimo
+          </Link>
+          .
+        </p>
+      )}
     </section>
   );
 }

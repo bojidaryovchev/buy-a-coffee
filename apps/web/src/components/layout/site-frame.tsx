@@ -12,6 +12,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 import { countPromotions, getCategoryTree } from "@/lib/catalog/queries";
+import { sectionListsProducts } from "@/lib/catalog/vending";
 import { categoryNameFor } from "../../../content/category-copy";
 
 /**
@@ -33,7 +34,11 @@ import { categoryNameFor } from "../../../content/category-copy";
  * link; the two run together.
  */
 export async function loadNavigation(locale: Locale, dict: Dictionary): Promise<SiteNavigation> {
-  const [categories, promotionCount] = await Promise.all([getCategoryTree(), countPromotions()]);
+  const [categories, promotionCount, consumablesListed] = await Promise.all([
+    getCategoryTree(),
+    countPromotions(),
+    sectionListsProducts("consumables"),
+  ]);
   return buildNavigation(categories, {
     locale,
     labels: dict.nav,
@@ -42,6 +47,7 @@ export async function loadNavigation(locale: Locale, dict: Dictionary): Promise<
     listingName: categoryNameFor,
     // A link to a page that has only ever been empty is worse than no link.
     hasPromotions: promotionCount > 0,
+    hasConsumables: consumablesListed,
   });
 }
 

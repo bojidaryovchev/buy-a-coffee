@@ -363,6 +363,37 @@ describe("the footer", () => {
     expect(one).toContain('href="/bg/nay-evtino-na-chasha"');
   });
 
+  /* The pages with measured demand and almost no links (research 09, T1.4),
+     under the anchors every other page gives them. */
+  it("links the Lavazza landings while they list something, and the Tchibo page always", () => {
+    expect(markup()).toMatch(
+      /href="\/bg\/za-kafemashina\/tchibo"[^>]*>Капсули за Tchibo Cafissimo</,
+    );
+    expect(markup()).not.toContain('href="/bg/lavazza-kapsuli"');
+    expect(markup()).not.toContain('href="/bg/kafe-na-zarna-lavazza"');
+    const both = markup({
+      ...NO_LANDINGS,
+      counts: { ...NO_LANDINGS.counts, lavazzaCapsules: 5, lavazzaBeans: 3 },
+    });
+    expect(both).toMatch(/href="\/bg\/lavazza-kapsuli"[^>]*>Капсули Lavazza</);
+    expect(both).toMatch(/href="\/bg\/kafe-na-zarna-lavazza"[^>]*>Кафе на зърна Lavazza</);
+  });
+
+  // Out of the sitemap while empty, so out of the footer and the drawer too.
+  it("leaves the consumables page out while it lists nothing", () => {
+    const empty = buildNavigation(TREE, {
+      locale: "bg",
+      labels: dict.nav,
+      sections: BUSINESS_SECTIONS,
+      listingName: categoryNameFor,
+      hasConsumables: false,
+    });
+    expect(empty.hasConsumables).toBe(false);
+    const rendered = html(createElement(SiteFooterView, { navigation: empty, dict }));
+    expect(rendered).not.toContain('href="/bg/konsumativi"');
+    expect(rendered).toContain('href="/bg/kafe-za-vending-mashini"');
+  });
+
   it("reads for itself which landings exist, so the layout passes nothing new", async () => {
     catalog.landings = { ...catalog.landings, decaf: 8 };
     const element = await SiteFooter({ navigation: navigation(), dict });

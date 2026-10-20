@@ -96,6 +96,8 @@ export interface SiteNavigation {
   readonly consumables: NavLink;
   readonly hasPromotions: boolean;
   readonly hasJournal: boolean;
+  /** Whether the consumables page lists anything; it is linked only then. */
+  readonly hasConsumables: boolean;
 }
 
 /**
@@ -183,6 +185,12 @@ export interface NavigationOptions {
    */
   readonly hasPromotions?: boolean;
   readonly hasJournal?: boolean;
+  /**
+   * Whether the consumables page lists anything. Defaults to true. False keeps
+   * it out of the footer and the drawer, as it is out of the sitemap: a
+   * sitewide link to an empty, `noindex` page sends every crawl there.
+   */
+  readonly hasConsumables?: boolean;
   /**
    * What a category's listing calls itself (`categoryNameFor` in
    * `content/category-copy.ts`). Handed in, not imported: this module is shared
@@ -291,6 +299,7 @@ export function buildNavigation(
     },
     hasPromotions: options.hasPromotions ?? true,
     hasJournal: options.hasJournal ?? true,
+    hasConsumables: options.hasConsumables ?? true,
   };
 }
 
