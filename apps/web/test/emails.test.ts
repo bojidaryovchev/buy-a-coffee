@@ -180,11 +180,42 @@ describe("the owner's notifications", () => {
   it("draw an order as a table with the sum and what it leaves out", () => {
     const [, order] = letterheads.find(([name]) => name === "order notification")!;
     const html = visible(order.html);
-    expect(html).toMatch(/48,50\s€/);
+    expect(html).toMatch(/66,41\s€/);
     expect(html).toMatch(/2 бр\. × 19,90\s€/);
     expect(html).toContain("Цена при запитване");
     expect(html).toContain("Без 1 продукт с цена при запитване.");
     expect(html).toContain("Отворете в панела");
+  });
+
+  it("say which promotion reduced a line, by how much and from what, so the margin shows", () => {
+    const [, order] = letterheads.find(([name]) => name === "order notification")!;
+    const html = visible(order.html);
+    expect(html).toMatch(/−10% · Есенна кампания Lavazza, редовна 19,90\s€/);
+    expect(html).toMatch(/Отстъпка по промоции<\/td>/);
+    expect(html).toMatch(/1,99\s€/);
+    // The owner reads no struck price: the regular one is a figure, not a claim.
+    expect(html).not.toContain("line-through");
+  });
+});
+
+describe("the customer's confirmation", () => {
+  const [, confirmation] = letterheads.find(([name]) => name === "order confirmation")!;
+
+  it("shows a reduced line as the page did: struck, with its badge, and what it saves", () => {
+    const html = visible(confirmation.html);
+    expect(html).toMatch(
+      /1 бр\. × 17,91\s€ \(вместо <span style="text-decoration:line-through">19,90\s€<\/span>, −10%\)/,
+    );
+    expect(html).toMatch(/Спестявате<\/td>/);
+    expect(confirmation.text).toMatch(/17,91\s€ \(вместо 19,90\s€, −10%\)/);
+    expect(confirmation.text).toMatch(/Спестявате 1,99\s€/);
+  });
+
+  it("never names a promotion as the owner does, nor its cost to the shop", () => {
+    for (const part of [confirmation.html, confirmation.text]) {
+      expect(part).not.toContain("Отстъпка по промоции");
+      expect(part).not.toContain("редовна");
+    }
   });
 });
 

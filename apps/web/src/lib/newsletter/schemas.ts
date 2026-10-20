@@ -91,6 +91,8 @@ export const NEWSLETTER_MESSAGES = {
   tooManyAttachments: `До ${MAX_ATTACHMENTS} файла в един бюлетин.`,
   noCampaign: "Липсва бюлетин.",
   noVersion: "Страницата е стара. Презаредете я и опитайте отново.",
+  testTo: "Напишете адреса, на който да дойде пробното писмо.",
+  testToFormat: "Това не е имейл адрес. Напишете целия адрес, например ime@example.com.",
 } as const;
 
 const attachmentSchema = z.object({
@@ -148,7 +150,22 @@ export const newsletterDraftSchema = newsletterContentSchema.extend({
     .string()
     .regex(/^\d{1,9}$/, NEWSLETTER_MESSAGES.noVersion)
     .transform(Number),
+  /**
+   * Where "Изпрати пробно" sends. Free text here, so a half-typed address
+   * never stands in the way of saving; checked only for a test
+   * (`testAddressSchema`).
+   */
+  testTo: z.string().max(254).optional(),
 });
+
+/** The address a test copy goes to: any one address, the owner's own by default. */
+export const testAddressSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, NEWSLETTER_MESSAGES.testTo)
+  .max(254, NEWSLETTER_MESSAGES.testToFormat)
+  .email(NEWSLETTER_MESSAGES.testToFormat);
 
 export type NewsletterDraftInput = z.input<typeof newsletterDraftSchema>;
 export type NewsletterDraft = z.output<typeof newsletterDraftSchema>;

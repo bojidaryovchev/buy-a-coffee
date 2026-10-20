@@ -3,6 +3,7 @@ import { Img, Link } from "@react-email/components";
 import { availabilityLabel } from "@/lib/catalog/format";
 import type { NewsletterProduct } from "@/lib/newsletter/product-blocks";
 import { Button } from "./components";
+import { EMAIL_CARD_PHOTO, emailThumbnailUrl } from "./email-image";
 import { emailMediaUrl } from "./media";
 import { color, font, mailUrl, type } from "./theme";
 
@@ -62,6 +63,24 @@ export function imageHeight(image: {
   return Math.round((PRODUCT_IMAGE_WIDTH * image.height) / image.width);
 }
 
+/**
+ * The card's picture: a small JPEG in a fixed frame from `/email-img` when the
+ * photograph is in our store (`email-image.ts`), otherwise the file itself
+ * from `/media`.
+ */
+export function cardImageSrc(url: string): string {
+  return emailThumbnailUrl(url) ?? emailMediaUrl(url);
+}
+
+/** The thumbnail's fixed height, or the picture's own proportions otherwise. */
+export function cardImageHeight(image: {
+  readonly url: string;
+  readonly width: number | null;
+  readonly height: number | null;
+}): number | undefined {
+  return emailThumbnailUrl(image.url) !== null ? EMAIL_CARD_PHOTO.height : imageHeight(image);
+}
+
 /** A reduction under one percent rounds to zero: the struck price says it, as on the site. */
 const showsBadge = (product: NewsletterProduct) =>
   product.oldPrice !== null && product.discountPercent !== null && product.discountPercent >= 1;
@@ -98,10 +117,10 @@ function ProductRow({
             style={{ display: "block", color: color.ink900, textDecoration: "none" }}
           >
             <Img
-              src={emailMediaUrl(product.image.url)}
+              src={cardImageSrc(product.image.url)}
               alt={product.image.alt.trim() || product.name}
               width={PRODUCT_IMAGE_WIDTH}
-              height={imageHeight(product.image)}
+              height={cardImageHeight(product.image)}
               style={{
                 display: "block",
                 width: `${PRODUCT_IMAGE_WIDTH}px`,

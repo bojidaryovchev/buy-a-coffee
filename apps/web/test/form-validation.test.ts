@@ -89,7 +89,9 @@ function describedMessage(field: HTMLElement): string | null {
 }
 
 /** The order form as the cart page draws it, for one product. */
-const LINES = [{ productId: "11111111-1111-4111-8111-111111111111", quantity: 2 }] as const;
+const LINES = [
+  { productId: "11111111-1111-4111-8111-111111111111", quantity: 2, price: "19.90" },
+] as const;
 const orderForm = (props: { onPlaced?: () => void } = {}) =>
   createElement(CartOrderForm, {
     lines: LINES,

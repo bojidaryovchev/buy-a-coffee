@@ -49,6 +49,8 @@ export default function robots(): MetadataRoute.Robots {
           ...SHIPPING_LOCALES.map((locale) => href(locale, routes.search)),
           "/api/",
           "/media/",
+          // Email thumbnails (`app/email-img`): pictures for mail, not pages.
+          "/email-img/",
           /* Belt to the layout's braces. `(admin)/layout.tsx` sets `noindex`,
              which is the directive that actually keeps a page out of the index
              — robots.txt only stops the fetch, and a URL linked from anywhere

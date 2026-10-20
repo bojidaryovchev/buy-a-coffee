@@ -85,10 +85,13 @@ conditions to `MAIL_TO`, once per condition per day. Start there.
 
 ## Known gaps, deliberate
 
-- **The newsletter collects consent and does not send.** A sender needs
-  unsubscribe handling in every message, bounces, suppression and a reputation
-  to protect, and a bad one would put the order replies behind the same
-  domain reputation.
+- **The newsletter sends from the panel, one letter a month at most.** Since
+  19 October 2026, with each reader's own unsubscribe link and one-click
+  header, bounce and complaint handling, and the shop's own list deciding who
+  is mailed (docs/architecture.md, "The newsletter"). Since 20 October the
+  monthly letter is prepared automatically on the 1st and never sent without
+  the owner pressing Send. The reputation it puts at risk is the order
+  replies', so the letter stays rare and wanted.
 - **The CSP reports and does not enforce.** Watch its reports on production
   before switching it to enforcing.
 - **`infra/terraform` is kept but not applied.** It is the alternative to the

@@ -48,6 +48,15 @@ export function ProductCard({
   headingLevel?: "h2" | "h3";
 }) {
   const reduced = product.price !== null && product.oldPrice !== null;
+  /*
+   * One badge on the left of the well, and the reduction wins it. A reduction
+   * under one percent rounds to zero: the struck old price says it, and a
+   * "−0%" badge would only look like a mistake. "Ново" takes the place only
+   * when there is no reduction to state, so a well never carries more than
+   * two badges, this one and availability on the right (DESIGN.md, "Badges").
+   */
+  const reductionBadge =
+    reduced && product.discountPercent !== null && product.discountPercent >= 1;
   const href = productHref(locale, product);
   // Its height is the `sm` button's: 44 px below `lg`, where a card is touched,
   // 40 px from `lg` (DESIGN.md, "Product card", row 8). Full width under the
@@ -64,12 +73,19 @@ export function ProductCard({
         lift
         className="aspect-square rounded-md"
       >
-        {/* A reduction under one percent rounds to zero: the struck old price
-            says it; a "−0%" badge would only look like a mistake. */}
-        {reduced && product.discountPercent !== null && product.discountPercent >= 1 && (
+        {reductionBadge ? (
           <div className="absolute top-2 left-2 flex">
             <Badge tone="reduction">−{product.discountPercent}%</Badge>
           </div>
+        ) : (
+          // New by the catalog's rule (`isNewArrival`), not by a guess: a
+          // positive fact, so the positive tone, which a card never otherwise
+          // shows (it hides "В наличност", the norm).
+          product.isNew && (
+            <div className="absolute top-2 left-2 flex">
+              <Badge tone="positive">Ново</Badge>
+            </div>
+          )
         )}
 
         {product.availability !== "in_stock" && (

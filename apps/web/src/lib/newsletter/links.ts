@@ -28,6 +28,16 @@ export function unsubscribeUrl(token: string): string {
   return url.toString();
 }
 
+/**
+ * The promotions page, absolute, on the sending deployment: as a template
+ * writes it into a letter's text. Its `utm_*` are added when the letter is
+ * drawn, from the campaign's own tag, as every link of a letter to the shop
+ * gets them (`tagShopLinks` in `emails/newsletter.tsx`).
+ */
+export function promotionsPageAddress(): string {
+  return mailUrl(href(DEFAULT_LOCALE, routes.promotions));
+}
+
 export function oneClickUnsubscribeUrl(token: string): string {
   const url = new URL(mailUrl("/api/newsletter/unsubscribe"));
   url.searchParams.set("token", token);

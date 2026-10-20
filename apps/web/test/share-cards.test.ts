@@ -228,3 +228,40 @@ describe("a card's read", () => {
     }
   });
 });
+
+describe("a reduction under one percent", () => {
+  /* The product card's rule (`product-card.tsx`): the struck price says it,
+     and a "−0%" badge would only look like a mistake. A promotion of 1% on a
+     product whose 30-day lowest was a cent under its price comes to that. */
+  it("is struck through on the share card, with no badge", async () => {
+    const { productCardFacts } = await import("@/lib/seo/og/data");
+    const facts = productCardFacts({
+      name: "Bianchi Irish Cream Aroma Espresso — капсули за Dolce Gusto, 16 бр.",
+      title: "Bianchi Irish Cream Aroma Espresso",
+      detail: "Капсули за Dolce Gusto, 16 бр.",
+      brand: { slug: "bianchi", name: "Bianchi" },
+      systemId: "dolce-gusto",
+      price: { amount: "5.55", currency: "EUR", formatted: "5,55 €" },
+      oldPrice: { amount: "5.56", currency: "EUR", formatted: "5,56 €" },
+      discountPercent: 0,
+      servingPrice: null,
+      status: "active",
+      availability: "in_stock",
+      images: [],
+      image: null,
+    } as unknown as Parameters<typeof productCardFacts>[0]);
+    expect(facts).toMatchObject({ oldPrice: "5,56 €", discountPercent: null });
+
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const slight = renderToStaticMarkup(
+      createElement(ProductCard, { ...PRODUCT, oldPrice: "5,56 €", discountPercent: 0 }),
+    );
+    expect(slight).toContain("line-through");
+    expect(slight).toContain("5,56 €");
+    expect(slight).not.toContain("−0%");
+    const reduced = renderToStaticMarkup(
+      createElement(ProductCard, { ...PRODUCT, oldPrice: "7,00 €", discountPercent: 20 }),
+    );
+    expect(reduced).toContain("−20%");
+  });
+});
