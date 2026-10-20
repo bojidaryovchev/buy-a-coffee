@@ -512,6 +512,39 @@ describe("move detection", () => {
         expect(result.moved[0]?.movedFrom).toMatchObject({ matchedBy: "sku" });
       });
 
+      it("reports the row it would not move, when nothing else pairs it (M2)", () => {
+        const result = diffCatalog(
+          [otherName],
+          [stored(before, { hasUrlCollision: true })],
+          THRESHOLD,
+        );
+        expect(result.unresolvedMoves).toEqual([
+          {
+            matchedBy: "sku",
+            reason: "shared_address",
+            fingerprint: "sku 00417",
+            existingKeys: [before.sourceKey],
+            discoveredKeys: [otherName.sourceKey],
+          },
+        ]);
+      });
+
+      it("reports nothing when the row pairs on its own name instead", () => {
+        const ownName = product("/moreno-espresso-bar/", {
+          name: "Кафе на зърна Moreno Espresso Bar 1кг.",
+        });
+        const result = diffCatalog(
+          [otherName, ownName],
+          [stored(before, { hasUrlCollision: true })],
+          THRESHOLD,
+        );
+        expect(result.moved[0]).toMatchObject({
+          sourceKey: ownName.sourceKey,
+          movedFrom: { matchedBy: "fingerprint" },
+        });
+        expect(result.unresolvedMoves).toEqual([]);
+      });
+
       it("moves a product at an address nobody shares on its code alone, as ever", () => {
         const result = diffCatalog([otherName], [stored(before)], THRESHOLD);
         expect(result.moved[0]?.movedFrom).toMatchObject({ matchedBy: "sku", decidedBy: null });

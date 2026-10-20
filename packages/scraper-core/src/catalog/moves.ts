@@ -73,10 +73,17 @@ export interface MovePair {
  *   - `conflicting_evidence`  two signals point at different partners.
  *   - `uncorroborated`        a lone name-and-pack match with nothing else in
  *                             common.
+ *   - `shared_address`        a stored row at an address that is or was shared
+ *                             has the product code of a record under another
+ *                             name, and nothing else paired it. The code alone
+ *                             is not trusted there, so the row goes missing and
+ *                             the record is created; this says the two may be
+ *                             one product moved and renamed, for a person to
+ *                             link (`catalog:link`) or leave.
  */
 export interface UnresolvedMove {
   readonly matchedBy: MoveMatch;
-  readonly reason: "tie" | "conflicting_evidence" | "uncorroborated";
+  readonly reason: "tie" | "conflicting_evidence" | "uncorroborated" | "shared_address";
   /** Human-readable key the candidates share. */
   readonly fingerprint: string;
   readonly existingKeys: string[];
@@ -441,6 +448,13 @@ export function pairMoves(
         !(atSharedAddress(old) || atSharedAddress(next)) ||
         (old.token !== "" && old.token === next.token));
 
+  /*
+   * Code matches refused at a shared address, by row. Not settled by the
+   * refusal — a weaker pass may still pair the row on its own name — but a row
+   * that ends up paired with nothing is reported, never silently orphaned.
+   */
+  const refused = new Map<OldSide, Set<NewSide>>();
+
   for (const pass of PASSES) {
     if (olds.length === 0 || news.length === 0) break;
 
@@ -467,7 +481,18 @@ export function pairMoves(
 
     for (const group of groups.values()) {
       if (group.olds.length === 0 || group.news.length === 0) continue;
-      const outcome = resolveGroup(pass, group.olds, group.news, linkFor(pass));
+      const link = linkFor(pass);
+      if (pass.matchedBy === "sku") {
+        for (const old of group.olds) {
+          for (const next of group.news) {
+            if (!compatible(old.facts, next.facts) || link(old.facts, next.facts)) continue;
+            const records = refused.get(old) ?? new Set<NewSide>();
+            records.add(next);
+            refused.set(old, records);
+          }
+        }
+      }
+      const outcome = resolveGroup(pass, group.olds, group.news, link);
 
       for (const { old, next, decidedBy } of outcome.pairs) {
         pairs.push({
@@ -498,6 +523,18 @@ export function pairMoves(
 
     olds = olds.filter((old) => !settledOlds.has(old));
     news = news.filter((next) => !settledNews.has(next));
+  }
+
+  const pairedRows = new Set(pairs.map((pair) => pair.existing));
+  for (const [old, records] of refused) {
+    if (pairedRows.has(old.existing)) continue;
+    unresolved.push({
+      matchedBy: "sku",
+      reason: "shared_address",
+      fingerprint: `sku ${old.facts.sku ?? ""}`,
+      existingKeys: [old.facts.sourceKey],
+      discoveredKeys: [...records].map((next) => next.facts.sourceKey).sort(),
+    });
   }
 
   return { pairs, unresolved };

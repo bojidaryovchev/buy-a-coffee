@@ -318,6 +318,48 @@ describe("evaluateSyncHealth", () => {
       ).toEqual(["image_failed", "duplicate_key_conflict"]);
     });
 
+    it("raises a row the sync would not move from a shared address on a code alone (M2)", () => {
+      const refused = (h: number, reason = "shared_address") =>
+        run(h, {
+          metadata: {
+            keyCollisions: [],
+            unresolvedMoves: [
+              {
+                matchedBy: "sku",
+                reason,
+                fingerprint: "sku 00417",
+                existingKeys: [PLAIN],
+                discoveredKeys: ["/moreno-espresso-bar-1/#1000g"],
+              },
+            ],
+          },
+        });
+      const [finding] = evaluateSyncHealth([refused(1)], NOW);
+      expect(finding?.condition).toBe("duplicate_key_conflict");
+      expect(finding?.summary).toContain(PLAIN);
+      expect(finding?.summary).toContain("преместен и преименуван");
+      expect(finding?.summary).toContain("--absorb-twin --apply");
+      // Other unresolved moves are not this condition's to raise.
+      expect(conditions([refused(1, "tie")])).toEqual([]);
+      // And, like a collision, it is named once, not on every run after.
+      expect(conditions([refused(1), refused(7), refused(30)])).toEqual([]);
+    });
+
+    it("gives one piece of advice for two reasons that share it", () => {
+      const [finding] = evaluateSyncHealth(
+        [
+          run(1, {
+            metadata: {
+              keyCollisions: [collision(["unmatched"])],
+              unresolvedMoves: [{ reason: "shared_address", existingKeys: ["/x/#1000g"] }],
+            },
+          }),
+        ],
+        NOW,
+      );
+      expect(finding?.summary.split("pnpm catalog:link")).toHaveLength(2);
+    });
+
     it("is pure: unresolvedKeyCollisions reads one run", () => {
       expect(
         unresolvedKeyCollisions(

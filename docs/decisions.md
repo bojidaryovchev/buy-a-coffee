@@ -126,8 +126,11 @@ in move detection: there the stored code was read from a page both products
 share, and a listing that gave the Super Bar the Espresso Bar's code would
 otherwise move the Espresso Bar's row, URL and order history onto the Super
 Bar. Refused, the row goes the way of a product no longer listed, the record is
-created under its own key, and the address is raised. Everywhere else a code
-moves a renamed product exactly as before.
+created under its own key, and it is raised — at the address, or, when the row
+moved to another one, as an unresolved move (`shared_address`). A product whose
+every possible key belongs to another stored row is held out of the run and
+raised, never given one of them. Everywhere else a code moves a renamed product
+exactly as before.
 
 Nothing is guessed. Records with one code and one name that differ in what the
 shop shows keep the first, as before (`indistinguishable`). A product that

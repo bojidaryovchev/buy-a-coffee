@@ -109,7 +109,12 @@ describeIntegration("two products at one source address (integration)", () => {
 
   async function sync(
     catalog: readonly FakeProduct[],
-    options: { enrichMax?: number; dryRun?: boolean; page?: string } = {},
+    options: {
+      enrichMax?: number;
+      dryRun?: boolean;
+      page?: string;
+      pages?: Record<string, { html: string }>;
+    } = {},
   ) {
     const config = loadConfig(
       {
@@ -137,7 +142,7 @@ describeIntegration("two products at one source address (integration)", () => {
     const { fetchImpl, requests } = createFakeFetch({
       products: catalog,
       ...SITE,
-      productPages: { [ADDRESS]: { html: options.page ?? SHARED_PAGE } },
+      productPages: { [ADDRESS]: { html: options.page ?? SHARED_PAGE }, ...options.pages },
     });
     lastRequests = requests;
     return runCatalogSync({
@@ -357,6 +362,41 @@ describeIntegration("two products at one source address (integration)", () => {
     expect(espresso?.characteristics).toHaveLength(2);
     expect(espresso?.sku).toBeNull();
     expect((await byKey(SUPER_KEY))?.characteristics).toEqual([]);
+  });
+
+  it("M2 in the database: moved away and renamed, the Espresso Bar's row is raised, not orphaned", async () => {
+    // Its page's code is stored while it is alone, then the split.
+    await sync([ESPRESSO], { enrichMax: 10 });
+    expect(await byKey(PLAIN)).toMatchObject({ sku: "00072" });
+    await sync([ESPRESSO, SUPER]);
+
+    // The source moves it to an address of its own and renames it; that page
+    // prints the same code, which the sync reads before the diff.
+    const classic = moreno(
+      "Кафе на зърна Moreno Espresso Bar Classic 1кг.",
+      "/moreno-espresso-bar-1/",
+      "€20.00",
+      1577,
+    );
+    const result = await sync([classic, SUPER], {
+      enrichMax: 10,
+      pages: { "/moreno-espresso-bar-1/": { html: buildProductPage(classic, { code: "00072" }) } },
+    });
+
+    expect(result.appliedDiff.counts).toMatchObject({ moved: 0, created: 1, marked_missing: 1 });
+    expect(await byKey(PLAIN)).toMatchObject({
+      status: "missing",
+      name: "Кафе на зърна Moreno Espresso Bar 1кг.",
+      price: "20.00",
+    });
+    // Recorded on the run, where the storefront's check reads it.
+    const [run] = await db
+      .select({ metadata: syncRuns.metadata })
+      .from(syncRuns)
+      .where(eq(syncRuns.id, result.syncRunId as string));
+    expect((run?.metadata as { unresolvedMoves?: unknown[] }).unresolvedMoves).toEqual([
+      expect.objectContaining({ reason: "shared_address", existingKeys: [PLAIN] }),
+    ]);
   });
 
   it("S1 in the database: a re-punctuated name keeps both rows where they are", async () => {
