@@ -5,7 +5,12 @@ import {
   SITEMAP_HEADERS,
   SITEMAP_REDIRECT_HEADERS,
 } from "@/lib/seo/sitemap-cache";
-import { currentSitemap } from "@/lib/seo/sitemap-copy";
+import { SitemapUnavailable, currentSitemap, type SitemapCopy } from "@/lib/seo/sitemap-copy";
+
+const HOUR_MS = 60 * 60 * 1000;
+/** How old a copy is, in hours, for a log line someone will read during an outage. */
+const ageInHours = (drawnAt: number | null) =>
+  drawnAt === null ? null : Math.round(((Date.now() - drawnAt) / HOUR_MS) * 10) / 10;
 
 /**
  * `/sitemap.xml`, drawn from the database on request and cached by the CDN
@@ -49,7 +54,29 @@ export async function GET(request: Request): Promise<Response> {
     return new Response(null, { status: 308, headers: SITEMAP_REDIRECT_HEADERS });
   }
 
-  const copy = await currentSitemap();
+  let copy: SitemapCopy;
+  try {
+    copy = await currentSitemap();
+  } catch (error) {
+    if (!(error instanceof SitemapUnavailable)) throw error;
+    // Nothing of ours may stand in: no kept copy, another site's, or one past a
+    // week. A 503 the CDN answers, for a day, with the copy it holds.
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "sitemap.unavailable",
+        kept: error.kept,
+        keptFrom: error.keptDrawnAt === null ? null : new Date(error.keptDrawnAt).toISOString(),
+        keptAgeHours: ageInHours(error.keptDrawnAt),
+        error: error.failure,
+      }),
+    );
+    return new Response("Service Unavailable", {
+      status: 503,
+      headers: { "cache-control": "no-store", "retry-after": "60" },
+    });
+  }
+
   // Which copy this is: a fresh draw, one at most a minute old, or the kept one.
   const which = { "x-sitemap-copy": copy.source };
   if (copy.source === "kept") {
@@ -59,6 +86,7 @@ export async function GET(request: Request): Promise<Response> {
         msg: "sitemap.draw_failed",
         served: "kept",
         keptFrom: new Date(copy.drawnAt).toISOString(),
+        keptAgeHours: ageInHours(copy.drawnAt),
         error: copy.failure,
       }),
     );

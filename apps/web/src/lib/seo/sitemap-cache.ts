@@ -1,3 +1,5 @@
+import { absoluteUrl } from "@/config/site";
+
 /**
  * How `/sitemap.xml` is cached, in one place: the route sets these headers,
  * `lib/seo/sitemap-copy.ts` keeps its copies by the tag, and
@@ -20,7 +22,8 @@
  *  - `Cache-Control: public, max-age=0, must-revalidate`: what a browser or a
  *    crawler is told, unchanged from what Next.js sends for a sitemap: never
  *    reuse a copy without asking.
- *  - `Vercel-Cache-Tag: sitemap`, the shop's own tag. `revalidateShop()` and
+ *  - `Vercel-Cache-Tag: <site>:sitemap`, the shop's own tag (`SITEMAP_TAG`,
+ *    `buy-a-coffee.com:sitemap` in production). `revalidateShop()` and
  *    `/api/revalidate` expire it (`revalidateTag(SITEMAP_TAG, { expire: 0 })`),
  *    and Vercel documents `revalidateTag` among the ways its CDN cache is
  *    purged by tag, so the next request should draw the sitemap afresh. That is
@@ -31,12 +34,35 @@
  *    every cache entry the route reads, the kept copy included, and the kept
  *    copy is the one thing that must outlive a revalidation.
  *
+ * **Named after the site.** The tag and the keys of the server's copies
+ * (`sitemap-copy.ts`) carry the site's host: the data cache and the CDN's tags
+ * may be shared by every project in the Vercel team, and another shop's
+ * `sitemap` must neither purge nor stand in for this one's.
+ *
  * Local `next start` has no CDN: there, every request reaches the function.
  */
 export const SITEMAP_PATH = "/sitemap.xml";
 
+/** The origin every URL in the sitemap is on: `NEXT_PUBLIC_SITE_URL`'s, as `absoluteUrl` writes them. */
+export const SITEMAP_ORIGIN = (() => {
+  try {
+    return new URL(absoluteUrl("/")).origin;
+  } catch {
+    return "null";
+  }
+})();
+
+/** The site's host (`buy-a-coffee.com`), which names the tag and the cache keys. */
+export const SITEMAP_SITE = (() => {
+  try {
+    return new URL(SITEMAP_ORIGIN).host || "buy-a-coffee";
+  } catch {
+    return "buy-a-coffee";
+  }
+})();
+
 /** The shop's tag for the sitemap: the CDN's copy and the server's "changed since" mark. */
-export const SITEMAP_TAG = "sitemap";
+export const SITEMAP_TAG = `${SITEMAP_SITE}:sitemap`;
 
 /** Seconds the CDN serves its copy as fresh. */
 export const SITEMAP_CDN_FRESH_SECONDS = 3600;

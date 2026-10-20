@@ -3,6 +3,7 @@ import path from "node:path";
 import type { MetadataRoute } from "next";
 import { resolveSitemap } from "next/dist/build/webpack/loaders/metadata/resolve-route-data";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type * as SitemapCopies from "@/lib/seo/sitemap-copy";
 
 /**
  * `/sitemap.xml` as a route: drawn on request, cached by the CDN for an hour
@@ -35,12 +36,18 @@ const entries: MetadataRoute.Sitemap = [
 const XML = resolveSitemap(entries);
 
 const copies = vi.hoisted(() => ({ currentSitemap: vi.fn() }));
-vi.mock("@/lib/seo/sitemap-copy", () => copies);
+vi.mock("@/lib/seo/sitemap-copy", async (importOriginal) => ({
+  ...(await importOriginal<typeof SitemapCopies>()),
+  currentSitemap: copies.currentSitemap,
+}));
+vi.mock("@/lib/seo/sitemap", () => ({ sitemapEntries: async () => [] }));
 // Outside a request `connection()` throws; inside one it only marks the route dynamic.
 vi.mock("next/server", () => ({ connection: async () => undefined }));
 
 const route = await import("@/app/sitemap.xml/route");
-const { SITEMAP_TAG } = await import("@/lib/seo/sitemap-cache");
+const { SITEMAP_ORIGIN, SITEMAP_TAG } = await import("@/lib/seo/sitemap-cache");
+const { SitemapUnavailable } = await import("@/lib/seo/sitemap-copy");
+const { absoluteUrl } = await import("@/config/site");
 
 const APP = path.resolve(import.meta.dirname, "../src/app");
 const get = (query = "") => route.GET(new Request(`https://buy-a-coffee.com/sitemap.xml${query}`));
@@ -69,10 +76,16 @@ describe("/sitemap.xml", () => {
       "cache-control": "public, max-age=0, must-revalidate",
       "cdn-cache-control":
         "public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400",
-      "vercel-cache-tag": "sitemap",
+      "vercel-cache-tag": SITEMAP_TAG,
       "x-sitemap-copy": "drawn",
     });
-    expect(SITEMAP_TAG).toBe("sitemap");
+  });
+
+  it("names its tag after the site, for tags a Vercel team's projects share", () => {
+    const site = new URL(absoluteUrl("/"));
+    expect(SITEMAP_ORIGIN).toBe(site.origin);
+    expect(SITEMAP_TAG).toBe(`${site.host}:sitemap`);
+    expect(SITEMAP_TAG).not.toContain(",");
   });
 
   it("says when it hands out a draw at most a minute old", async () => {
@@ -97,14 +110,43 @@ describe("/sitemap.xml", () => {
     expect(response.headers.get("cdn-cache-control")).toBe(
       "public, s-maxage=60, stale-if-error=86400",
     );
-    expect(response.headers.get("vercel-cache-tag")).toBe("sitemap");
+    expect(response.headers.get("vercel-cache-tag")).toBe(SITEMAP_TAG);
     expect(logged).toHaveBeenCalledWith(expect.stringContaining('"msg":"sitemap.draw_failed"'));
     expect(logged).toHaveBeenCalledWith(expect.stringContaining("2026-10-20T09:00:00.000Z"));
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('"keptAgeHours":'));
   });
 
-  it("fails only when there is nothing kept to stand in", async () => {
-    copies.currentSitemap.mockRejectedValue(new Error("database down"));
-    await expect(get()).rejects.toThrow("database down");
+  it("answers 503, and says why loudly, when no copy of ours may stand in", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const eightDaysAgo = Date.now() - 8 * 24 * 60 * 60 * 1000;
+    for (const [kept, drawnAt] of [
+      ["none", null],
+      ["foreign", eightDaysAgo],
+      ["too_old", eightDaysAgo],
+    ] as const) {
+      logged.mockClear();
+      copies.currentSitemap.mockRejectedValue(
+        new SitemapUnavailable("database down", kept, drawnAt),
+      );
+      const response = await get();
+      expect(response.status, kept).toBe(503);
+      expect(response.headers.get("cache-control"), kept).toBe("no-store");
+      expect(response.headers.get("retry-after"), kept).toBe("60");
+      const line = JSON.parse(String(logged.mock.calls[0]?.[0])) as Record<string, unknown>;
+      expect(line).toMatchObject({
+        level: "error",
+        msg: "sitemap.unavailable",
+        kept,
+        error: "database down",
+      });
+      if (drawnAt === null) expect(line.keptAgeHours).toBeNull();
+      else expect(line.keptAgeHours).toBeCloseTo(192, 0);
+    }
+  });
+
+  it("lets anything else fail as it would", async () => {
+    copies.currentSitemap.mockRejectedValue(new TypeError("a bug"));
+    await expect(get()).rejects.toThrow("a bug");
   });
 
   it("sends any query string to the one address, without a draw", async () => {
