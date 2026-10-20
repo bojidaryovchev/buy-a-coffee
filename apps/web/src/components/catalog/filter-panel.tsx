@@ -1,4 +1,6 @@
 import Link from "next/link";
+// Not `filters.ts`, which carries zod: the panel is in the browser too (`filter-query.ts`).
+import type { CatalogQuery } from "@/lib/catalog/filters";
 import {
   buildSearchParams,
   clearFilters,
@@ -7,10 +9,9 @@ import {
   setSingleFilter,
   toggleFilterValue,
   type ActiveFilter,
-  type CatalogQuery,
   type MultiFilterKey,
   type SingleFilterKey,
-} from "@/lib/catalog/filters";
+} from "@/lib/catalog/filter-query";
 import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS } from "@/lib/catalog/attributes";
 import type { CatalogFacets, FacetValue } from "@/lib/catalog/types";
 import { getBrewingSystem } from "@/lib/recommend/systems";
