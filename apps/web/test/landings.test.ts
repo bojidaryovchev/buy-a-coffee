@@ -821,16 +821,23 @@ describe("the copy", () => {
     );
     const [first, formats, order] = landingCopy.flavoured.intro({ ...both, count: 20 });
     expect(first).toBe(
-      "Тук е всичко, отбелязано в каталога като ароматизирано: 20 продукта. Сред тях има кафе с вкус на лешник и кафе с вкус на карамел. Някои от тях са напитки без кафе, например мача лате.",
+      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел. Някои са напитки без кафе, например мача лате.",
     );
-    expect(formats).toBe(
-      "Всичко тук е в капсули и дози ESE: на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме.",
-    );
+    expect(formats).toBe("Всички са в капсули и дози ESE.");
     expect(order).toContain("капсулата влиза само в машината, за която е направена");
 
     const withBeans = facts({ methods: ["capsule", "pod", "beans"] });
     expect(landingCopy.flavoured.intro(withBeans)[1]).toBe(
-      "Всичко тук е в капсули, дози ESE и на зърна; мляно кафе в пакет в момента не предлагаме.",
+      "Всички са в капсули, дози ESE и на зърна.",
+    );
+    // One flavour named, no lists of what the shop lacks.
+    expect(
+      landingCopy.flavoured.intro(
+        facts({ count: 4, flavours: { named: ["caramel"], others: true } }),
+      )[0],
+    ).toMatch(/^Тук са 4 продукта с добавен аромат — сред тях кафе с вкус на карамел\. /);
+    expect(landingCopy.flavoured.intro(facts({ count: 4 }))[0]).toMatch(
+      /^Тук са 4 продукта с добавен аромат\. Някои са напитки без кафе/,
     );
     expect(landingCopy.flavoured.description(withBeans)).toMatch(
       /^Ароматизирано кафе в капсули, дози ESE и на зърна\./,
@@ -847,9 +854,11 @@ describe("the copy", () => {
     ].join(" ");
     // A pack can say hazelnut on its box without the flag; the page lists the flag.
     expect(text).not.toMatch(/всичко ароматизирано|всички ароматизирани/i);
-    expect(text).toContain("отбелязано в каталога като ароматизирано");
+    // Nor does it say what the shop lacks: the group headings show the formats.
+    expect(text).not.toMatch(/нямаме|не предлагаме|няма /);
+    expect(text).toContain("20 продукта с добавен аромат");
     expect(landingCopy.flavoured.llms).toBe(
-      "Продуктите, отбелязани в каталога като ароматизирани, разделени по система.",
+      "Кафе и напитки с добавен аромат, разделени по система.",
     );
   });
 
@@ -857,18 +866,16 @@ describe("the copy", () => {
     const one = landingCopy.flavoured.intro(
       facts({ count: 1, flavours: { named: ["hazelnut"], others: false } }),
     );
-    expect(one[0]).toBe(
-      "Тук е всичко, отбелязано в каталога като ароматизирано: 1 продукт. Продуктът е с вкус на лешник.",
-    );
+    expect(one[0]).toBe("Тук е 1 продукт с добавен аромат — в капсули, с вкус на лешник.");
     const text = one.join(" ");
-    expect(text).not.toMatch(/Сред тях|Някои от тях|отбелязани|първа е най-ниската/);
+    expect(text).not.toMatch(/Тук са|сред тях|Някои|Всички|първа е най-ниската/);
     expect(text).not.toContain(FLAVOURED_DRINKS_SENTENCE);
     expect(one.at(-1)).toBe(
       "Капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ: проверете дали вашата машина е от тази система.",
     );
     // Several, and the plural comes back with the drinks sentence.
     const two = landingCopy.flavoured.intro(facts({ count: 2 })).join(" ");
-    expect(two).toContain("2 продукта.");
+    expect(two).toContain("Тук са 2 продукта с добавен аромат.");
     expect(two).toContain(FLAVOURED_DRINKS_SENTENCE);
   });
 

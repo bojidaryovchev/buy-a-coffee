@@ -326,10 +326,10 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
    * „кафе лешник“ 110, „кафе с вкус на лешник“ 90, „кафе карамел“ 70,
    * „ароматизирано кафе“ 20 (research 09, T2.1). The results those searches
    * get are mostly flavoured ground coffee and beans, and the flavoured range
-   * here is capsules and pods, so the description and the second paragraph
-   * say which formats the page has — from the facts — and that ground coffee
-   * is not one of them. A flavour is named only while the page lists a
-   * product labelled with it (`flavoursInName`).
+   * here is capsules and pods, so the description and the introduction say
+   * which formats the page has, from the facts, before anyone clicks a card.
+   * A flavour is named only while the page lists a product labelled with it
+   * (`flavoursInName`).
    */
   flavoured: {
     h1: "Ароматизирано кафе",
@@ -356,48 +356,44 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
       const words = flavours.named.map((flavour) => FLAVOUR_NAMES[flavour]);
       const formats = formatPhrase(methods);
       const capsules = methods.includes("capsule");
-      return [
-        [
-          /* What the record flags, and no more: a pack can say hazelnut on
-             its box without the flag, and then it is not here. */
-          `Тук е всичко, отбелязано в каталога като ароматизирано: ${pluralize(
-            count,
-            "продукт",
-            "продукта",
-          )}.`,
-          ...(words.length === 0
-            ? []
-            : count === 1
-              ? [`Продуктът е с вкус на ${joinList(words)}.`]
-              : [`Сред тях има ${joinList(words.map((word) => `кафе с вкус на ${word}`))}.`]),
-          ...(count > 1 ? [FLAVOURED_DRINKS_SENTENCE] : []),
-        ].join(" "),
-        // The formats, and the ones the searches for these words mostly want.
-        ...(formats
-          ? [
-              methods.includes("beans")
-                ? `Всичко тук е ${formats}; мляно кафе в пакет в момента не предлагаме.`
-                : `Всичко тук е ${formats}: на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме.`,
-            ]
-          : []),
-        ...(count > 1
-          ? [
-              capsules
-                ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
-                : "Във всеки раздел първа е най-ниската цена на чаша.",
-            ]
-          : capsules
+      /* „лешник и на карамел“: the preposition again before each later flavour. */
+      const tasting = joinList(words.map((word, index) => (index === 0 ? word : `на ${word}`)));
+      /*
+       * How many, and what is in them — never „всичко ароматизирано“: the page
+       * lists the record's flag, and a pack can say hazelnut on its box
+       * without it. Nor does it say what the shop lacks; the group headings
+       * show which formats there are.
+       */
+      if (count === 1) {
+        return [
+          `Тук е 1 продукт с добавен аромат${formats ? ` — ${formats}` : ""}${
+            words.length > 0 ? `, с вкус на ${tasting}` : ""
+          }.`,
+          ...(capsules
             ? [
                 "Капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ: проверете дали вашата машина е от тази система.",
               ]
             : []),
+        ];
+      }
+      return [
+        [
+          `Тук са ${pluralize(count, "продукт", "продукта")} с добавен аромат${
+            words.length > 0 ? ` — сред тях кафе с вкус на ${tasting}` : ""
+          }.`,
+          FLAVOURED_DRINKS_SENTENCE,
+        ].join(" "),
+        ...(formats ? [`Всички са ${formats}.`] : []),
+        capsules
+          ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
+          : "Във всеки раздел първа е най-ниската цена на чаша.",
       ];
     },
     groupHeading: (system) => {
       if (system.method === "capsule") return `Ароматизирани ${capsuleShelfName(system)}`;
       return system.method === "pod" ? "Ароматизирани дози ESE" : "Ароматизирано кафе на зърна";
     },
-    llms: "Продуктите, отбелязани в каталога като ароматизирани, разделени по система.",
+    llms: "Кафе и напитки с добавен аромат, разделени по система.",
   },
 };
 
@@ -410,7 +406,7 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
  * more than one product, and `landings.db.test.ts` holds it to the catalog: it
  * names the products it rests on and fails the day either leaves the page.
  */
-export const FLAVOURED_DRINKS_SENTENCE = "Някои от тях са напитки без кафе, например мача лате.";
+export const FLAVOURED_DRINKS_SENTENCE = "Някои са напитки без кафе, например мача лате.";
 
 /** A system's name on the cheapest page's headings, where the Cyrillic is typed as often. */
 const CHEAPEST_SYSTEM_NAMES: Partial<Record<string, string>> = {

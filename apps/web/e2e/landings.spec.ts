@@ -211,19 +211,15 @@ test.describe("the flavoured listing", () => {
     expect(checkStructuredData(blocks)).toEqual([]);
   });
 
-  test("says what it lists, which formats, and that ground coffee is not one of them", async ({
-    page,
-  }) => {
+  test("says how many it lists, with which flavours and in which formats", async ({ page }) => {
     await page.goto(BG.flavoured);
     const header = page.locator("main header");
     await expect(header).toContainText(
-      "Тук е всичко, отбелязано в каталога като ароматизирано: 20 продукта.",
+      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
     );
-    await expect(header).toContainText("Някои от тях са напитки без кафе, например мача лате.");
-    await expect(header).toContainText("Всичко тук е в капсули и дози ESE");
-    await expect(header).toContainText(
-      "на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме",
-    );
+    await expect(header).toContainText("Някои са напитки без кафе, например мача лате.");
+    await expect(header).toContainText("Всички са в капсули и дози ESE.");
+    await expect(header).not.toContainText("всичко ароматизирано");
     await expect(
       page.locator("main h2", { hasText: "Ароматизирани капсули за Dolce Gusto" }),
     ).toHaveCount(1);

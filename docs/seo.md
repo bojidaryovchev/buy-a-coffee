@@ -867,12 +867,13 @@ held with the rest by `apps/web/test/keyword-map.test.ts`.
   Gusto 11, ESE 4, Nespresso 3, Caffitaly 2. A flavoured product in no system
   would be left out, as on the decaf page. The flag is not on every pack
   whose own description speaks of an aroma (Bianchi's hazelnut capsules for
-  Nespresso carry `aromas: no`), so the page says it lists what the catalog
-  marks as flavoured, never "everything flavoured". No name overrides the
-  flag.
+  Nespresso carry `aromas: no`), so the page says how many products with
+  added aroma it lists („Тук са 20 продукта с добавен аромат“), never
+  "everything flavoured", and says nothing of what the shop lacks. No name
+  overrides the flag.
 - **Drinks without coffee.** The flag is on two drinks that hold no coffee, a
   matcha latte and a plant-based latte for Dolce Gusto, and the page counts
-  „продукта“ and says „Някои от тях са напитки без кафе, например мача лате.“
+  „продукта“ and says „Някои са напитки без кафе, например мача лате.“
   No field of the record says a product is not coffee — the product kind
   tells instant from roasted, by name, and the categories name the machine —
   so the sentence is not computed: it stands while the page lists more than
@@ -887,9 +888,8 @@ held with the rest by `apps/web/test/keyword-map.test.ts`.
 - **The caveat is stated, not hidden.** The results for these searches are won
   mostly by flavoured ground coffee and beans, and the flavoured range here is
   capsules and ESE pods. The description reads „Кафе с вкус на лешник, карамел
-  и други — в капсули и дози ESE“ and the introduction says that there is none
-  on beans or ground; both name the formats from the catalog. Expect partial
-  matches.
+  и други — в капсули и дози ESE“ and the introduction „Всички са в капсули и
+  дози ESE.“; both name the formats from the catalog. Expect partial matches.
 - **Links.** The footer, from every page, while it lists something. No
   cross-link from the system shelves or the other landings: those are for
   pages that compete for one search (§13.5, §13.7), and this one competes with
