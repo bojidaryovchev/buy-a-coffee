@@ -252,6 +252,7 @@ const UNTOUCHED_PREFIXES = [
   "/_not-found",
   "/api",
   "/media",
+  "/email-img",
   "/admin",
 ] as const;
 
@@ -269,7 +270,7 @@ export function isUntouched(pathname: string): boolean {
 
 export const config = {
   matcher: [
-    "/((?!_next/|_vercel/|_not-found(?:/|$)|api(?:/|$)|media(?:/|$)|admin(?:/|$)|(?:.*/)?opengraph-image(?:-[a-z0-9]+)?(?:/|$)|.*\\.[^/]+$).*)",
+    "/((?!_next/|_vercel/|_not-found(?:/|$)|api(?:/|$)|media(?:/|$)|email-img(?:/|$)|admin(?:/|$)|(?:.*/)?opengraph-image(?:-[a-z0-9]+)?(?:/|$)|.*\\.[^/]+$).*)",
     /* The files a crawler reads first, matched only so a non-canonical
        production host redirects them too; `isUntouched` passes them through
        untouched everywhere else. */
