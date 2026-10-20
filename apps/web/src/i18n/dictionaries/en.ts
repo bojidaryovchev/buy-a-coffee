@@ -116,7 +116,7 @@ export const en: Dictionary = {
 
   newsletter: {
     heading: "New coffees by email",
-    body: "Once a month: the new coffees and the current promotions.",
+    body: "No more than once a month: the new coffees and the current promotions.",
   },
 
   notFound: {

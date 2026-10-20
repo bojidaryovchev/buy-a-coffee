@@ -146,7 +146,7 @@ export const bg = {
   /** The signup band above the footer (`components/layout/newsletter-band.tsx`). */
   newsletter: {
     heading: "Новите кафета по имейл",
-    body: "Веднъж месечно: новите кафета и текущите промоции.",
+    body: "Не повече от веднъж месечно: новите кафета и текущите промоции.",
   },
 
   notFound: {

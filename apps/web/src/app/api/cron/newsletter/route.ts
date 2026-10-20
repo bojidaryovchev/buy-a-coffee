@@ -20,7 +20,13 @@ export async function GET(request: Request): Promise<Response> {
   if (refused) return refused;
 
   try {
-    return Response.json(await runNewsletterCron(), { headers: { "cache-control": "no-store" } });
+    /* Each step is guarded on its own (`cron.ts`); a step that failed is
+       counted, logged there, and makes the answer a 500 for the cron log. */
+    const report = await runNewsletterCron();
+    return Response.json(report, {
+      status: report.errors > 0 ? 500 : 200,
+      headers: { "cache-control": "no-store" },
+    });
   } catch (error) {
     console.error(
       JSON.stringify({

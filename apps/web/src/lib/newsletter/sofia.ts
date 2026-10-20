@@ -81,6 +81,11 @@ export function sofiaPeriod(at: Date): string {
   return `${clock.year}-${String(clock.month).padStart(2, "0")}`;
 }
 
+/** The day of the month in Sofia: 1 on the 1st, whatever the hour in UTC. */
+export function sofiaDayOfMonth(at: Date): number {
+  return wallClock(at).day;
+}
+
 /** The instant the Sofia month that holds `at` began. */
 export function sofiaMonthStart(at: Date): Date {
   const clock = wallClock(at);

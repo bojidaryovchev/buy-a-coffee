@@ -115,38 +115,46 @@ describe("the monthly letter", () => {
     expect(letter.preheader).toBe(
       "Какво пристигна наскоро и какво е с намалена цена сега. Промоцията важи до 15 ноември включително.",
     );
-    expect(letter.body).toContain(
-      "Ето какво е новото в магазина през ноември: продуктите, които пристигнаха наскоро, и тези с намалена цена.",
-    );
+    // An opening that names no section: a section can vanish by the send.
+    expect(letter.body.split("\n\n").slice(0, 2)).toEqual([
+      "Здравейте,",
+      "Ето какво е новото в магазина през ноември.",
+    ]);
     // Each list right under its heading, so an emptied section goes with its heading.
     expect(letter.body).toContain("## Ново в магазина\n\n[[продукти: nov-1, nov-2]]");
+    // The promotion by its words and its last day; no figure — each badge says its own.
     expect(letter.body).toContain(
-      "## Промоции\n\n**Есенни дни**: −10% до 15 ноември включително.\n\n[[продукти: minus-1]]",
+      "## Промоции\n\n**Есенни дни** — намалени цени до 15 ноември включително.\n\n[[промоции: minus-1]]",
     );
-    expect(letter.body.startsWith("Здравейте,\n\n")).toBe(true);
+    expect(letter.body).not.toMatch(/\d+\s*%/);
     expect(letter.body.endsWith(`Поздрави,\n${siteConfig.name}`)).toBe(true);
     expect(letter.body).toContain(siteConfig.contact.phone);
   });
 
-  it("writes the products as explicit lists the owner can take apart", () => {
+  it("writes the new arrivals as lists to take apart, and the reductions as reductions to check", () => {
     const letter = monthly({ newArrivals: ["nov-1", "nov-2"], reduced: ["minus-1"] });
     expect(productLines(letter.body).map((token) => token.spec)).toEqual([
       { kind: "picked", slugs: ["nov-1", "nov-2"] },
-      { kind: "picked", slugs: ["minus-1"] },
+      { kind: "reduced", slugs: ["minus-1"] },
     ]);
   });
 
-  it("links the promotions page with the newsletter's tags", () => {
+  it("finds room for up to twelve new arrivals, in blocks of six", () => {
+    const arrivals = Array.from({ length: 12 }, (_, index) => `nov-${index + 1}`);
+    const letter = monthly({ newArrivals: arrivals });
+    expect(productLines(letter.body).map((token) => token.spec)).toEqual([
+      { kind: "picked", slugs: arrivals.slice(0, 6) },
+      { kind: "picked", slugs: arrivals.slice(6) },
+    ]);
+  });
+
+  it("links the promotions page plainly: the letter adds its campaign when it is drawn", () => {
     const letter = monthly({ reduced: ["minus-1"], promotions: [AUTUMN] });
     const link = /\[страницата с промоциите\]\((https?:\/\/[^)]+)\)/.exec(letter.body)?.[1];
     expect(link).toBeTruthy();
     const url = new URL(link!);
     expect(url.pathname).toBe("/bg/promotsii");
-    expect(url.searchParams.get("utm_source")).toBe("newsletter");
-    expect(url.searchParams.get("utm_medium")).toBe("email");
-    expect(url.searchParams.get("utm_campaign")).toBe(
-      "2026-11-promotsiite-v-magazina-prez-noemvri",
-    );
+    expect(url.search).toBe("");
     // And the letter's parser reads it as a link, not as text.
     expect(JSON.stringify(parseMarkdown(letter.body))).toContain('"type":"link"');
   });
@@ -155,7 +163,7 @@ describe("the monthly letter", () => {
     const letter = monthly({ newArrivals: ["nov-1"] });
     expect(letter.subject).toBe("Новите продукти в магазина през ноември");
     expect(letter.preheader).toBe("Какво пристигна в магазина наскоро.");
-    expect(letter.body).toContain("Ето продуктите, които пристигнаха в магазина наскоро.");
+    expect(letter.body).toContain("Ето какво е новото в магазина през ноември.");
     expect(letter.body).not.toContain("## Промоции");
     expect(letter.body).not.toContain("промоциите");
   });
@@ -184,9 +192,21 @@ describe("the monthly letter", () => {
       ],
     });
     expect(letter.body).toContain(
-      "- **Есенни дни**: −10% до 15 ноември включително.\n- −15% на избрани продукти до 30 ноември включително.",
+      "- **Есенни дни** — намалени цени до 15 ноември включително.\n- Намалени цени до 30 ноември включително.",
     );
     expect(letter.preheader).toBe("Какво е с намалена цена сега.");
+  });
+
+  it("says a one-day promotion's day, without 'включително'", () => {
+    const oneDay = {
+      ...AUTUMN,
+      startsAt: new Date("2026-11-14T22:00:00Z"),
+      endsAt: new Date("2026-11-15T22:00:00Z"),
+    };
+    const letter = monthly({ reduced: ["minus-1"], promotions: [oneDay] });
+    expect(letter.body).toContain("**Есенни дни** — намалени цени на 15 ноември.");
+    expect(letter.preheader).toContain("Промоцията важи на 15 ноември.");
+    expect(`${letter.body} ${letter.preheader}`).not.toContain("включително");
   });
 
   it("is a greeting and a sign-off when there is nothing to announce", () => {
@@ -217,7 +237,7 @@ describe("the monthly letter", () => {
 });
 
 describe("a promotion's letter", () => {
-  it("announces a running promotion until its last day", () => {
+  it("announces a running promotion with its reduction, until its last day", () => {
     const letter = promotionLetter({ now: NOW, promotion: AUTUMN, members: ["a", "b"] });
     expect(letter.subject).toBe("Есенни дни: −10% до 15 ноември");
     expect(letter.preheader).toBe(
@@ -230,12 +250,12 @@ describe("a promotion's letter", () => {
       { kind: "picked", slugs: ["a", "b"] },
     ]);
     expect(letter.body).toMatch(
-      /Всички продукти в промоцията са на \[страницата с промоциите\]\(https?:\/\/[^)]+\/bg\/promotsii\?utm_source=newsletter&utm_medium=email&utm_campaign=2026-11-[a-z0-9-]+\)\./,
+      /Всички продукти в промоцията са на \[страницата с промоциите\]\(https?:\/\/[^)]+\/bg\/promotsii\)\./,
     );
     expect(checks(letter)).toEqual([]);
   });
 
-  it("announces an upcoming one by its days, without a label", () => {
+  it("announces an upcoming one by its days alone: no figure, nothing in the present tense", () => {
     const upcoming: TemplatePromotion = {
       ...AUTUMN,
       label: null,
@@ -244,24 +264,37 @@ describe("a promotion's letter", () => {
       endsAt: new Date("2026-11-20T22:00:00Z"),
     };
     const letter = promotionLetter({ now: NOW, promotion: upcoming, members: ["a"] });
-    expect(letter.subject).toBe("−15% на избрани продукти от 5 до 20 ноември");
+    expect(letter.subject).toBe("Намалени цени от 5 до 20 ноември");
     expect(letter.preheader).toBe(
-      "От 5 до 20 ноември включително цените на продуктите в промоцията са намалени с 15%.",
+      "Намалени цени на избрани продукти от 5 до 20 ноември включително.",
     );
     expect(letter.body).toContain(
-      "\n\nОт 5 до 20 ноември включително цените на продуктите по-долу ще бъдат намалени с 15%.",
+      "\n\nНамалени цени на продуктите по-долу от 5 до 20 ноември включително.",
     );
-    expect(letter.body).toContain("От 5 ноември всички продукти в промоцията ще бъдат на [");
+    expect(letter.body).toContain("Всички продукти в промоцията — на [");
+    for (const text of [letter.subject, letter.preheader, letter.body]) {
+      expect(text).not.toMatch(/%/);
+      expect(text).not.toMatch(/\bса намалени\b/);
+    }
   });
 
-  it("writes a run across two months, and leaves the list out when nothing can be ordered", () => {
+  it("writes a one-day promotion as its day, and a run across two months", () => {
+    const oneDay: TemplatePromotion = {
+      ...AUTUMN,
+      startsAt: new Date("2026-10-31T22:00:00Z"),
+      endsAt: new Date("2026-11-01T22:00:00Z"),
+    };
+    const today = promotionLetter({ now: NOW, promotion: oneDay, members: ["a"] });
+    expect(today.subject).toBe("Есенни дни: −10% на 1 ноември");
+    expect(`${today.subject} ${today.preheader} ${today.body}`).not.toContain("включително");
+
     const across: TemplatePromotion = {
       ...AUTUMN,
       startsAt: new Date("2026-11-27T22:00:00Z"),
       endsAt: new Date("2026-12-03T22:00:00Z"),
     };
     const letter = promotionLetter({ now: NOW, promotion: across, members: [] });
-    expect(letter.subject).toBe("Есенни дни: −10% от 28 ноември до 3 декември");
+    expect(letter.subject).toBe("Есенни дни: намалени цени от 28 ноември до 3 декември");
     expect(productLines(letter.body)).toEqual([]);
   });
 

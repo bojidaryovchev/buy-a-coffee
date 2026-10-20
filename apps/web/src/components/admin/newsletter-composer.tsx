@@ -3,6 +3,7 @@
 import { upload } from "@vercel/blob/client";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -29,7 +30,8 @@ import { TEXT_TOOLS, insertBlockLine, type Edit } from "@/components/admin/newsl
 import { NewsletterProductPicker } from "@/components/admin/newsletter-product-picker";
 import { submitNewsletter, type NewsletterFormState } from "@/lib/newsletter/actions";
 import { parseBody, serializeBody, type BodyModel } from "@/lib/newsletter/body-blocks";
-import { checkDeliverability, type LetterPromotion } from "@/lib/newsletter/deliverability";
+import type { PromotionFacts } from "@/lib/newsletter/claims";
+import { checkDeliverability } from "@/lib/newsletter/deliverability";
 import type {
   BlockReport,
   PreviewResponse,
@@ -148,8 +150,9 @@ const SALE_LINE = productTokenLine({ kind: "sale", limit: DEFAULT_BLOCK_PRODUCTS
 
 /* -- the composer ----------------------------------------------------------- */
 
-/** One empty list, so the checks are not recomputed for a new `[]` every render. */
+/** Empty lists, so the checks are not recomputed for a new `[]` every render. */
 const NO_NAMES: readonly string[] = [];
+const NO_PROMOTIONS: readonly PromotionFacts[] = [];
 
 export function NewsletterComposer({
   campaign,
@@ -160,7 +163,9 @@ export function NewsletterComposer({
   canUpload,
   capitalised = NO_NAMES,
   lastLetterAt = null,
-  promotion = null,
+  announced = null,
+  announcedMissing = false,
+  named = NO_PROMOTIONS,
 }: {
   campaign: ComposerCampaign;
   activeCount: number;
@@ -173,8 +178,12 @@ export function NewsletterComposer({
   capitalised?: readonly string[];
   /** When the last letter that went out started (ISO), for "once a month". */
   lastLetterAt?: string | null;
-  /** The promotion this letter announces, for the notes about its days. */
-  promotion?: LetterPromotion | null;
+  /** The promotion this letter announces, for what it may claim (`claims.ts`). */
+  announced?: PromotionFacts | null;
+  /** A promotion's letter whose promotion was deleted. */
+  announcedMissing?: boolean;
+  /** The promotions the letter names in words (its plan's). */
+  named?: readonly PromotionFacts[];
 }) {
   const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
     schema: newsletterDraftSchema,
@@ -240,7 +249,18 @@ export function NewsletterComposer({
   const hydrated = useHydrated();
   const [chosenMode, setChosenMode] = useState<"blocks" | "markdown" | null>(null);
   const mode = chosenMode ?? (hydrated ? "blocks" : "markdown");
-  const [model, setModel] = useState<BodyModel>(() => parseBody(campaign.body));
+  /* Typed before the script ran: the page is drawn with the Markdown view, a
+     plain field the browser posts, and the owner may have started on it.
+     React, hydrating a textarea, puts the text it drew back over a typed
+     one, so the field is read here, as the component first renders in the
+     browser — before React reaches it. Only that field: it alone has a name
+     before the script runs. The form and the blocks then start from it. */
+  const [typedEarly] = useState<string | null>(() => {
+    if (typeof document === "undefined") return null;
+    const field = document.getElementById("body");
+    return field instanceof HTMLTextAreaElement && field.name === "body" ? field.value : null;
+  });
+  const [model, setModel] = useState<BodyModel>(() => parseBody(typedEarly ?? campaign.body));
   const setBody = (text: string) =>
     setValue("body", text, { shouldDirty: true, shouldValidate: formState.isSubmitted });
   const changeModel = (next: BodyModel) => {
@@ -251,6 +271,13 @@ export function NewsletterComposer({
     if (mode === "markdown") setModel(parseBody(getValues("body") ?? ""));
     setChosenMode(mode === "markdown" ? "blocks" : "markdown");
   };
+
+  useLayoutEffect(() => {
+    if (typedEarly !== null && typedEarly !== campaign.body) {
+      setValue("body", typedEarly, { shouldDirty: true });
+    }
+    // Once, as the script takes over.
+  }, []);
 
   /* What the owner has seen of each product, by slug — from the preview and
      the search — so a block redraws at once when its list changes. */
@@ -270,6 +297,7 @@ export function NewsletterComposer({
     const area = bodyRef.current;
     if (!area) return;
     const result = edit(area.value, area.selectionStart, area.selectionEnd);
+    area.value = result.text;
     setBody(result.text);
     requestAnimationFrame(() => {
       area.focus();
@@ -391,7 +419,9 @@ export function NewsletterComposer({
         htmlBytes: previewBytes,
         capitalised,
         lastLetterAt,
-        promotion,
+        announced,
+        announcedMissing,
+        named,
       }),
     [
       subject,
@@ -402,7 +432,9 @@ export function NewsletterComposer({
       previewBytes,
       capitalised,
       lastLetterAt,
-      promotion,
+      announced,
+      announcedMissing,
+      named,
     ],
   );
 
@@ -527,12 +559,13 @@ export function NewsletterComposer({
               </div>
               {/* Named only before the script runs: without it, this is the
                   field the browser posts (it comes first); with it, the body
-                  travels in the hidden field below, whichever view is open. */}
+                  travels in the hidden field below, whichever view is open.
+                  Uncontrolled: the toolbar writes to it as well as the form. */}
               <textarea
                 id="body"
                 ref={bodyRef}
                 name={hydrated ? undefined : "body"}
-                value={body ?? ""}
+                defaultValue={body ?? ""}
                 onChange={(event) => setBody(event.currentTarget.value)}
                 rows={16}
                 placeholder="Здравейте, …"

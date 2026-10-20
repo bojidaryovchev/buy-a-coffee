@@ -29,17 +29,13 @@ export function unsubscribeUrl(token: string): string {
 }
 
 /**
- * The promotions page, as a letter links to it in its text: absolute, on the
- * sending deployment, with the newsletter's `utm_*` — the same three the
- * product cards carry (`emails/product-cards.tsx`), so the visits a letter
- * brings are counted as its, wherever in it they were clicked.
+ * The promotions page, absolute, on the sending deployment: as a template
+ * writes it into a letter's text. Its `utm_*` are added when the letter is
+ * drawn, from the campaign's own tag, as every link of a letter to the shop
+ * gets them (`tagShopLinks` in `emails/newsletter.tsx`).
  */
-export function promotionsPageUrl(campaign: string): string {
-  const url = new URL(mailUrl(href(DEFAULT_LOCALE, routes.promotions)));
-  url.searchParams.set("utm_source", "newsletter");
-  url.searchParams.set("utm_medium", "email");
-  url.searchParams.set("utm_campaign", campaign);
-  return url.toString();
+export function promotionsPageAddress(): string {
+  return mailUrl(href(DEFAULT_LOCALE, routes.promotions));
 }
 
 export function oneClickUnsubscribeUrl(token: string): string {

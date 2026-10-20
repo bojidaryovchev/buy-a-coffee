@@ -52,7 +52,8 @@ import {
  * WHAT STOPS A SEND, and what only warns (`blockIssues`). A letter goes out
  * only when it is the letter the owner meant: a line the grammar cannot read,
  * an address that is no product's, a block past the letter's twelve, a block
- * whose products cannot be read, or a letter that would say nothing at all
+ * whose products cannot be read, a product listed as reduced that no longer
+ * is (`[[промоции: адрес, …]]`), or a letter that would say nothing at all
  * are errors. What the catalog did since the owner looked — a product sold
  * out or withdrawn, nothing new this month — leaves the rest of the letter as
  * meant, and is a warning: the monthly draft is prepared days before it is
@@ -127,6 +128,7 @@ const specSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("picked"), slugs: z.array(z.string()) }),
   z.object({ kind: z.literal("new"), limit: z.number().int() }),
   z.object({ kind: z.literal("sale"), limit: z.number().int() }),
+  z.object({ kind: z.literal("reduced"), slugs: z.array(z.string()) }),
 ]);
 
 const resolvedBlockSchema = z.object({
@@ -144,6 +146,12 @@ const resolvedBlockSchema = z.object({
   soldOut: z.array(z.object({ slug: z.string(), title: z.string() })).optional(),
   /** Hand-picked slugs of products that are in the catalog but no longer on sale. */
   gone: z.array(z.string()).optional(),
+  /**
+   * Products listed as reduced (`reduced`) that no longer are: left out of
+   * the block, and the send does not start while there are any — the letter
+   * would announce a reduction the shop no longer gives.
+   */
+  notReduced: z.array(z.object({ slug: z.string(), title: z.string() })).optional(),
 });
 
 export type ResolvedBlock = z.infer<typeof resolvedBlockSchema>;
@@ -246,12 +254,12 @@ export async function resolveProductBlocks(
   );
 
   const picked = shownBlocks.flatMap((block) =>
-    block.spec.kind === "picked" ? [...block.spec.slugs] : [],
+    block.spec.kind === "picked" || block.spec.kind === "reduced" ? [...block.spec.slugs] : [],
   );
   const since = new Date(now.getTime() - NEW_PRODUCTS_DAYS * 24 * 60 * 60 * 1000);
   let above = picked.length;
   const automatic = shownBlocks.map((block) => {
-    if (block.spec.kind === "picked") return null;
+    if (block.spec.kind === "picked" || block.spec.kind === "reduced") return null;
     const limit = block.spec.limit + above;
     above += block.spec.limit;
     return block.spec.kind === "new" ? source.newest({ since, limit }) : source.reduced({ limit });
@@ -271,34 +279,40 @@ export async function resolveProductBlocks(
   const shown = new Set<string>();
 
   shownBlocks.forEach((block, index) => {
-    if (block.spec.kind !== "picked") return;
-    const onSale = block.spec.slugs.flatMap((slug) => {
+    const spec = block.spec;
+    if (spec.kind !== "picked" && spec.kind !== "reduced") return;
+    const onSale = spec.slugs.flatMap((slug) => {
       const card = bySlug.get(slug);
       return card ? [card] : [];
     });
     /* The owner picked it when it could be ordered; a letter that offers it
        now that it cannot is advertising what is not there. Left out, and the
        composer says so. */
-    const cards = onSale.filter((card) => card.availability !== "out_of_stock");
+    const orderable = onSale.filter((card) => card.availability !== "out_of_stock");
     const soldOut = onSale.filter((card) => card.availability === "out_of_stock");
-    const absent = block.spec.slugs.filter((slug) => !bySlug.has(slug));
+    /* Listed as reduced: only while the card shows a reduction, struck price
+       and all (`toNewsletterProduct` keeps one only when it is genuine). */
+    const reduced = (card: ProductCardView) => toNewsletterProduct(card).oldPrice !== null;
+    const cards = spec.kind === "reduced" ? orderable.filter(reduced) : orderable;
+    const notReduced = spec.kind === "reduced" ? orderable.filter((card) => !reduced(card)) : [];
+    const absent = spec.slugs.filter((slug) => !bySlug.has(slug));
+    const named = (card: ProductCardView) => ({ slug: card.slug, title: card.title ?? card.name });
     for (const card of cards) shown.add(card.id);
     resolved[index] = {
       token: block.token,
-      spec: specOut(block.spec),
+      spec: specOut(spec),
       products: cards.map(toNewsletterProduct),
       missing: absent.filter((slug) => !known.has(slug)),
-      ...(soldOut.length > 0
-        ? { soldOut: soldOut.map((card) => ({ slug: card.slug, title: card.title ?? card.name })) }
-        : {}),
+      ...(soldOut.length > 0 ? { soldOut: soldOut.map(named) } : {}),
       ...(absent.some((slug) => known.has(slug))
         ? { gone: absent.filter((slug) => known.has(slug)) }
         : {}),
+      ...(notReduced.length > 0 ? { notReduced: notReduced.map(named) } : {}),
     };
   });
 
   shownBlocks.forEach((block, index) => {
-    if (block.spec.kind === "picked") return;
+    if (block.spec.kind === "picked" || block.spec.kind === "reduced") return;
     /* Held to the rule here as well as in the query, so a source cannot hand
        a letter something sold out, shown twice, or more than it asked for. */
     const cards = (found[index] ?? [])
@@ -365,8 +379,8 @@ export async function withImageSizes(
 }
 
 function specOut(spec: ProductBlockSpec): ResolvedBlock["spec"] {
-  return spec.kind === "picked"
-    ? { kind: "picked", slugs: [...spec.slugs] }
+  return spec.kind === "picked" || spec.kind === "reduced"
+    ? { kind: spec.kind, slugs: [...spec.slugs] }
     : { kind: spec.kind, limit: spec.limit };
 }
 
@@ -490,6 +504,11 @@ export function blockIssues(
     if (entry.gone && entry.gone.length > 0) {
       found.push(warning(token, `вече не се продават, пропускат се: ${quoted(entry.gone)}`));
     }
+    if (entry.notReduced && entry.notReduced.length > 0) {
+      found.push(
+        error(token, `вече не са намалени: ${quoted(entry.notReduced.map((p) => p.title))}`),
+      );
+    }
     if (entry.products.length === 0) found.push(warning(token, "празен е и няма да се покаже"));
     return found;
   });
@@ -543,13 +562,13 @@ export function campaignSnapshot(
   return parsed.success ? parsed.data : null;
 }
 
-/** The attachments with this snapshot in place of any earlier one. */
+/** The attachments with this snapshot in place of any earlier one, and everything else kept. */
 export function withSnapshot(
   entries: readonly NewsletterCampaignAttachment[],
   snapshot: ProductBlocksSnapshot,
 ): NewsletterCampaignAttachment[] {
   const stored: NewsletterProductBlocks = { ...snapshot };
-  return [...campaignFiles(entries), stored];
+  return [...entries.filter((entry) => entry.kind !== "product-blocks"), stored];
 }
 
 /* -- what the composer is told ---------------------------------------------- */
@@ -564,6 +583,8 @@ export interface ReportedProduct {
   readonly detail: string | null;
   readonly price?: string | null;
   readonly oldPrice?: string | null;
+  /** The reduction its badge claims, or null when it shows none. */
+  readonly discountPercent?: number | null;
   readonly perCup?: string | null;
   /** The photograph's address on the store, for the panel; null without one. */
   readonly image?: string | null;
@@ -585,6 +606,8 @@ export interface BlockReport {
   readonly soldOut?: readonly { readonly slug: string; readonly title: string }[];
   /** Hand-picked slugs of products no longer on sale. */
   readonly gone?: readonly string[];
+  /** Products listed as reduced that no longer are. */
+  readonly notReduced?: readonly { readonly slug: string; readonly title: string }[];
 }
 
 /** What the preview route answers: the letter, and what its blocks resolved to. */
@@ -603,11 +626,13 @@ export function blockReports(snapshot: ProductBlocksSnapshot): BlockReport[] {
       detail: product.detail,
       price: product.price,
       oldPrice: product.oldPrice,
+      discountPercent: product.discountPercent,
       perCup: product.perCup,
       image: product.image?.url ?? null,
     })),
     missing: block.missing,
     soldOut: block.soldOut ?? [],
     gone: block.gone ?? [],
+    notReduced: block.notReduced ?? [],
   }));
 }

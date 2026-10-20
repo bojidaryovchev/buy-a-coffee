@@ -1,7 +1,8 @@
 import { parseMarkdown, type Inline, type ProductsBlock } from "@/emails/markdown";
+import { claimNotes, type PromotionFacts } from "./claims";
 import type { BlockReport } from "./product-blocks";
 import { drawnBlocks } from "./sections";
-import { dayWords, daysBetween, lastDay } from "./sofia";
+import { dayWords, daysBetween } from "./sofia";
 import {
   MAX_LETTER_PRODUCTS,
   NEW_PRODUCTS_DAYS,
@@ -46,8 +47,11 @@ import {
  *     product's, or is past the letter's twelve products (each stops a
  *     send); one that shows nothing, or leaves out a product sold out or
  *     withdrawn since it was picked (warnings);
- *   - a letter within a month of the last, and a promotion's letter before
- *     the promotion starts or after it ended.
+ *   - a letter within a month of the last (a warning);
+ *   - what the letter says about the shop's promotions: a promotion's letter
+ *     before the promotion runs or after it ended, a product whose badge
+ *     cannot carry the announced percentage, a promotion named in words that
+ *     has ended (each stops a send; `claims.ts`).
  *
  * Pure: the composer runs it on every keystroke, and the send confirmation
  * shows the same list. What needs the server — the blocks' products, the
@@ -144,8 +148,10 @@ export type DeliverabilityNoteId =
   | "block-adjusted"
   | "letter-empty"
   | "recent-letter"
+  | "block-not-reduced"
   | "promotion-not-started"
-  | "promotion-ended";
+  | "promotion-ended"
+  | "promotion-claim";
 
 export interface DeliverabilityNote {
   readonly id: DeliverabilityNoteId;
@@ -159,13 +165,6 @@ export interface DeliverabilityNote {
 
 /** The signup promises a letter a month at most; within this, the composer says so. */
 export const LETTER_INTERVAL_DAYS = 30;
-
-/** A promotion's days, as the composer of its letter is told them. */
-export interface LetterPromotion {
-  readonly startsAt: Date | string;
-  readonly endsAt: Date | string;
-  readonly stoppedAt: Date | string | null;
-}
 
 export interface DeliverabilityInput {
   readonly subject: string;
@@ -184,8 +183,12 @@ export interface DeliverabilityInput {
   /** When the last letter that went out started (`lastLetterStart`); null if none has. */
   readonly lastLetterAt?: Date | string | null;
   /** The promotion this letter announces, when it is a promotion's letter. */
-  readonly promotion?: LetterPromotion | null;
-  /** Now, for the two above; the clock when absent. */
+  readonly announced?: PromotionFacts | null;
+  /** A promotion's letter whose promotion was deleted before it started. */
+  readonly announcedMissing?: boolean;
+  /** The promotions the letter names in words (`LetterPlan.promotionIds`). */
+  readonly named?: readonly PromotionFacts[];
+  /** Now, for the dates above; the clock when absent. */
   readonly now?: Date;
 }
 
@@ -326,6 +329,7 @@ export const BLOCK_KIND_NAMES: Readonly<Record<ProductBlockKind, string>> = {
   picked: "Избрани продукти",
   new: "Нови продукти",
   sale: "Промоции",
+  reduced: "Промоции",
 };
 
 /** What a block that resolved to nothing asked for, in a reader's words. */
@@ -337,6 +341,8 @@ function emptyBlockDetail(report: BlockReport): string {
       return `Няма нови продукти от последните ${NEW_PRODUCTS_DAYS} дни, които могат да се поръчат. ${HIDDEN}`;
     case "sale":
       return `В момента няма продукти с намалена цена, които могат да се поръчат. ${HIDDEN}`;
+    case "reduced":
+      return `Нито един от избраните намалени продукти не може да се поръча сега. Секцията им няма да се покаже, заедно с думите за промоцията над тях. Писмото може да се изпрати и така.`;
   }
 }
 
@@ -430,6 +436,20 @@ function blockNotes(
         } в писмото. Махнете ${one ? "го" : "ги"} или изберете друг продукт.`,
       });
     }
+    const notReduced = report.notReduced ?? [];
+    if (notReduced.length > 0) {
+      const one = notReduced.length === 1;
+      notes.push({
+        id: "block-not-reduced",
+        title: one ? "Продукт, който вече не е намален" : "Продукти, които вече не са намалени",
+        detail: `${quoted(notReduced.map((product) => product.title))} — ${
+          one
+            ? "в писмото е сред намалените, а вече не е"
+            : "в писмото са сред намалените, а вече не са"
+        }. Махнете ${one ? "го" : "ги"} или изберете друг намален продукт. ${NOT_SENT}`,
+        blocksSend: true,
+      });
+    }
     const gone = report.gone ?? [];
     if (gone.length > 0) {
       const one = gone.length === 1;
@@ -491,34 +511,19 @@ function timingNotes(input: DeliverabilityInput): DeliverabilityNote[] {
           days === 0
             ? "Днес вече е изпратено писмо"
             : `Последното писмо е изпратено преди ${days} ${days === 1 ? "ден" : "дни"}`,
-        detail: `Формата за абониране обещава писмо най-много веднъж месечно, а честите писма карат хората да се отписват. Ако това може да почака, изпратете го след ${dayWords(after)}.`,
+        detail: `Формата за абониране обещава писмо не повече от веднъж месечно, а честите писма карат хората да се отписват. Ако това може да почака, изпратете го след ${dayWords(after)}.`,
       });
     }
   }
-  if (input.promotion) {
-    const startsAt = asDate(input.promotion.startsAt);
-    const endsAt = asDate(input.promotion.endsAt);
-    const stoppedAt = input.promotion.stoppedAt ? asDate(input.promotion.stoppedAt) : null;
-    if (stoppedAt && stoppedAt <= now) {
-      notes.push({
-        id: "promotion-ended",
-        title: "Промоцията е спряна",
-        detail: `Спряна е на ${dayWords(stoppedAt)}, а писмото обявява намаление, което вече не важи. Изтрийте черновата или напишете друго писмо.`,
-      });
-    } else if (endsAt <= now) {
-      notes.push({
-        id: "promotion-ended",
-        title: "Промоцията е приключила",
-        detail: `Последният ѝ ден беше ${dayWords(lastDay(endsAt))}, а писмото обявява намаление, което вече не важи. Изтрийте черновата или напишете друго писмо.`,
-      });
-    } else if (startsAt > now) {
-      notes.push({
-        id: "promotion-not-started",
-        title: "Промоцията още не е започнала",
-        detail: `Започва на ${dayWords(startsAt)}. Дотогава цените в писмото са сегашните, без намалението: най-добре го изпратете в деня, в който започне.`,
-      });
-    }
-  }
+  notes.push(
+    ...claimNotes({
+      announced: input.announced ?? null,
+      announcedMissing: input.announcedMissing ?? false,
+      named: input.named ?? [],
+      products: input.blocks ? input.blocks.flatMap((report) => report.products) : null,
+      now,
+    }),
+  );
   return notes;
 }
 

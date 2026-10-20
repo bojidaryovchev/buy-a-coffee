@@ -117,11 +117,29 @@ describe("the block line", () => {
       { kind: "picked", slugs: ["kafe-a", "kafe-b"] },
       { kind: "new", limit: DEFAULT_BLOCK_PRODUCTS },
       { kind: "sale", limit: 6 },
+      { kind: "reduced", slugs: ["kafe-a", "kafe-b"] },
     ] as const) {
       expect(parseProductToken(productTokenLine(spec))!.spec).toEqual(spec);
     }
     expect(productTokenLine({ kind: "new", limit: 4 })).toBe("[[нови-продукти]]");
     expect(productTokenLine({ kind: "sale", limit: 4 })).toBe("[[промоции]]");
+    expect(productTokenLine({ kind: "reduced", slugs: ["a-b", "c"] })).toBe("[[промоции: a-b, c]]");
+  });
+
+  it("reads the reductions as a count when they are given a number, and as a list otherwise", () => {
+    expect(parseProductToken("[[промоции: 3]]")!.spec).toEqual({ kind: "sale", limit: 3 });
+    expect(parseProductToken("[[промоции:  ]]")!.spec).toEqual({ kind: "sale", limit: 4 });
+    expect(
+      parseProductToken("[[промоции: kafe-a, https://buy-a-coffee.com/bg/kafe-b]]")!.spec,
+    ).toEqual({ kind: "reduced", slugs: ["kafe-a", "kafe-b"] });
+    // Two numbers are two addresses, not a count.
+    expect(parseProductToken("[[промоции: 6, 7]]")!.spec).toEqual({
+      kind: "reduced",
+      slugs: ["6", "7"],
+    });
+    const unreadable = parseProductToken("[[промоции: Лаваца]]")!;
+    expect(unreadable.spec).toBeNull();
+    expect(unreadable.invalid).toEqual(["Лаваца"]);
   });
 });
 
@@ -649,6 +667,38 @@ describe("a send's snapshot", () => {
     expect(describeBlockProblems(blockProblems(body, snapshot).slice(0, 2))).toBe(
       "[[продукти: ima, nyama]] — не е адрес на продукт в магазина: „nyama“; [[продукти: ima, Лаваца]] — не е адрес на продукт: „Лаваца“",
     );
+  });
+
+  it("stops a list of reductions with a product no longer reduced, and leaves it out", async () => {
+    const catalog = new FakeCatalog(
+      [
+        reduced("cheaper", "8,00 €", "10,00 €", 20),
+        card("full-price"),
+        reduced("other", "5,00 €", "6,00 €", 16),
+      ],
+      [],
+      [reduced("cheaper", "8,00 €", "10,00 €", 20), reduced("other", "5,00 €", "6,00 €", 16)],
+    );
+    const body = "Здравейте,\n\n[[промоции: cheaper, full-price]]\n\n[[промоции]]";
+    const snapshot = await resolveProductBlocks(body, catalog, { subject: "Тема", now: NOW });
+    expect(snapshot.blocks[0]).toMatchObject({
+      spec: { kind: "reduced", slugs: ["cheaper", "full-price"] },
+      products: [expect.objectContaining({ slug: "cheaper" })],
+      notReduced: [{ slug: "full-price", title: "Марка full-price" }],
+    });
+    // The automatic block below leaves out what the list already shows.
+    expect(snapshot.blocks[1]!.products.map((product) => product.slug)).toEqual(["other"]);
+    expect(blockProblems(body, snapshot)).toEqual([
+      {
+        token: "[[промоции: cheaper, full-price]]",
+        reason: "вече не са намалени: „Марка full-price“",
+        severity: "error",
+      },
+    ]);
+    expect(blockReports(snapshot)[0]!.notReduced).toEqual([
+      { slug: "full-price", title: "Марка full-price" },
+    ]);
+    expect(blockReports(snapshot)[0]!.products[0]!.discountPercent).toBe(20);
   });
 
   it("warns about a product sold out or withdrawn since it was picked, and lets the letter go", async () => {

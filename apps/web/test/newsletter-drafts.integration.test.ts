@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import {
   brands,
   newsletterCampaigns,
+  newsletterSubscribers,
   productImages,
   products,
   promotionProducts,
@@ -22,11 +23,15 @@ import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
 
 /**
  * Starting a letter, against a real catalog and real promotions: the monthly
- * letter's new arrivals (since the last letter, and never an import of the
+ * letter's new arrivals (since the last monthly letter was prepared, never
+ * further back than the "Ново" badge's 30 days, and never an import of the
  * catalog) and reductions (the shop's own promotions first), a promotion's
- * announcement from its row, `createNewsletterFromTemplate` as the panel and
- * the promotions page post to it, a test copy to any one address, and a copy
- * of a letter into a new draft.
+ * announcement from its row with only the products whose badges carry its
+ * percentage, `createNewsletterFromTemplate` as the panel and the promotions
+ * page post to it; what a send refuses about promotions (a promotion that
+ * has not started or is over, a badge short of the claim, a listed reduction
+ * that is no longer one); a test copy to any one address, and a copy of a
+ * letter into a new draft.
  *
  * Nothing reaches Resend: the SDK is replaced, and a test copy lands in a list.
  */
@@ -161,9 +166,9 @@ suite("starting a newsletter (integration)", () => {
     );
   };
 
-  /** A promotion of the shop's, each member with its 30-day "before" price. */
+  /** A promotion of the shop's, each member with its 30-day "before" price (or none on record). */
   const promote = async (input: {
-    members: readonly { id: string; reference: string; removed?: boolean }[];
+    members: readonly { id: string; reference: string | null; removed?: boolean }[];
     label?: string | null;
     percentOff?: number;
     startsInDays?: number;
@@ -194,20 +199,35 @@ suite("starting a newsletter (integration)", () => {
     return row!.id;
   };
 
-  /** A letter that went out `daysAgo` days ago. */
-  const sentLetter = async (daysAgo: number) => {
+  /** A letter that went out `sentDaysAgo` days ago; a monthly one, prepared `preparedDaysAgo`. */
+  const sentLetter = async (sentDaysAgo: number, monthly?: { preparedDaysAgo: number }) => {
     await db.insert(newsletterCampaigns).values({
       subject: "Предишното",
       body: "Текст",
       status: "sent",
-      startedAt: new Date(Date.now() - daysAgo * DAY),
-      sentAt: new Date(Date.now() - daysAgo * DAY),
+      startedAt: new Date(Date.now() - sentDaysAgo * DAY),
+      sentAt: new Date(Date.now() - sentDaysAgo * DAY),
+      ...(monthly
+        ? {
+            template: "monthly" as const,
+            attachments: [
+              {
+                kind: "letter-plan" as const,
+                version: 1,
+                preparedAt: new Date(Date.now() - monthly.preparedDaysAgo * DAY).toISOString(),
+                promotionIds: [],
+                leftOut: {},
+              },
+            ],
+          }
+        : {}),
     });
   };
 
   const slugsOf = (body: string) =>
     parseMarkdown(body).flatMap((block) =>
-      block.type === "products" && block.token.spec?.kind === "picked"
+      block.type === "products" &&
+      (block.token.spec?.kind === "picked" || block.token.spec?.kind === "reduced")
         ? [block.token.spec.slugs]
         : [],
     );
@@ -229,28 +249,57 @@ suite("starting a newsletter (integration)", () => {
   };
 
   describe("the monthly letter's data", () => {
-    it("counts as new what arrived since the last letter, newest first, and never an import", async () => {
-      await sentLetter(5);
-      const before = await add({ slug: "predi", daysOld: 10 });
-      const after = await add({ slug: "sled", daysOld: 2 });
+    it("counts as new what arrived after the last monthly letter was prepared, and never an import", async () => {
+      // Prepared ten days ago, sent five days ago.
+      await sentLetter(5, { preparedDaysAgo: 10 });
+      const before = await add({ slug: "predi", daysOld: 12 });
+      // Arrived between the preparation and the send: never in that letter.
+      const between = await add({ slug: "mezhdu", daysOld: 7 });
       const newest = await add({ slug: "nay-nov", daysOld: 1 });
       const soldOut = await add({ slug: "izcherpan", daysOld: 1, availability: "out_of_stock" });
-      await arrive([before, after, newest, soldOut]);
+      await arrive([before, between, newest, soldOut]);
       // Taken in with the vending consumables: 26 created at once.
       await arrive([await add({ slug: "vnos", daysOld: 1 })], 26);
 
       const plan = await data.monthlyPlan(new Date());
-      expect(plan.input.newArrivals).toEqual(["nay-nov", "sled"]);
-      expect(Math.abs(plan.since.getTime() - (Date.now() - 5 * DAY))).toBeLessThan(60_000);
+      expect(plan.input.newArrivals).toEqual(["nay-nov", "mezhdu"]);
+      expect(plan.sinceLetter).toBe(true);
+      expect(Math.abs(plan.since.getTime() - (Date.now() - 10 * DAY))).toBeLessThan(60_000);
     });
 
-    it("looks back 30 days before the first letter", async () => {
+    it("is moved only by a monthly letter: a promotion's or a blank one said nothing of what is new", async () => {
+      await sentLetter(20, { preparedDaysAgo: 21 });
+      await sentLetter(2);
+      await arrive([await add({ slug: "sedmitsa", daysOld: 7 })]);
+      const plan = await data.monthlyPlan(new Date());
+      expect(plan.input.newArrivals).toEqual(["sedmitsa"]);
+    });
+
+    it("never reaches past the badge's 30 days, before the first letter or long after the last", async () => {
       await arrive([
         await add({ slug: "25-dni", daysOld: 25 }),
         await add({ slug: "40-dni", daysOld: 40 }),
       ]);
+      expect((await data.monthlyPlan(new Date())).input.newArrivals).toEqual(["25-dni"]);
+      await sentLetter(60, { preparedDaysAgo: 61 });
       const plan = await data.monthlyPlan(new Date());
       expect(plan.input.newArrivals).toEqual(["25-dni"]);
+      expect(plan.sinceLetter).toBe(false);
+    });
+
+    it("has room for twelve new arrivals beside the reductions, and says how many more did not fit", async () => {
+      const ids = [];
+      for (let index = 0; index < 14; index += 1) {
+        ids.push(
+          await add({ slug: `nov-${String(index).padStart(2, "0")}`, daysOld: 1 + index / 100 }),
+        );
+      }
+      await arrive(ids);
+      await add({ slug: "namalen", price: "8.00", oldPrice: "10.00" });
+      const plan = await data.monthlyPlan(new Date());
+      expect(plan.input.reduced).toEqual(["namalen"]);
+      expect(plan.input.newArrivals).toHaveLength(11);
+      expect(plan.plan.leftOut).toEqual({ newOverflow: 3 });
     });
 
     it("puts the shop's own promotions first among the reductions, and names them", async () => {
@@ -280,7 +329,7 @@ suite("starting a newsletter (integration)", () => {
     it("starts the monthly letter from the catalog, as an explicit list the owner can edit", async () => {
       await arrive([await add({ slug: "nov", daysOld: 2 })]);
       const ours = await add({ slug: "nasha", price: "20.00" });
-      await promote({ members: [{ id: ours, reference: "20.00" }] });
+      const promotionId = await promote({ members: [{ id: ours, reference: "20.00" }] });
 
       const { campaign } = await pressed({ template: "monthly" });
       expect(campaign).toMatchObject({
@@ -293,7 +342,27 @@ suite("starting a newsletter (integration)", () => {
         /^Новото в магазина през \p{L}+: нови продукти и промоции$/u,
       );
       expect(slugsOf(campaign!.body)).toEqual([["nov"], ["nasha"]]);
-      expect(campaign!.body).toContain("**Есенни дни**: −10% до");
+      expect(campaign!.body).toContain("[[промоции: nasha]]");
+      expect(campaign!.body).toContain("**Есенни дни** — намалени цени до");
+      expect(campaign!.body).not.toMatch(/\d+\s*%/);
+      // What it was written from, kept with it, through a save.
+      const plan = () => campaign!.attachments.find((entry) => entry.kind === "letter-plan");
+      expect(plan()).toMatchObject({ promotionIds: [promotionId] });
+      await actions.submitNewsletter(
+        {},
+        form({
+          id: campaign!.id,
+          version: campaigns.draftVersion(campaign!),
+          intent: "save",
+          subject: campaign!.subject,
+          preheader: campaign!.preheader,
+          body: campaign!.body,
+          attachments: "[]",
+        }),
+      );
+      const saved = (await campaigns.getCampaign(campaign!.id))!;
+      expect(saved.revision).toBe(1);
+      expect(saved.attachments).toEqual([plan()]);
     });
 
     it("starts a promotion's announcement from its row: its orderable members, the biggest saving first", async () => {
@@ -341,8 +410,41 @@ suite("starting a newsletter (integration)", () => {
       expect(choices.map((choice) => [choice.id, choice.products])).toEqual([[id, 1]]);
 
       const { campaign } = await pressed({ template: "promotion", promotionId: id });
-      expect(campaign!.subject).toMatch(/^−15% на избрани продукти (от|на) /);
-      expect(campaign!.body).toMatch(/ще бъдат намалени с 15%/);
+      expect(campaign!.subject).toMatch(/^Намалени цени (от|на) /);
+      expect(`${campaign!.subject} ${campaign!.preheader} ${campaign!.body}`).not.toMatch(/%/);
+      expect(slugsOf(campaign!.body)).toEqual([["skoro"]]);
+    });
+
+    it("lists only the products whose own badge carries the promotion's percentage, and says why the rest are not there", async () => {
+      // Its 30-day price is today's: the badge shows the whole −10%.
+      const honest = await add({ slug: "chesten", price: "20.00" });
+      // Cheaper lately: the struck price is lower, the badge smaller.
+      const smaller = await add({ slug: "po-malko", price: "20.00" });
+      // No 30-day price on record: no struck price, no badge at all.
+      const none = await add({ slug: "bez-istoriya", price: "20.00" });
+      const id = await promote({
+        members: [
+          { id: honest, reference: "20.00" },
+          { id: smaller, reference: "19.00" },
+          { id: none, reference: null },
+        ],
+      });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      expect(slugsOf(campaign!.body)).toEqual([["chesten"]]);
+      expect(campaign!.attachments).toEqual([
+        expect.objectContaining({ kind: "letter-plan", leftOut: { unbacked: 2 } }),
+      ]);
+      // Prepared ahead, the same rule from what the cards will show.
+      const ahead = await promote({
+        members: [
+          { id: honest, reference: "20.00" },
+          { id: smaller, reference: "19.00" },
+          { id: none, reference: null },
+        ],
+        startsInDays: 3,
+      });
+      const upcoming = await pressed({ template: "promotion", promotionId: ahead });
+      expect(slugsOf(upcoming.campaign!.body)).toEqual([["chesten"]]);
     });
 
     it("does not announce a promotion that has ended or was stopped, and says why", async () => {
@@ -371,6 +473,113 @@ suite("starting a newsletter (integration)", () => {
       const { outcome } = await pressed({ template: "monthly" });
       expect(outcome).toBe("REDIRECT /admin/vhod");
       expect(await db.select().from(newsletterCampaigns)).toHaveLength(0);
+    });
+  });
+
+  describe("what a send refuses about promotions", () => {
+    const sendPress = async (
+      campaign: NonNullable<Awaited<ReturnType<typeof campaigns.getCampaign>>>,
+    ) =>
+      actions.submitNewsletter(
+        {},
+        form({
+          id: campaign.id,
+          version: campaigns.draftVersion(campaign),
+          intent: "send",
+          subject: campaign.subject,
+          preheader: campaign.preheader,
+          body: campaign.body,
+          attachments: "[]",
+          confirmCount: "1",
+        }),
+      );
+
+    beforeEach(async () => {
+      await db.insert(newsletterSubscribers).values({ email: "reader@example.test" });
+    });
+
+    it("refuses a monthly letter whose promotion ended before the send", async () => {
+      await arrive([await add({ slug: "nov", daysOld: 2 })]);
+      const ours = await add({ slug: "nasha", price: "20.00" });
+      const id = await promote({ members: [{ id: ours, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "monthly" });
+      // It ends before the owner presses Send.
+      await db
+        .update(promotions)
+        .set({ endsAt: new Date(Date.now() - 60 * 60 * 1000) })
+        .where(eq(promotions.id, id));
+      const answer = await sendPress(campaign!);
+      expect(answer.error).toMatch(/^Изпращането не започна/);
+      expect(answer.error).toContain(
+        "Промоцията „Есенни дни“ („Есен 2026 (вътрешно)“) е приключила",
+      );
+      // And its product, no longer reduced, is named.
+      expect(answer.error).toContain("[[промоции: nasha]] — вече не са намалени: „Lavazza nasha“");
+      expect((await campaigns.getCampaign(campaign!.id))!.status).toBe("draft");
+    });
+
+    it("refuses a listed reduction that is no longer one, naming it", async () => {
+      await add({ slug: "namalen", price: "8.00", oldPrice: "10.00" });
+      const { campaign } = await pressed({ template: "monthly" });
+      expect(campaign!.body).toContain("[[промоции: namalen]]");
+      await db.update(products).set({ oldPrice: null }).where(eq(products.slug, "namalen"));
+      const answer = await sendPress(campaign!);
+      expect(answer.error).toContain("вече не са намалени: „Lavazza namalen“");
+    });
+
+    it("waits for an upcoming promotion to start before its letter goes", async () => {
+      const product = await add({ slug: "skoro", price: "20.00" });
+      const id = await promote({ members: [{ id: product, reference: "20.00" }], startsInDays: 2 });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      const answer = await sendPress(campaign!);
+      expect(answer.error).toContain("Промоцията още не е започнала");
+      expect((await campaigns.getCampaign(campaign!.id))!.status).toBe("draft");
+    });
+
+    it("refuses a promotion's letter once a product's badge shows less than the letter claims", async () => {
+      const product = await add({ slug: "chesten", price: "20.00" });
+      const id = await promote({ members: [{ id: product, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      expect(slugsOf(campaign!.body)).toEqual([["chesten"]]);
+      // The 30-day lowest turns out lower: the badge shrinks below −10%.
+      await db
+        .update(promotionProducts)
+        .set({ referencePrice: "19.00" })
+        .where(eq(promotionProducts.productId, product));
+      const answer = await sendPress(campaign!);
+      expect(answer.error).toContain("Продукт без −10% на значката");
+      expect(answer.error).toContain("„Lavazza chesten“");
+    });
+
+    it("lets an honest promotion's letter go", async () => {
+      const product = await add({ slug: "chesten", price: "20.00" });
+      const id = await promote({ members: [{ id: product, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      await expect(sendPress(campaign!)).rejects.toThrow(
+        `REDIRECT /admin/byuletin/${campaign!.id}`,
+      );
+      expect((await campaigns.getCampaign(campaign!.id))!.status).toBe("sending");
+    });
+  });
+
+  describe("Спри изпращането", () => {
+    it("asks a visitor who is not signed in to sign in, and otherwise lands back on the campaign", async () => {
+      harness.signedIn = false;
+      const refused = await actions
+        .stopNewsletter(form({ id: "00000000-0000-4000-8000-000000000000" }))
+        .then(
+          () => "",
+          (error: Error) => error.message,
+        );
+      expect(refused).toBe("REDIRECT /admin/vhod");
+      harness.signedIn = true;
+      const back = await actions
+        .stopNewsletter(form({ id: "00000000-0000-4000-8000-000000000000" }))
+        .then(
+          () => "",
+          (error: Error) => error.message,
+        );
+      expect(back).toBe("REDIRECT /admin/byuletin/00000000-0000-4000-8000-000000000000");
     });
   });
 

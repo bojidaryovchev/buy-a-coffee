@@ -424,7 +424,7 @@ describe("when it goes out", () => {
       "recent-letter",
     );
     expect(recent?.title).toBe("Последното писмо е изпратено преди 18 дни");
-    expect(recent?.detail).toContain("най-много веднъж месечно");
+    expect(recent?.detail).toContain("не повече от веднъж месечно");
     expect(recent?.detail).toContain("след 2 декември");
     expect(recent?.blocksSend).toBeUndefined();
     expect(
@@ -436,23 +436,116 @@ describe("when it goes out", () => {
     expect(ids({ ...healthy, lastLetterAt: null, now: NOW })).not.toContain("recent-letter");
   });
 
-  it("says when a promotion's letter is early, or late", () => {
-    const days = (startsAt: string, endsAt: string, stoppedAt: string | null = null) =>
-      checkDeliverability({ ...healthy, promotion: { startsAt, endsAt, stoppedAt }, now: NOW });
-    const early = days("2026-11-24T22:00:00Z", "2026-11-30T22:00:00Z");
-    expect(early.find((item) => item.id === "promotion-not-started")?.detail).toMatch(
-      /^Започва на 25 ноември\./,
+  it("stops a promotion's letter before the promotion runs, and after it ended or was stopped", () => {
+    const facts = (startsAt: string, endsAt: string, stoppedAt: string | null = null) => ({
+      id: "p1",
+      name: "Есен 2026",
+      label: "Есенни дни",
+      percentOff: 10,
+      startsAt,
+      endsAt,
+      stoppedAt,
+    });
+    const notes = (announced: ReturnType<typeof facts>) =>
+      checkDeliverability({ ...healthy, announced, now: NOW });
+    const early = notes(facts("2026-11-24T22:00:00Z", "2026-11-30T22:00:00Z")).find(
+      (item) => item.id === "promotion-not-started",
     );
-    const ended = days("2026-11-01T22:00:00Z", "2026-11-15T22:00:00Z");
-    expect(ended.find((item) => item.id === "promotion-ended")?.detail).toMatch(
-      /^Последният ѝ ден беше 15 ноември/,
+    expect(early).toMatchObject({ blocksSend: true });
+    expect(early?.detail).toMatch(/^Започва на 25 ноември\. Писмото може да се подготви отрано/);
+    const ended = notes(facts("2026-11-01T22:00:00Z", "2026-11-15T22:00:00Z")).find(
+      (item) => item.id === "promotion-ended",
     );
-    const stopped = days("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z", "2026-11-18T09:00:00Z");
-    expect(stopped.find((item) => item.id === "promotion-ended")?.title).toBe(
-      "Промоцията е спряна",
-    );
-    const running = days("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z");
+    expect(ended).toMatchObject({ blocksSend: true, title: "Промоцията е приключила" });
+    expect(ended?.detail).toMatch(/^Последният ѝ ден беше 15 ноември/);
+    expect(
+      notes(facts("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z", "2026-11-18T09:00:00Z")).find(
+        (item) => item.id === "promotion-ended",
+      )?.title,
+    ).toBe("Промоцията е спряна");
+    const running = notes(facts("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z"));
     expect(running.map((item) => item.id)).not.toContain("promotion-ended");
     expect(running.map((item) => item.id)).not.toContain("promotion-not-started");
+    // Deleted before it started.
+    expect(
+      checkDeliverability({ ...healthy, announcedMissing: true, now: NOW }).find(
+        (item) => item.id === "promotion-ended",
+      ),
+    ).toMatchObject({ title: "Промоцията вече я няма", blocksSend: true });
+  });
+
+  it("stops a running promotion's letter over a product whose badge shows less", () => {
+    const announced = {
+      id: "p1",
+      name: "Есен 2026",
+      label: null,
+      percentOff: 10,
+      startsAt: "2026-11-01T22:00:00Z",
+      endsAt: "2026-11-30T22:00:00Z",
+      stoppedAt: null,
+    };
+    const blocks = [
+      report("[[промоции]]", "sale", [
+        { ...card("Честен"), discountPercent: 10 },
+        { ...card("По-малко"), discountPercent: 7 },
+        { ...card("Без значка"), discountPercent: null },
+      ]),
+    ];
+    const claim = checkDeliverability({ ...healthy, blocks, announced, now: NOW }).find(
+      (item) => item.id === "promotion-claim",
+    );
+    expect(claim).toMatchObject({ blocksSend: true, title: "Продукти без −10% на значката" });
+    expect(claim?.detail).toMatch(/^„По-малко“, „Без значка“ — /);
+    expect(claim?.detail).toContain("30-дневна история на цената");
+    // Every badge carries it: nothing to say.
+    expect(
+      ids({
+        ...healthy,
+        blocks: [report("[[промоции]]", "sale", [{ ...card("Ч"), discountPercent: 12 }])],
+        announced,
+        now: NOW,
+      }),
+    ).not.toContain("promotion-claim");
+  });
+
+  it("stops a letter that names a promotion which has ended", () => {
+    const named = [
+      {
+        id: "p2",
+        name: "Октомври",
+        label: "Есенни дни",
+        percentOff: 10,
+        startsAt: "2026-10-26T22:00:00Z",
+        endsAt: "2026-11-15T22:00:00Z",
+        stoppedAt: null,
+      },
+    ];
+    const over = checkDeliverability({ ...healthy, named, now: NOW }).find(
+      (item) => item.id === "promotion-ended",
+    );
+    expect(over).toMatchObject({
+      blocksSend: true,
+      title: "Промоцията „Есенни дни“ („Октомври“) е приключила",
+    });
+    expect(ids({ ...healthy, named, now: new Date("2026-11-10T10:00:00Z") })).not.toContain(
+      "promotion-ended",
+    );
+  });
+
+  it("stops a letter whose listed reductions are no longer reduced", () => {
+    const notes = checkDeliverability({
+      ...healthy,
+      body: `${PROSE}\n\n[[промоции: a, b]]`,
+      blocks: [
+        {
+          ...report("[[промоции: a, b]]", "reduced", [card("A")]),
+          notReduced: [{ slug: "b", title: "Lavazza B" }],
+        },
+      ],
+    });
+    expect(notes.find((item) => item.id === "block-not-reduced")).toMatchObject({
+      blocksSend: true,
+      title: "Продукт, който вече не е намален",
+    });
   });
 });

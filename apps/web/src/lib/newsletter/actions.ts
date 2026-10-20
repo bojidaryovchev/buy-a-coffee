@@ -13,10 +13,12 @@ import {
   claimResume,
   deleteDraft,
   duplicateCampaign,
+  getCampaign,
   isUuid,
   saveDraft,
   startCampaign,
 } from "./campaigns";
+import { claimNotes } from "./claims";
 import { composeCampaign, copyBytes } from "./batch";
 import { LETTER_MAX_BYTES } from "./deliverability";
 import { unsubscribeUrl } from "./links";
@@ -24,7 +26,8 @@ import { blockProblems, describeBlockProblems, type ProductBlocksSnapshot } from
 import { resolveLetterProducts } from "./product-source";
 import { resyncActiveSubscribers, type ResyncReport } from "./resync";
 import { newsletterDraftSchema, requireContent, resolveIntent, testAddressSchema } from "./schemas";
-import { abandonRun, resendBatchClient, runCampaign } from "./send";
+import { abandonRun, resendBatchClient, runCampaign, stopRun } from "./send";
+import { letterPromotions } from "./template-data";
 
 /**
  * The newsletter's admin actions: write a draft, send a test of it, send it,
@@ -237,12 +240,27 @@ export async function submitNewsletter(
      sold out since, or a section left empty, does not: the letter goes out
      without it, as the preview and the notes showed (`blockIssues`). */
   const problems = blockProblems(draft.body, products);
-  if (problems.length > 0) {
-    return {
-      savedAt,
-      version,
-      error: `Изпращането не започна: ${describeBlockProblems(problems)}. Поправете или махнете тези блокове и изпратете отново.`,
-    };
+
+  /* What it says about the shop's promotions, against the promotions as they
+     stand: a promotion's letter only while it runs and only over products
+     whose badges carry its percentage, and no promotion named that is over
+     (`claims.ts`). The same notes the composer shows. Every reason at once,
+     so one press says all there is to put right. */
+  const campaign = await getCampaign(id);
+  const claims = campaign
+    ? claimNotes({
+        ...(await letterPromotions(campaign)),
+        products: products.blocks.flatMap((block) => block.products),
+      }).filter((note) => note.blocksSend)
+    : [];
+  if (problems.length > 0 || claims.length > 0) {
+    const reasons = [
+      ...(problems.length > 0
+        ? [`${describeBlockProblems(problems)}. Поправете или махнете тези блокове.`]
+        : []),
+      ...claims.map((note) => `${note.title} — ${note.detail}`),
+    ];
+    return { savedAt, version, error: `Изпращането не започна: ${reasons.join(" ")}` };
   }
 
   /* And as one reader will get it, measured as Gmail measures it. */
@@ -330,6 +348,22 @@ export async function resumeNewsletter(
   revalidatePath(`/admin/byuletin/${id}`);
   revalidatePath("/admin/byuletin");
   return {};
+}
+
+/**
+ * "Спри изпращането": end a send that stopped instead of continuing it —
+ * nobody else gets the letter (`stopRun`). Behind a second press on the
+ * page; refused for a send that is running, which only "Продължи"'s own
+ * lock could have started.
+ */
+export async function stopNewsletter(formData: FormData): Promise<void> {
+  if (!(await isSignedIn())) redirect("/admin/vhod");
+  const id = formText(formData, "id");
+  if (!isUuid(id)) redirect("/admin/byuletin");
+  await stopRun(id);
+  revalidatePath(`/admin/byuletin/${id}`);
+  revalidatePath("/admin/byuletin");
+  redirect(`/admin/byuletin/${id}`);
 }
 
 export type ResyncState = { error?: string; report?: ResyncReport };

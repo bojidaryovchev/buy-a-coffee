@@ -173,11 +173,13 @@ function snapshot(blocks: { token: string; slugs: string[] }[]): ProductBlocksSn
     campaign: "2026-11-test",
     blocks: blocks.map(({ token, slugs }) => ({
       token,
-      spec: token.startsWith("[[промоции")
-        ? { kind: "sale", limit: 4 }
-        : token.startsWith("[[нови")
-          ? { kind: "new", limit: 4 }
-          : { kind: "picked", slugs },
+      spec: token.startsWith("[[промоции: ")
+        ? { kind: "reduced", slugs }
+        : token.startsWith("[[промоции")
+          ? { kind: "sale", limit: 4 }
+          : token.startsWith("[[нови")
+            ? { kind: "new", limit: 4 }
+            : { kind: "picked", slugs },
       products: slugs.map(product),
       missing: [],
     })),
@@ -196,22 +198,22 @@ describe("what the letter draws", () => {
     "[[продукти: a]]",
   ].join("\n\n");
 
-  it("leaves out an empty block, and a heading with nothing else under it", () => {
+  const shown = (blocks: ReturnType<typeof letterBlocks>["blocks"]) =>
+    blocks.map((block) =>
+      block.type === "heading" || block.type === "paragraph"
+        ? `${block.type}:${block.children.map((child) => (child.type === "text" ? child.value : "")).join("")}`
+        : block.type,
+    );
+
+  it("leaves out the catalog's empty sections whole, words and all", () => {
     const empty = snapshot([
       { token: "[[нови-продукти]]", slugs: [] },
       { token: "[[промоции]]", slugs: [] },
       { token: "[[продукти: a]]", slugs: ["a"] },
     ]);
-    const drawn = letterBlocks(body, empty).blocks.map((block) =>
-      block.type === "heading" || block.type === "paragraph"
-        ? `${block.type}:${block.children.map((child) => (child.type === "text" ? child.value : "")).join("")}`
-        : block.type,
-    );
-    // "Ново в магазина" goes with its empty block; "Промоции" stays over its sentence.
-    expect(drawn).toEqual([
+    // "Ново в магазина" goes with its empty block; "Промоции" with its sentence too.
+    expect(shown(letterBlocks(body, empty).blocks)).toEqual([
       "paragraph:Здравейте,",
-      "heading:Промоции",
-      "paragraph:До 15 ноември.",
       "heading:Избрано",
       "products",
     ]);
@@ -227,15 +229,74 @@ describe("what the letter draws", () => {
       { subject: "Ноември", preheader: "", body, attachments: [], products: empty },
       { unsubscribeUrl: unsubscribeUrl("a".repeat(64)) },
     );
-    expect(html).not.toContain("Ново в магазина");
-    expect(text).not.toContain("Ново в магазина");
-    expect(html).toContain("Промоции");
+    for (const part of [html, text]) {
+      expect(part).not.toContain("Ново в магазина");
+      expect(part).not.toContain("Промоции");
+      expect(part).not.toContain("До 15 ноември");
+    }
     expect(html).toContain("Марка a");
   });
 
-  it("keeps the heading of a section whose subsection has text", () => {
-    const nested = "## Промоции\n\n### Кафе\n\nТекст.\n\n[[промоции]]";
+  it("keeps the owner's words over chosen products that all went, and only drops a bare heading", () => {
+    const withWords = "## Избрано\n\nНашият избор.\n\n[[продукти: a]]";
+    const gone = snapshot([{ token: "[[продукти: a]]", slugs: [] }]);
+    expect(shown(letterBlocks(withWords, gone).blocks)).toEqual([
+      "heading:Избрано",
+      "paragraph:Нашият избор.",
+    ]);
+    expect(shown(letterBlocks("## Избрано\n\n[[продукти: a]]", gone).blocks)).toEqual([]);
+  });
+
+  it("takes a catalog section's subsections with it", () => {
+    const nested = "## Промоции\n\n### Кафе\n\nТекст.\n\n[[промоции]]\n\n## После\n\nОще.";
     const drawn = letterBlocks(nested, snapshot([{ token: "[[промоции]]", slugs: [] }])).blocks;
-    expect(drawn.map((block) => block.type)).toEqual(["heading", "heading", "paragraph"]);
+    expect(shown(drawn)).toEqual(["heading:После", "paragraph:Още."]);
+  });
+
+  it("drops the monthly letter's reductions whole when they have all sold out by the send", () => {
+    const letter = monthlyLetter({
+      now: NOW,
+      newArrivals: ["a"],
+      reduced: ["c"],
+      promotions: [promotion],
+    });
+    const soldOut = snapshot([
+      { token: "[[продукти: a]]", slugs: ["a"] },
+      { token: "[[промоции: c]]", slugs: [] },
+    ]);
+    const words = JSON.stringify(letterBlocks(letter.body, soldOut).blocks);
+    expect(words).not.toContain("Промоции");
+    expect(words).not.toContain("Есенни дни");
+    expect(words).not.toContain("страницата с промоциите");
+    expect(words).toContain("Ново в магазина");
+  });
+});
+
+describe("a letter's links to the shop", () => {
+  it("carry the letter's own campaign, as its cards do; a bare address and another site do not", async () => {
+    const letter = monthlyLetter({ now: NOW, newArrivals: [], reduced: ["c"], promotions: [] });
+    const body = `${letter.body}\n\nВижте https://buy-a-coffee.com/bg/promotsii и [друг сайт](https://example.org/a).`;
+    const { html, text } = await composeNewsletterEmail(
+      {
+        subject: "Ноември",
+        preheader: "",
+        body,
+        attachments: [],
+        products: snapshot([{ token: "[[промоции: c]]", slugs: ["c"] }]),
+      },
+      { unsubscribeUrl: unsubscribeUrl("a".repeat(64)) },
+    );
+    expect(html).toMatch(
+      /href="https?:\/\/[^"]+\/bg\/promotsii\?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=2026-11-test"/,
+    );
+    expect(text).toMatch(
+      /\/bg\/promotsii\?utm_source=newsletter&utm_medium=email&utm_campaign=2026-11-test/,
+    );
+    // The cards' links say the same campaign.
+    expect(html).toContain(
+      "/bg/c?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=2026-11-test",
+    );
+    expect(html).toContain('href="https://buy-a-coffee.com/bg/promotsii"');
+    expect(html).toContain('href="https://example.org/a"');
   });
 });

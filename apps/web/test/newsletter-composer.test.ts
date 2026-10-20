@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { insertBlockLine } from "@/components/admin/newsletter-edits";
@@ -282,6 +284,29 @@ describe("putting products in the letter", () => {
     expect((await sent()).get("body")).toBe("Здравейте,\n\n[[продукти: nov-1, nov-2]]");
   });
 
+  it("freezes the reductions into a list of reductions, still checked at the send", async () => {
+    previewBlocks = [
+      {
+        token: "[[промоции]]",
+        kind: "sale",
+        products: [
+          { slug: "minus-1", title: "Eurocaf", detail: null, price: "8,00 €", oldPrice: "10,00 €" },
+        ],
+        missing: [],
+      },
+    ];
+    draw({ body: "Здравейте,\n\n[[промоции]]" });
+    await screen.findByText("Eurocaf", undefined, { timeout: 2000 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Замени с избраните" }));
+    });
+    expect(screen.getByRole("heading", { name: "Промоции · избрани" })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("Здравейте,\n\n[[промоции: minus-1]]");
+  });
+
   it("moves a block and takes one out, keeping the text apart", async () => {
     draw({ body: "Първо.\n\n[[промоции]]\n\nПоследно." });
     await act(async () => {
@@ -315,6 +340,51 @@ describe("putting products in the letter", () => {
     expect(first.signal?.aborted).toBe(true);
     // Nothing waits on the form's action while it searches.
     expect(actions.submitNewsletter).not.toHaveBeenCalled();
+  });
+});
+
+describe("before the script runs", () => {
+  it("is a plain field the browser posts, and what was typed in it survives the swap to blocks", async () => {
+    const element = createElement(NewsletterComposer, {
+      campaign: { ...campaign, body: "Старо." },
+      activeCount: 3,
+      sender: "Buy a Coffee <info@buy-a-coffee.com>",
+      testRecipient: "owner@example.org",
+      canSend: true,
+      canUpload: false,
+    });
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(element);
+    document.body.appendChild(container);
+    const field = container.querySelector("textarea#body") as HTMLTextAreaElement;
+    expect(field.getAttribute("name")).toBe("body");
+    // The owner types before the script has run.
+    field.value = "Написано преди скрипта.\n\n[[промоции]]";
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, element, {
+          onRecoverableError: (error) => console.error("recoverable", error),
+        });
+      });
+      // Hydrated, not drawn again from scratch: no mismatch.
+      expect(errors.mock.calls.flat().join(" ")).not.toMatch(/hydrat|recoverable/i);
+      // The blocks took over, from what was typed rather than what was drawn.
+      expect(screen.getByRole("heading", { name: "Промоции · автоматично" })).toBeTruthy();
+      expect((screen.getByRole("textbox", { name: "Текст" }) as HTMLTextAreaElement).value).toBe(
+        "Написано преди скрипта.",
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+      });
+      expect((await sent()).get("body")).toBe("Написано преди скрипта.\n\n[[промоции]]");
+    } finally {
+      errors.mockRestore();
+      await act(async () => root?.unmount());
+      container.remove();
+    }
   });
 });
 
@@ -438,7 +508,7 @@ describe("before sending", () => {
     );
     const panel = screen.getByRole("region", { name: "Преди изпращане" });
     expect(panel.textContent).toContain("Последното писмо е изпратено преди 12 дни");
-    expect(panel.textContent).toContain("най-много веднъж месечно");
+    expect(panel.textContent).toContain("не повече от веднъж месечно");
   });
 
   it("says there is nothing to worry about when there is not", () => {

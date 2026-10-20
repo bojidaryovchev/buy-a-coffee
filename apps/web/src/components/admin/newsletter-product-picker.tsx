@@ -67,6 +67,7 @@ export function NewsletterProductPicker({
   onClose,
   max = MAX_BLOCK_PRODUCTS,
   exclude = [],
+  onlyReduced = false,
   insertLabel = (count) => (count > 1 ? `Вмъкни ${count} продукта` : "Вмъкни в текста"),
 }: {
   /** The chosen products, in the order chosen; the block is written from their slugs. */
@@ -76,6 +77,8 @@ export function NewsletterProductPicker({
   max?: number;
   /** Slugs the block already shows, which are not offered again. */
   exclude?: readonly string[];
+  /** Offer only what shows a reduction: for a list of reductions. */
+  onlyReduced?: boolean;
   insertLabel?: (count: number) => string;
 }) {
   const id = useId();
@@ -121,7 +124,7 @@ export function NewsletterProductPicker({
 
   const searching = query.length >= MIN_TERM && answer.term !== query;
   const results = (query.length >= MIN_TERM && answer.term === query ? answer.products : []).filter(
-    (product) => !exclude.includes(product.slug),
+    (product) => !exclude.includes(product.slug) && (!onlyReduced || product.oldPrice !== null),
   );
   const full = selected.length >= max;
   const isSelected = (slug: string) => selected.some((product) => product.slug === slug);
@@ -142,7 +145,9 @@ export function NewsletterProductPicker({
         : answer.error
           ? answer.error
           : results.length === 0
-            ? "Няма продаван продукт с такова име."
+            ? onlyReduced
+              ? "Няма намален продукт с такова име."
+              : "Няма продаван продукт с такова име."
             : `${results.length === 1 ? "1 продукт" : `${results.length} продукта`}.`;
 
   return (

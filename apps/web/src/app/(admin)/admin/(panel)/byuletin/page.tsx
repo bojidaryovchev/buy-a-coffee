@@ -97,7 +97,9 @@ function monthlyLine(plan: MonthlyPlan): string {
         `${promotion.label ? `„${promotion.label}“` : `−${promotion.percentOff}%`} до ${dayWords(lastDay(promotion.endsAt))}`,
     )
     .join(", ");
-  return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са ${counted}.`;
+  const overflow = plan.plan.leftOut.newOverflow ?? 0;
+  const more = overflow > 0 ? ` Още ${overflow} нови не се побират: едно писмо показва до 12.` : "";
+  return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са ${counted}.${more}`;
 }
 
 /** A promotion in the list to choose from: the owner's name, its reduction and its days. */
@@ -283,8 +285,9 @@ export default async function AdminNewsletterPage({
                     ))}
                   </select>
                   <p className="flex-1 text-xs text-ink-500">
-                    Писмото е с намалението, дните и продуктите на промоцията. Изпратете го не
-                    по-често от веднъж месечно — промоциите влизат и в месечния бюлетин.
+                    Писмото е с дните на промоцията и с продуктите, чиито значки показват цялото ѝ
+                    намаление. Може да се подготви отрано; изпраща се, когато промоцията тече.
+                    Промоциите влизат и в месечния бюлетин.
                   </p>
                   <button type="submit" className={START_BUTTON}>
                     Започни обявата

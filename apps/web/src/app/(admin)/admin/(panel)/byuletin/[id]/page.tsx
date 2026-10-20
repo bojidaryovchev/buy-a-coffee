@@ -6,7 +6,7 @@ import { CampaignAutoRefresh, ResumeForm } from "@/components/admin/campaign-pro
 import { NewsletterComposer } from "@/components/admin/newsletter-composer";
 import { listCapitalisedNames } from "@/lib/catalog/queries";
 import { MAIL_FROM, NOTIFY_TO } from "@/lib/mail/identity";
-import { deleteNewsletter, duplicateNewsletter } from "@/lib/newsletter/actions";
+import { deleteNewsletter, duplicateNewsletter, stopNewsletter } from "@/lib/newsletter/actions";
 import {
   countActiveSubscribers,
   deliveryCounts,
@@ -19,7 +19,9 @@ import {
 import { unsubscribeUrl } from "@/lib/newsletter/links";
 import { campaignFiles, campaignSnapshot } from "@/lib/newsletter/product-blocks";
 import { dayWords, lastDay, periodMonthName } from "@/lib/newsletter/sofia";
-import { lastLetterStart, promotionDays } from "@/lib/newsletter/template-data";
+import type { PromotionFacts } from "@/lib/newsletter/claims";
+import { letterPlanOf, type LetterPlan } from "@/lib/newsletter/letter-plan";
+import { lastLetterStart, letterPromotions } from "@/lib/newsletter/template-data";
 import {
   CAMPAIGN_STATUS_LABEL,
   CAMPAIGN_STATUS_TONE,
@@ -98,22 +100,87 @@ function DeleteDraft({ id, month }: { id: string; month: string | null }) {
   );
 }
 
-/** Where a draft came from, in a line: the month's letter, a promotion's, or nothing to say. */
-function originLine(
+const products = (count: number) => (count === 1 ? "1 продукт" : `${count} продукта`);
+
+/**
+ * Where a draft came from, and what its template could not put in and why,
+ * in the owner's words: the month's letter, a promotion's, or nothing to say.
+ */
+function originLines(
   campaign: { template: string | null; autoPeriod: string | null },
-  promotion: { name: string; label: string | null; endsAt: Date } | null,
-): string | null {
+  promotion: PromotionFacts | null,
+  plan: LetterPlan | null,
+): string[] {
+  const left = plan?.leftOut ?? {};
   if (campaign.template === "monthly") {
-    return campaign.autoPeriod
-      ? `Месечният бюлетин за ${periodMonthName(campaign.autoPeriod)}, подготвен автоматично: прегледайте текста и продуктите, махнете каквото не искате и го изпратете.`
-      : "Месечен бюлетин: новото в магазина и промоциите.";
+    return [
+      campaign.autoPeriod
+        ? `Месечният бюлетин за ${periodMonthName(campaign.autoPeriod)}, подготвен автоматично: прегледайте текста и продуктите, махнете каквото не искате и го изпратете.`
+        : "Месечен бюлетин: новото в магазина и промоциите.",
+      ...(left.newOverflow
+        ? [
+            `Още ${products(left.newOverflow)} от новите не се побраха: едно писмо показва до 12. Те остават с „Ново“ в магазина.`,
+          ]
+        : []),
+    ];
   }
   if (campaign.template === "promotion") {
-    return promotion
-      ? `Обява за промоцията „${promotion.name}“${promotion.label ? ` (за клиентите: „${promotion.label}“)` : ""}, до ${dayWords(lastDay(promotion.endsAt))}.`
-      : "Обява за промоция, която вече я няма.";
+    if (!promotion) return ["Обява за промоция, която вече я няма."];
+    const percent = `−${promotion.percentOff}%`;
+    return [
+      `Обява за промоцията „${promotion.name}“${promotion.label ? ` (за клиентите: „${promotion.label}“)` : ""}, до ${dayWords(lastDay(new Date(promotion.endsAt)))}.`,
+      ...(left.unbacked
+        ? [
+            `${products(left.unbacked)} от промоцията не ${left.unbacked === 1 ? "е" : "са"} в писмото: значката им не може да покаже ${percent}, защото нямат 30-дневна история на цената или наскоро са били по-евтини. В магазина пак са с намалената цена.`,
+          ]
+        : []),
+      ...(left.elsewhere
+        ? [`${products(left.elsewhere)} са в друга промоция с по-голямо намаление и не са тук.`]
+        : []),
+      ...(left.soldOut ? [`${products(left.soldOut)} са изчерпани и не са тук.`] : []),
+      ...(left.overflow
+        ? [
+            `Още ${products(left.overflow)} с ${percent} не се побраха в писмото (до 6 в блок); те са на страницата с промоциите.`,
+          ]
+        : []),
+    ];
   }
-  return null;
+  return [];
+}
+
+/**
+ * "Спри изпращането", behind a second press: the send ends here, and nobody
+ * still waiting gets the letter (`stopRun`). Beside "Продължи", for a send
+ * that stopped for a reason the owner would rather not see past.
+ */
+function StopSend({ id, waiting }: { id: string; waiting: number }) {
+  return (
+    <details className="group">
+      <summary
+        className={`${SMALL_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+      >
+        Спри изпращането
+      </summary>
+      <div className="mt-2 max-w-prose rounded-md border border-line-strong bg-paper-raised p-4 text-sm">
+        <p className="font-semibold text-ink-900">Да спрем ли изпращането?</p>
+        <p className="mt-1 text-ink-700">
+          {waiting > 0
+            ? `${waiting} ${waiting === 1 ? "абонат няма" : "абонати няма"} да получат писмото. `
+            : ""}
+          Изпратените остават изпратени. Това не може да бъде върнато.
+        </p>
+        <form action={stopNewsletter} className="mt-3">
+          <input type="hidden" name="id" value={id} />
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center rounded-sm bg-critical px-4 py-2 text-sm font-semibold whitespace-nowrap text-paper transition-colors hover:bg-critical/90"
+          >
+            Да, спри
+          </button>
+        </form>
+      </div>
+    </details>
+  );
 }
 
 function BackLink() {
@@ -140,13 +207,13 @@ export default async function AdminCampaignPage({
   if (!campaign || campaign.status === "dismissed") notFound();
 
   if (campaign.status === "draft") {
-    const [activeCount, capitalised, lastLetter, promotion] = await Promise.all([
+    const [activeCount, capitalised, lastLetter, promotions] = await Promise.all([
       countActiveSubscribers(),
       listCapitalisedNames(),
       lastLetterStart(),
-      promotionDays(campaign.promotionId),
+      letterPromotions(campaign),
     ]);
-    const origin = originLine(campaign, promotion);
+    const origin = originLines(campaign, promotions.announced, letterPlanOf(campaign.attachments));
     return (
       <>
         <BackLink />
@@ -155,10 +222,14 @@ export default async function AdminCampaignPage({
             <h1 className="font-display text-3xl font-semibold text-ink-900">
               {campaign.subject || "Нов бюлетин"}
             </h1>
-            {origin && <p className="mt-1 max-w-prose text-base text-ink-700">{origin}</p>}
+            {origin.map((line) => (
+              <p key={line} className="mt-1 max-w-prose text-base text-ink-700">
+                {line}
+              </p>
+            ))}
             <p className="mt-1 max-w-prose text-base text-ink-500">
-              Формата за абониране обещава писмо веднъж месечно: новите кафета и текущите промоции.
-              Пазете това обещание.
+              Формата за абониране обещава писмо не повече от веднъж месечно: новите кафета и
+              текущите промоции. Пазете това обещание.
             </p>
           </div>
           <div className="flex flex-wrap items-start gap-2">
@@ -186,15 +257,9 @@ export default async function AdminCampaignPage({
           canUpload={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
           capitalised={capitalised}
           lastLetterAt={lastLetter?.toISOString() ?? null}
-          promotion={
-            promotion
-              ? {
-                  startsAt: promotion.startsAt.toISOString(),
-                  endsAt: promotion.endsAt.toISOString(),
-                  stoppedAt: promotion.stoppedAt?.toISOString() ?? null,
-                }
-              : null
-          }
+          announced={promotions.announced}
+          announcedMissing={promotions.announcedMissing}
+          named={promotions.named}
         />
       </>
     );
@@ -311,7 +376,10 @@ export default async function AdminCampaignPage({
             </p>
           )}
           {isResumable(campaign, waiting) && (
-            <ResumeForm campaignId={campaign.id} waiting={waiting} />
+            <>
+              <ResumeForm campaignId={campaign.id} waiting={waiting} />
+              <StopSend id={campaign.id} waiting={waiting} />
+            </>
           )}
         </div>
       </section>

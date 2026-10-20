@@ -23,12 +23,14 @@ import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
 
 /**
  * The newsletter's daily job against a real database: it prepares the month's
- * draft once — two runs at once make one draft and one notice to the owner —
- * and not at all when there is nothing to say, a letter already went out this
- * month, or the owner started one; a notice that fails leaves the draft
- * alone; and every send that stopped is picked up and finished, as the
- * panel's "Продължи" would, without mailing anybody twice. Nothing is ever
- * sent to the list that nobody started.
+ * draft once, in the month's first week — two runs at once make one draft and
+ * one notice to the owner — and not at all after the 7th, when there is
+ * nothing to say, a letter already went out this month, or the owner started
+ * one; a notice that fails leaves the draft alone. A send that stopped for a
+ * reason another run gets past, within 23 hours of its start, is picked up
+ * and finished without mailing anybody twice; one stopped by the account, or
+ * started long ago, waits for the owner, who can also end it ("Спри
+ * изпращането"). Nothing is ever sent to the list that nobody started.
  *
  * Nothing reaches Resend: the sender is handed a stand-in client, and the
  * owner's notice a stand-in sink.
@@ -175,7 +177,11 @@ suite("the newsletter's daily job (integration)", () => {
   };
 
   const all = () => db.select().from(newsletterCampaigns);
-  const run = (options: Cron.CronOptions = {}) => cron.runNewsletterCron(new Date(), options);
+  /** The 3rd of this Sofia month, 09:00 there: inside the week the draft is made in. */
+  const firstWeek = () =>
+    new Date(sofiaMonthStart(new Date()).getTime() + 2 * DAY + 7 * 60 * 60 * 1000);
+  const run = (options: Cron.CronOptions = {}, now = firstWeek()) =>
+    cron.runNewsletterCron(now, options);
 
   describe("the month's draft", () => {
     it("is made once however many runs meet, and the owner is told once", async () => {
@@ -244,10 +250,29 @@ suite("the newsletter's daily job (integration)", () => {
       expect((await run()).draft).toBe("sent_this_month");
 
       await db.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, sent!.id));
-      await campaigns.createDraft({ subject: "Моят", template: "monthly" });
+      // Started weeks ago and still waiting: the month's letter is coming.
+      const own = await campaigns.createDraft({ subject: "Моят", template: "monthly" });
+      await db
+        .update(newsletterCampaigns)
+        .set({ createdAt: new Date(Date.now() - 40 * DAY) })
+        .where(eq(newsletterCampaigns.id, own));
       expect((await run()).draft).toBe("owner_draft");
       expect(await all()).toHaveLength(1);
       expect(notices).toHaveLength(0);
+    });
+
+    it("is not made after the month's first week: a run on the 21st makes no draft", async () => {
+      await arrival("nov");
+      const the21st = new Date(
+        sofiaMonthStart(new Date()).getTime() + 20 * DAY + 7 * 60 * 60 * 1000,
+      );
+      expect(await run({}, the21st)).toMatchObject({ draft: "not_first_week", draftsCreated: 0 });
+      // And the 7th still does.
+      const the7th = new Date(
+        sofiaMonthStart(new Date()).getTime() + 6 * DAY + 20 * 60 * 60 * 1000,
+      );
+      expect((await run({}, the7th)).draft).toBe("created");
+      expect(await all()).toHaveLength(1);
     });
 
     it("keeps the draft when the notice cannot be delivered, and does not make it again", async () => {
@@ -260,22 +285,18 @@ suite("the newsletter's daily job (integration)", () => {
       expect(await all()).toHaveLength(1);
     });
 
-    it("counts what is new since the last letter", async () => {
-      // The last letter went out the day before this month began.
-      const monthStart = sofiaMonthStart(new Date());
-      const lastLetter = new Date(monthStart.getTime() - DAY);
-      await db.insert(newsletterCampaigns).values({
-        subject: "Миналия месец",
-        body: "Текст",
-        status: "sent",
-        startedAt: lastLetter,
-      });
-      await arrival("predi", new Date(lastLetter.getTime() - DAY));
-      await arrival("sled", new Date(monthStart.getTime() - 12 * 60 * 60 * 1000));
-      expect((await run()).draft).toBe("created");
-      const draft = (await all()).find((row) => row.autoPeriod !== null)!;
-      expect(draft.body).toContain("[[продукти: sled]]");
-      expect(draft.body).not.toContain("predi");
+    it("keeps the plan it was written from: when it was prepared, and the promotions it names", async () => {
+      await arrival("nov");
+      const now = firstWeek();
+      await run({}, now);
+      const [draft] = await all();
+      expect(draft!.attachments).toEqual([
+        expect.objectContaining({
+          kind: "letter-plan",
+          preparedAt: now.toISOString(),
+          promotionIds: [],
+        }),
+      ]);
     });
 
     it("never sends anything to the list", async () => {
@@ -341,6 +362,127 @@ suite("the newsletter's daily job (integration)", () => {
       expect((await campaigns.getCampaign(live))!.status).toBe("sending");
     });
 
+    it("leaves a send that started long ago to the owner: a 180-day-old partial is not resumed", async () => {
+      const id = await startedCampaign(150);
+      await send.runCampaign(id, { client: new Inbox(2), sleep: async () => {} });
+      await db
+        .update(newsletterCampaigns)
+        .set({ startedAt: new Date(Date.now() - 180 * DAY) })
+        .where(eq(newsletterCampaigns.id, id));
+      const inbox = new Inbox();
+      expect(await run({ client: inbox })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
+      expect(inbox.requests).toBe(0);
+      expect((await campaigns.getCampaign(id))!.status).toBe("partial");
+    });
+
+    it("leaves a send the account stopped to the owner, whose Продължи still works", async () => {
+      const id = await startedCampaign(3);
+      const refusing: BatchClient = {
+        async send() {
+          return {
+            data: null,
+            error: { name: "invalid_api_key", message: "API key is invalid", statusCode: 401 },
+          };
+        },
+      };
+      await send.runCampaign(id, { client: refusing, sleep: async () => {} });
+      const stopped = (await campaigns.getCampaign(id))!;
+      expect(stopped.status).toBe("partial");
+      expect(stopped.attachments).toContainEqual(
+        expect.objectContaining({ kind: "run-stop", cause: "account" }),
+      );
+      const inbox = new Inbox();
+      expect(await run({ client: inbox })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
+      expect(inbox.requests).toBe(0);
+
+      // The owner fixed the key and presses "Продължи": as before.
+      expect(await campaigns.claimResume(id)).toBe(true);
+      await send.runCampaign(id, { client: inbox, sleep: async () => {} });
+      expect((await campaigns.getCampaign(id))!.status).toBe("sent");
+      expect(inbox.delivered).toHaveLength(3);
+      // Done: the stop is forgotten with it.
+      expect(
+        (await campaigns.getCampaign(id))!.attachments.some((entry) => entry.kind === "run-stop"),
+      ).toBe(false);
+    });
+
+    it("leaves a send whose own products stopped it to the owner", async () => {
+      const id = await startedCampaign(2);
+      await db
+        .update(newsletterCampaigns)
+        .set({ body: "Здравейте,\n\n[[промоций]]" })
+        .where(eq(newsletterCampaigns.id, id));
+      expect(
+        (await send.runCampaign(id, { client: new Inbox(), sleep: async () => {} })).status,
+      ).toBe("stopped");
+      expect((await campaigns.getCampaign(id))!.attachments).toContainEqual(
+        expect.objectContaining({ kind: "run-stop", cause: "products" }),
+      );
+      expect(await run({ client: new Inbox() })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
+    });
+
+    it("is ended by the owner's Спри: nobody waiting gets it, and the record says so", async () => {
+      const id = await startedCampaign(150);
+      const first = new Inbox(2);
+      await send.runCampaign(id, { client: first, sleep: async () => {} });
+      expect(first.delivered).toHaveLength(100);
+      // One copy was handed over and its answer lost: it may have arrived.
+      const [inFlight] = await db
+        .select({ id: newsletterDeliveries.id })
+        .from(newsletterDeliveries)
+        .where(eq(newsletterDeliveries.status, "pending"))
+        .limit(1);
+      await db
+        .update(newsletterDeliveries)
+        .set({ status: "sending", batchKey: "newsletter/x/one/y", attemptedAt: new Date() })
+        .where(eq(newsletterDeliveries.id, inFlight!.id));
+
+      expect(await send.stopRun(id)).toBe(true);
+      const rows = await db
+        .select({ status: newsletterDeliveries.status, error: newsletterDeliveries.error })
+        .from(newsletterDeliveries)
+        .where(eq(newsletterDeliveries.campaignId, id));
+      const by = (status: string) => rows.filter((row) => row.status === status);
+      expect(by("sent")).toHaveLength(100);
+      expect(by("skipped")).toHaveLength(49);
+      expect(by("failed")).toEqual([
+        expect.objectContaining({
+          error: expect.stringMatching(/^Изпращането беше спряно, докато/),
+        }),
+      ]);
+      expect(by("pending").length + by("sending").length).toBe(0);
+      const ended = (await campaigns.getCampaign(id))!;
+      expect(ended).toMatchObject({ status: "partial", sentCount: 100, failedCount: 1 });
+      expect(ended.lastError).toMatch(/^Изпращането е спряно\. 49 писма не бяха изпратени/);
+      expect(ended.sentAt).toBeInstanceOf(Date);
+      // Nothing left to resume, and nothing left to stop.
+      expect(await run({ client: new Inbox() })).toMatchObject({ resumed: 0, awaitingOwner: 0 });
+      expect(await send.stopRun(id)).toBe(false);
+    });
+
+    it("refuses Спри for a send that is still going", async () => {
+      const id = await startedCampaign(2);
+      expect(await send.stopRun(id)).toBe(false);
+      expect((await campaigns.getCampaign(id))!.status).toBe("sending");
+    });
+
+    it("shows the owner every send that waits, not only the newest", async () => {
+      const waiting = await startedCampaign(150);
+      await send.runCampaign(waiting, { client: new Inbox(2), sleep: async () => {} });
+      // A newer one that ended partial with failures only: nothing waits on it.
+      const [newer] = await db
+        .insert(newsletterCampaigns)
+        .values({
+          subject: "По-нов",
+          body: "Текст",
+          status: "partial",
+          startedAt: new Date(Date.now() + 60_000),
+        })
+        .returning({ id: newsletterCampaigns.id });
+      expect(newer).toBeTruthy();
+      expect(await campaigns.newsletterNextStep()).toMatchObject({ kind: "stalled", id: waiting });
+    });
+
     it("waits without a key, and says how many", async () => {
       const id = await startedCampaign(150);
       await send.runCampaign(id, { client: new Inbox(2), sleep: async () => {} });
@@ -356,6 +498,25 @@ suite("the newsletter's daily job (integration)", () => {
         resumeSkipped: 1,
       });
       expect((await campaigns.getCampaign(id))!.status).toBe("partial");
+    });
+  });
+
+  describe("one step failing", () => {
+    it("does not keep the other from running, and is counted", async () => {
+      const id = await (async () => {
+        await subscribe(150);
+        const created = await campaigns.createDraft({ subject: "Т", body: "Текст." });
+        await campaigns.startCampaign(created, 150);
+        return created;
+      })();
+      await send.runCampaign(id, { client: new Inbox(2), sleep: async () => {} });
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      // A date the calendar cannot read: the draft step fails; the resume still runs.
+      const report = await cron.runNewsletterCron(new Date(Number.NaN), { client: new Inbox() });
+      expect(report).toMatchObject({ draft: "error", errors: 1, resumed: 1 });
+      expect(errors.mock.calls.flat().join(" ")).toContain("newsletter.cron.draft_failed");
+      errors.mockRestore();
+      expect((await campaigns.getCampaign(id))!.status).toBe("sent");
     });
   });
 
@@ -377,9 +538,18 @@ suite("the newsletter's daily job (integration)", () => {
       expect(answer.status).toBe(200);
       const body = (await answer.json()) as Record<string, unknown>;
       expect(Object.keys(body).sort()).toEqual(
-        ["checkedAt", "draft", "draftsCreated", "ownerNotified", "resumeSkipped", "resumed"].sort(),
+        [
+          "awaitingOwner",
+          "checkedAt",
+          "draft",
+          "draftsCreated",
+          "errors",
+          "ownerNotified",
+          "resumeSkipped",
+          "resumed",
+        ].sort(),
       );
-      expect(body).toMatchObject({ draft: "created", draftsCreated: 1, ownerNotified: 1 });
+      expect(body).toMatchObject({ errors: 0 });
       // Counts and words, nothing of the letter or the list.
       expect(JSON.stringify(body)).not.toMatch(/nov|@|[0-9a-f]{8}-[0-9a-f]{4}/);
     });

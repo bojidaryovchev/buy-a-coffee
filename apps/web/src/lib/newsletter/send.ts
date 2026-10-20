@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import {
   newsletterCampaigns,
   newsletterDeliveries,
@@ -21,9 +21,10 @@ import {
   type BatchEmail,
   type CampaignTemplate,
 } from "./batch";
-import { ensureProductSnapshot, getCampaign } from "./campaigns";
+import { STALE_SENDING_MS, ensureProductSnapshot, getCampaign } from "./campaigns";
 import { blockProblems, campaignFiles, describeBlockProblems } from "./product-blocks";
 import { resolveLetterProducts } from "./product-source";
+import { runStopEntry, type RunStopCause } from "./run-stop";
 import { lettersPhrase } from "./status";
 
 /**
@@ -76,6 +77,11 @@ import { lettersPhrase } from "./status";
  * panel offers to continue. Between requests it pauses, because the Resend
  * account is shared with three other sites and their order mail must not meet
  * a rate limit we caused.
+ *
+ * WHY IT STOPPED. A run that stops says why twice: in words for the owner
+ * (`last_error`), and as a cause the daily job reads (`run-stop.ts`) — which
+ * picks up only a stop another run can get past, and leaves the rest to the
+ * owner's "Продължи" or "Спри изпращането" (`stopRun`).
  */
 
 /** Past this a request's key may be forgotten by Resend (it keeps them 24 h). */
@@ -159,10 +165,10 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
        composer was checked the same way; this is for every other road in. */
     const problems = blockProblems(campaign.body, products);
     if (problems.length > 0) {
-      await finish(
-        campaignId,
-        `Изпращането спря, без да тръгне нито едно писмо повече: продуктите в писмото не могат да бъдат показани (${describeBlockProblems(problems)}).`,
-      );
+      await finish(campaignId, {
+        message: `Изпращането спря, без да тръгне нито едно писмо повече: продуктите в писмото не могат да бъдат показани (${describeBlockProblems(problems)}).`,
+        cause: "products",
+      });
       return { status: "stopped", requests: 0, reason: "products" };
     }
     template = await composeCampaign({
@@ -173,18 +179,21 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
       products,
     });
   } catch (error) {
-    await finish(campaignId, `Писмото не може да бъде съставено: ${message(error)}`);
+    await finish(campaignId, {
+      message: `Писмото не може да бъде съставено: ${message(error)}`,
+      cause: "template",
+    });
     return { status: "stopped", requests: 0, reason: "template" };
   }
 
   let requests = 0;
-  let halt: string | null = null;
-  const stop = (reason: string) => {
-    halt ??= reason;
+  let halt: Halt | null = null;
+  const stop = (reason: string, cause: RunStopCause) => {
+    halt ??= { message: reason, cause };
   };
   const outOfTime = () => {
     if (now() < deadline) return false;
-    stop(TIME_UP);
+    stop(TIME_UP, "time");
     return true;
   };
 
@@ -209,10 +218,12 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
       if (outcome.kind === "transient") {
         stop(
           `Resend не отговори (${outcome.message}). Част от писмата чакат потвърждение: натиснете „Продължи“ след няколко минути — изпращат се отново със същия ключ и никой не получава писмото два пъти.`,
+          "transient",
         );
       } else if (outcome.kind === "account") {
         stop(
           `Resend отказа изпращането: ${outcome.message}. След като оправите настройката, натиснете „Продължи“.`,
+          "account",
         );
       }
       // Ambiguous: these copies wait; the run goes on with the others.
@@ -224,12 +235,14 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
         await release(rows);
         stop(
           `Resend ограничи изпращането (${outcome.message}). Нищо не е изгубено: натиснете „Продължи“ след няколко минути.`,
+          "transient",
         );
         return { kind: "released" };
       case "account":
         await release(rows);
         stop(
           `Resend отказа изпращането: ${outcome.message}. Нищо от тази заявка не е изпратено; след като оправите настройката, натиснете „Продължи“.`,
+          "account",
         );
         return { kind: "released" };
       case "ambiguous":
@@ -270,6 +283,7 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
         await release(rows.slice(index + 1));
         stop(
           `Resend отказа ${streak.count} поредни адреса с една и съща грешка (${streak.message}). Това по-скоро е настройка, отколкото адресите: останалите чакат. След като я оправите, натиснете „Продължи“.`,
+          "refusals",
         );
         return;
       }
@@ -303,8 +317,17 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
     await heartbeat(campaignId);
   }
 
-  await finish(campaignId, halt);
-  return halt ? { status: "stopped", requests, reason: halt } : { status: "done", requests };
+  const ended = halt as Halt | null;
+  await finish(campaignId, ended);
+  return ended
+    ? { status: "stopped", requests, reason: ended.message }
+    : { status: "done", requests };
+}
+
+/** Why a run stopped: the owner's words, and the daily job's cause. */
+interface Halt {
+  readonly message: string;
+  readonly cause: RunStopCause;
 }
 
 /* -- claiming --------------------------------------------------------------- */
@@ -573,19 +596,49 @@ async function heartbeat(campaignId: string): Promise<void> {
     .where(eq(newsletterCampaigns.id, campaignId));
 }
 
+/** The final status for these tallies: `partial` while anybody waits, as below. */
+function finalStatus(
+  tallies: Record<NewsletterDeliveryStatus, number>,
+): "sent" | "partial" | "failed" {
+  const waiting = tallies.pending + tallies.sending;
+  const accepted = acceptedCount(tallies);
+  return waiting > 0
+    ? "partial"
+    : tallies.failed === 0
+      ? "sent"
+      : accepted === 0
+        ? "failed"
+        : "partial";
+}
+
+/**
+ * The campaign's attachments with its run-stop entry replaced (or, with no
+ * cause, removed), and every other entry — the files, the snapshot, the
+ * letter's plan — kept as it was, in its order.
+ */
+function withRunStop(cause: RunStopCause | null, at: Date) {
+  const entry = JSON.stringify(cause ? [runStopEntry(cause, at)] : []);
+  return sql`(
+    select coalesce(jsonb_agg(kept.entry order by kept.position), '[]'::jsonb)
+    from jsonb_array_elements("newsletter_campaigns"."attachments") with ordinality as kept(entry, position)
+    where kept.entry->>'kind' is distinct from 'run-stop'
+  ) || ${entry}::jsonb`;
+}
+
 /**
  * Where the campaign ends up, from its deliveries rather than from this run's
  * memory: `partial` while anybody is still waiting, else `sent` if nobody
- * failed, `failed` if nobody got it, and `partial` in between.
+ * failed, `failed` if nobody got it, and `partial` in between. With somebody
+ * still waiting, why it stopped is recorded for the daily job (`run-stop.ts`).
  */
-async function finish(campaignId: string, halt: string | null): Promise<void> {
+async function finish(campaignId: string, halt: Halt | null): Promise<void> {
   const tallies = await tally(campaignId);
   const accepted = acceptedCount(tallies);
   const waiting = tallies.pending + tallies.sending;
-  const status =
-    waiting > 0 ? "partial" : tallies.failed === 0 ? "sent" : accepted === 0 ? "failed" : "partial";
+  const status = finalStatus(tallies);
+  const cause: RunStopCause | null = waiting > 0 ? (halt?.cause ?? "unexplained") : null;
   const lastError =
-    halt ??
+    halt?.message ??
     (tallies.sending > 0
       ? `${lettersPhrase(tallies.sending, "чака", "чакат")} потвърждение от Resend. Натиснете „Продължи“ по-късно: изпращат се отново със същия ключ и никой не получава писмото два пъти.`
       : tallies.pending > 0
@@ -602,6 +655,7 @@ async function finish(campaignId: string, halt: string | null): Promise<void> {
       failedCount: tallies.failed,
       lastError,
       updatedAt: new Date(),
+      attachments: withRunStop(cause, new Date()),
       ...(waiting === 0 ? { sentAt: sql`coalesce(${newsletterCampaigns.sentAt}, now())` } : {}),
     })
     .where(and(eq(newsletterCampaigns.id, campaignId), eq(newsletterCampaigns.status, "sending")));
@@ -623,8 +677,116 @@ export async function abandonRun(campaignId: string, error: unknown): Promise<vo
       status: "partial",
       lastError: `Изпращането прекъсна: ${message(error).slice(0, 300)}. Натиснете „Продължи“.`,
       updatedAt: new Date(),
+      attachments: withRunStop("exception", new Date()),
     })
     .where(and(eq(newsletterCampaigns.id, campaignId), eq(newsletterCampaigns.status, "sending")));
+}
+
+const STOPPED_BY_OWNER = "Изпращането беше спряно, преди да дойде редът му.";
+const STOPPED_IN_FLIGHT =
+  "Изпращането беше спряно, докато писмото чакаше потвърждение от Resend. Може да го е получил; не е изпратено повторно.";
+
+/**
+ * "Спри изпращането": the owner ends a send that stopped (or lost its
+ * sender) instead of continuing it. Nobody else is mailed: whoever was
+ * waiting is marked skipped — or, for a copy that may already have gone out
+ * under its key, failed with "may have arrived", which is the truth — and the
+ * campaign takes its final status from its deliveries, as `finish` would.
+ *
+ * Only a campaign the panel would offer "Продължи" for: `partial`, or
+ * `sending` with no heartbeat for `STALE_SENDING_MS`, with somebody waiting. The update of the
+ * campaign is the lock, in one transaction with the deliveries, so a resume
+ * that starts at the same moment finds it no longer resumable.
+ */
+export async function stopRun(campaignId: string, now = new Date()): Promise<boolean> {
+  const staleBefore = new Date(now.getTime() - STALE_SENDING_MS);
+  return db.transaction(async (tx) => {
+    // Nobody waiting: nothing to stop.
+    const [{ waiting } = { waiting: 0 }] = await tx
+      .select({ waiting: count() })
+      .from(newsletterDeliveries)
+      .where(
+        and(
+          eq(newsletterDeliveries.campaignId, campaignId),
+          inArray(newsletterDeliveries.status, ["pending", "sending"]),
+        ),
+      );
+    if (waiting === 0) return false;
+    const [claimed] = await tx
+      .update(newsletterCampaigns)
+      .set({ updatedAt: now })
+      .where(
+        and(
+          eq(newsletterCampaigns.id, campaignId),
+          or(
+            eq(newsletterCampaigns.status, "partial"),
+            and(
+              eq(newsletterCampaigns.status, "sending"),
+              lt(newsletterCampaigns.updatedAt, staleBefore),
+            ),
+          ),
+        ),
+      )
+      .returning({ id: newsletterCampaigns.id });
+    if (!claimed) return false;
+
+    const inCampaign = eq(newsletterDeliveries.campaignId, campaignId);
+    await tx
+      .update(newsletterDeliveries)
+      .set({ status: "failed", error: STOPPED_IN_FLIGHT })
+      .where(
+        and(
+          inCampaign,
+          eq(newsletterDeliveries.status, "sending"),
+          isNotNull(newsletterDeliveries.attemptedAt),
+        ),
+      );
+    await tx
+      .update(newsletterDeliveries)
+      .set({ status: "skipped", error: STOPPED_BY_OWNER, batchKey: null })
+      .where(
+        and(
+          inCampaign,
+          or(
+            eq(newsletterDeliveries.status, "pending"),
+            and(
+              eq(newsletterDeliveries.status, "sending"),
+              isNull(newsletterDeliveries.attemptedAt),
+            ),
+          ),
+        ),
+      );
+
+    const tallies: Record<NewsletterDeliveryStatus, number> = {
+      pending: 0,
+      sending: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      bounced: 0,
+      complained: 0,
+    };
+    const rows = await tx
+      .select({ status: newsletterDeliveries.status, n: count() })
+      .from(newsletterDeliveries)
+      .where(inCampaign)
+      .groupBy(newsletterDeliveries.status);
+    for (const row of rows) tallies[row.status] = row.n;
+    const stopped = tallies.skipped;
+    await tx
+      .update(newsletterCampaigns)
+      .set({
+        status: finalStatus(tallies),
+        sentCount: acceptedCount(tallies),
+        failedCount: tallies.failed,
+        lastError: `Изпращането е спряно. ${lettersPhrase(stopped, "не беше изпратено", "не бяха изпратени")} на тези, до които още не беше стигнало.`,
+        updatedAt: now,
+        sentAt: sql`coalesce(${newsletterCampaigns.sentAt}, now())`,
+        attachments: withRunStop(null, now),
+      })
+      .where(eq(newsletterCampaigns.id, campaignId));
+    return true;
+  });
 }
 
 /* -- Resend ----------------------------------------------------------------- */

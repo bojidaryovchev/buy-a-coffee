@@ -22,6 +22,7 @@ import {
   DEFAULT_BLOCK_PRODUCTS,
   MAX_BLOCK_PRODUCTS,
   MAX_LETTER_PRODUCTS,
+  isListKind,
   isTokenLine,
   parseProductToken,
   planTokens,
@@ -37,9 +38,12 @@ import {
  * A text block is a textarea with the formatting buttons. A block of chosen
  * products is drawn as its products — photograph, the shop's name for it, the
  * price — each with "Махни", and "+ Добави" opens the product search for
- * more. The two automatic blocks show what they would draw if the letter went
- * now, which is not something to edit: "Замени с избраните" turns one into a
- * list of exactly those products, which can then be edited. Every block moves
+ * more. A list of reductions (`[[промоции: адрес, …]]`, the monthly letter's)
+ * is drawn the same way, says which of its products are no longer reduced,
+ * and its search offers only reduced ones. The two automatic blocks show what
+ * they would draw if the letter went now, which is not something to edit:
+ * "Замени с избраните" turns one into a list of exactly those products —
+ * reductions stay a list of reductions — which can then be edited. Every block moves
  * up and down and can be taken out, and new ones go in at the end.
  *
  * What a product block shows comes from the preview (`reports`, matched to a
@@ -275,9 +279,9 @@ export function NewsletterBlocks({
     (sum, token, index) =>
       sum +
       (states[index] === "shown" && token.spec
-        ? token.spec.kind === "picked"
-          ? token.spec.slugs.length
-          : token.spec.limit
+        ? isListKind(token.spec.kind)
+          ? (token.spec as { slugs: readonly string[] }).slugs.length
+          : (token.spec as { limit: number }).limit
         : 0),
     0,
   );
@@ -355,7 +359,9 @@ export function NewsletterBlocks({
             const title =
               spec.kind === "picked"
                 ? BLOCK_KIND_NAMES.picked
-                : `${BLOCK_KIND_NAMES[spec.kind]} · автоматично`;
+                : spec.kind === "reduced"
+                  ? `${BLOCK_KIND_NAMES.reduced} · избрани`
+                  : `${BLOCK_KIND_NAMES[spec.kind]} · автоматично`;
             const overCap =
               fact.state === "over-cap" ? (
                 <p className="mb-2 text-sm font-medium text-critical">
@@ -364,17 +370,24 @@ export function NewsletterBlocks({
                 </p>
               ) : null;
 
-            if (spec.kind === "picked") {
+            if (spec.kind === "picked" || spec.kind === "reduced") {
               const report = fact.report;
+              const listKind = spec.kind;
               const left = (slug: string) => {
                 const slugs = spec.slugs.filter((item) => item !== slug);
                 if (slugs.length === 0) change(removeBlock(model, index));
-                else setLine(index, block, productTokenLine({ kind: "picked", slugs }));
+                else setLine(index, block, productTokenLine({ kind: listKind, slugs }));
               };
               const problemOf = (slug: string) => {
                 if (report?.missing.includes(slug)) {
                   return {
                     text: "Няма продукт с този адрес — изпращането няма да започне.",
+                    stops: true,
+                  };
+                }
+                if (report?.notReduced?.some((item) => item.slug === slug)) {
+                  return {
+                    text: "Вече не е намален — изпращането няма да започне.",
                     stops: true,
                   };
                 }
@@ -437,6 +450,7 @@ export function NewsletterBlocks({
                     <NewsletterProductPicker
                       max={room}
                       exclude={spec.slugs}
+                      onlyReduced={listKind === "reduced"}
                       insertLabel={(count) => (count > 1 ? `Добави ${count} продукта` : "Добави")}
                       onClose={() => setPicking(null)}
                       onInsert={(products) => {
@@ -446,7 +460,7 @@ export function NewsletterBlocks({
                           index,
                           block,
                           productTokenLine({
-                            kind: "picked",
+                            kind: listKind,
                             slugs: [...spec.slugs, ...products.map((product) => product.slug)],
                           }),
                         );
@@ -500,11 +514,13 @@ export function NewsletterBlocks({
                     onClick={() => {
                       if (!report) return;
                       onKnown(report.products);
+                      /* Reductions stay reductions: frozen, the list is still
+                         checked at the send for every product being reduced. */
                       setLine(
                         index,
                         block,
                         productTokenLine({
-                          kind: "picked",
+                          kind: spec.kind === "sale" ? "reduced" : "picked",
                           slugs: report.products.map((product) => product.slug),
                         }),
                       );
