@@ -75,6 +75,28 @@ describe("manifest", () => {
   });
 });
 
+describe("REVALIDATE_SECRET", () => {
+  it("is optional, and refused when it is CRON_SECRET's value or has a break inside", () => {
+    const own = "r".repeat(40);
+    expect(
+      titles(check({ ...GOOD, REVALIDATE_SECRET: own }, { isProductionish: true }), "error"),
+    ).toBe("");
+    expect(titles(check(GOOD, { isProductionish: true }), "error")).not.toContain(
+      "REVALIDATE_SECRET",
+    );
+    const same = check(
+      { ...GOOD, REVALIDATE_SECRET: GOOD.CRON_SECRET! },
+      { isProductionish: true },
+    );
+    expect(titles(same, "error")).toContain("REVALIDATE_SECRET: The same value as CRON_SECRET");
+    const broken = check(
+      { ...GOOD, REVALIDATE_SECRET: `${"r".repeat(20)} ${"r".repeat(20)}` },
+      { isProductionish: true },
+    );
+    expect(titles(broken, "error")).toContain("REVALIDATE_SECRET: Spaces or line breaks inside");
+  });
+});
+
 describe("production requirements", () => {
   it("accepts a complete production configuration", () => {
     expect(check(GOOD, { isProductionish: true }).counts.errors).toBe(0);
