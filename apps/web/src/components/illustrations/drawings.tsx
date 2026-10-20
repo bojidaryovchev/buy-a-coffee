@@ -135,7 +135,10 @@ export function Cup({
       {...svgProps(
         "cup",
         "0 0 120 120",
-        cx("block h-auto w-full overflow-visible", !steam && className),
+        // A caller's size replaces the default rather than competing with it:
+        // two heights on one element are settled by stylesheet order, and the
+        // full-width default once won, drawing an article's glass 700 px tall.
+        cx("block overflow-visible", (!steam && className) || "h-auto w-full"),
       )}
     >
       <defs>
@@ -295,40 +298,6 @@ export function Spill({ className }: DrawingProps) {
       <circle cx="206" cy="26" r="6" className="fill-illo-bean-700" />
       <circle cx="222" cy="40" r="3" className="fill-illo-bean-700" />
       <circle cx="26" cy="126" r="4" className="fill-illo-bean-700" />
-    </svg>
-  );
-}
-
-/* --- Grounds ---------------------------------------------------------------- */
-
-const GROUND_TONES = ["fill-illo-bean-700", "fill-illo-bean-500", "fill-illo-bean-300"];
-
-/**
- * A fine scatter of grounds, 200 by 140, from a fixed seed: the same drawing on
- * every render, so server and browser agree and nothing changes between visits.
- */
-export function Grounds({
-  className,
-  seed = 7,
-  count = 60,
-}: DrawingProps & { seed?: number; count?: number }) {
-  let state = seed;
-  const next = () => (state = (state * 16807) % 2147483647) / 2147483647;
-  const dots = Array.from({ length: count }, (_, index) => {
-    const angle = next() * Math.PI * 2;
-    const radius = Math.pow(next(), 0.6) * 62;
-    return {
-      cx: (100 + Math.cos(angle) * radius * 1.35).toFixed(1),
-      cy: (70 + Math.sin(angle) * radius * 0.8).toFixed(1),
-      r: (0.8 + next() * 1.8).toFixed(1),
-      tone: GROUND_TONES[index % GROUND_TONES.length],
-    };
-  });
-  return (
-    <svg {...svgProps("grounds", "0 0 200 140", className)}>
-      {dots.map((dot, index) => (
-        <circle key={index} cx={dot.cx} cy={dot.cy} r={dot.r} className={dot.tone} />
-      ))}
     </svg>
   );
 }

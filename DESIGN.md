@@ -386,13 +386,13 @@ Sanctioned uses of a system colour, and no others:
 
 The colours of our own drawings (see "Imagery") and nothing else.
 
-| Token           | Value                   | Hex       | Role                                                  |
-| --------------- | ----------------------- | --------- | ----------------------------------------------------- |
-| `illo-crema`    | `oklch(0.68 0.11 64)`   | `#c7894a` | Crema, the surface of a cup, warm light.              |
-| `illo-bean-300` | `oklch(0.55 0.093 57)`  | `#9a6337` | A bean's highlight.                                   |
-| `illo-bean-500` | `oklch(0.365 0.068 52)` | `#5a331a` | A bean's body; coffee in a cup.                       |
-| `illo-bean-700` | `oklch(0.23 0.04 51)`   | `#2c170a` | A bean's crease, a dark roast, a spill.               |
-| `illo-stain`    | `oklch(0.457 0.082 56)` | `#7a4a26` | A cup ring and grounds on paper, at 14 to 24 % alpha. |
+| Token           | Value                   | Hex       | Role                                     |
+| --------------- | ----------------------- | --------- | ---------------------------------------- |
+| `illo-crema`    | `oklch(0.68 0.11 64)`   | `#c7894a` | Crema, the surface of a cup, warm light. |
+| `illo-bean-300` | `oklch(0.55 0.093 57)`  | `#9a6337` | A bean's highlight.                      |
+| `illo-bean-500` | `oklch(0.365 0.068 52)` | `#5a331a` | A bean's body; coffee in a cup.          |
+| `illo-bean-700` | `oklch(0.23 0.04 51)`   | `#2c170a` | A bean's crease, a dark roast, a spill.  |
+| `illo-stain`    | `oklch(0.457 0.082 56)` | `#7a4a26` | A cup ring on paper, at 4 to 30 % alpha. |
 
 **The Drawing Tone Rule.** A drawing tone is never text, never a control, never
 a border and never a meaning. It has no rows in the contrast table for the same
@@ -685,7 +685,7 @@ Spacing uses the 4 px Tailwind scale. No arbitrary pixel values for spacing.
 
 **Bands.** Sections alternate by tone, not by box: `paper` by default,
 `paper-sunken` for the wizard entry and the footer, `paper-raised` for the
-newsletter band (a faint cup ring behind its heading), `pine-900` for the hero,
+newsletter band, `pine-900` for the hero,
 `espresso-900` for the Vending Zone band, `clay-100` for promotions. Adjacent
 bands of the same tone are separated by a `border-t border-line`. Two dark
 bands never stack.
@@ -833,7 +833,7 @@ steam — and it stops whenever nobody can see it.
 | Feedback   | A bean arcs from „Добави“ to the header cart, which nudges and counts up                                      | Web Animations API, started after the cart has changed                              |
 | Feedback   | The product page's intensity track fills segment by segment, the first time it is seen                        | CSS scroll-driven animation                                                         |
 | Feedback   | The cup fills and steams when an order is sent                                                                | CSS keyframes                                                                       |
-| Progress   | The ordering steps' curl draws itself as the section scrolls past                                             | `stroke-dashoffset`, scroll-driven                                                  |
+| Progress   | The home page's ordering-steps curl draws itself as it crosses the middle of the screen                       | `stroke-dashoffset`, scroll-driven                                                  |
 | Ambient    | Steam over a cup                                                                                              | CSS keyframes, paused off-screen                                                    |
 | Navigation | A card's pack becomes the product page's photograph                                                           | View Transitions API, behind Next's `viewTransition` flag; elsewhere the page swaps |
 
@@ -920,13 +920,12 @@ hundred bytes each.
 
 | Drawing    | Where                                                                      |
 | ---------- | -------------------------------------------------------------------------- |
-| The curl   | Steam over every cup; the line joining the ordering steps; a divider       |
+| The curl   | Steam over every cup; the line joining the home page's ordering steps      |
 | Beans      | Around the hero's packs; into the cart; beside the beans shelf             |
 | A cup      | The hero; „order sent“                                                     |
 | Crema      | The wizard's entry and its result                                          |
-| A cup ring | Behind the newsletter form; the 404 page                                   |
+| A cup ring | The 404 page                                                               |
 | A spill    | Empty states: an empty cart, a search with nothing found, an empty listing |
-| Grounds    | The beans shelf's header; the journal's articles about beans               |
 | Capsules   | Our capsule diagrams and system icons, unchanged (see "System icon")       |
 
 **The curl** is the mark's own: the crease of the bean in the logo rising into
@@ -1920,8 +1919,9 @@ steps, no boxes: each a 56 px `rounded-md bg-paper-raised` square holding its
 `bg-gold-500 text-ink-900 rounded-xs` numeral on the square's corner, and one
 sentence in `text-base text-ink-900` — beside the square on a phone, under it
 from `md` (`md:grid-cols-3`, centred). From `md` the curl from the mark joins
-the three squares (`gold-600`, 2.5 px) and draws itself as the section scrolls
-past (`draw-on-scroll`; see "Motion"). The sentences are „Сложете в
+the three squares (`gold-600`, 2.5 px) and draws itself as it scrolls from
+the middle of the screen to a third of the way down (`draw-on-scroll`; see
+"Motion"), where a reader is looking. The sentences are „Сложете в
 количката кафето, което искате.“, „Оставете име, телефон и къде да
 доставим.“ and „Звъним ви, за да потвърдим и да уговорим доставката.“ Under the grid, in
 `text-sm text-ink-500`: "Без регистрация и без плащане на сайта. Предпочитате
@@ -2859,6 +2859,7 @@ each entry closes with the milestone named in `IMPLEMENTATION_PLAN.md`.
   logo** is the SVG traced from the PNG.
 - **Done (K2–K5). Drawings and motion** on the home page, the product
   surfaces, the empty states, the 404, „order sent“, the wizard's result, the
-  journal, and the steps on the delivery, Vending and Consumables pages.
+  journal, and gold-numbered steps on the delivery, Vending and Consumables
+  pages (no curl there: in a column of prose it read as broken).
 - **Done (K4). `espresso-900`** grounds the Vending band and the finder tile.
 - **Done (K4). The hover transform** on the brand index's arrow is gone.

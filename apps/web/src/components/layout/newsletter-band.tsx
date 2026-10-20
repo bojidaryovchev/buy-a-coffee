@@ -1,6 +1,5 @@
 import { useId } from "react";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
-import { CupRing } from "@/components/illustrations/drawings";
 import { siteConfig } from "@/config/site";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
 
@@ -34,14 +33,10 @@ export function NewsletterBand({ dict }: { dict: Dictionary }) {
     <aside
       aria-labelledby={headingId}
       data-newsletter-band=""
-      className="relative isolate overflow-hidden border-t border-line bg-paper-raised"
+      className="border-t border-line bg-paper-raised"
     >
       <div className="shell grid gap-6 py-10 md:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center lg:gap-16">
-        <div className="relative">
-          {/* The ring a cup left on the paper, faint, under the heading's
-              first words and cut by the band's edges (DESIGN.md, "Imagery").
-              Drawn, decorative, never in the way. */}
-          <CupRing className="pointer-events-none absolute top-1/2 -left-24 -z-10 hidden h-48 w-48 -translate-y-1/2 rotate-12 md:block" />
+        <div>
           <h2 id={headingId} className="font-display text-2xl font-semibold text-ink-900">
             {dict.newsletter.heading}
           </h2>

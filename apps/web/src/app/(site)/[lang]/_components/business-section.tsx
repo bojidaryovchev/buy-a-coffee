@@ -14,7 +14,7 @@ import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
 import type { Locale } from "@/i18n/config";
 import { href, productHref, routes, targetHref } from "@/lib/routes";
 import type { BusinessSectionCopy } from "../../../../../content/vending";
-import { CurlSteps } from "@/components/ui/curl-steps";
+import { StepList } from "@/components/ui/step-list";
 
 /**
  * The page body shared by the two business sections, `/bg/kafe-za-vending-mashini`
@@ -167,7 +167,7 @@ export function BusinessSectionView({
         <h2 className="font-display text-2xl font-semibold text-ink-900">
           {copy.ordering.heading}
         </h2>
-        <CurlSteps steps={copy.ordering.steps} className="mt-5" />
+        <StepList steps={copy.ordering.steps} className="mt-5" />
         {copy.ordering.note && <p className="mt-4 text-sm text-ink-500">{copy.ordering.note}</p>}
       </section>
 
