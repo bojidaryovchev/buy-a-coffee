@@ -1,7 +1,8 @@
-import { type Logger, normalizeLabel, silentLogger } from "@catalog/shared";
+import { type Logger, silentLogger } from "@catalog/shared";
 import { type ExistingProduct, diffFields, productSnapshot } from "./diff.ts";
 import {
   type KeyTiebreaker,
+  identityToken,
   parseSplitSourceKey,
   splitDiscriminator,
   splitSourceKey,
@@ -30,32 +31,45 @@ import type { NormalizedProduct } from "./normalize.ts";
  *      alone, so the order the source lists them in changes nothing.
  *
  *   2. `settleKeyCollisions`, in the sync, once the stored catalog is known:
- *      the plain key goes back to the product that already holds it, so the
- *      Espresso Bar keeps its key, its id and its slug, and only the Super Bar
- *      is new.
+ *      every product at an address that is, or once was, shared is paired
+ *      with the row it already has there — the Espresso Bar with the row under
+ *      the plain key, the Super Bar with the row under its own — and takes
+ *      that row's key. Keys are sticky: once stored, a product keeps its key
+ *      while the source re-spaces its name, swaps the order, adds a product
+ *      code, or lists it alone.
  *
- * What neither step does is guess. Records that share a code and a name but
- * not a price cannot be told apart, so the first is kept, exactly as before,
- * and the run records it as unresolved; so does a stored product at a split
- * address that matches none of the records there while a new one appears.
- * The sync writes every collision to `sync_runs.metadata.keyCollisions`, and
- * the storefront's sync-health check raises the unresolved ones
- * (`duplicate_key_conflict`).
+ * "The same product" is one test, `identityToken`: one product code when both
+ * sides have one, else one name with case, spacing and punctuation set aside —
+ * the very normaliser the split key is built with, so a key and a match can
+ * never disagree about a name.
  *
- * Every product that does not share its key is untouched by both steps: its
- * key is the one `resolveProductIdentity` gives it, byte for byte.
+ * What neither step does is guess. Records with one code and one name that
+ * differ in what the shop shows keep the first, exactly as before. A product
+ * that matches no stored row at an address that is or was shared gets a key
+ * of its own, never the plain key: an unrecognised product must not slide into
+ * the row, the URL and the order history of the one the address belonged to.
+ * When that happens while a stored product at the address disappears, the run
+ * says so. The sync writes every collision to `sync_runs.metadata.keyCollisions`,
+ * and the storefront's sync-health check raises each unresolved one the first
+ * time it appears (`duplicate_key_conflict`).
+ *
+ * Every product at an address that has never been shared is untouched by both
+ * steps: its key is the one `resolveProductIdentity` gives it, byte for byte.
  */
 
 /**
- *   - `indistinguishable`  records with one code and one name differ in price
- *                          or availability; the first is kept, as before, and
- *                          which price the shop shows depends on the source's
- *                          order.
- *   - `unmatched`          a product stored under this key is not among the
- *                          records the source lists there now, and one of them
- *                          is new to us. A rename, or one product replacing
- *                          another: the sync does not pick, so the stored one
- *                          goes missing and the new one is created.
+ *   - `indistinguishable`  records with one code and one name differ in what
+ *                          the shop shows — price, availability, photo,
+ *                          description. The first is kept, as before, and the
+ *                          shop's page depends on the source's order. Only
+ *                          the source can put that right.
+ *   - `unmatched`          at an address that is or was shared, a product we
+ *                          store is not among the records listed there now,
+ *                          and a product new to us is. A rename, or one
+ *                          product replacing another: the sync does not pick,
+ *                          so the stored one goes missing and the new one is
+ *                          created under a key of its own. A person decides,
+ *                          and links the two by hand if they are one product.
  */
 export type KeyCollisionProblem = "indistinguishable" | "unmatched";
 
@@ -77,7 +91,8 @@ export interface KeyCollisionDropped {
 }
 
 /**
- * Records that shared one key, and what became of them. Written to
+ * Records that shared one key, or a product listed alone at an address it
+ * once shared, and what became of them. Written to
  * `sync_runs.metadata.keyCollisions` as is; the storefront reads `sourceKey`
  * and `unresolved` (`lib/sync-health.ts`), so those two keep their names.
  */
@@ -93,27 +108,20 @@ export interface KeyCollision {
 }
 
 /**
- * Snapshot fields that make up the offer. Two records that disagree on one of
- * these and cannot be told apart leave the shop's price to the source's order;
- * records that disagree only on a category or a description do not, and are
- * merged without an alarm — the HTML fallback meets every product listed in
- * two categories that way.
+ * Fields in which two records with one name may differ and still be one
+ * product, merged without an alarm: the spelling of the name — the same name
+ * to `identityToken` — and the categories, because the HTML fallback meets
+ * every product listed in two categories that way. Any other difference
+ * leaves the shop's page to the order the source lists the two in, and is
+ * reported.
  */
-const OFFER_FIELDS: ReadonlySet<string> = new Set([
-  "currentPrice",
-  "oldPrice",
-  "currency",
-  "availability",
-]);
+const QUIET_FIELDS: ReadonlySet<string> = new Set(["name", "categoryKeys", "semanticHash"]);
 
 function text(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 }
-
-const nameKey = (value: unknown): string =>
-  typeof value === "string" ? normalizeLabel(value).toLowerCase() : "";
 
 const summarise = (product: NormalizedProduct): KeyCollisionProduct => ({
   sourceKey: product.sourceKey,
@@ -131,10 +139,11 @@ const summarise = (product: NormalizedProduct): KeyCollisionProduct => ({
  * The tie-breaker is chosen for the whole group, so every product at an
  * address is keyed the same way: the product code when the listing states one
  * for every record and no two are alike, else the name. Records whose
- * tie-breaker is the same are one product as far as anything can tell; the
- * first is kept and the rest are dropped. If that leaves one product, it keeps
- * the plain key, exactly as before. If it leaves several, each gets a split
- * key, and they are returned in key order rather than the source's.
+ * tie-breaker is the same are one product as far as anything can tell — the
+ * same product typed twice, "150бр." beside "150 бр." — and the first is kept.
+ * If that leaves one product, it keeps the plain key, exactly as before. If it
+ * leaves several, each gets a split key, and they are returned in key order
+ * rather than the source's.
  *
  * Only path-shaped keys split. An `id:` key names the source's own identifier
  * for one product, and two different records under it are a contradiction,
@@ -196,7 +205,7 @@ export function resolveKeyCollision(
     })),
   );
   const unresolved: KeyCollisionProblem[] = dropped.some((record) =>
-    record.differsIn.some((field) => OFFER_FIELDS.has(field)),
+    record.differsIn.some((field) => !QUIET_FIELDS.has(field)),
   )
     ? ["indistinguishable"]
     : [];
@@ -258,42 +267,94 @@ export function resolveDuplicateKeys(records: readonly NormalizedProduct[]): Key
 
 /**
  * The same product, as far as a stored row and a listed record can say: the
- * same product code when both have one, else the same name. Nothing weaker —
- * this decides which product a key, a slug and an order history belong to.
+ * same product code when both have one, else the same name by
+ * `identityToken` — the normaliser the split key itself is built with.
+ * Nothing weaker: this decides which product a key, a slug and an order
+ * history belong to.
  */
 function sameProduct(stored: ExistingProduct, listed: NormalizedProduct): boolean {
   const storedCode = text(stored.sku);
   const listedCode = text(listed.sku);
-  if (storedCode !== null && listedCode !== null) return storedCode === listedCode;
-  return nameKey(stored.snapshot.name) === nameKey(listed.name);
+  if (storedCode !== null && listedCode !== null) {
+    return identityToken(storedCode) === identityToken(listedCode);
+  }
+  const storedName = typeof stored.snapshot.name === "string" ? stored.snapshot.name : "";
+  const token = identityToken(storedName);
+  return token !== "" && token === identityToken(listed.name);
 }
 
 /**
- * Give split keys back to the products that already hold them.
+ * Pair the products listed at one address with the rows stored there.
  *
- * Discovery splits a shared key without knowing what is stored, so none of
- * the products at it keeps the plain key. Here, with the stored catalog in
- * hand:
+ * A product and a row match when the row's split key is the product's, or
+ * `sameProduct` says so; a row still listed outranks one already removed. A
+ * pair is made only when it is the single reading: the product matches that
+ * row and no other, and no other product matches the row. Anything else is
+ * left unpaired, and an unpaired product never takes a stored row's key.
+ */
+function pairAtAddress(
+  listed: readonly NormalizedProduct[],
+  rows: readonly ExistingProduct[],
+): Map<NormalizedProduct, ExistingProduct> {
+  const matches = (product: NormalizedProduct, row: ExistingProduct): boolean =>
+    (parseSplitSourceKey(row.sourceKey) !== null && row.sourceKey === product.sourceKey) ||
+    sameProduct(row, product);
+  const candidates = new Map(
+    listed.map((product) => {
+      const all = rows.filter((row) => matches(product, row));
+      const live = all.filter((row) => row.status !== "removed");
+      return [product, live.length > 0 ? live : all] as const;
+    }),
+  );
+
+  const pairs = new Map<NormalizedProduct, ExistingProduct>();
+  for (const product of listed) {
+    const rowsFor = candidates.get(product) ?? [];
+    if (rowsFor.length !== 1) continue;
+    const row = rowsFor[0] as ExistingProduct;
+    const rivals = listed.filter(
+      (other) => other !== product && (candidates.get(other) ?? []).includes(row),
+    );
+    if (rivals.length === 0) pairs.set(product, row);
+  }
+  return pairs;
+}
+
+/** The split key a product listed alone would have: by its code when the listing states one. */
+function ownKey(plainKey: string, product: NormalizedProduct): string {
+  const code = text(product.sku);
+  return splitSourceKey(
+    plainKey,
+    code !== null ? splitDiscriminator("code", code) : splitDiscriminator("name", product.name),
+  );
+}
+
+/**
+ * Give every product at an address that is, or once was, shared the key of
+ * the row it already has there.
  *
- *   - a product split in this run that is the one already stored under the
- *     plain key takes that key back. The Espresso Bar was stored as
- *     `/moreno-super-bar-1/#1000g` before the Super Bar was ever kept, and it
- *     stays there: same key, same row, an unchanged product. A product whose
- *     split key is stored already keeps it.
- *   - a product listed alone at an address it once shared, whose stored row
- *     is under a split key, keeps that key — unless it is the product under
- *     the plain key. If the source moves the Espresso Bar to an address of its
- *     own, the Super Bar left behind must not slide into the Espresso Bar's
- *     row.
+ * Discovery splits a shared key without knowing what is stored. Here, with the
+ * stored catalog in hand, each product at such an address is paired with its
+ * row (`pairAtAddress`) — the row under the plain key or one under a split
+ * key — and takes that row's key:
  *
- * "Is the one" is `sameProduct`: one code, or one name. Two candidates, or
- * none, and nobody takes the plain key: the stored product goes missing, the
- * new one is created, and when that happens beside a new arrival the
- * collision is reported `unmatched`. A product alone that matches nothing
- * keeps the plain key, as every product always has.
+ *   - the Espresso Bar, stored under `/moreno-super-bar-1/#1000g` before the
+ *     Super Bar was ever kept, stays there: same key, same row, unchanged;
+ *   - a product whose name the source re-spaces or re-punctuates, or whose
+ *     code the listing starts to state, keeps the key it has;
+ *   - a product listed alone at an address it once shared keeps its own key.
+ *     If the source moves the Espresso Bar to an address of its own, the Super
+ *     Bar left behind stays the Super Bar's row.
  *
- * With nothing stored — a first sync — nothing changes, so both products keep
- * their split keys. Keys outside a collision are never touched.
+ * A product paired with nothing keeps the split key discovery gave it — or, if
+ * it is alone at the address, gets one of its own. It never takes the plain
+ * key: at an address with a history, an unrecognised product taking the plain
+ * key would take the row the address belonged to, live or removed, name,
+ * price and all. When a product new to us arrives while a stored one at the
+ * address is no longer listed, the collision is reported `unmatched`.
+ *
+ * With nothing stored — a first sync — both products keep their split keys.
+ * Addresses that have never been shared are never touched.
  */
 export function settleKeyCollisions<
   T extends { readonly products: NormalizedProduct[]; readonly keyCollisions: KeyCollision[] },
@@ -308,36 +369,48 @@ export function settleKeyCollisions<
     splitRows.set(split.plainKey, rows);
   }
 
-  const members = new Map<string, NormalizedProduct[]>();
+  const atAddress = new Map<string, NormalizedProduct[]>();
   for (const product of discovery.products) {
-    const split = parseSplitSourceKey(product.sourceKey);
-    if (!split) continue;
-    const group = members.get(split.plainKey) ?? [];
-    group.push(product);
-    members.set(split.plainKey, group);
+    const plainKey = parseSplitSourceKey(product.sourceKey)?.plainKey ?? product.sourceKey;
+    const listed = atAddress.get(plainKey) ?? [];
+    listed.push(product);
+    atAddress.set(plainKey, listed);
   }
 
   const rekeyed = new Map<string, string>();
   const unmatched = new Set<string>();
+  const recorded = new Set(discovery.keyCollisions.map((collision) => collision.sourceKey));
+  const alone: KeyCollision[] = [];
 
-  for (const [plainKey, group] of members) {
+  for (const [plainKey, listed] of atAddress) {
+    const history = splitRows.get(plainKey) ?? [];
+    const split = listed.some((product) => parseSplitSourceKey(product.sourceKey) !== null);
+    if (!split && history.length === 0) continue;
+
     const holder = stored.get(plainKey);
-    if (holder) {
-      const claimants = group.filter(
-        (product) => !stored.has(product.sourceKey) && sameProduct(holder, product),
-      );
-      if (claimants.length === 1) {
-        rekeyed.set((claimants[0] as NormalizedProduct).sourceKey, plainKey);
-      }
-    }
+    const rows = holder ? [holder, ...history] : history;
+    const pairs = pairAtAddress(listed, rows);
+    const keys = listed.map((product) => {
+      const row = pairs.get(product);
+      if (row) return row.sourceKey;
+      return split ? product.sourceKey : ownKey(plainKey, product);
+    });
 
-    const settled = new Set(
-      group.map((product) => rekeyed.get(product.sourceKey) ?? product.sourceKey),
-    );
-    const vanished = [...(holder ? [holder] : []), ...(splitRows.get(plainKey) ?? [])].filter(
-      (row) => row.status !== "removed" && !settled.has(row.sourceKey),
-    );
-    const arrived = [...settled].filter((key) => !stored.has(key));
+    if (new Set(keys).size !== keys.length) {
+      // Two products settling on one key: no reading of the evidence is safe.
+      // Left as discovery keyed them, and a person is told.
+      unmatched.add(plainKey);
+      logger.warn("catalog.duplicate_key_unsettled", { sourceKey: plainKey, keys });
+      continue;
+    }
+    listed.forEach((product, index) => {
+      const key = keys[index] as string;
+      if (key !== product.sourceKey) rekeyed.set(product.sourceKey, key);
+    });
+
+    const paired = new Set(pairs.values());
+    const vanished = rows.filter((row) => row.status !== "removed" && !paired.has(row));
+    const arrived = keys.filter((key) => !stored.has(key));
     if (vanished.length > 0 && arrived.length > 0) {
       unmatched.add(plainKey);
       logger.warn("catalog.duplicate_key_unmatched", {
@@ -346,21 +419,22 @@ export function settleKeyCollisions<
         arrived,
       });
     }
+
+    const only = listed[0] as NormalizedProduct;
+    if (!split && !recorded.has(plainKey) && keys[0] !== plainKey) {
+      const settledAs = { ...summarise(only), sourceKey: keys[0] as string };
+      alone.push({
+        sourceKey: plainKey,
+        tiebreaker: parseSplitSourceKey(settledAs.sourceKey)?.tiebreaker ?? null,
+        products: [settledAs],
+        dropped: [],
+        unresolved: [],
+      });
+      logger.info("catalog.split_key_kept", { sourceKey: plainKey, keptKey: settledAs.sourceKey });
+    }
   }
 
-  for (const product of discovery.products) {
-    const rows = splitRows.get(product.sourceKey);
-    if (!rows) continue;
-    const holder = stored.get(product.sourceKey);
-    if (holder && sameProduct(holder, product)) continue;
-    const matches = rows.filter((row) => sameProduct(row, product));
-    if (matches.length !== 1) continue;
-    const to = (matches[0] as ExistingProduct).sourceKey;
-    rekeyed.set(product.sourceKey, to);
-    logger.info("catalog.split_key_kept", { sourceKey: product.sourceKey, keptKey: to });
-  }
-
-  if (rekeyed.size === 0 && unmatched.size === 0) return discovery;
+  if (rekeyed.size === 0 && unmatched.size === 0 && alone.length === 0) return discovery;
 
   const settledKey = (key: string): string => rekeyed.get(key) ?? key;
   return {
@@ -370,7 +444,7 @@ export function settleKeyCollisions<
         ? { ...product, sourceKey: settledKey(product.sourceKey) }
         : product,
     ),
-    keyCollisions: discovery.keyCollisions.map((collision) => ({
+    keyCollisions: [...discovery.keyCollisions, ...alone].map((collision) => ({
       ...collision,
       products: collision.products.map((product) => ({
         ...product,

@@ -442,8 +442,11 @@ function finalise(
       });
     }
     for (const record of collision.dropped) {
+      // `keptName` and `discardedName` as the event always carried them, so a
+      // search of old logs still finds it.
       logger.warn("catalog.duplicate_key_conflict", {
         sourceKey: collision.sourceKey,
+        keptName: collision.products.find((product) => product.sourceKey === record.keptAs)?.name,
         keptAs: record.keptAs,
         discardedName: record.name,
         differsIn: record.differsIn,

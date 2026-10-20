@@ -647,6 +647,8 @@ export interface EnrichmentTarget {
   readonly productId: string;
   readonly sourceKey: string;
   readonly sourceUrl: string;
+  /** Our stored name, to tell whether a page shared by two products is this one's. */
+  readonly name: string;
   /** Another product shares this URL, so the page's code names neither. */
   readonly hasUrlCollision: boolean;
   /** The code already stored, to notice when the page now states another. */
@@ -657,6 +659,7 @@ const enrichmentTargetColumns = {
   productId: products.id,
   sourceKey: products.sourceKey,
   sourceUrl: products.sourceUrl,
+  name: products.name,
   hasUrlCollision: products.hasUrlCollision,
   sku: products.sku,
 };
@@ -711,9 +714,9 @@ export async function loadProductsWithoutCode(
   db: Database,
   sourceSiteId: string,
   limit?: number,
-): Promise<Array<EnrichmentTarget & { slug: string; name: string }>> {
+): Promise<Array<EnrichmentTarget & { slug: string }>> {
   const query = db
-    .select({ ...enrichmentTargetColumns, slug: products.slug, name: products.name })
+    .select({ ...enrichmentTargetColumns, slug: products.slug })
     .from(products)
     .where(
       and(
@@ -809,7 +812,7 @@ export async function markEnrichmentFailed(db: Database, productId: string): Pro
 }
 
 /**
- * A page left unread because nothing on it would be this product's (see
+ * A page read but not stored because it is another product's (see
  * `enrichProducts`): what is stored stays, and the product waits a day.
  */
 export async function markEnrichmentAttempted(

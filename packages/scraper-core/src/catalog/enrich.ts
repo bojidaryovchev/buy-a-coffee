@@ -4,7 +4,7 @@ import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { type ProductCharacteristic, parseProductPage } from "../parsers/productPage.ts";
 import type { ExistingProduct } from "./diff.ts";
-import { parseSplitSourceKey } from "./identity.ts";
+import { identityToken, parseSplitSourceKey } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 import {
   type EnrichmentTarget,
@@ -43,6 +43,8 @@ import {
 
 /** What a product page contributes. Absent stays null; nothing is inferred. */
 export interface ProductPageFacts {
+  /** The page's own heading: which product the page is about. */
+  readonly name: string | null;
   /** The product code as printed, e.g. `00072`. */
   readonly sku: string | null;
   readonly characteristics: ProductCharacteristic[];
@@ -82,6 +84,7 @@ export function interpretProductPage(html: string): ProductPageFacts | null {
   if (!looksLikeProduct) return null;
 
   return {
+    name: parsed.name,
     sku: parsed.sku,
     characteristics: parsed.characteristics.map(({ label, value }) => ({ label, value })),
     // The column is a whole number of percent. A fractional figure cannot be
@@ -94,6 +97,13 @@ export function interpretProductPage(html: string): ProductPageFacts | null {
     origin: parsed.origin,
     roast: parsed.roast,
   };
+}
+
+/** True when a page's heading names the product, as `identityToken` reads names. */
+function namesProduct(facts: ProductPageFacts, target: EnrichmentTarget): boolean {
+  if (facts.name === null) return false;
+  const page = identityToken(facts.name);
+  return page !== "" && page === identityToken(target.name);
 }
 
 /** Consecutive failed reads after which a reader stops asking. */
@@ -427,18 +437,6 @@ export async function enrichProducts(input: {
   const skuChanges: EnrichmentSummary["skuChanges"] = [];
 
   for (const target of input.targets) {
-    if (parseSplitSourceKey(target.sourceKey) !== null) {
-      /*
-       * Split from another product the source lists at the same address and
-       * size (`collisions.ts`). The page there belongs to the product that
-       * held the address first; nothing on it is known to describe this one —
-       * not its blend, not its roast. So nothing is read or stored, and the
-       * product waits a day, as one whose page failed does, rather than
-       * heading the backlog on every run.
-       */
-      unattributable.push(target.productId);
-      continue;
-    }
     const read = await reader.read(target.sourceUrl);
     if (read === null) {
       deferred.push(target.productId);
@@ -451,6 +449,19 @@ export async function enrichProducts(input: {
     }
 
     const { facts } = read;
+    if (parseSplitSourceKey(target.sourceKey) !== null && !namesProduct(facts, target)) {
+      /*
+       * One of two products the source lists at one address and size
+       * (`collisions.ts`), and the page there is about the other one: its
+       * blend, its roast and its code are not this product's. Nothing is
+       * stored, and the product waits a day, as one whose page failed does,
+       * rather than heading the backlog on every run. The page that does name
+       * it — the Espresso Bar's own, on a catalog synced from scratch — is
+       * read as any other.
+       */
+      unattributable.push(target.productId);
+      continue;
+    }
     // One page, two pack sizes: its single code identifies neither of them.
     const sku = target.hasUrlCollision ? null : facts.sku;
     if (sku !== null && target.sku !== null && target.sku !== sku) {

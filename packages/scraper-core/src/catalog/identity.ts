@@ -2,9 +2,10 @@ import {
   type NormalizedWeight,
   type ProductNameInput,
   allocateProductSlug,
+  normalizeLabel,
   parseWeight,
   productName,
-  slugify,
+  transliterate,
 } from "@catalog/shared";
 
 /**
@@ -57,7 +58,7 @@ export const SOURCE_KEY_SEPARATOR = "#";
  * Marks the part of a key that tells apart two products the source lists at
  * one address and one pack size:
  *
- *     /moreno-super-bar-1/#1000g~name:kafe-na-zarna-moreno-super-bar-1kg
+ *     /moreno-super-bar-1/#1000g~name:kafenazarnamorenosuperbar1kg
  *
  * It sits inside the variant, after the pack size, so everything that reads a
  * key as `path#variant` — move detection's path stem, `catalog:link` — still
@@ -78,15 +79,29 @@ export interface SplitSourceKey {
 }
 
 /**
- * The readable token that tells one product from the others at its key.
+ * A name or a product code reduced to what tells one product from another:
+ * transliterated, lower-cased, every space and mark of punctuation removed.
  *
- * Slugified, so a key stays printable and `catalog:link` accepts it, and so a
- * change of case or punctuation in the source's name does not move the
- * product. Generous on length, because two names cut short to the same prefix
- * would read as one product.
+ *     "Кафе на зърна Moreno Super Bar 1кг."   -> kafenazarnamorenosuperbar1kg
+ *     "Кафе на зърна Moreno Super Bar 1 кг"   -> kafenazarnamorenosuperbar1kg
+ *
+ * The one normaliser for split keys. The key is built with it and a stored
+ * product is recognised with it (`collisions.ts`), so the two cannot disagree:
+ * a name the source re-spaces or re-punctuates is the same name to both, and
+ * neither moves the product. Two records it cannot tell apart are, for the
+ * sync, one product.
  */
+export function identityToken(value: string): string {
+  return transliterate(normalizeLabel(value))
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** `code:<token>` or `name:<token>`: the part of a split key after `~`. */
 export function splitDiscriminator(tiebreaker: KeyTiebreaker, value: string): string {
-  return `${tiebreaker}:${slugify(value, { maxLength: 200 })}`;
+  return `${tiebreaker}:${identityToken(value)}`;
 }
 
 export function splitSourceKey(plainKey: string, discriminator: string): string {

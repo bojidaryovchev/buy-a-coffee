@@ -16,6 +16,7 @@ import {
 } from "../src/catalog/diff.ts";
 import { discoverCatalog } from "../src/catalog/discover.ts";
 import {
+  identityToken,
   parseSplitSourceKey,
   resolveProductIdentity,
   splitDiscriminator,
@@ -42,8 +43,8 @@ import { type FakeProduct, createFakeFetch } from "./helpers/fakeSource.ts";
 const BASE = "https://www.kafezona.com";
 const ADDRESS = "/moreno-super-bar-1/";
 const PLAIN = "/moreno-super-bar-1/#1000g";
-const ESPRESSO_KEY = `${PLAIN}~name:kafe-na-zarna-moreno-espresso-bar-1kg`;
-const SUPER_KEY = `${PLAIN}~name:kafe-na-zarna-moreno-super-bar-1kg`;
+const ESPRESSO_KEY = `${PLAIN}~name:kafenazarnamorenoespressobar1kg`;
+const SUPER_KEY = `${PLAIN}~name:kafenazarnamorenosuperbar1kg`;
 const THRESHOLD = { missingThreshold: 3 } as const;
 
 type Raw = Parameters<typeof normalizeProduct>[0];
@@ -143,7 +144,7 @@ describe("split source keys", () => {
     expect(parseSplitSourceKey(SUPER_KEY)).toEqual({
       plainKey: PLAIN,
       tiebreaker: "name",
-      discriminator: "name:kafe-na-zarna-moreno-super-bar-1kg",
+      discriminator: "name:kafenazarnamorenosuperbar1kg",
     });
   });
 
@@ -163,10 +164,30 @@ describe("split source keys", () => {
     }
   });
 
-  it("can be linked by hand, unchanged", () => {
-    expect(parsePathSourceKey(SUPER_KEY)).toMatchObject({
+  it("are built and matched by one normaliser, deaf to case, spacing and punctuation", () => {
+    for (const spelling of [
+      "Кафе на зърна Moreno Super Bar 1кг.",
+      "Кафе на зърна Moreno Super Bar 1кг",
+      "Кафе на зърна Moreno Super Bar 1 кг.",
+      "КАФЕ НА ЗЪРНА  Moreno Super-Bar 1 кг",
+    ]) {
+      expect(identityToken(spelling)).toBe("kafenazarnamorenosuperbar1kg");
+    }
+    expect(identityToken("Кафе на зърна Moreno Espresso Bar 1кг.")).not.toBe(
+      identityToken("Кафе на зърна Moreno Super Bar 1кг."),
+    );
+  });
+
+  it("can be linked by hand, unchanged, with the pack size alone as the variant", () => {
+    expect(parsePathSourceKey(SUPER_KEY)).toEqual({
       sourceKey: SUPER_KEY,
       sourcePath: ADDRESS,
+      sourceVariantKey: "1000g",
+    });
+    expect(parsePathSourceKey("/rema-caffe-intenso/#~code:00072")).toEqual({
+      sourceKey: "/rema-caffe-intenso/#~code:00072",
+      sourcePath: "/rema-caffe-intenso/",
+      sourceVariantKey: null,
     });
   });
 });
@@ -426,12 +447,194 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       expect(diff.missing.map((c) => c.sourceKey)).toEqual([SUPER_KEY]);
     });
 
-    it("leaves a lone product it cannot place on the plain key, as every product always was", () => {
+    it("gives a lone product it cannot place a key of its own, never the Espresso Bar's row", () => {
       const rows = split();
-      const stranger = listed("Кафе на зърна Moreno Gold Bar 1кг.");
-      const { keyed } = sync([stranger], rows);
-      expect(keysOf(keyed.products)).toEqual([PLAIN]);
+      const stranger = listed("Кафе на зърна Moreno Gold Bar 1кг.", { priceText: "€30.00" });
+      const { keyed, diff } = sync([stranger], rows);
+
+      const strangerKey = `${PLAIN}~name:kafenazarnamorenogoldbar1kg`;
+      expect(keysOf(keyed.products)).toEqual([strangerKey]);
+      // The rows: the Espresso Bar's is neither renamed nor repriced; it and
+      // the Super Bar's go missing, and the stranger is a product of its own.
+      expect(changeFor(diff, `row:${PLAIN}`)).toMatchObject({
+        changeType: "marked_missing",
+        after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+      });
+      expect(changeFor(diff, `row:${SUPER_KEY}`)?.changeType).toBe("marked_missing");
+      expect(diff.created.map((change) => change.sourceKey)).toEqual([strangerKey]);
+      expect(diff.updated).toEqual([]);
+      expect(diff.restored).toEqual([]);
+      expect(keyed.keyCollisions).toEqual([
+        {
+          sourceKey: PLAIN,
+          tiebreaker: "name",
+          products: [
+            { sourceKey: strangerKey, name: "Кафе на зърна Moreno Gold Bar 1кг.", price: "30.00" },
+          ],
+          dropped: [],
+          unresolved: ["unmatched"],
+        },
+      ]);
     });
+  });
+
+  /*
+   * The hostile review's scenarios (m2/t05, H1, L5), each as the rows come out
+   * of it. All start from the split: the Espresso Bar stored under the plain
+   * key, the Super Bar under its own.
+   */
+  describe("cosmetic edits, absences and codes at the shared address", () => {
+    const split = () => sync([espressoBar(), superBar()], production()).rows;
+    const ESPRESSO_ROW = `row:${PLAIN}`;
+    const SUPER_ROW = `row:${SUPER_KEY}`;
+
+    it("S1: the source drops the Espresso Bar's trailing dot — the same row, renamed in place", () => {
+      for (const name of [
+        "Кафе на зърна Moreno Espresso Bar 1кг",
+        "Кафе на зърна Moreno Espresso Bar 1 кг.",
+      ]) {
+        const { keyed, diff, rows } = sync([espressoBar({ name }), superBar()], split());
+        expect(keysOf(keyed.products)).toEqual([PLAIN, SUPER_KEY]);
+        expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+          changeType: "updated",
+          changedFields: ["name", "semanticHash"],
+          after: { name, currentPrice: "20.00" },
+        });
+        expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("unchanged");
+        expect([...diff.created, ...diff.missing, ...diff.removed]).toEqual([]);
+        expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
+
+        // S3: and the run after it changes nothing.
+        const again = sync([espressoBar({ name }), superBar()], rows);
+        expect(again.diff.counts).toMatchObject({ unchanged: 2, created: 0, marked_missing: 0 });
+      }
+    });
+
+    it("S2b: the Espresso Bar absent for a run while the Super Bar loses its dot — no row swaps", () => {
+      const name = "Кафе на зърна Moreno Super Bar 1кг";
+      const { keyed, diff } = sync([superBar({ name })], split());
+      expect(keysOf(keyed.products)).toEqual([SUPER_KEY]);
+      expect(changeFor(diff, SUPER_ROW)).toMatchObject({
+        changeType: "updated",
+        after: { name, currentPrice: "25.00" },
+      });
+      // The Espresso Bar's row is only missing: not renamed, not repriced.
+      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+        changeType: "marked_missing",
+        after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+      });
+      expect(diff.created).toEqual([]);
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
+    });
+
+    it("S2c: the Espresso Bar comes back — its own row is restored, nothing is created", () => {
+      const name = "Кафе на зърна Moreno Super Bar 1кг";
+      const absent = sync([superBar({ name })], split()).rows;
+      const { keyed, diff } = sync([espressoBar(), superBar({ name })], absent);
+      expect(keysOf(keyed.products)).toEqual([PLAIN, SUPER_KEY]);
+      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+        changeType: "restored",
+        after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+      });
+      expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("unchanged");
+      expect([...diff.created, ...diff.missing]).toEqual([]);
+    });
+
+    it("S2: the Espresso Bar removed, then the Super Bar renamed — the removed row stays removed", () => {
+      let rows = split();
+      for (let run = 0; run < 3; run += 1) rows = sync([superBar()], rows).rows;
+      expect(rows.find((row) => row.id === ESPRESSO_ROW)?.status).toBe("removed");
+
+      const crema = superBar({ name: "Кафе на зърна Moreno Super Bar Crema 1кг." });
+      const { keyed, diff } = sync([crema], rows);
+      const cremaKey = `${PLAIN}~name:kafenazarnamorenosuperbarcrema1kg`;
+      expect(keysOf(keyed.products)).toEqual([cremaKey]);
+      expect(diff.restored).toEqual([]);
+      expect(diff.updated).toEqual([]);
+      expect(changeFor(diff, ESPRESSO_ROW)).toBeUndefined();
+      expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("marked_missing");
+      expect(diff.created.map((change) => change.sourceKey)).toEqual([cremaKey]);
+      // A stored product vanished as a new one arrived: a person decides.
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
+    });
+
+    it("S5 (L5): the listing starts stating codes — both keep their keys, and nothing is raised", () => {
+      const { keyed, diff } = sync(
+        [espressoBar({ sku: "00072" }), superBar({ sku: "00073" })],
+        split(),
+      );
+      expect(keysOf(keyed.products)).toEqual([PLAIN, SUPER_KEY]);
+      expect(diff.moved).toEqual([]);
+      expect([...diff.created, ...diff.missing]).toEqual([]);
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
+    });
+
+    it("S6: one name in two scripts cannot tell two products apart — the first is kept, and raised", () => {
+      const { keyed, diff } = sync(
+        [
+          espressoBar({ name: "Кафе на зърна Moreno Super Bar 1кг." }),
+          superBar({ name: "Кафе на зърна Moreno Супер Бар 1кг." }),
+        ],
+        production(),
+      );
+      expect(keysOf(keyed.products)).toEqual([PLAIN]);
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual(["indistinguishable"]);
+      // As before the fix for exactly this case, and alarmed twice over: the
+      // rename is named by `identity_changed` as well.
+      expect(changeFor(diff, ESPRESSO_ROW)?.changeType).toBe("updated");
+    });
+  });
+});
+
+describe("the same product typed twice, spelt two ways (M4)", () => {
+  const ADDRESS_GOLD = "/excelsior-gold/";
+  const doses = (name: string, overrides: Partial<Raw> = {}) =>
+    normalizeProduct(
+      {
+        path: ADDRESS_GOLD,
+        url: `${BASE}${ADDRESS_GOLD}`,
+        name,
+        priceText: "€51.00",
+        availabilityText: "in_stock",
+        weightText: "150 бр.",
+        brandKey: "excelsior",
+        categoryKeys: ["kafe-dozi"],
+        imageUrls: [`${BASE}/img/product-img-900.jpg-800w.jpg`],
+        ...overrides,
+      },
+      { sourceSite: "kafezona", defaultCurrency: "EUR" },
+    );
+  const tight = doses("Дозети Excelsior Porto Rico 150бр.");
+  const spaced = doses("Дозети Excelsior Porto Rico 150 бр.");
+
+  it("collapses into the one product, under the plain key, without an alarm — in either order", () => {
+    for (const records of [
+      [tight, spaced],
+      [spaced, tight],
+    ]) {
+      const { keyed, diff } = sync(records, [stored(tight)]);
+      expect(keysOf(keyed.products)).toEqual(["/excelsior-gold/#150pc"]);
+      expect(keyed.keyCollisions[0]).toMatchObject({
+        tiebreaker: null,
+        unresolved: [],
+        dropped: [{ differsIn: ["name"] }],
+      });
+      expect([...diff.created, ...diff.missing]).toEqual([]);
+    }
+  });
+
+  it("raises the pair when they also differ in what the shop shows", () => {
+    for (const other of [
+      doses("Дозети Excelsior Porto Rico 150 бр.", {
+        imageUrls: [`${BASE}/img/product-img-901.jpg-800w.jpg`],
+      }),
+      doses("Дозети Excelsior Porto Rico 150 бр.", { descriptionText: "Друг текст." }),
+      doses("Дозети Excelsior Porto Rico 150 бр.", { availabilityText: "out_of_stock" }),
+    ]) {
+      const { keyed } = sync([tight, other], [stored(tight)]);
+      expect(keysOf(keyed.products)).toEqual(["/excelsior-gold/#150pc"]);
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual(["indistinguishable"]);
+    }
   });
 });
 

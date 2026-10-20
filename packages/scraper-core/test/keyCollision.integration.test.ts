@@ -42,7 +42,8 @@ const describeIntegration = available ? describe : describe.skip;
 
 const ADDRESS = "/moreno-super-bar-1/";
 const PLAIN = "/moreno-super-bar-1/#1000g";
-const SUPER_KEY = `${PLAIN}~name:kafe-na-zarna-moreno-super-bar-1kg`;
+const SUPER_KEY = `${PLAIN}~name:kafenazarnamorenosuperbar1kg`;
+const ESPRESSO_KEY = `${PLAIN}~name:kafenazarnamorenoespressobar1kg`;
 
 const SITE: Pick<FakeSiteOptions, "brands" | "categories"> = {
   brands: [{ id: "7", h1: "MORENO", slug: "cafe-moreno", count: 4 }],
@@ -115,6 +116,11 @@ describeIntegration("two products at one source address (integration)", () => {
         respectRobotsTxt: false,
         missingThreshold: 3,
         breakerMinAbsoluteProducts: 0,
+        // A catalog of two, one of which leaves: the breaker would rightly
+        // call that a mass disappearance. These tests are about keys, so it
+        // lets absences through; its own suite is `sync.integration.test.ts`.
+        breakerMaxDisappearedRatio: 1,
+        breakerMinDiscoveredRatio: 0,
         enrichMaxPerRun: options.enrichMax ?? 0,
         enrichLookupMax: 10,
         storageDriver: "local",
@@ -150,6 +156,7 @@ describeIntegration("two products at one source address (integration)", () => {
         status: products.status,
         collision: products.hasUrlCollision,
         characteristics: products.characteristics,
+        sku: products.sku,
         enrichedAt: products.enrichedAt,
         enrichAttemptedAt: products.enrichAttemptedAt,
       })
@@ -291,7 +298,8 @@ describeIntegration("two products at one source address (integration)", () => {
     });
 
     await sync([ESPRESSO, SUPER], { enrichMax: 10 });
-    expect(lastRequests.filter((request) => request === ADDRESS)).toEqual([]);
+    // Read once, for the Super Bar, and found to be the Espresso Bar's page.
+    expect(lastRequests.filter((request) => request === ADDRESS)).toHaveLength(1);
     const superBar = await byKey(SUPER_KEY);
     expect(superBar?.characteristics).toEqual([]);
     expect(superBar?.enrichedAt).toBeNull();
@@ -302,6 +310,74 @@ describeIntegration("two products at one source address (integration)", () => {
 
     await sync([SUPER, ESPRESSO], { enrichMax: 10 });
     expect(lastRequests.filter((request) => request === ADDRESS)).toEqual([]);
+  });
+
+  it("enriches the Espresso Bar from its own page on a catalog synced from scratch (L7)", async () => {
+    // Nothing stored: both products leave the first sync under split keys.
+    await sync([SUPER, ESPRESSO], { enrichMax: 10 });
+    expect((await rows()).map((row) => row.sourceKey)).toEqual([ESPRESSO_KEY, SUPER_KEY]);
+
+    // The page names the Espresso Bar, so it is the Espresso Bar's to keep.
+    const espresso = await byKey(ESPRESSO_KEY);
+    expect(espresso?.characteristics).toHaveLength(2);
+    expect(espresso?.enrichedAt).toBeInstanceOf(Date);
+    // But not its code: the page is shared, and its one code names neither row.
+    expect(espresso?.sku).toBeNull();
+
+    const superBar = await byKey(SUPER_KEY);
+    expect(superBar?.characteristics).toEqual([]);
+    expect(superBar?.enrichedAt).toBeNull();
+  });
+
+  it("S1 in the database: a re-punctuated name keeps both rows where they are", async () => {
+    await sync([ESPRESSO]);
+    await sync([ESPRESSO, SUPER]);
+    const before = await rows();
+
+    const result = await sync([
+      { ...ESPRESSO, h1: "Кафе на зърна Moreno Espresso Bar 1 кг" },
+      SUPER,
+    ]);
+    expect(result.appliedDiff.counts).toMatchObject({
+      created: 0,
+      updated: 1,
+      unchanged: 1,
+      marked_missing: 0,
+    });
+    const after = await rows();
+    expect(after.map((row) => [row.id, row.sourceKey, row.slug, row.price])).toEqual(
+      before.map((row) => [row.id, row.sourceKey, row.slug, row.price]),
+    );
+    expect((await runMetadata(result.syncRunId))?.keyCollisions?.[0]?.unresolved).toEqual([]);
+  });
+
+  it("S2 in the database: the removed Espresso Bar row is never restored as another product", async () => {
+    await sync([ESPRESSO]);
+    await sync([ESPRESSO, SUPER]);
+    for (let run = 0; run < 3; run += 1) await sync([SUPER]);
+    expect(await byKey(PLAIN)).toMatchObject({ status: "removed" });
+
+    const crema = { ...SUPER, h1: "Кафе на зърна Moreno Super Bar Crema 1кг." };
+    const result = await sync([crema]);
+    expect(result.appliedDiff.counts).toMatchObject({
+      created: 1,
+      restored: 0,
+      updated: 0,
+      marked_missing: 1,
+    });
+    expect(await byKey(PLAIN)).toMatchObject({
+      status: "removed",
+      name: "Кафе на зърна Moreno Espresso Bar 1кг.",
+      price: "20.00",
+    });
+    expect(await byKey(`${PLAIN}~name:kafenazarnamorenosuperbarcrema1kg`)).toMatchObject({
+      status: "active",
+      price: "25.00",
+    });
+    // Recorded on the run, for the storefront's check to raise.
+    expect((await runMetadata(result.syncRunId))?.keyCollisions).toMatchObject([
+      { sourceKey: PLAIN, unresolved: ["unmatched"] },
+    ]);
   });
 
   it("reports the split on a dry run, and writes no product", async () => {
