@@ -455,6 +455,69 @@ describe("move detection", () => {
       expect(result.moved[0]?.changedFields).toContain("name");
     });
 
+    /*
+     * At an address two products share, or once shared, a code alone does not
+     * move a row: there the code came from a page both share (review N10b).
+     */
+    describe("at a shared address", () => {
+      const before = withSku(
+        product("/moreno-super-bar-1/", { name: "Кафе на зърна Moreno Espresso Bar 1кг." }),
+        "00417",
+      );
+      const otherName = withSku(
+        product("/moreno-super-bar-2/", { name: "Кафе на зърна Moreno Super Bar 1кг." }),
+        "00417",
+      );
+
+      it("does not move a row that shares its page on a code alone", () => {
+        const result = diffCatalog(
+          [otherName],
+          [stored(before, { hasUrlCollision: true })],
+          THRESHOLD,
+        );
+        expect(result.counts).toMatchObject({ moved: 0, created: 1, marked_missing: 1 });
+        // Its name and price stay its own.
+        expect(result.missing[0]?.after).toMatchObject({
+          name: "Кафе на зърна Moreno Espresso Bar 1кг.",
+        });
+      });
+
+      it("does not move a row whose address holds a split key, nor one onto a shared address", () => {
+        const splitSibling = stored(product("/moreno-super-bar-1/"), {
+          id: "id-split",
+          sourceKey: "/moreno-super-bar-1/#1000g~name:kafenazarnamorenosuperbar1kg",
+        });
+        const viaHistory = diffCatalog([otherName], [stored(before), splitSibling], THRESHOLD);
+        expect(viaHistory.moved).toEqual([]);
+
+        // Two products listed at the record's address now.
+        const neighbour = product("/moreno-super-bar-2/", {
+          name: "Кафе на зърна Moreno Vending 1кг.",
+          weightText: "500 г",
+        });
+        const onto = diffCatalog([otherName, neighbour], [stored(before)], THRESHOLD);
+        expect(onto.moved).toEqual([]);
+      });
+
+      it("still moves it on a code when the name is the same name", () => {
+        const sameName = withSku(
+          product("/moreno-espresso-bar/", { name: "Кафе на зърна Moreno Espresso Bar 1 кг" }),
+          "00417",
+        );
+        const result = diffCatalog(
+          [sameName],
+          [stored(before, { hasUrlCollision: true })],
+          THRESHOLD,
+        );
+        expect(result.moved[0]?.movedFrom).toMatchObject({ matchedBy: "sku" });
+      });
+
+      it("moves a product at an address nobody shares on its code alone, as ever", () => {
+        const result = diffCatalog([otherName], [stored(before)], THRESHOLD);
+        expect(result.moved[0]?.movedFrom).toMatchObject({ matchedBy: "sku", decidedBy: null });
+      });
+    });
+
     it("prefers the product code to the fingerprint", () => {
       const before = withSku(product("/a/"), "A-1");
       const sameName = withSku(product("/a-1/"), "B-2");

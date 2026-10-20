@@ -1,3 +1,4 @@
+import { parseSplitSourceKey } from "./identity.ts";
 import { type MoveMatch, type MoveSignal, type UnresolvedMove, pairMoves } from "./moves.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 
@@ -31,6 +32,12 @@ export interface ExistingProduct {
    * change.
    */
   readonly sku?: string | null;
+  /**
+   * True when another product shares this row's source page. With a split
+   * key under its plain key, it marks an address that is or was shared, where
+   * a product code alone moves no row (`moves.ts`).
+   */
+  readonly hasUrlCollision?: boolean;
   /** Current values, used to describe what changed. */
   readonly snapshot: Record<string, unknown>;
 }
@@ -141,6 +148,29 @@ export function productSnapshot(product: NormalizedProduct): Record<string, unkn
 }
 
 /**
+ * Source paths that are, or once were, shared by two products: two listed
+ * there in this run, a stored row flagged as sharing its page, or a split key
+ * stored under it. Move detection pairs a row at one of these on a product
+ * code only when the name agrees too (`moves.ts`).
+ */
+function sharedPaths(
+  discovered: readonly NormalizedProduct[],
+  existing: readonly ExistingProduct[],
+): Set<string> {
+  const listed = new Map<string, number>();
+  for (const product of discovered) {
+    listed.set(product.sourcePath, (listed.get(product.sourcePath) ?? 0) + 1);
+  }
+  const shared = new Set([...listed].filter(([, count]) => count > 1).map(([path]) => path));
+  for (const row of existing) {
+    if (!row.sourcePath) continue;
+    if (row.hasUrlCollision || parseSplitSourceKey(row.sourceKey) !== null)
+      shared.add(row.sourcePath);
+  }
+  return shared;
+}
+
+/**
  * Reconcile discovered products against stored state.
  *
  * Absence never deletes on its own: it increments a counter, and only a run
@@ -166,7 +196,10 @@ export function diffCatalog(
   const pairing = pairMoves(
     existing.filter((product) => !seenKeys.has(product.sourceKey)),
     discovered.filter((product) => !existingByKey.has(product.sourceKey)),
-    options.discoveredSkus ? { discoveredSkus: options.discoveredSkus } : {},
+    {
+      ...(options.discoveredSkus ? { discoveredSkus: options.discoveredSkus } : {}),
+      sharedPaths: sharedPaths(discovered, existing),
+    },
   );
   const moveByNewKey = new Map(pairing.pairs.map((pair) => [pair.product.sourceKey, pair]));
   const movedIds = new Set(pairing.pairs.map((pair) => pair.existing.id));

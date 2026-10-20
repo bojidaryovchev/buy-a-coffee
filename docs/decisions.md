@@ -117,10 +117,17 @@ a mark between two digits, kept as `p` ("7,5" is not "75", "2,50 г" is not
 match cannot disagree: "1кг." and "1 кг" are one name to both, and the same
 product typed twice in two spellings collapses as it always did. Keys are sticky: at an
 address that is or was shared, each product is paired with the row it already
-has there — by code, else by that name — and keeps that row's key, so the
-Espresso Bar stays under the plain key and only the Super Bar is new, and
-neither moves when the source re-spaces a name, lists one of them alone, or
-starts printing codes. A pair is made only when it is the single reading.
+has there — by that name, a product code able only to veto — and keeps that
+row's key, so the Espresso Bar stays under the plain key and only the Super Bar
+is new, and neither moves when the source re-spaces a name, lists one of them
+alone, or starts printing codes. A pair is made only when it is the single
+reading. A code alone never hands such a row to another record, in settling or
+in move detection: there the stored code was read from a page both products
+share, and a listing that gave the Super Bar the Espresso Bar's code would
+otherwise move the Espresso Bar's row, URL and order history onto the Super
+Bar. Refused, the row goes the way of a product no longer listed, the record is
+created under its own key, and the address is raised. Everywhere else a code
+moves a renamed product exactly as before.
 
 Nothing is guessed. Records with one code and one name that differ in what the
 shop shows keep the first, as before (`indistinguishable`). A product that

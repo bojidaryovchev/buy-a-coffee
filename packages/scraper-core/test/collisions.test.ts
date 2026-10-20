@@ -420,8 +420,8 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
     expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
   });
 
-  it("recognises the stored product by its code before its name", () => {
-    // Both renamed, both coded: only the code says which one we hold.
+  it("does not hand the stored row to a record with its code but another name", () => {
+    // At a shared address a code alone is not the product: the name must agree.
     const holder = stored(espressoBar(), { sku: "00072" });
     const { keyed, diff } = sync(
       [
@@ -430,8 +430,42 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       ],
       [holder],
     );
-    expect(keysOf(keyed.products)).toEqual([PLAIN, `${PLAIN}~code:00073`]);
-    expect(changeFor(diff, holder.id)?.changeType).toBe("updated");
+    expect(keysOf(keyed.products)).toEqual([`${PLAIN}~code:00072`, `${PLAIN}~code:00073`]);
+    // The row keeps what it is, and goes the way of a product no longer listed.
+    expect(changeFor(diff, holder.id)).toMatchObject({
+      changeType: "marked_missing",
+      after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+    });
+    expect([...diff.updated, ...diff.moved]).toEqual([]);
+    expect(diff.created.map((change) => change.sourceKey).sort()).toEqual([
+      `${PLAIN}~code:00072`,
+      `${PLAIN}~code:00073`,
+    ]);
+    expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
+  });
+
+  it("N10b today: a listing that gives the Super Bar the Espresso Bar's stored code swaps nothing", () => {
+    // Production now: the Espresso Bar alone, holding the code its page prints.
+    const holder = stored(espressoBar(), { sku: "00417" });
+    const { keyed, diff } = sync(
+      [espressoBar({ sku: "00418" }), superBar({ sku: "00417" })],
+      [holder],
+    );
+    // The Espresso Bar's row is neither renamed nor repriced nor moved.
+    expect(changeFor(diff, holder.id)).toMatchObject({
+      changeType: "marked_missing",
+      after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+    });
+    expect([...diff.updated, ...diff.moved, ...diff.restored]).toEqual([]);
+    // The Super Bar is created, under a key of its own, at its own price.
+    expect(
+      diff.created.find((change) => change.sourceKey === `${PLAIN}~code:00417`)?.after,
+    ).toMatchObject({
+      name: "Кафе на зърна Moreno Super Bar 1кг.",
+      currentPrice: "25.00",
+    });
+    // And the address is raised for a person: a stored product vanished there.
+    expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
   });
 
   it("does not guess when the stored product is not among the records, and says so", () => {
@@ -609,31 +643,31 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
     });
 
-    it("N10b: listing codes that give the Super Bar the Espresso Bar's stored code are raised, never silent", () => {
+    it("N10b after the split: the Super Bar given the Espresso Bar's code takes no row", () => {
       // The Espresso Bar's row holds the code its page printed while it was alone.
       const rows = split().map((row) => (row.sourceKey === PLAIN ? { ...row, sku: "00072" } : row));
       const { keyed, diff } = sync(
         [espressoBar({ sku: "00071" }), superBar({ sku: "00072" })],
         rows,
       );
-      // The Super Bar's record matches two rows — the Espresso Bar's by code,
-      // its own by name — so settling pairs nobody, and both keep the keys
-      // discovery gave them.
-      expect(keysOf(keyed.products)).toEqual([`${PLAIN}~code:00071`, `${PLAIN}~code:00072`]);
-      // Move detection then believes the code and moves the Espresso Bar's
-      // row onto it: a rename with a price change, which `identity_changed`
-      // names (it reads moves as well as updates).
-      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
-        changeType: "moved",
-        movedFrom: { sourceKey: PLAIN, matchedBy: "sku" },
+      // The Super Bar's record has the Espresso Bar's code, but not its name:
+      // it pairs with the Super Bar's own row, by name, and nothing else.
+      expect(keysOf(keyed.products)).toEqual([`${PLAIN}~code:00071`, SUPER_KEY]);
+      expect(changeFor(diff, SUPER_ROW)).toMatchObject({
+        changeType: "updated",
         after: { name: "Кафе на зърна Moreno Super Bar 1кг.", currentPrice: "25.00" },
       });
-      expect(changeFor(diff, ESPRESSO_ROW)?.changedFields).toEqual(
-        expect.arrayContaining(["name", "currentPrice"]),
-      );
-      // And `duplicate_key_conflict` raises the address: stored products
-      // vanished there as new ones arrived.
-      expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("marked_missing");
+      // The Espresso Bar's row keeps its name and its €20, and is not moved:
+      // the code its row holds contradicts the one the listing now gives it,
+      // so it goes the way of a product no longer listed, and the record is
+      // created under its own key — a duplicate a person links, not a swap.
+      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+        changeType: "marked_missing",
+        after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+      });
+      expect(diff.moved).toEqual([]);
+      expect(diff.created.map((change) => change.sourceKey)).toEqual([`${PLAIN}~code:00071`]);
+      // Raised: a stored product vanished at the address as a new one arrived.
       expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
     });
 
