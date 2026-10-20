@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { SystemIcon } from "@/components/catalog/system-icon";
 import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
+import { ListingSections } from "@/components/catalog/listing-sections";
 import { RelatedLandings } from "@/components/catalog/related-landings";
 import { SystemBadge } from "@/components/catalog/system-badge";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -13,6 +14,7 @@ import {
   shouldIndexListing,
   type RawSearchParams,
 } from "@/lib/catalog/filters";
+import { getBeansSections } from "@/lib/catalog/beans-section-queries";
 import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { listProducts } from "@/lib/catalog/queries";
 import type { CategoryView } from "@/lib/catalog/types";
@@ -153,6 +155,18 @@ export async function CategoryPage({
   /** Set when everything listed here goes in one kind of machine. */
   const system = brewingSystemForCategory(category);
 
+  /*
+   * The beans listing's sections by use (research `09`, T2.2): on the first
+   * page of the unfiltered, unsorted listing only. A filtered view asks a
+   * narrower question than the headings answer and names this page as its
+   * canonical anyway, and page two is the same products continued. Which
+   * products each lists is decided from data (`lib/catalog/beans-sections.ts`).
+   */
+  const sections =
+    intro?.sections && system?.id === "beans" && shouldIndexListing(query)
+      ? await getBeansSections()
+      : [];
+
   const children = stockedChildren(category);
 
   const parent = category.parentSlug
@@ -256,6 +270,12 @@ export async function CategoryPage({
       </header>
 
       <CatalogListing locale={locale} basePath={path} query={query} result={result} />
+
+      {/* Below the products, like the introduction, and before it: two
+          narrower answers first, then who the format is for. */}
+      {intro?.sections && (
+        <ListingSections locale={locale} copy={intro.sections} sections={sections} />
+      )}
 
       {/*
        * Below the listing on purpose: products stay first. Rendered here, as a
