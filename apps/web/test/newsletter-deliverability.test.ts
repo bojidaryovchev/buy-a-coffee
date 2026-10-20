@@ -508,28 +508,43 @@ describe("when it goes out", () => {
     ).not.toContain("promotion-claim");
   });
 
-  it("stops a letter that names a promotion which has ended", () => {
+  it("stops a letter that still names a promotion which has ended", () => {
+    const line = "**Есенни дни** — намалени цени до 15 ноември включително.";
     const named = [
       {
-        id: "p2",
-        name: "Октомври",
-        label: "Есенни дни",
-        percentOff: 10,
-        startsAt: "2026-10-26T22:00:00Z",
-        endsAt: "2026-11-15T22:00:00Z",
-        stoppedAt: null,
+        planned: {
+          id: "p2",
+          label: "Есенни дни",
+          percentOff: 10,
+          startsAt: "2026-10-26T22:00:00.000Z",
+          endsAt: "2026-11-15T22:00:00.000Z",
+          line,
+          slugs: [],
+        },
+        current: {
+          id: "p2",
+          name: "Октомври",
+          label: "Есенни дни",
+          percentOff: 10,
+          startsAt: "2026-10-26T22:00:00Z",
+          endsAt: "2026-11-15T22:00:00Z",
+          stoppedAt: null,
+        },
       },
     ];
-    const over = checkDeliverability({ ...healthy, named, now: NOW }).find(
+    const body = `${PROSE}\n\n${line}\n\n[[промоции]]`;
+    const over = checkDeliverability({ ...healthy, body, named, now: NOW }).find(
       (item) => item.id === "promotion-ended",
     );
     expect(over).toMatchObject({
       blocksSend: true,
       title: "Промоцията „Есенни дни“ („Октомври“) е приключила",
     });
-    expect(ids({ ...healthy, named, now: new Date("2026-11-10T10:00:00Z") })).not.toContain(
+    expect(ids({ ...healthy, body, named, now: new Date("2026-11-10T10:00:00Z") })).not.toContain(
       "promotion-ended",
     );
+    // The line taken out, as the note says: nothing left to answer for.
+    expect(ids({ ...healthy, named, now: NOW })).not.toContain("promotion-ended");
   });
 
   it("stops a letter whose listed reductions are no longer reduced", () => {

@@ -19,7 +19,11 @@ import type * as Send from "@/lib/newsletter/send";
 import type * as Source from "@/lib/newsletter/product-source";
 import type * as ProductsRoute from "@/app/api/admin/newsletter/products/route";
 import type { BatchClient, BatchEmail, BatchResponse } from "@/lib/newsletter/batch";
-import { emptySnapshot, type ProductBlocksSnapshot } from "@/lib/newsletter/product-blocks";
+import {
+  blockProblems,
+  emptySnapshot,
+  type ProductBlocksSnapshot,
+} from "@/lib/newsletter/product-blocks";
 import type { PickerProduct } from "@/lib/newsletter/picker";
 import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
 
@@ -251,6 +255,28 @@ suite("newsletter product blocks (integration)", () => {
         40, 20, 10,
       ]);
       expect(await queries.countPromotions()).toBeGreaterThanOrEqual(3);
+    });
+
+    it("follows a picked product that was renamed since, rather than call its old address unknown", async () => {
+      const id = await add({ slug: "lavazza-oro-1kg" });
+      await db
+        .update(products)
+        .set({ previousSlugs: ["lavazza-qualita-oro-1kg"] })
+        .where(eq(products.id, id));
+      const body = "[[продукти: lavazza-qualita-oro-1kg]]";
+      const snapshot = await source.resolveLetterProducts({ subject: "Избор", body });
+      expect(snapshot.blocks[0]).toMatchObject({
+        products: [
+          expect.objectContaining({ slug: "lavazza-oro-1kg", path: "/bg/lavazza-oro-1kg" }),
+        ],
+        missing: [],
+        renamed: [{ from: "lavazza-qualita-oro-1kg", to: "lavazza-oro-1kg" }],
+      });
+      expect(blockProblems(body, snapshot)).toEqual([]);
+      // Renamed and then withdrawn: a product that left, not an unknown address.
+      await db.update(products).set({ status: "removed" }).where(eq(products.id, id));
+      const gone = await source.resolveLetterProducts({ subject: "Избор", body });
+      expect(gone.blocks[0]).toMatchObject({ missing: [], gone: ["lavazza-qualita-oro-1kg"] });
     });
 
     it("shows hand-picked products in the order typed, telling apart why one is left out", async () => {

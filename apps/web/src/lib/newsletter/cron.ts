@@ -34,8 +34,9 @@ import { monthlyLetter } from "./templates";
  *     at once make one draft and one notice, `createPeriodDraft`), kept even
  *     after the owner deleted it (`deleteDraft`);
  *   - when a letter has already gone out this calendar month, or a monthly
- *     letter the owner started is waiting as a draft: the signup promises one
- *     a month at most. How long ago the last letter went is not a rule here —
+ *     letter the owner started this month is waiting as a draft: the signup
+ *     promises one a month at most. One started in an earlier month and left
+ *     does not hold up every month after it. How long ago the last letter went is not a rule here —
  *     the composer warns about a letter within 30 days of the last;
  *   - when there is nothing to write about: nothing new, nothing reduced.
  *
@@ -144,10 +145,9 @@ async function prepareMonthlyDraft(
   if (sofiaDayOfMonth(now) > PREPARE_DAYS) return { outcome: "not_first_week", notified: false };
   const period = sofiaPeriod(now);
   if (await hasPeriodDraft(period)) return { outcome: "exists", notified: false };
-  if (await wentOutSince(sofiaMonthStart(now))) {
-    return { outcome: "sent_this_month", notified: false };
-  }
-  if (await hasOwnMonthlyDraft()) return { outcome: "owner_draft", notified: false };
+  const monthStart = sofiaMonthStart(now);
+  if (await wentOutSince(monthStart)) return { outcome: "sent_this_month", notified: false };
+  if (await hasOwnMonthlyDraft(monthStart)) return { outcome: "owner_draft", notified: false };
 
   const prepared = await monthlyPlan(now);
   if (prepared.input.newArrivals.length === 0 && prepared.input.reduced.length === 0) {

@@ -427,6 +427,8 @@ describe("resolving a body against the catalog", () => {
       discountPercent: 20,
       perCup: "≈ 0,11 € на чаша",
       availability: "in_stock",
+      // Priced by no promotion of the shop's: nothing for a promotion's letter to claim.
+      promotionId: null,
       image: {
         url: "/media/catalog/eurocaf-crema.jpg",
         alt: "Марка eurocaf-crema",

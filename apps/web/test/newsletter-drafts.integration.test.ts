@@ -215,7 +215,7 @@ suite("starting a newsletter (integration)", () => {
                 kind: "letter-plan" as const,
                 version: 1,
                 preparedAt: new Date(Date.now() - monthly.preparedDaysAgo * DAY).toISOString(),
-                promotionIds: [],
+                named: [],
                 leftOut: {},
               },
             ],
@@ -287,6 +287,26 @@ suite("starting a newsletter (integration)", () => {
       expect(plan.sinceLetter).toBe(false);
     });
 
+    it("puts a reduced arrival the letter has no room for among the reductions", async () => {
+      const ids = [];
+      for (let index = 0; index < 13; index += 1) {
+        ids.push(
+          await add({
+            slug: `nov-${String(index).padStart(2, "0")}`,
+            daysOld: 1 + index / 100,
+            // The oldest of them is reduced: ranked past the twelve.
+            ...(index === 12 ? { price: "8.00", oldPrice: "10.00" } : {}),
+          }),
+        );
+      }
+      await arrive(ids);
+      const plan = await data.monthlyPlan(new Date());
+      expect(plan.input.reduced).toEqual(["nov-12"]);
+      expect(plan.input.newArrivals).toHaveLength(11);
+      expect(plan.input.newArrivals).not.toContain("nov-12");
+      expect(plan.plan.leftOut).toEqual({ newOverflow: 1 });
+    });
+
     it("has room for twelve new arrivals beside the reductions, and says how many more did not fit", async () => {
       const ids = [];
       for (let index = 0; index < 14; index += 1) {
@@ -325,6 +345,45 @@ suite("starting a newsletter (integration)", () => {
     });
   });
 
+  describe("Обява за промоция with nothing it can claim", () => {
+    it("is not started, and the list says why; the choices count only what can carry the reduction", async () => {
+      // Priced only after it joined: no 30-day price on record, no badge (the reviewer's case).
+      const fresh = await add({ slug: "bez-istoriya", price: "20.00" });
+      const soldOut = await add({
+        slug: "izcherpan",
+        price: "20.00",
+        availability: "out_of_stock",
+      });
+      const empty = await promote({
+        members: [
+          { id: fresh, reference: null },
+          { id: soldOut, reference: "20.00" },
+        ],
+        percentOff: 20,
+      });
+      const { outcome, campaign } = await pressed({ template: "promotion", promotionId: empty });
+      expect(outcome).toBe(`REDIRECT /admin/byuletin?promotsiya=prazna&p=${empty}`);
+      expect(campaign).toBeNull();
+      expect(await db.select().from(newsletterCampaigns)).toHaveLength(0);
+
+      const honest = await add({ slug: "chesten", price: "20.00" });
+      const other = await promote({ members: [{ id: honest, reference: "20.00" }] });
+      const choices = await data.promotionChoices(new Date());
+      expect(choices.map((choice) => [choice.id, choice.products, choice.leftOut])).toEqual(
+        expect.arrayContaining([
+          [empty, 0, { unbacked: 1, soldOut: 1, elsewhere: 0 }],
+          [other, 1, { unbacked: 0, soldOut: 0, elsewhere: 0 }],
+        ]),
+      );
+      const reason = data.noMembersReason(
+        { percentOff: 20 },
+        { unbacked: 1, soldOut: 1, elsewhere: 0 },
+      );
+      expect(reason).toContain("един продукт няма 30-дневна история на цената");
+      expect(reason).toContain("един продукт е изчерпан");
+    });
+  });
+
   describe("Нов бюлетин", () => {
     it("starts the monthly letter from the catalog, as an explicit list the owner can edit", async () => {
       await arrive([await add({ slug: "nov", daysOld: 2 })]);
@@ -347,7 +406,16 @@ suite("starting a newsletter (integration)", () => {
       expect(campaign!.body).not.toMatch(/\d+\s*%/);
       // What it was written from, kept with it, through a save.
       const plan = () => campaign!.attachments.find((entry) => entry.kind === "letter-plan");
-      expect(plan()).toMatchObject({ promotionIds: [promotionId] });
+      expect(plan()).toMatchObject({
+        named: [
+          {
+            id: promotionId,
+            label: "Есенни дни",
+            line: expect.stringMatching(/^\*\*Есенни дни\*\* — намалени цени до /),
+            slugs: ["nasha"],
+          },
+        ],
+      });
       await actions.submitNewsletter(
         {},
         form({
@@ -551,6 +619,51 @@ suite("starting a newsletter (integration)", () => {
       expect(answer.error).toContain("„Lavazza chesten“");
     });
 
+    it("refuses a promotion's letter none of whose products the promotion prices", async () => {
+      const product = await add({ slug: "chesten", price: "20.00" });
+      const id = await promote({ members: [{ id: product, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      // The owner swaps its products for others, reduced by the source, not by the promotion.
+      await add({ slug: "drug", price: "7.00", oldPrice: "10.00" });
+      const swapped = {
+        ...campaign!,
+        body: campaign!.body.replace("[[продукти: chesten]]", "[[продукти: drug]]"),
+      };
+      const answer = await sendPress(swapped);
+      expect(answer.error).toContain("В писмото няма продукт от промоцията");
+    });
+
+    it("refuses a promotion's letter once the promotion was changed after it was written", async () => {
+      const product = await add({ slug: "chesten", price: "20.00" });
+      const id = await promote({ members: [{ id: product, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "promotion", promotionId: id });
+      await db.update(promotions).set({ label: "Зимни дни" }).where(eq(promotions.id, id));
+      const answer = await sendPress(campaign!);
+      expect(answer.error).toContain("Промоцията е променена след като обявата е подготвена");
+      expect(answer.error).toContain("за клиентите се казва „Зимни дни“, а не „Есенни дни“");
+    });
+
+    it("lets a monthly letter go once the ended promotion's line and products are taken out", async () => {
+      await arrive([await add({ slug: "nov", daysOld: 2 })]);
+      const ours = await add({ slug: "nasha", price: "20.00" });
+      const id = await promote({ members: [{ id: ours, reference: "20.00" }] });
+      const { campaign } = await pressed({ template: "monthly" });
+      await db
+        .update(promotions)
+        .set({ endsAt: new Date(Date.now() - 60 * 60 * 1000) })
+        .where(eq(promotions.id, id));
+      // As the note says: the section goes — heading, line, products and link.
+      const body = campaign!.body.replace(
+        /## Промоции[\s\S]*?страницата с промоциите\]\([^)]*\)\.\n\n/,
+        "",
+      );
+      expect(body).not.toContain("Есенни дни");
+      expect(body).not.toContain("[[промоции:");
+      await expect(sendPress({ ...campaign!, body })).rejects.toThrow(
+        `REDIRECT /admin/byuletin/${campaign!.id}`,
+      );
+    });
+
     it("lets an honest promotion's letter go", async () => {
       const product = await add({ slug: "chesten", price: "20.00" });
       const id = await promote({ members: [{ id: product, reference: "20.00" }] });
@@ -648,7 +761,18 @@ suite("starting a newsletter (integration)", () => {
           template: "monthly",
           autoPeriod: "2026-11",
           startedAt: new Date(),
-          attachments: [file, { kind: "product-blocks", version: 1, blocks: [] }],
+          attachments: [
+            file,
+            { kind: "product-blocks", version: 1, blocks: [] },
+            {
+              kind: "letter-plan",
+              version: 1,
+              preparedAt: new Date().toISOString(),
+              named: [],
+              announced: null,
+              leftOut: {},
+            },
+          ],
         })
         .returning({ id: newsletterCampaigns.id });
 

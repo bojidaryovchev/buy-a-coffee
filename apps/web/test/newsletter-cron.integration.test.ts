@@ -6,6 +6,7 @@ import {
   newsletterDeliveries,
   newsletterSubscribers,
   products,
+  promotions,
   sourceSites,
   syncChanges,
   syncRuns,
@@ -117,7 +118,7 @@ suite("the newsletter's daily job (integration)", () => {
     failNotices = false;
     delete process.env.RESEND_API_KEY;
     await db.execute(
-      sql`truncate table newsletter_deliveries, newsletter_campaigns, newsletter_subscribers, sync_changes, sync_runs, products, brands, source_sites restart identity cascade`,
+      sql`truncate table newsletter_deliveries, newsletter_campaigns, newsletter_subscribers, promotion_products, promotions, sync_changes, sync_runs, products, brands, source_sites restart identity cascade`,
     );
     const [site] = await db
       .insert(sourceSites)
@@ -250,15 +251,19 @@ suite("the newsletter's daily job (integration)", () => {
       expect((await run()).draft).toBe("sent_this_month");
 
       await db.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, sent!.id));
-      // Started weeks ago and still waiting: the month's letter is coming.
+      // Started this month and still waiting: the month's letter is coming.
       const own = await campaigns.createDraft({ subject: "Моят", template: "monthly" });
-      await db
-        .update(newsletterCampaigns)
-        .set({ createdAt: new Date(Date.now() - 40 * DAY) })
-        .where(eq(newsletterCampaigns.id, own));
       expect((await run()).draft).toBe("owner_draft");
       expect(await all()).toHaveLength(1);
       expect(notices).toHaveLength(0);
+
+      // Started last month and left: it does not hold up this one.
+      await db
+        .update(newsletterCampaigns)
+        .set({ createdAt: new Date(sofiaMonthStart(new Date()).getTime() - 5 * DAY) })
+        .where(eq(newsletterCampaigns.id, own));
+      expect((await run()).draft).toBe("created");
+      expect(notices).toHaveLength(1);
     });
 
     it("is not made after the month's first week: a run on the 21st makes no draft", async () => {
@@ -294,7 +299,7 @@ suite("the newsletter's daily job (integration)", () => {
         expect.objectContaining({
           kind: "letter-plan",
           preparedAt: now.toISOString(),
-          promotionIds: [],
+          named: [],
         }),
       ]);
     });
@@ -419,6 +424,107 @@ suite("the newsletter's daily job (integration)", () => {
         expect.objectContaining({ kind: "run-stop", cause: "products" }),
       );
       expect(await run({ client: new Inbox() })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
+    });
+
+    it("stops at the top of a run once what it says of a promotion is no longer true, and is left to the owner", async () => {
+      const [promotion] = await db
+        .insert(promotions)
+        .values({
+          name: "Есен (вътрешно)",
+          label: "Есенни дни",
+          percentOff: 10,
+          startsAt: new Date(Date.now() - 3 * DAY),
+          endsAt: new Date(Date.now() + 10 * DAY),
+        })
+        .returning({ id: promotions.id });
+      await subscribe(150);
+      const id = await campaigns.createDraft({
+        subject: "Есенни дни: −10%",
+        body: "Здравейте,\n\nДо 15 ноември цените са намалени с 10%.",
+        template: "promotion",
+        promotionId: promotion!.id,
+      });
+      expect(await campaigns.startCampaign(id, 150)).toMatchObject({ ok: true });
+      // The first run stops on its own (its letter shows no product of the promotion).
+      expect(
+        (await send.runCampaign(id, { client: new Inbox(), sleep: async () => {} })).reason,
+      ).toBe("claims");
+      const stopped = (await campaigns.getCampaign(id))!;
+      expect(stopped.status).toBe("partial");
+      expect(stopped.lastError).toContain("В писмото няма продукт от промоцията");
+      expect(stopped.lastError).toContain("„Спри изпращането“");
+      expect(stopped.attachments).toContainEqual(
+        expect.objectContaining({ kind: "run-stop", cause: "claims" }),
+      );
+      // The daily job leaves it; "Продължи" meets the same check.
+      const inbox = new Inbox();
+      expect(await run({ client: inbox })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
+      expect(await campaigns.claimResume(id)).toBe(true);
+      expect((await send.runCampaign(id, { client: inbox, sleep: async () => {} })).reason).toBe(
+        "claims",
+      );
+      expect(inbox.delivered).toHaveLength(0);
+      // And the owner ends it.
+      expect(await send.stopRun(id)).toBe(true);
+    });
+
+    it("stops a resumed monthly letter whose named promotion ended overnight", async () => {
+      const [promotion] = await db
+        .insert(promotions)
+        .values({
+          name: "Есен (вътрешно)",
+          label: "Есенни дни",
+          percentOff: 10,
+          startsAt: new Date(Date.now() - 3 * DAY),
+          endsAt: new Date(Date.now() + 10 * DAY),
+        })
+        .returning({ id: promotions.id, startsAt: promotions.startsAt, endsAt: promotions.endsAt });
+      const line = "**Есенни дни** — намалени цени до 30 октомври включително.";
+      await subscribe(150);
+      const id = await campaigns.createDraft({
+        subject: "Новото",
+        body: `Здравейте,\n\n## Промоции\n\n${line}`,
+        template: "monthly",
+        attachments: [
+          {
+            kind: "letter-plan",
+            version: 1,
+            preparedAt: new Date().toISOString(),
+            named: [
+              {
+                id: promotion!.id,
+                label: "Есенни дни",
+                percentOff: 10,
+                startsAt: promotion!.startsAt.toISOString(),
+                endsAt: promotion!.endsAt.toISOString(),
+                line,
+                slugs: [],
+              },
+            ],
+            announced: null,
+            leftOut: {},
+          },
+        ],
+      });
+      expect(await campaigns.startCampaign(id, 150)).toMatchObject({ ok: true });
+      const first = new Inbox(2);
+      await send.runCampaign(id, { client: first, sleep: async () => {} });
+      expect(first.delivered).toHaveLength(100);
+      // Overnight the promotion is stopped; the job's resume checks before it sends.
+      await db
+        .update(promotions)
+        .set({ stoppedAt: new Date() })
+        .where(eq(promotions.id, promotion!.id));
+      const second = new Inbox();
+      expect(await run({ client: second })).toMatchObject({ resumed: 1 });
+      expect(second.delivered).toHaveLength(0);
+      const after = (await campaigns.getCampaign(id))!;
+      expect(after.lastError).toContain("Промоцията „Есенни дни“ („Есен (вътрешно)“) е спряна");
+      expect(after.attachments).toContainEqual(
+        expect.objectContaining({ kind: "run-stop", cause: "claims" }),
+      );
+      // Not picked up again.
+      expect(await run({ client: second })).toMatchObject({ resumed: 0, awaitingOwner: 1 });
     });
 
     it("is ended by the owner's Спри: nobody waiting gets it, and the record says so", async () => {

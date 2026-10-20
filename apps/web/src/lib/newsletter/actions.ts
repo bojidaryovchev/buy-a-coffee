@@ -27,7 +27,7 @@ import { resolveLetterProducts } from "./product-source";
 import { resyncActiveSubscribers, type ResyncReport } from "./resync";
 import { newsletterDraftSchema, requireContent, resolveIntent, testAddressSchema } from "./schemas";
 import { abandonRun, resendBatchClient, runCampaign, stopRun } from "./send";
-import { letterPromotions } from "./template-data";
+import { letterPromotions } from "./claims-data";
 
 /**
  * The newsletter's admin actions: write a draft, send a test of it, send it,
@@ -250,6 +250,7 @@ export async function submitNewsletter(
   const claims = campaign
     ? claimNotes({
         ...(await letterPromotions(campaign)),
+        body: draft.body,
         products: products.blocks.flatMap((block) => block.products),
       }).filter((note) => note.blocksSend)
     : [];

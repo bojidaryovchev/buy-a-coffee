@@ -21,7 +21,8 @@ import { campaignFiles, campaignSnapshot } from "@/lib/newsletter/product-blocks
 import { dayWords, lastDay, periodMonthName } from "@/lib/newsletter/sofia";
 import type { PromotionFacts } from "@/lib/newsletter/claims";
 import { letterPlanOf, type LetterPlan } from "@/lib/newsletter/letter-plan";
-import { lastLetterStart, letterPromotions } from "@/lib/newsletter/template-data";
+import { letterPromotions } from "@/lib/newsletter/claims-data";
+import { lastLetterStart } from "@/lib/newsletter/template-data";
 import {
   CAMPAIGN_STATUS_LABEL,
   CAMPAIGN_STATUS_TONE,
@@ -258,6 +259,7 @@ export default async function AdminCampaignPage({
           capitalised={capitalised}
           lastLetterAt={lastLetter?.toISOString() ?? null}
           announced={promotions.announced}
+          announcedPlan={promotions.announcedPlan}
           announcedMissing={promotions.announcedMissing}
           named={promotions.named}
         />

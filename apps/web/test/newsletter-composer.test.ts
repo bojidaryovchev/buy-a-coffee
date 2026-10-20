@@ -388,6 +388,38 @@ describe("before the script runs", () => {
   });
 });
 
+describe("a draft saved with Windows line ends", () => {
+  it("opens unchanged, and posts its body exactly as it was stored", async () => {
+    const stored = "Ред едно,\r\nред две.\r\n\r\n[[промоции]]\r\n";
+    const element = createElement(NewsletterComposer, {
+      campaign: { ...campaign, body: stored },
+      activeCount: 3,
+      sender: "Buy a Coffee <info@buy-a-coffee.com>",
+      testRecipient: "owner@example.org",
+      canSend: true,
+      canUpload: false,
+    });
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(element);
+    document.body.appendChild(container);
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, element);
+      });
+      // The field read the stored text back with "\n": the same text, not a change.
+      expect(screen.queryByText("Има незапазени промени.")).toBeNull();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+      });
+      expect((await sent()).get("body")).toBe(stored);
+    } finally {
+      await act(async () => root?.unmount());
+      container.remove();
+    }
+  });
+});
+
 describe("a test copy", () => {
   it("goes to the owner's address unless another is typed, and is refused for a bad one", async () => {
     draw();

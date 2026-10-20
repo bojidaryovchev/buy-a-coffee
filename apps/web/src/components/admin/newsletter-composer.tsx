@@ -30,7 +30,7 @@ import { TEXT_TOOLS, insertBlockLine, type Edit } from "@/components/admin/newsl
 import { NewsletterProductPicker } from "@/components/admin/newsletter-product-picker";
 import { submitNewsletter, type NewsletterFormState } from "@/lib/newsletter/actions";
 import { parseBody, serializeBody, type BodyModel } from "@/lib/newsletter/body-blocks";
-import type { PromotionFacts } from "@/lib/newsletter/claims";
+import type { NamedPromotion, PlannedPromotion, PromotionFacts } from "@/lib/newsletter/claims";
 import { checkDeliverability } from "@/lib/newsletter/deliverability";
 import type {
   BlockReport,
@@ -98,6 +98,9 @@ export interface ComposerCampaign {
   attachments: NewsletterAttachment[];
 }
 
+/** The same text, whichever line ends it was written with. */
+const sameText = (a: string, b: string) => a.replace(/\r\n?/g, "\n") === b.replace(/\r\n?/g, "\n");
+
 /** The script has run: the blocks can be drawn, and the body travels in its hidden field. */
 const subscribeNothing = () => () => undefined;
 const useHydrated = () =>
@@ -152,7 +155,7 @@ const SALE_LINE = productTokenLine({ kind: "sale", limit: DEFAULT_BLOCK_PRODUCTS
 
 /** Empty lists, so the checks are not recomputed for a new `[]` every render. */
 const NO_NAMES: readonly string[] = [];
-const NO_PROMOTIONS: readonly PromotionFacts[] = [];
+const NO_PROMOTIONS: readonly NamedPromotion[] = [];
 
 export function NewsletterComposer({
   campaign,
@@ -164,6 +167,7 @@ export function NewsletterComposer({
   capitalised = NO_NAMES,
   lastLetterAt = null,
   announced = null,
+  announcedPlan = null,
   announcedMissing = false,
   named = NO_PROMOTIONS,
 }: {
@@ -180,10 +184,12 @@ export function NewsletterComposer({
   lastLetterAt?: string | null;
   /** The promotion this letter announces, for what it may claim (`claims.ts`). */
   announced?: PromotionFacts | null;
+  /** That promotion as the letter was written about it. */
+  announcedPlan?: PlannedPromotion | null;
   /** A promotion's letter whose promotion was deleted. */
   announcedMissing?: boolean;
-  /** The promotions the letter names in words (its plan's). */
-  named?: readonly PromotionFacts[];
+  /** The promotions the letter was written naming, as written and as they stand. */
+  named?: readonly NamedPromotion[];
 }) {
   const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
     schema: newsletterDraftSchema,
@@ -254,11 +260,15 @@ export function NewsletterComposer({
      React, hydrating a textarea, puts the text it drew back over a typed
      one, so the field is read here, as the component first renders in the
      browser — before React reaches it. Only that field: it alone has a name
-     before the script runs. The form and the blocks then start from it. */
+     before the script runs. The form and the blocks then start from it — but
+     only for a real change: a textarea reads its text back with LF for the
+     CRLF a saved body has, which is the same text, and the body stays
+     exactly as it was saved (and the draft not "changed"). */
   const [typedEarly] = useState<string | null>(() => {
     if (typeof document === "undefined") return null;
     const field = document.getElementById("body");
-    return field instanceof HTMLTextAreaElement && field.name === "body" ? field.value : null;
+    if (!(field instanceof HTMLTextAreaElement) || field.name !== "body") return null;
+    return sameText(field.value, campaign.body) ? null : field.value;
   });
   const [model, setModel] = useState<BodyModel>(() => parseBody(typedEarly ?? campaign.body));
   const setBody = (text: string) =>
@@ -273,9 +283,7 @@ export function NewsletterComposer({
   };
 
   useLayoutEffect(() => {
-    if (typedEarly !== null && typedEarly !== campaign.body) {
-      setValue("body", typedEarly, { shouldDirty: true });
-    }
+    if (typedEarly !== null) setValue("body", typedEarly, { shouldDirty: true });
     // Once, as the script takes over.
   }, []);
 
@@ -420,6 +428,7 @@ export function NewsletterComposer({
         capitalised,
         lastLetterAt,
         announced,
+        announcedPlan,
         announcedMissing,
         named,
       }),
@@ -433,6 +442,7 @@ export function NewsletterComposer({
       capitalised,
       lastLetterAt,
       announced,
+      announcedPlan,
       announcedMissing,
       named,
     ],

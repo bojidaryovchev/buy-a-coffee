@@ -397,6 +397,13 @@ export function NewsletterBlocks({
                 ) {
                   return { text: "Изчерпан — няма да се покаже в писмото.", stops: false };
                 }
+                const renamedTo = report?.renamed?.find((item) => item.from === slug)?.to;
+                if (renamedTo && report?.products.some((product) => product.slug === renamedTo)) {
+                  return {
+                    text: `Адресът му вече е „${renamedTo}“ — в писмото е под новия.`,
+                    stops: false,
+                  };
+                }
                 if (report?.gone?.includes(slug)) {
                   return {
                     text: "Вече не се продава — няма да се покаже в писмото.",
@@ -415,8 +422,12 @@ export function NewsletterBlocks({
                         key={slug}
                         slug={slug}
                         product={
-                          report?.products.find((product) => product.slug === slug) ??
-                          known.get(slug)
+                          report?.products.find(
+                            (product) =>
+                              product.slug === slug ||
+                              product.slug ===
+                                report.renamed?.find((item) => item.from === slug)?.to,
+                          ) ?? known.get(slug)
                         }
                         problem={problemOf(slug)}
                         onRemove={() => left(slug)}

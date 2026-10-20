@@ -80,6 +80,12 @@ export interface ProductSource {
    * named one (an error). Without it, every slug not on sale is the latter.
    */
   known?(slugs: readonly string[]): Promise<ReadonlySet<string>>;
+  /**
+   * The current slug of each of these that is a product's former one — a
+   * product renamed after it was picked (the same lookup the site's 308s
+   * use). Asked only for slugs no product has as its current one.
+   */
+  renamed?(slugs: readonly string[]): Promise<ReadonlyMap<string, string>>;
 }
 
 /* -- the snapshot ----------------------------------------------------------- */
@@ -112,6 +118,8 @@ const newsletterProductSchema = z.object({
   /** "0,31 € на чаша", or "≈ 0,31 € на чаша" when the cups are estimated. */
   perCup: z.string().nullable(),
   availability: z.enum(AVAILABILITIES),
+  /** The shop's promotion pricing it when the letter was drawn, if one did (`claims.ts`). */
+  promotionId: z.string().nullable().optional(),
   /**
    * As the storefront resolved it; `emails/media.ts` decides the address mail
    * uses. The photograph's own size, so the card can reserve its height in a
@@ -146,6 +154,8 @@ const resolvedBlockSchema = z.object({
   soldOut: z.array(z.object({ slug: z.string(), title: z.string() })).optional(),
   /** Hand-picked slugs of products that are in the catalog but no longer on sale. */
   gone: z.array(z.string()).optional(),
+  /** Picked slugs that were a product's former address, with its current one. */
+  renamed: z.array(z.object({ from: z.string(), to: z.string() })).optional(),
   /**
    * Products listed as reduced (`reduced`) that no longer are: left out of
    * the block, and the send does not start while there are any — the letter
@@ -219,6 +229,7 @@ export function toNewsletterProduct(card: ProductCardView): NewsletterProduct {
     discountPercent: reduced ? card.discountPercent : null,
     perCup: card.servingPrice?.formatted ?? null,
     availability: card.availability as Availability,
+    promotionId: card.promotion?.id ?? null,
     image:
       card.image && !isPlaceholderImage(card.image.url)
         ? {
@@ -265,7 +276,7 @@ export async function resolveProductBlocks(
     return block.spec.kind === "new" ? source.newest({ since, limit }) : source.reduced({ limit });
   });
   const wanted = [...new Set(picked)];
-  const [bySlug, known, found] = await Promise.all([
+  const [current, knownNow, found] = await Promise.all([
     wanted.length > 0
       ? source.bySlugs(wanted)
       : Promise.resolve(new Map<string, ProductCardView>()),
@@ -274,6 +285,25 @@ export async function resolveProductBlocks(
       : Promise.resolve(new Set<string>() as ReadonlySet<string>),
     Promise.all(automatic.map((read) => read ?? Promise.resolve(null))),
   ]);
+  /* An address no product has now may be a renamed product's old one: the
+     letter shows the product, under its new address, rather than call the
+     address unknown. One more pair of reads, only when there is one. */
+  const bySlug = new Map(current);
+  const known = new Set(knownNow);
+  const renamedTo = new Map<string, string>();
+  const unknown = wanted.filter((slug) => !current.has(slug) && !knownNow.has(slug));
+  if (unknown.length > 0 && source.renamed) {
+    const renamed = await source.renamed(unknown);
+    if (renamed.size > 0) {
+      const now = await source.bySlugs([...new Set(renamed.values())]);
+      for (const [from, to] of renamed) {
+        renamedTo.set(from, to);
+        known.add(from);
+        const card = now.get(to);
+        if (card) bySlug.set(from, card);
+      }
+    }
+  }
 
   const resolved: (ResolvedBlock | null)[] = shownBlocks.map(() => null);
   const shown = new Set<string>();
@@ -297,6 +327,9 @@ export async function resolveProductBlocks(
     const notReduced = spec.kind === "reduced" ? orderable.filter((card) => !reduced(card)) : [];
     const absent = spec.slugs.filter((slug) => !bySlug.has(slug));
     const named = (card: ProductCardView) => ({ slug: card.slug, title: card.title ?? card.name });
+    const renamed = spec.slugs.flatMap((slug) =>
+      renamedTo.has(slug) ? [{ from: slug, to: renamedTo.get(slug)! }] : [],
+    );
     for (const card of cards) shown.add(card.id);
     resolved[index] = {
       token: block.token,
@@ -308,6 +341,7 @@ export async function resolveProductBlocks(
         ? { gone: absent.filter((slug) => known.has(slug)) }
         : {}),
       ...(notReduced.length > 0 ? { notReduced: notReduced.map(named) } : {}),
+      ...(renamed.length > 0 ? { renamed } : {}),
     };
   });
 
@@ -585,6 +619,8 @@ export interface ReportedProduct {
   readonly oldPrice?: string | null;
   /** The reduction its badge claims, or null when it shows none. */
   readonly discountPercent?: number | null;
+  /** The shop's promotion pricing it, if one does. */
+  readonly promotionId?: string | null;
   readonly perCup?: string | null;
   /** The photograph's address on the store, for the panel; null without one. */
   readonly image?: string | null;
@@ -608,6 +644,8 @@ export interface BlockReport {
   readonly gone?: readonly string[];
   /** Products listed as reduced that no longer are. */
   readonly notReduced?: readonly { readonly slug: string; readonly title: string }[];
+  /** Picked addresses that were a renamed product's, with its current one. */
+  readonly renamed?: readonly { readonly from: string; readonly to: string }[];
 }
 
 /** What the preview route answers: the letter, and what its blocks resolved to. */
@@ -627,6 +665,7 @@ export function blockReports(snapshot: ProductBlocksSnapshot): BlockReport[] {
       price: product.price,
       oldPrice: product.oldPrice,
       discountPercent: product.discountPercent,
+      promotionId: product.promotionId ?? null,
       perCup: product.perCup,
       image: product.image?.url ?? null,
     })),
@@ -634,5 +673,6 @@ export function blockReports(snapshot: ProductBlocksSnapshot): BlockReport[] {
     soldOut: block.soldOut ?? [],
     gone: block.gone ?? [],
     notReduced: block.notReduced ?? [],
+    renamed: block.renamed ?? [],
   }));
 }

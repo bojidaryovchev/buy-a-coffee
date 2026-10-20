@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createDatabase } from "@catalog/db";
+import { withDatabase } from "./support/database";
 
 /**
  * The owner's monthly job, in a real browser against the real build: sign in,
@@ -10,7 +10,8 @@ import { createDatabase } from "@catalog/db";
  * The catalog the build reads holds no arrivals of its own (a seeded copy,
  * every product imported at once), so the spec records three of its products
  * as created by an ordinary sync run, as the sync would, and takes the run
- * and the drafts it made away again afterwards. Nothing is sent: the build
+ * and the drafts it made away again afterwards — through
+ * `support/database.ts`, which writes only to a database on this machine. Nothing is sent: the build
  * has no Resend key, and no button that sends is pressed.
  *
  * The password is the throwaway one `playwright.config.ts` gives the server
@@ -21,46 +22,44 @@ import { createDatabase } from "@catalog/db";
 
 const PASSWORD = "e2e-only-not-a-real-password";
 
-const url = process.env.DATABASE_URL;
-let database: ReturnType<typeof createDatabase> | null = null;
 let runId: string | null = null;
 let seeded: string[] = [];
 const drafts: string[] = [];
 
 test.beforeAll(async () => {
-  if (!url || process.env.E2E_BASE_URL) return;
-  database = createDatabase({ url, max: 1 });
-  const { sql } = database;
-  const rows = await sql<{ id: string; slug: string; source_site_id: string }[]>`
-    select p.id, p.slug, p.source_site_id
-    from products p
-    where p.status = 'active' and p.availability = 'in_stock' and p.current_price is not null
-      and exists (select 1 from product_images i where i.product_id = p.id)
-    order by p.slug
-    limit 3
-  `;
-  if (rows.length < 3) return;
-  const [run] = await sql<{ id: string }[]>`
-    insert into sync_runs (source_site_id, status, dry_run)
-    values (${rows[0]!.source_site_id}, 'succeeded', false)
-    returning id
-  `;
-  runId = run!.id;
-  for (const row of rows) {
-    await sql`
-      insert into sync_changes (sync_run_id, product_id, source_key, change_type)
-      values (${runId}, ${row.id}, ${`/e2e-newsletter/${row.slug}/`}, 'created')
+  if (!process.env.DATABASE_URL || process.env.E2E_BASE_URL) return;
+  await withDatabase(async (sql) => {
+    const rows = await sql<{ id: string; slug: string; source_site_id: string }[]>`
+      select p.id, p.slug, p.source_site_id
+      from products p
+      where p.status = 'active' and p.availability = 'in_stock' and p.current_price is not null
+        and exists (select 1 from product_images i where i.product_id = p.id)
+      order by p.slug
+      limit 3
     `;
-  }
-  seeded = rows.map((row) => row.slug);
+    if (rows.length < 3) return;
+    const [run] = await sql<{ id: string }[]>`
+      insert into sync_runs (source_site_id, status, dry_run)
+      values (${rows[0]!.source_site_id}, 'succeeded', false)
+      returning id
+    `;
+    runId = run!.id;
+    for (const row of rows) {
+      await sql`
+        insert into sync_changes (sync_run_id, product_id, source_key, change_type)
+        values (${runId}, ${row.id}, ${`/e2e-newsletter/${row.slug}/`}, 'created')
+      `;
+    }
+    seeded = rows.map((row) => row.slug);
+  });
 });
 
 test.afterAll(async () => {
-  if (!database) return;
-  const { sql } = database;
-  if (drafts.length > 0) await sql`delete from newsletter_campaigns where id in ${sql(drafts)}`;
-  if (runId) await sql`delete from sync_runs where id = ${runId}`;
-  await database.close();
+  if (!runId && drafts.length === 0) return;
+  await withDatabase(async (sql) => {
+    if (drafts.length > 0) await sql`delete from newsletter_campaigns where id in ${sql(drafts)}`;
+    if (runId) await sql`delete from sync_runs where id = ${runId}`;
+  });
 });
 
 async function signIn(page: Page) {

@@ -22,6 +22,7 @@ import { dayWords, lastDay, rangeWords } from "@/lib/newsletter/sofia";
 import { newsletterSyncStatus, PROPERTY_KEYS, PROPERTY_PREFIX } from "@/lib/newsletter/sync";
 import {
   monthlyPlan,
+  noMembersReason,
   promotionChoices,
   type MonthlyPlan,
   type PromotionChoice,
@@ -63,8 +64,10 @@ const PAGE_SIZE = 100;
 type Params = {
   page?: string | string[];
   vsichki?: string | string[];
-  /** Set by a promotion's "Нов бюлетин" that found nothing to announce. */
+  /** Set by a promotion's "Нов бюлетин" that found nothing to announce: "nyama", or "prazna" with `p`. */
   promotsiya?: string | string[];
+  /** The promotion "prazna" is about. */
+  p?: string | string[];
 };
 
 const START_BUTTON =
@@ -102,13 +105,20 @@ function monthlyLine(plan: MonthlyPlan): string {
   return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са ${counted}.${more}`;
 }
 
-/** A promotion in the list to choose from: the owner's name, its reduction and its days. */
+/**
+ * A promotion in the list to choose from: the owner's name, its reduction and
+ * its days, and how many of its products can carry the reduction on their
+ * own badge — or that none can, which is a letter that cannot be started.
+ */
 function choiceLabel(choice: PromotionChoice, now: Date): string {
   const days =
     choice.startsAt.getTime() <= now.getTime()
       ? `до ${dayWords(lastDay(choice.endsAt))}`
       : rangeWords(choice.startsAt, choice.endsAt);
-  const products = `${choice.products} ${choice.products === 1 ? "продукт" : "продукта"}`;
+  const products =
+    choice.products === 0
+      ? `няма продукт с −${choice.percentOff}% на значката`
+      : `${choice.products} ${choice.products === 1 ? "продукт" : "продукта"} с −${choice.percentOff}%`;
   return `${choice.name} — −${choice.percentOff}% ${days} · ${products}`;
 }
 
@@ -141,6 +151,7 @@ export default async function AdminNewsletterPage({
   const params = await searchParams;
   const everybody = one(params.vsichki) === "1";
   const promotionGone = one(params.promotsiya) === "nyama";
+  const promotionEmpty = one(params.promotsiya) === "prazna" ? (one(params.p) ?? "") : null;
   const now = new Date();
   const requested = Number(one(params.page) ?? "1");
 
@@ -224,6 +235,15 @@ export default async function AdminNewsletterPage({
           </h2>
         </div>
 
+        {promotionEmpty !== null && (
+          <p role="alert" className="mt-4 rounded-sm bg-caution-100 px-3 py-2 text-sm text-ink-900">
+            Обявата не е започната: писмото би обявило намаление над нито един продукт.{" "}
+            {(() => {
+              const choice = choices.find((item) => item.id === promotionEmpty);
+              return choice ? noMembersReason(choice, choice.leftOut) : "";
+            })()}
+          </p>
+        )}
         {promotionGone && (
           <p role="alert" className="mt-4 rounded-sm bg-caution-100 px-3 py-2 text-sm text-ink-900">
             Тази промоция е приключила, спряна е или вече я няма, затова не е започнат бюлетин за
@@ -266,6 +286,12 @@ export default async function AdminNewsletterPage({
                 <p className="flex-1 text-sm text-ink-500">
                   Няма текуща или предстояща промоция. Създайте я в „Промоции“, после се върнете.
                 </p>
+              ) : choices.every((choice) => choice.products === 0) ? (
+                <p className="flex-1 text-sm text-ink-500">
+                  Нито една промоция няма продукт, чиято значка да показва цялото ѝ намаление,
+                  затова обява не може да се започне.{" "}
+                  {choices.length === 1 ? noMembersReason(choices[0]!, choices[0]!.leftOut) : ""}
+                </p>
               ) : (
                 <>
                   <label htmlFor="promotionId" className="text-sm text-ink-700">
@@ -275,11 +301,11 @@ export default async function AdminNewsletterPage({
                     id="promotionId"
                     name="promotionId"
                     required
-                    defaultValue={choices[0]!.id}
+                    defaultValue={choices.find((choice) => choice.products > 0)!.id}
                     className="min-h-11 w-full rounded-sm border border-line-strong bg-paper-raised px-3 text-input text-ink-900"
                   >
                     {choices.map((choice) => (
-                      <option key={choice.id} value={choice.id}>
+                      <option key={choice.id} value={choice.id} disabled={choice.products === 0}>
                         {choiceLabel(choice, now)}
                       </option>
                     ))}

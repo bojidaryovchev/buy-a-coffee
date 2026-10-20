@@ -1,5 +1,10 @@
 import { parseMarkdown, type Inline, type ProductsBlock } from "@/emails/markdown";
-import { claimNotes, type PromotionFacts } from "./claims";
+import {
+  claimNotes,
+  type NamedPromotion,
+  type PlannedPromotion,
+  type PromotionFacts,
+} from "./claims";
 import type { BlockReport } from "./product-blocks";
 import { drawnBlocks } from "./sections";
 import { dayWords, daysBetween } from "./sofia";
@@ -151,6 +156,8 @@ export type DeliverabilityNoteId =
   | "block-not-reduced"
   | "promotion-not-started"
   | "promotion-ended"
+  | "promotion-changed"
+  | "promotion-empty"
   | "promotion-claim";
 
 export interface DeliverabilityNote {
@@ -184,10 +191,12 @@ export interface DeliverabilityInput {
   readonly lastLetterAt?: Date | string | null;
   /** The promotion this letter announces, when it is a promotion's letter. */
   readonly announced?: PromotionFacts | null;
+  /** That promotion as the letter was written about it (`LetterPlan.announced`). */
+  readonly announcedPlan?: PlannedPromotion | null;
   /** A promotion's letter whose promotion was deleted before it started. */
   readonly announcedMissing?: boolean;
-  /** The promotions the letter names in words (`LetterPlan.promotionIds`). */
-  readonly named?: readonly PromotionFacts[];
+  /** The promotions the letter was written naming (`LetterPlan.named`), as they stand. */
+  readonly named?: readonly NamedPromotion[];
   /** Now, for the dates above; the clock when absent. */
   readonly now?: Date;
 }
@@ -518,8 +527,10 @@ function timingNotes(input: DeliverabilityInput): DeliverabilityNote[] {
   notes.push(
     ...claimNotes({
       announced: input.announced ?? null,
+      announcedPlan: input.announcedPlan ?? null,
       announcedMissing: input.announcedMissing ?? false,
       named: input.named ?? [],
+      body: input.body,
       products: input.blocks ? input.blocks.flatMap((report) => report.products) : null,
       now,
     }),
