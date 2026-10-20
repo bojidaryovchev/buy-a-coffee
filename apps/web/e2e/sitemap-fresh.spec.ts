@@ -104,9 +104,21 @@ test.beforeAll(async () => {
   photos = images.length;
 });
 
-test.afterAll(async () => {
+test.afterAll(async ({ playwright }, testInfo) => {
   if (!database) return;
   try {
+    // Off sale first, so a test that stopped early leaves no card on the landing.
+    await database.sql`update products set status = 'removed' where slug like ${`${SLUG_PREFIX}%`}`;
+    if (slug) {
+      const api = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL });
+      try {
+        await forgetOnTheLanding(api);
+      } catch {
+        // Best effort: the test that failed has already said what went wrong.
+      } finally {
+        await api.dispose();
+      }
+    }
     // Its photographs and category links go with it (`on delete cascade`).
     await database.sql`delete from products where slug like ${`${SLUG_PREFIX}%`}`;
   } finally {
@@ -201,7 +213,27 @@ test("the catalog scope refreshes every page route and the sitemap, and no self-
   }
 });
 
-test("once it is taken off the site it leaves the next sitemap", async ({ request }) => {
+test("taken off the site, it leaves the next sitemap and, revalidated, the listing", async ({
+  request,
+}) => {
   await database.sql`update products set status = 'removed' where slug = ${slug}`;
   expect(await entryFor(request, `/bg/${slug}`)).toBeNull();
+  await forgetOnTheLanding(request);
 });
+
+/**
+ * Redraw the landing without the copy, and wait until it is. The cache lives
+ * in `.next` and outlives the server, so a landing left holding a card for a
+ * product deleted after this spec would be served to the next run against the
+ * same build (`landings.spec.ts` stalls on it).
+ */
+async function forgetOnTheLanding(request: APIRequestContext): Promise<void> {
+  const response = await request.post("/api/revalidate", {
+    headers: { authorization: `Bearer ${CRON_SECRET}` },
+    data: { paths: [LANDING] },
+  });
+  expect(response.status()).toBe(200);
+  await expect(async () => {
+    expect(linksTo(await (await request.get(LANDING)).text(), `/bg/${slug}`)).toBe(false);
+  }).toPass({ timeout: 15_000 });
+}
