@@ -1,51 +1,77 @@
-import { NO_COFFEE } from "../../../content/no-coffee";
+import { FLAVOURED_COFFEE, NO_COFFEE } from "../../../content/no-coffee";
 
 /**
- * Whether a product holds no coffee: for the flavoured listing, which is
- * headed „Ароматизирано кафе“ and lists what the record flags as flavoured.
+ * Whether a flavoured product may stand on the page headed „Ароматизирано
+ * кафе“: only once a person has read what it is and filed it as coffee.
  *
- * Decided without touching a flag (the owner's call, 20 October 2026; the
- * reasons are in `content/no-coffee.ts`), in two ways:
+ * The owner's bar (20 October 2026): a drink without coffee must not be on
+ * that page, and missing a coffee costs less than listing one. So the page
+ * lists **only audited coffees** (`FLAVOURED_COFFEE` in `content/no-coffee.ts`),
+ * and every flagged product in neither list is held back and raised for review
+ * by the sync-health check (`flavoured_unaudited`). No flag is changed, and no
+ * name or description decides anything: a description can be read wrongly
+ * both ways („Не можете без кафе сутрин?“ is coffee; „Напитка от зелен чай
+ * мача“ never says the word), so the words it holds are only a hint in the
+ * alert (`noCoffeeHint`).
  *
- *  - **the audited list**, `NO_COFFEE`, matched on the product's slug or any
- *    slug it had before, so `catalog:reslug` cannot drop an entry;
- *  - **a guard** for what the list has not met yet: a product whose stored
- *    description — the supplier's, or ours in the override columns — says in
- *    so many words that it holds no coffee.
- *
- * Never from a name. Pure, and small enough for every bundle that reads the
- * landings (the proxy included): the list is a few slugs and their evidence.
+ * Matched on the product's slug or any slug it had before, so `catalog:reslug`
+ * cannot drop an entry. An entry in both lists counts as no coffee: the
+ * cautious reading wins. Pure, and small enough for every bundle that reads
+ * the landings, the proxy included.
  */
 
-const AUDITED: ReadonlySet<string> = new Set(NO_COFFEE.map((entry) => entry.slug));
+export type CoffeeVerdict = "coffee" | "no-coffee" | "unaudited";
+
+const COFFEE: ReadonlySet<string> = new Set(FLAVOURED_COFFEE.map((entry) => entry.slug));
+const NOT_COFFEE: ReadonlySet<string> = new Set(NO_COFFEE.map((entry) => entry.slug));
+
+/** What the audit says of a product, by its current and previous slugs. */
+export function coffeeVerdict(slugs: readonly string[]): CoffeeVerdict {
+  if (slugs.some((slug) => NOT_COFFEE.has(slug))) return "no-coffee";
+  if (slugs.some((slug) => COFFEE.has(slug))) return "coffee";
+  return "unaudited";
+}
+
+/** On the flavoured page only when a person has found it to be coffee. */
+export const isAuditedCoffee = (slugs: readonly string[]): boolean =>
+  coffeeVerdict(slugs) === "coffee";
 
 /*
- * „без кафе“, „вместо кафе“, „не съдържа кафе“, „не включва кафе“, each as
- * whole words: „кафемашина“ and „кафеена“ are not „кафе“, and „без кофеин“ —
- * decaf, which is coffee — is a different word altogether. Bulgarian only, as
- * the descriptions are; an English „no coffee“ is as likely to go on „machine“.
+ * Words that suggest a description is of something without coffee. A hint for
+ * the person classifying a product, never a decision: it misses a matcha whose
+ * description never says „кафе“, and it fires on a coffee that asks whether
+ * you can do „без кафе“ in the morning.
  */
 const NOT_A_LETTER_BEFORE = "(?<![\\p{L}\\p{N}])";
 const NOT_A_LETTER_AFTER = "(?![\\p{L}\\p{N}])";
-const NO_COFFEE_WORDS: readonly RegExp[] = [
+const HINTS: readonly RegExp[] = [
   "(?:без|вместо)\\s+кафе",
-  "не\\s+(?:съдържа|включва)\\s+кафе",
-].map((words) => new RegExp(`${NOT_A_LETTER_BEFORE}${words}${NOT_A_LETTER_AFTER}`, "iu"));
+  "без\\s+съдържание\\s+на\\s+кафе",
+  "заместител\\s+на\\s+кафе",
+  "не\\s+(?:съдържа|включва)(?:\\s+\\p{L}+\\s+и)?\\s+кафе",
+  "(?:зелен|черен|билков)\\s+чай",
+  "мача|матча|matcha",
+  "горещ\\s+шоколад",
+].map((words) => new RegExp(`${NOT_A_LETTER_BEFORE}(?:${words})${NOT_A_LETTER_AFTER}`, "iu"));
 
-/** Whether a text says in so many words that what it describes holds no coffee. */
-export function saysNoCoffee(text: string): boolean {
-  const plain = text.replace(/<[^>]*>/g, " ");
-  return NO_COFFEE_WORDS.some((words) => words.test(plain));
+/** Text as a reader sees it: tags dropped, the common entities spelled out. */
+function plain(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/&amp;/gi, "&");
 }
 
-export function isNoCoffee(product: {
-  /** The current slug and every slug the product had before. */
-  readonly slugs: readonly string[];
-  /** The stored descriptions, the supplier's and ours, as text or HTML. */
-  readonly descriptions: readonly string[];
-}): boolean {
-  return (
-    product.slugs.some((slug) => AUDITED.has(slug)) ||
-    product.descriptions.some((text) => saysNoCoffee(text))
-  );
+/**
+ * The first words in a description that suggest it has no coffee, as written,
+ * or null. For the alert only („описанието казва …“).
+ */
+export function noCoffeeHint(text: string): string | null {
+  const readable = plain(text);
+  for (const hint of HINTS) {
+    const found = hint.exec(readable);
+    if (found) return found[0].replace(/\s+/g, " ");
+  }
+  return null;
 }

@@ -14,7 +14,7 @@ import {
   type BrewingSystemId,
 } from "@/lib/recommend/systems";
 import { packSizeLabel, resolveProductFormat } from "./fallback-copy";
-import { isNoCoffee } from "./no-coffee";
+import { isAuditedCoffee } from "./no-coffee";
 
 /**
  * The five landing listings, as selections over the catalog.
@@ -117,14 +117,8 @@ export interface LandingRow {
   readonly attributes: Readonly<Record<string, string>>;
   /** Slugs and source keys of the categories the product is filed under. */
   readonly categoryKeys: readonly string[];
-  /** The storefront slug, then every slug the product had before. */
+  /** The storefront slug, then every slug the product had before: what the audit is keyed by. */
   readonly slugs: readonly string[];
-  /**
-   * The stored descriptions, the supplier's and ours, of a product flagged
-   * flavoured: what says whether it holds coffee (`no-coffee.ts`). Empty for
-   * every other product, whose page never asks.
-   */
-  readonly descriptions: readonly string[];
 }
 
 export interface LandingItem {
@@ -252,13 +246,15 @@ export const isFlavoured = (row: LandingRow): boolean =>
   row.attributes.aromas?.toLowerCase() === "yes";
 
 /**
- * Coffee, for the page headed „Ароматизирано кафе“: not a product the audit
- * found to hold none, nor one whose own description says it holds none
- * (`no-coffee.ts`). Its flags are left as they are — the owner's decision, 20
- * October 2026 — so a matcha latte is still flavoured to the filter, and
- * still on the decaf page when it is decaf; it is only not coffee.
+ * Coffee, for the page headed „Ароматизирано кафе“: a product a person has
+ * read and filed as coffee (`content/no-coffee.ts`). One that holds no coffee
+ * is left out, and so is one nobody has read yet: it is held back and raised
+ * for review (`flavoured_unaudited`, `lib/sync-health.ts`), never listed on a
+ * guess. No flag changes — the owner's decision, 20 October 2026 — so a
+ * matcha latte is still flavoured to the filter, and still on the decaf page
+ * when it is decaf.
  */
-export const holdsCoffee = (row: LandingRow): boolean => !isNoCoffee(row);
+export const isListedAsCoffee = (row: LandingRow): boolean => isAuditedCoffee(row.slugs);
 
 /**
  * The two flavours people search for by name — „кафе лешник“, „кафе с вкус на
@@ -399,7 +395,7 @@ function selection(groups: readonly LandingGroup[]): LandingSelection {
  *    one's price is left out; nothing left out is ever cheaper than anything
  *    shown.
  *  - **`flavoured`** — every product whose record says flavoured and that
- *    holds coffee (`holdsCoffee`), a group per system in the shop's usual
+ *    the audit files as coffee (`isListedAsCoffee`), a group per system in the shop's usual
  *    order, exactly as decaf is: a flavoured capsule fits only its own
  *    system's machine, and a flavoured product filed under no system has no
  *    group to stand in and is left out. Everything that reads the page's
@@ -450,7 +446,7 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
     case "flavoured":
       return selection(
         groupBySystem(
-          resolved.filter((item) => isFlavoured(item.row) && holdsCoffee(item.row)),
+          resolved.filter((item) => isFlavoured(item.row) && isListedAsCoffee(item.row)),
           BREWING_SYSTEMS,
         ),
       );

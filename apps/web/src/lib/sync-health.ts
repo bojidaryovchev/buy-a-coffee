@@ -14,8 +14,11 @@
  * A run is judged by its own record. `sync_runs` rows carry more columns than
  * are read here; unknown columns are ignored on purpose, so the sync can grow
  * without this breaking. `sync_changes` is read for one thing only, a
- * product the sync renamed (`evaluateIdentityChanges`).
+ * product the sync renamed (`evaluateIdentityChanges`). And one condition is
+ * about what the sync brought rather than how it ran: a product flagged
+ * flavoured that nobody has classified yet (`evaluateUnauditedFlavoured`).
  */
+import { coffeeVerdict, noCoffeeHint } from "@/lib/catalog/no-coffee";
 
 export const SYNC_CONDITIONS = [
   "no_recent_success",
@@ -26,6 +29,7 @@ export const SYNC_CONDITIONS = [
   "low_confidence",
   "image_failed",
   "identity_changed",
+  "flavoured_unaudited",
 ] as const;
 
 export type SyncCondition = (typeof SYNC_CONDITIONS)[number];
@@ -99,6 +103,7 @@ export const SYNC_CONDITION_LABEL: Record<SyncCondition, string> = {
   low_confidence: "ниска сигурност на разчитането",
   image_failed: "снимки, които не са свалени",
   identity_changed: "продукт със сменено име",
+  flavoured_unaudited: "ароматизиран продукт за проверка",
 };
 
 const isFinished = (run: SyncRunSnapshot): boolean => run.status !== "running";
@@ -264,5 +269,75 @@ export function evaluateIdentityChanges(
     summary:
       `Синхронизацията смени името на продукт под същия адрес: ${named}${more}. ` +
       "Проверете, че е същият продукт, а не друг на негово място.",
+  };
+}
+
+/** A product on sale flagged flavoured, as the audit check reads it. */
+export interface FlavouredProductSnapshot {
+  readonly slug: string;
+  readonly previousSlugs: readonly string[];
+  /** The supplier's name: what the owner sees in the panel and the snapshot. */
+  readonly name: string;
+  /** The stored descriptions, the supplier's and ours, as text or HTML. */
+  readonly descriptions: readonly string[];
+}
+
+/**
+ * The flagged products nobody has filed as coffee or as not coffee
+ * (`content/no-coffee.ts`). The flavoured page holds each of them back until
+ * someone does.
+ */
+export const unauditedFlavoured = (
+  products: readonly FlavouredProductSnapshot[],
+): FlavouredProductSnapshot[] =>
+  products.filter(
+    (product) => coffeeVerdict([product.slug, ...product.previousSlugs]) === "unaudited",
+  );
+
+/** How many held-back products the summary names before it only counts. */
+const UNAUDITED_NAMED = 10;
+
+/**
+ * Products held back from the flavoured page, as a finding — or null for
+ * none.
+ *
+ * Each is named with its slug, which is what the audit is keyed by, and with
+ * what its description suggests when it suggests anything („описанието казва
+ * „без кафе““): a hint for the person classifying it, never a verdict. The
+ * products are the ones being raised now; `alreadyRaised` counts those still
+ * waiting from an earlier mail, which are mentioned and not named again.
+ */
+export function evaluateUnauditedFlavoured(
+  products: readonly FlavouredProductSnapshot[],
+  options: { readonly alreadyRaised?: number } = {},
+): SyncHealthFinding | null {
+  if (products.length === 0) return null;
+
+  const named = products
+    .slice(0, UNAUDITED_NAMED)
+    .map((product) => {
+      const hint = product.descriptions
+        .map((text) => noCoffeeHint(text))
+        .find((found) => found !== null);
+      return `„${product.name}“ (${product.slug})${hint ? ` — описанието казва „${hint}“` : ""}`;
+    })
+    .join("; ");
+  const rest = products.length - UNAUDITED_NAMED;
+  const one = products.length === 1;
+  const waiting = options.alreadyRaised ?? 0;
+
+  return {
+    condition: "flavoured_unaudited",
+    summary:
+      (one
+        ? "Ароматизиран продукт, за който още не е проверено дали съдържа кафе, не се показва на страницата „Ароматизирано кафе“: "
+        : "Ароматизирани продукти, за които още не е проверено дали съдържат кафе, не се показват на страницата „Ароматизирано кафе“: ") +
+      `${named}${rest > 0 ? ` и още ${rest}` : ""}. ` +
+      (one
+        ? "Прочетете описанието му и го запишете в apps/web/content/no-coffee.ts: във FLAVOURED_COFFEE, ако е кафе — тогава се показва, — или в NO_COFFEE, ако не е."
+        : "Прочетете описанията им и запишете всеки в apps/web/content/no-coffee.ts: във FLAVOURED_COFFEE, ако е кафе — тогава се показва, — или в NO_COFFEE, ако не е.") +
+      (waiting > 0
+        ? ` Още ${waiting} от предишно известие също чака${waiting === 1 ? "" : "т"} проверка.`
+        : ""),
   };
 }

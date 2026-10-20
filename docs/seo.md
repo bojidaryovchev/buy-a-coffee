@@ -870,21 +870,23 @@ held with the rest by `apps/web/test/keyword-map.test.ts`.
   lists („Тук са 17 продукта с добавен аромат“), never "everything
   flavoured", and says nothing of what the shop lacks. No name overrides the
   flag.
-- **Coffee only (the owner's decision, 20 October 2026).** The flag is also on
-  drinks with no coffee in them. They stay off the page, and their flags stay
-  as they are: the filter still finds them, and the decaf page still lists the
-  decaf ones. All twenty products flagged in the reference snapshot were read
-  — the supplier's description, our own copy and the characteristics — and
-  three hold no coffee: the Rema matcha latte, the Foodness Mermaid Latte and
-  the Rema crème brûlée drink, all for Dolce Gusto (the last on indirect
-  evidence; confirm on the pack). The audit, with the words behind every
-  verdict, is `apps/web/content/no-coffee.ts`, keyed by slug and matched on
-  previous slugs too; a product added later is left out as well when its own
-  stored description says it holds no coffee („без кафе“, „не съдържа кафе“,
-  „вместо кафе“), never on „без кофеин“, since decaf is coffee
-  (`apps/web/src/lib/catalog/no-coffee.ts`). Seventeen are listed: Dolce Gusto
-  8, ESE 4, Nespresso 3, Caffitaly 2. `apps/web/test/landings.db.test.ts`
-  fails on a flagged product the audit has not read.
+- **Audited coffee only (the owner's decision, 20 October 2026).** The flag is
+  also on drinks with no coffee in them, and those must not be on the page;
+  missing a coffee costs less than listing one. So the page lists only
+  products a person has read and filed as coffee. All twenty flagged in the
+  reference snapshot were read — the supplier's description, our own copy and
+  the characteristics: seventeen are coffee, and three hold none (the Rema
+  matcha latte, the Foodness Mermaid Latte and the Rema crème brûlée drink,
+  all for Dolce Gusto; the last on indirect evidence, to confirm on the pack).
+  The audit, with the words behind every verdict, is
+  `apps/web/content/no-coffee.ts`, keyed by slug and matched on previous slugs
+  too. A flagged product in neither list is held back and raised by the
+  sync-health check (`flavoured_unaudited`), once, with what its description
+  suggests („описанието казва „без кафе““) as a hint: no phrase removes or
+  admits a product, since „Не можете без кафе сутрин?“ is said of coffee and a
+  matcha need not say „кафе“ at all. No flag changes: the filter still finds
+  all twenty, and the decaf page still lists the decaf ones. Seventeen are
+  listed: Dolce Gusto 8, ESE 4, Nespresso 3, Caffitaly 2.
 - **Title** „Ароматизирано кафе с вкус на лешник, карамел и други“, **H1**
   „Ароматизирано кафе“. The two flavours are read off the supplier's names of
   what the page lists (`flavoursInName`, `apps/web/src/lib/catalog/landings.ts`),

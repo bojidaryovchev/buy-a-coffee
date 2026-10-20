@@ -4,6 +4,9 @@ import {
   SYNC_CONDITIONS,
   evaluateIdentityChanges,
   evaluateSyncHealth,
+  evaluateUnauditedFlavoured,
+  unauditedFlavoured,
+  type FlavouredProductSnapshot,
   type SyncCondition,
   type SyncRunSnapshot,
 } from "@/lib/sync-health";
@@ -234,5 +237,76 @@ describe("evaluateIdentityChanges", () => {
     expect(summary).toContain("„A4“ → „B4“");
     expect(summary).not.toContain("„A5“");
     expect(summary).toContain("и още 2");
+  });
+});
+
+/* The flavoured page lists only audited coffees (`content/no-coffee.ts`); a
+   flagged product nobody has classified is held back and raised for review. */
+describe("evaluateUnauditedFlavoured", () => {
+  const product = (
+    slug: string,
+    descriptions: readonly string[] = [],
+    previousSlugs: readonly string[] = [],
+  ): FlavouredProductSnapshot => ({
+    slug,
+    previousSlugs,
+    name: `Продукт ${slug}`,
+    descriptions,
+  });
+
+  it("raises only what neither list holds: an audited coffee is never raised, whatever it says", () => {
+    const held = unauditedFlavoured([
+      // An audited coffee whose words could be read as none.
+      product("bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br", [
+        "Не можете без кафе сутрин? Еспресо с лешник.",
+      ]),
+      product("rema-caffe-matcha-kapsuli-dolce-gusto-16-br"),
+      // Audited under the slug it had before.
+      product(
+        "rema-caffe-krem-bryule-16",
+        [],
+        ["rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br"],
+      ),
+      product("new-hot-chocolate-hazelnut-16", ["<p>Горещ шоколад с аромат на лешник.</p>"]),
+    ]);
+    expect(held.map((entry) => entry.slug)).toEqual(["new-hot-chocolate-hazelnut-16"]);
+  });
+
+  it("names each with its slug and what its description suggests, and says where to file it", () => {
+    const finding = evaluateUnauditedFlavoured([
+      product("new-chai-latte-16", ["Чай лате без&nbsp;кафе."]),
+    ]);
+    expect(finding?.condition).toBe("flavoured_unaudited");
+    expect(finding?.summary).toContain(
+      "„Продукт new-chai-latte-16“ (new-chai-latte-16) — описанието казва „без кафе“",
+    );
+    expect(finding?.summary).toMatch(/^Ароматизиран продукт, за който още не е проверено/);
+    expect(finding?.summary).toContain("не се показва на страницата „Ароматизирано кафе“");
+    expect(finding?.summary).toContain("apps/web/content/no-coffee.ts");
+    expect(finding?.summary).toContain("FLAVOURED_COFFEE");
+    expect(finding?.summary).toContain("NO_COFFEE");
+    expect(SYNC_CONDITIONS).toContain("flavoured_unaudited");
+  });
+
+  it("gives no hint where the description suggests nothing, and decaf suggests nothing", () => {
+    const summary = evaluateUnauditedFlavoured([
+      product("new-decaf-vanilla-16", ["Безкофеиново кафе с аромат на ванилия, без кофеин."]),
+    ])!.summary;
+    expect(summary).toContain("(new-decaf-vanilla-16).");
+    expect(summary).not.toContain("описанието казва");
+  });
+
+  it("speaks of several in the plural, names ten, counts the rest and the ones still waiting", () => {
+    const many = Array.from({ length: 12 }, (_, i) => product(`new-flavoured-${i}`));
+    const summary = evaluateUnauditedFlavoured(many, { alreadyRaised: 2 })!.summary;
+    expect(summary).toMatch(/^Ароматизирани продукти, за които още не е проверено/);
+    expect(summary).toContain("(new-flavoured-9)");
+    expect(summary).not.toContain("(new-flavoured-10)");
+    expect(summary).toContain("и още 2.");
+    expect(summary).toContain("Още 2 от предишно известие също чакат проверка.");
+  });
+
+  it("is nothing when nothing is held back", () => {
+    expect(evaluateUnauditedFlavoured([])).toBeNull();
   });
 });
