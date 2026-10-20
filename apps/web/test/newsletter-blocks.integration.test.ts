@@ -534,7 +534,7 @@ suite("newsletter product blocks (integration)", () => {
       expect(letter).not.toMatch(/99,00\s€/);
       expect(letter).toMatch(/8,00\s€/);
       expect(letter).toContain("−20%");
-      expect(letter).toContain("https://buy-a-coffee.com/media/catalog/ab/cd/izbrano.jpg");
+      expect(letter).toContain("https://buy-a-coffee.com/email-img/224/catalog/ab/cd/izbrano.jpg");
       expect(letter).not.toContain("blob.vercel-storage.com");
       expect(all[0]!.text).toMatch(
         /- .+ — 15,85\s€ \(.+\) — https?:\/\/\S+\/bg\/izbrano\?utm_source=newsletter&utm_medium=email&utm_campaign=\d{4}-\d{2}-novite-kafeta/,
