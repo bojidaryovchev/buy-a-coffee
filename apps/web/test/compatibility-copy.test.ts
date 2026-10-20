@@ -61,7 +61,9 @@ describe("category copy on compatibility", () => {
     const caffitaly = text("caffitaly");
     expect(caffitaly).not.toMatch(/Tchibo Cafissimo и K-fee/);
     expect(caffitaly).toMatch(/K-fee[^.]*други системи/);
-    expect(caffitaly).toMatch(/Tchibo да препоръчва собствените си капсули/);
+    expect(caffitaly).toMatch(
+      /Tchibo да посочва, че в тях трябва да се използват само нейните капсули/,
+    );
   });
 
   it("does not say Lavazza has two systems", () => {

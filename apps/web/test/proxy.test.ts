@@ -33,6 +33,7 @@ import path from "node:path";
 import {
   NOT_FOUND,
   SEGMENTS_WITHOUT_A_PAGE,
+  PRODUCTION_HOST,
   canonicalHostRedirect,
   catalogLookup,
   config,
@@ -146,6 +147,8 @@ describe("a host that is not the canonical one", () => {
       const response = canonicalHostRedirect(on(host), PRODUCTION, SITE);
       expect(response?.status, host).toBe(308);
       expect(response?.headers.get("location"), host).toBe(`${SITE}/bg/kafe-kapsuli?page=2`);
+      // New, so cached for an hour rather than for ever.
+      expect(response?.headers.get("cache-control"), host).toBe("public, max-age=3600");
     }
     for (const file of ["/robots.txt", "/sitemap.xml", "/llms.txt"]) {
       const response = canonicalHostRedirect(
@@ -157,10 +160,36 @@ describe("a host that is not the canonical one", () => {
     }
   });
 
-  it("leaves the canonical host, and the deployment's own URL, alone", () => {
+  it("leaves the canonical host alone, and sends a deployment's own URL there too", () => {
     expect(canonicalHostRedirect(on("buy-a-coffee.com"), PRODUCTION, SITE)).toBeNull();
     expect(canonicalHostRedirect(on("Buy-A-Coffee.com"), PRODUCTION, SITE)).toBeNull();
-    expect(canonicalHostRedirect(on("web-abc123-team.vercel.app"), PRODUCTION, SITE)).toBeNull();
+    expect(canonicalHostRedirect(on("web-abc123-team.vercel.app"), PRODUCTION, SITE)?.status).toBe(
+      308,
+    );
+  });
+
+  it("keeps a path that looks like a host a path on the canonical host", () => {
+    const response = canonicalHostRedirect(
+      on("web-phi-eight-24.vercel.app", "//evil.example/x?y=1"),
+      PRODUCTION,
+      SITE,
+    );
+    expect(new URL(response!.headers.get("location")!).host).toBe(PRODUCTION_HOST);
+  });
+
+  it("never redirects a request to the machine itself, production env or not", () => {
+    for (const host of ["localhost:3000", "127.0.0.1:8765", "[::1]:3000"]) {
+      expect(canonicalHostRedirect(on(host), PRODUCTION, SITE), host).toBeNull();
+    }
+  });
+
+  it("is the host env.schema.mjs commits as production's site address", async () => {
+    const { vars } = (await import("../env.schema.mjs")) as {
+      vars: ReadonlyArray<{ name: string; value?: string }>;
+    };
+    const entry = vars.find((variable) => variable.name === "NEXT_PUBLIC_SITE_URL");
+    expect(new URL(entry!.value!).host).toBe(PRODUCTION_HOST);
+    expect(SITE).toBe(`https://${PRODUCTION_HOST}`);
   });
 
   it("never redirects outside production: previews, local builds, development", () => {
@@ -178,12 +207,18 @@ describe("a host that is not the canonical one", () => {
     }
   });
 
-  it("never sends production to a local or unreadable site address", () => {
+  /* A wrong address redirects nothing, rather than every visitor somewhere
+     wrong under a cached 308. */
+  it("never sends production anywhere but the production domain", () => {
     for (const site of [
       "http://localhost:3000",
       "http://127.0.0.1:8765",
       "http://[::1]:3000",
       "not a url",
+      "https://web-phi-eight-24.vercel.app",
+      "https://www.buy-a-coffee.com",
+      "https://buy-a-cofee.com",
+      "http://buy-a-coffee.com",
     ]) {
       expect(
         canonicalHostRedirect(on("web-phi-eight-24.vercel.app"), PRODUCTION, site),

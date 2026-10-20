@@ -379,6 +379,15 @@ describe("the footer", () => {
     expect(both).toMatch(/href="\/bg\/kafe-na-zarna-lavazza"[^>]*>Кафе на зърна Lavazza</);
   });
 
+  // Read from the tree the frame already has: no query of its own.
+  it("knows from the tree whether consumables lists anything", () => {
+    expect(navigation().hasConsumables).toBe(true);
+    const empty = TREE.map((entry) =>
+      entry.slug === "konsumativi" ? { ...entry, productCount: 0 } : entry,
+    );
+    expect(navigation(empty).hasConsumables).toBe(false);
+  });
+
   // Out of the sitemap while empty, so out of the footer and the drawer too.
   it("leaves the consumables page out while it lists nothing", () => {
     const empty = buildNavigation(TREE, {

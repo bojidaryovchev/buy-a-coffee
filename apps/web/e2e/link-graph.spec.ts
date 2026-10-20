@@ -31,6 +31,8 @@ interface Node {
   readonly status: number;
   readonly indexable: boolean;
   readonly product: boolean;
+  /** Declares an `ItemList`: a category, landing or machine page's product list. */
+  readonly itemList: boolean;
   readonly links: ReadonlySet<string>;
 }
 
@@ -62,6 +64,7 @@ async function fetchNode(request: APIRequestContext, path: string, origin: strin
     status: response.status(),
     indexable: response.status() === 200 && !robots.some((value) => /noindex/.test(value)),
     product: types.includes("Product"),
+    itemList: types.includes("ItemList"),
     links,
   };
 }
@@ -109,7 +112,18 @@ test.describe("the internal link graph", () => {
       laterPages.filter((node) => !node.indexable).map((node) => `${node.path} ${node.status}`),
     ).toEqual([]);
 
-    const listings = indexable.filter((node) => !node.product);
+    /* A listing, as T1.3 means it: a category or landing (its `ItemList`), a
+       brand page, or a clean later page — not the home page, an article or
+       the footer of any page. The journal index lists articles, not products. */
+    const listings = indexable.filter(
+      (node) =>
+        !node.product &&
+        !node.path.startsWith("/bg/blog") &&
+        (node.itemList ||
+          /^\/bg\/marki\/[^/?]+(\?page=\d+)?$/.test(node.path) ||
+          /\?page=\d+$/.test(node.path)),
+    );
+    expect(listings.length).toBeGreaterThan(20);
     const products = sitemap.filter((path) => nodes.get(path)?.product);
     expect(products.length).toBeGreaterThan(100);
     const orphans = products.filter((path) => inbound(path, listings).length === 0);

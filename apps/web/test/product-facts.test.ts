@@ -257,7 +257,9 @@ describe("compatibility", () => {
     expect(markup).toContain(caffitaly.recognise);
     expect(stripTags(markup)).toContain("Машините Tchibo приемат същия формат капсула.");
     // With the maker's own caveat, not as a plain promise.
-    expect(stripTags(markup)).toContain("Производителят препоръчва собствените си капсули");
+    expect(stripTags(markup)).toContain(
+      "Производителят на машината посочва, че в нея трябва да се използват само неговите капсули",
+    );
     expect(markup).toContain('href="/bg/za-kafemashina"');
     expect(markup).toContain('href="/bg/za-kafemashina/tchibo"');
     expect(stripTags(markup)).toMatch(/Показани са 12 от \d+ модела\./);

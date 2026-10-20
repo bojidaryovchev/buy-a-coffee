@@ -220,6 +220,14 @@ describe("evaluateIdentityChanges", () => {
     expect(evaluateIdentityChanges([change(" A ", "A")])).toBeNull();
   });
 
+  it("says when the read stopped at its limit, so the count is a floor", () => {
+    const many = Array.from({ length: 7 }, (_, i) => change(`A${i}`, `B${i}`));
+    expect(evaluateIdentityChanges(many, { more: true })!.summary).toContain("и още поне 2");
+    expect(evaluateIdentityChanges(many.slice(0, 2), { more: true })!.summary).toContain(
+      "и може би още",
+    );
+  });
+
   it("names five and counts the rest", () => {
     const many = Array.from({ length: 7 }, (_, i) => change(`A${i}`, `B${i}`));
     const summary = evaluateIdentityChanges(many)!.summary;

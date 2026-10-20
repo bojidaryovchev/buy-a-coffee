@@ -235,6 +235,8 @@ const text = (value: unknown): string | null =>
  */
 export function evaluateIdentityChanges(
   changes: readonly IdentityChangeSnapshot[],
+  /** `more`: the read stopped at its limit, so there may be more than were read. */
+  options: { readonly more?: boolean } = {},
 ): SyncHealthFinding | null {
   const renamed = changes.flatMap((change) => {
     const before = text(change.before?.name);
@@ -250,7 +252,13 @@ export function evaluateIdentityChanges(
   if (renamed.length === 0) return null;
 
   const named = renamed.slice(0, IDENTITY_NAMED).join("; ");
-  const more = renamed.length > IDENTITY_NAMED ? ` и още ${renamed.length - IDENTITY_NAMED}` : "";
+  const rest = renamed.length - IDENTITY_NAMED;
+  const more =
+    rest > 0
+      ? ` и още ${options.more ? "поне " : ""}${rest}`
+      : options.more
+        ? " и може би още"
+        : "";
   return {
     condition: "identity_changed",
     summary:

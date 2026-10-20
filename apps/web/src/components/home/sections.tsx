@@ -241,7 +241,8 @@ export function ShopBySystem({
       */}
       {systems.some(({ system }) => system.id === TCHIBO_PAIR.system) && (
         <p className="mt-4 text-sm text-ink-700">
-          Имате Tchibo Cafissimo? Машината приема формата Caffitaly:{" "}
+          Имате Tchibo Cafissimo? Машината приема формата Caffitaly, макар Tchibo да съветва само
+          собствени капсули:{" "}
           <Link
             href={href(locale, routes.machineBrand(TCHIBO_PAIR.machineBrand))}
             className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-6"

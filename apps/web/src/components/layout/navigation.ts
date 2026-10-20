@@ -186,9 +186,10 @@ export interface NavigationOptions {
   readonly hasPromotions?: boolean;
   readonly hasJournal?: boolean;
   /**
-   * Whether the consumables page lists anything. Defaults to true. False keeps
-   * it out of the footer and the drawer, as it is out of the sitemap: a
-   * sitewide link to an empty, `noindex` page sends every crawl there.
+   * Whether the consumables page lists anything. Left out, it is read from the
+   * tree: its section's category has products. False keeps it out of the
+   * footer and the drawer, as it is out of the sitemap: a sitewide link to an
+   * empty, `noindex` page sends every crawl there.
    */
   readonly hasConsumables?: boolean;
   /**
@@ -279,6 +280,16 @@ export function buildNavigation(
       count: category.productCount,
     }));
 
+  /* The consumables page lists its section's category, by slug or source key
+     (`getSectionCategory`); the tree already counts what that holds. */
+  const consumablesKeys = options.sections.consumables.categoryKeys;
+  const consumablesListed = all.some(
+    (category) =>
+      category.productCount > 0 &&
+      (consumablesKeys.includes(category.slug) ||
+        (category.sourceKey !== null && consumablesKeys.includes(category.sourceKey))),
+  );
+
   return {
     locale,
     links,
@@ -299,7 +310,7 @@ export function buildNavigation(
     },
     hasPromotions: options.hasPromotions ?? true,
     hasJournal: options.hasJournal ?? true,
-    hasConsumables: options.hasConsumables ?? true,
+    hasConsumables: options.hasConsumables ?? consumablesListed,
   };
 }
 

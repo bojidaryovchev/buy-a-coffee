@@ -68,16 +68,20 @@ async function readRuns(): Promise<SyncRunSnapshot[]> {
 }
 
 /**
- * How far back a rename is looked for: the daily check's interval and the
- * same slack the run rules allow, so a rename in any run between two checks
- * is seen, and at most two hours of runs are seen by two checks.
+ * How far back a rename is looked for: one day, the check's own interval. The
+ * check runs once a day at a fixed time and the sync at fixed times, so each
+ * sync run falls in exactly one check's window and a rename is named once.
  */
-const IDENTITY_WINDOW_MS = 26 * 60 * 60 * 1000;
+const IDENTITY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** The most renames one check reads; the summary names five and counts the rest. */
-const IDENTITY_READ = 50;
+export const IDENTITY_READ = 50;
 
-/** Updates and returns in real runs, since the last check, that renamed a product. */
+/**
+ * Updates, returns and moves in real runs of the last day that renamed a
+ * product. A move is included: pairing a renamed source URL with the wrong
+ * product is a substitution too.
+ */
 async function readIdentityChanges(now: Date): Promise<IdentityChangeSnapshot[]> {
   return db
     .select({
@@ -90,13 +94,34 @@ async function readIdentityChanges(now: Date): Promise<IdentityChangeSnapshot[]>
     .where(
       and(
         eq(syncRuns.dryRun, false),
-        inArray(syncChanges.changeType, ["updated", "restored"]),
+        inArray(syncChanges.changeType, ["updated", "restored", "moved"]),
         sql`${syncChanges.changedFields} @> '["name"]'::jsonb`,
         gte(syncChanges.createdAt, new Date(now.getTime() - IDENTITY_WINDOW_MS)),
       ),
     )
     .orderBy(desc(syncChanges.createdAt))
     .limit(IDENTITY_READ);
+}
+
+/**
+ * The rename finding, or null. A failure to read is logged and left out: the
+ * check exists for the run conditions above all, and one new query must not
+ * take them down with it.
+ */
+async function identityFinding(now: Date) {
+  try {
+    const renamed = await readIdentityChanges(now);
+    return evaluateIdentityChanges(renamed, { more: renamed.length >= IDENTITY_READ });
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "sync_health.identity_read_failed",
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return null;
+  }
 }
 
 /**
@@ -123,8 +148,7 @@ async function release(condition: SyncCondition, day: string): Promise<void> {
 }
 
 export async function runSyncHealthCheck(now: Date = new Date()): Promise<SyncHealthReport> {
-  const [runs, renamed] = await Promise.all([readRuns(), readIdentityChanges(now)]);
-  const identity = evaluateIdentityChanges(renamed);
+  const [runs, identity] = await Promise.all([readRuns(), identityFinding(now)]);
   const findings = [...evaluateSyncHealth(runs, now), ...(identity ? [identity] : [])];
   const day = alertDay(now);
 

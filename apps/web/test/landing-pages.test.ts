@@ -325,8 +325,12 @@ describe("the machine-brand pages", () => {
     expect(markup).toMatch(/<h1[^>]*>Капсули за Tchibo Cafissimo<\/h1>/);
     expect(markup).toContain("капсулите Caffitaly пасват в тях по размер и форма");
     // With Tchibo's own caveat, in the summary and beside the models.
-    expect(markup).toContain("Tchibo препоръчва собствените си капсули");
-    expect(markup).toContain("Производителят препоръчва собствените си капсули");
+    expect(markup).toContain(
+      "Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули",
+    );
+    expect(markup).toContain(
+      "Производителят на машината посочва, че в нея трябва да се използват само неговите капсули",
+    );
     expect(markup).toContain('data-related="{&quot;machineBrand&quot;:&quot;tchibo&quot;}"');
     expect(markup).toContain('href="/bg/caf-a"');
     expect(markup).toContain('href="/bg/caf-b"');

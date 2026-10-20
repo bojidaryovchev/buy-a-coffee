@@ -42,7 +42,7 @@ import type { AnySystemId } from "@/lib/recommend/systems";
  * before relying on the fit.
  */
 export const CROSS_FORMAT_CAVEAT =
-  "Капсулите не са произведени от производителя на машината, а са съвместими по размер и форма. Производителят препоръчва собствените си капсули и може да не поеме по гаранция ремонт след капсули на друг производител.";
+  "Капсулите не са произведени от производителя на машината, а са съвместими по размер и форма. Производителят на машината посочва, че в нея трябва да се използват само неговите капсули, и може да не поеме по гаранция ремонт след капсули на друг производител.";
 
 export interface MachineModel {
   /** Unique across the whole database; used in URLs. */
@@ -270,8 +270,13 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       lavazzaBlue("lavazza-classy-mini", "Blue Classy Mini"),
       lavazzaBlue("lavazza-classy-plus", "Blue Classy Plus"),
       lavazzaBlue("lavazza-classy-compact", "Blue Classy Compact"),
-      { slug: "lavazza-ep-mini", name: "Espresso Point EP Mini", system: "lavazza-espresso-point" },
-      { slug: "lavazza-ep-2500", name: "Espresso Point EP 2500", system: "lavazza-espresso-point" },
+      /* As a family: Lavazza names the system, and the model codes we have
+         seen are not from Lavazza's own pages. LF 300 is, from its manual. */
+      {
+        slug: "lavazza-espresso-point",
+        name: "Espresso Point (всички модели)",
+        system: "lavazza-espresso-point",
+      },
       { slug: "lavazza-lf-300", name: "Firma LF 300 Inovy Mini", system: "lavazza-firma" },
     ],
   },
@@ -320,7 +325,7 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
     name: "Tchibo",
     aliases: ["чибо", "кафисимо"],
     summary:
-      "Машините Cafissimo използват формата на Caffitaly: Tchibo е партньор на системата и капсулите Caffitaly пасват в тях по размер и форма. Tchibo препоръчва собствените си капсули. Машините Qbo са друга система.",
+      "Машините Cafissimo използват формата на Caffitaly: Tchibo е партньор на системата и капсулите Caffitaly пасват в тях по размер и форма. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули. Машините Qbo са друга система.",
     models: [
       caffitalyFormat("tchibo-cafissimo-classic", "Cafissimo Classic"),
       caffitalyFormat("tchibo-cafissimo-pure", "Cafissimo Pure"),

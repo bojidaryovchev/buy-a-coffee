@@ -167,19 +167,35 @@ const STATIC_FIRST_LEVEL: ReadonlySet<string> = new Set(
 export const SEGMENTS_WITHOUT_A_PAGE: ReadonlySet<string> = new Set(["byuletin"]);
 
 /**
+ * The one host production answers on. It is `NEXT_PUBLIC_SITE_URL` as
+ * `env.schema.mjs` commits it for production; `test/proxy.test.ts` holds the
+ * two together.
+ */
+export const PRODUCTION_HOST = "buy-a-coffee.com";
+
+/** A request to the machine itself: a local `next start` with production env pulled in. */
+const LOCAL_HOST = /^(?:localhost|\[::1\]|127\.\d+\.\d+\.\d+)(?::\d+)?$/;
+
+/**
  * The redirect to the canonical host, or `null` to carry on.
  *
  * Production only (`VERCEL_ENV=production`): a preview, a local `next start`
- * and development never redirect, whatever host they answer on. Two hosts are
- * left alone even in production: the canonical one, and the deployment's own
- * generated URL (`VERCEL_URL`), so one deployment can still be inspected at its
- * address. The API is not matched by the proxy at all, so Vercel's cron calls
- * reach their handlers on whatever host they use.
+ * and development never redirect, whatever host they answer on. Every other
+ * host production answers on — the `*.vercel.app` alias, a deployment's own
+ * URL, `www` — is sent to `PRODUCTION_HOST`. The API is not matched by the
+ * proxy at all, so Vercel's cron calls reach their handlers on whatever host
+ * they use, and neither is the admin.
  *
- * The canonical host is the site's own address (`NEXT_PUBLIC_SITE_URL`), the
- * one every canonical tag names. A build without it falls back to localhost
- * (`config/site.ts`), and production must never send its visitors there, so a
- * local address, or one that does not parse, redirects nothing.
+ * Fails closed. It redirects only when the site's own address
+ * (`NEXT_PUBLIC_SITE_URL`, what every canonical tag names) is exactly
+ * `https://buy-a-coffee.com`: a typo, the alias or the localhost fallback of a
+ * build without it (`config/site.ts`) redirects nothing, rather than sending
+ * every visitor elsewhere under a 308 their browser would cache. A request to
+ * localhost is never redirected either. The 308 is cached for an hour, not
+ * for ever, while it is new.
+ *
+ * The path and query are copied onto the target as they are, never parsed as
+ * a URL of their own: `//evil.example/x` stays a path on the canonical host.
  */
 export function canonicalHostRedirect(
   request: NextRequest,
@@ -193,14 +209,16 @@ export function canonicalHostRedirect(
   } catch {
     return null;
   }
-  if (/^(?:localhost|\[::1\]|127\.\d+\.\d+\.\d+)$/.test(target.hostname)) return null;
+  if (target.protocol !== "https:" || target.host !== PRODUCTION_HOST) return null;
   const host = request.headers.get("host")?.toLowerCase();
-  if (!host || host === target.host.toLowerCase()) return null;
-  if (env.VERCEL_URL && host === env.VERCEL_URL.toLowerCase()) return null;
-  return NextResponse.redirect(
-    new URL(request.nextUrl.pathname + request.nextUrl.search, target),
-    308,
-  );
+  if (!host || host === PRODUCTION_HOST || LOCAL_HOST.test(host)) return null;
+
+  const url = new URL(target.origin);
+  url.pathname = request.nextUrl.pathname;
+  url.search = request.nextUrl.search;
+  const response = NextResponse.redirect(url, 308);
+  response.headers.set("cache-control", "public, max-age=3600");
+  return response;
 }
 
 const BRANDS_SEGMENT = routes.brands.slice(1);
