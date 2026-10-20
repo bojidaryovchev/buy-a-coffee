@@ -1,4 +1,4 @@
-import { SHOP_TIME_ZONE } from "@/lib/forms/callback-window";
+import { sofiaDayOf, sofiaDayStart } from "@/lib/promotions/days";
 
 /**
  * The newsletter's calendar: months and days as the shop's wall clock in Sofia
@@ -12,67 +12,23 @@ import { SHOP_TIME_ZONE } from "@/lib/forms/callback-window";
  * Sofia time, so `ends_at` is the instant the last day ENDS — midnight of the
  * day after — and the day a reader is told is the one just before it.
  *
- * Pure, with `Intl` and nothing else: the templates, the checks in the
- * browser, the cron and the tests read the same answers.
+ * Pure: the templates, the checks in the browser, the cron and the tests read
+ * the same answers.
  */
 
-const parts = new Intl.DateTimeFormat("en-GB", {
-  timeZone: SHOP_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hourCycle: "h23",
-});
-
-/** The Sofia wall clock at an instant, as numbers. */
-function wallClock(at: Date): {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: number;
-} {
-  const values: Record<string, number> = {};
-  for (const part of parts.formatToParts(at)) {
-    if (part.type !== "literal") values[part.type] = Number(part.value);
-  }
-  return {
-    year: values.year!,
-    month: values.month!,
-    day: values.day!,
-    hour: values.hour!,
-    minute: values.minute!,
-    second: values.second!,
-  };
-}
-
-/** How far Sofia is ahead of UTC at an instant, in milliseconds (2 or 3 hours). */
-function offsetAt(at: Date): number {
-  const clock = wallClock(at);
-  const local = Date.UTC(
-    clock.year,
-    clock.month - 1,
-    clock.day,
-    clock.hour,
-    clock.minute,
-    clock.second,
-  );
-  return local - Math.floor(at.getTime() / 1000) * 1000;
+/*
+ * The arithmetic is `lib/promotions/days.ts`, the one place the shop's days
+ * are worked out (both clock changes included); this file only reads a Sofia
+ * date into numbers and words it.
+ */
+function wallClock(at: Date): { year: number; month: number; day: number } {
+  const [year, month, day] = sofiaDayOf(at).split("-").map(Number);
+  return { year: year!, month: month!, day: day! };
 }
 
 /** The instant a Sofia calendar day begins. */
 export function sofiaMidnight(year: number, month: number, day: number): Date {
-  const utc = Date.UTC(year, month - 1, day);
-  let instant = utc - offsetAt(new Date(utc));
-  /* The offset at midnight UTC can differ from the one at midnight in Sofia
-     when the clocks change in between; one correction settles it. */
-  const settled = utc - offsetAt(new Date(instant));
-  if (settled !== instant) instant = settled;
-  return new Date(instant);
+  return sofiaDayStart(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
 }
 
 /** "2026-11": the Sofia month an instant falls in. */
