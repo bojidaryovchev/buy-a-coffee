@@ -8,7 +8,7 @@ import {
   parseWeight,
   shingles,
 } from "@catalog/shared";
-import { compatibilityProblems } from "@catalog/shared/compatibility-copy";
+import { COMPATIBILITY_WORDING, compatibilityProblems } from "@catalog/shared/compatibility-copy";
 import type { CopyWorkItem, GeneratedCopy } from "./contract.ts";
 
 /**
@@ -148,6 +148,23 @@ function withoutNames(text: string, names: readonly string[], token: string): st
 }
 
 /**
+ * The compatibility wording, which every product that states a fit must use
+ * („Tchibo посочва, че в Cafissimo трябва да се използват само нейните
+ * капсули“), replaced by a token the other text cannot share. Without this,
+ * the second Caffitaly product written as the skill asks would „repeat“ the
+ * first one's caveat and be thrown away: a fixed sentence is not copied
+ * phrasing, any more than the product's own name is.
+ */
+const FIXED_WORDING = Object.values(COMPATIBILITY_WORDING).map(
+  (wording) =>
+    new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "giu"),
+);
+
+function withoutFixedWording(text: string, token: string): string {
+  return FIXED_WORDING.reduce((result, wording) => result.replace(wording, ` ${token} `), text);
+}
+
+/**
  * Check one generated text for one product.
  *
  * `pack` is what the copy may say about the size - the corrected one if the
@@ -234,19 +251,22 @@ export function auditGeneratedCopy(
   if (wearer !== undefined && wearer !== item.id) {
     problems.push("краткото описание е същото като на друг продукт");
   }
+  const ownSummary = withoutFixedWording(summary, "qqours");
   for (const sibling of item.siblingSummaries) {
-    const run = longestSharedRun(sibling, summary);
+    const run = longestSharedRun(withoutFixedWording(sibling, "qqtheirs"), ownSummary);
     if (run > MAX_INTERNAL_RUN_WORDS / 2) {
       problems.push(`краткото описание повтаря ${run} поредни думи от това на сроден продукт`);
       break;
     }
   }
   // Our own paragraphs on two of our URLs are the duplicate problem moved in-house.
+  // The fixed compatibility wording is not counted: every such product must use it.
   paragraphs: for (const [index, paragraph] of body.entries()) {
+    const ours = withoutFixedWording(paragraph, "qqours");
     for (const [owner, published] of context.bodies) {
       if (owner === item.id) continue;
       for (const other of published) {
-        const run = longestSharedRun(other, paragraph);
+        const run = longestSharedRun(withoutFixedWording(other, "qqtheirs"), ours);
         if (run > MAX_INTERNAL_RUN_WORDS) {
           problems.push(
             `абзац ${index + 1} повтаря ${run} поредни думи от описанието на друг продукт`,

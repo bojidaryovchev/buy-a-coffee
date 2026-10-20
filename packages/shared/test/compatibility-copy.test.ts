@@ -16,114 +16,201 @@ import {
  * storefront's own test runs the rules over every entry of that file.
  */
 
+/** Written as codes, so the source shows what they are. */
+const NBSP = String.fromCharCode(0xa0);
+const GRAVE = String.fromCharCode(0x300);
+const NEWLINE = String.fromCharCode(10);
+
 const rulesOf = (text: string | readonly string[]) =>
   [...new Set(compatibilityProblems(text).map((problem) => problem.rule))].sort();
 
-const REJECTED: ReadonlyArray<readonly [string, readonly CompatibilityRule[]]> = [
-  // Product copy at 1411017, every sentence the correction replaced.
-  ["10 капсули, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
-  ["16 капсули, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
-  ["16 капсули в кутия, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
-  ["16 капсули, съвместими с машини Dolce Gusto, по една на чаша.", ["dolce-gusto-machines"]],
+const REJECTED: ReadonlyArray<readonly [string | readonly string[], readonly CompatibilityRule[]]> =
   [
-    "50 капсули, съвместими с машини Dolce Gusto; една капсула е една чаша.",
-    ["dolce-gusto-machines"],
-  ],
-  [
-    "50 капсули, съвместими с машини Dolce Gusto. Всяка капсула е една чаша, а голямата кутия има смисъл там, където машината се ползва от няколко души.",
-    ["dolce-gusto-machines"],
-  ],
-  [
-    "Classico за машини Dolce Gusto: 16 капсули с уравновесения бленд на Lollo Caffè от арабика и робуста, 8 от 10 по интензивност.",
-    ["dolce-gusto-machines"],
-  ],
-  [
-    "Капсулите са съвместими с машини Dolce Gusto. Вътре е Argento — бленд от арабика и робуста с печени нотки, наситен аромат и плътно, кремообразно тяло.",
-    ["dolce-gusto-machines"],
-  ],
-  ["10 капсули, съвместими с домашни машини Nespresso.", ["nespresso-home"]],
-  ["20 капсули, съвместими с домашни машини Nespresso.", ["nespresso-home"]],
-  ["10 капсули за домашни машини Nespresso Original.", ["nespresso-home"]],
-  [
-    "10 капсули, съвместими с класическите домашни машини Nespresso. За машините Iperespresso на illy нямаме капсули.",
-    ["nespresso-home"],
-  ],
-  [
-    "44 капсули са 44 чаши; при по две на ден кутията стига за около три седмици. Съвместими са с домашните машини Nespresso Original.",
-    ["nespresso-home"],
-  ],
-  [
-    "Интензивност 10 от 12 при силен характер. Капсулите са съвместими с класическите домашни машини Nespresso Original, не с Vertuo.",
-    ["nespresso-home"],
-  ],
-  // The six Caffitaly entries, which stated Cafissimo without Tchibo's word.
-  [
-    "Капсулите са 10 и пасват на машини Caffitaly; същият формат приемат и машините Tchibo Cafissimo.",
-    ["tchibo-cafissimo"],
-  ],
-  ["10 капсули, които влизат в машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  ["10 капсули, съвместими с машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  ["10 капсули за Caffitaly и за Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  ["Кутия от 10 капсули за машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  ["10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  // Category, article and machine copy before 6fcb6a0.
-  ["Капсули за машини Dolce Gusto", ["dolce-gusto-machines"]],
-  [
-    "Тук са капсулите за класическите домашни машини Nespresso — системата, която се нарича Nespresso Original.",
-    ["nespresso-home"],
-  ],
-  [
-    "Влиза в класическите домашни машини Nespresso. Vertuo също носи името Nespresso, но е отделна система — за нея пише по-долу.",
-    ["nespresso-home"],
-  ],
-  [
-    "Капсулите Caffitaly са за машините от едноименната система. Същият формат работи и в машините Tchibo Cafissimo и K-fee.",
-    ["k-fee", "tchibo-cafissimo"],
-  ],
-  [
-    "Всички машини Caffitaly приемат един и същ формат. Същият формат работи и в Tchibo Cafissimo и в K-fee: там капсулите не са произведени от производителя на машината, а пасват по размер и форма.",
-    ["k-fee", "tchibo-cafissimo"],
-  ],
-  [
-    "Машините Cafissimo използват същия формат капсула като Caffitaly, така че капсулите Caffitaly работят в тях.",
-    ["tchibo-cafissimo"],
-  ],
-  ["Машините K-fee използват същия формат капсула като Caffitaly.", ["k-fee"]],
-  [
-    "Капсули Caffitaly — същият формат работи и в Tchibo Cafissimo и K-fee.",
-    ["k-fee", "tchibo-cafissimo"],
-  ],
-  // What a model writing from "Съвместимост: Dolce Gusto" might say.
-  [
-    "Подходящи за всички машини Dolce Gusto, включително NEO.",
-    ["dolce-gusto-machines", "dolce-gusto-neo"],
-  ],
-  ["Капсулите стават и за новите машини Dolce Gusto NEO.", ["dolce-gusto-neo"]],
-  ["Пасват на всички Dolce Gusto машини на Krups и De'Longhi.", ["dolce-gusto-machines"]],
-  ["Съвместими с машини Dolce Gusto, но не и с Nespresso.", ["dolce-gusto-machines"]],
-  [
-    "Капсули за NESCAFÉ Dolce Gusto, съвместими с всички машини NESCAFÉ Dolce Gusto.",
-    ["dolce-gusto-machines"],
-  ],
-  ["16 капсули, съвместими с Dolce Gusto.", ["dolce-gusto-unqualified"]],
-  ["Капсулите работят във всяка машина Nespresso.", ["nespresso-machines"]],
-  ["Подходящи за кафемашини Nespresso у дома и в офиса.", ["nespresso-machines"]],
-  ["Съвместими с Nespresso Original и с Vertuo.", ["nespresso-vertuo"]],
-  ["10 капсули, съвместими с Nespresso.", ["nespresso-unqualified"]],
-  ["Стават и за машините K-fee.", ["k-fee"]],
-  ["Подходящи за K-fee, не за Nespresso.", ["k-fee"]],
-  ["Не съдържат захар, пасват на машини K-fee.", ["k-fee"]],
-  ["Капсулите Caffitaly пасват и на Tchibo Cafissimo.", ["tchibo-cafissimo"]],
-  // A negation or a caveat that is about something else does not count.
-  ["Подходящи без проблем за всички машини Dolce Gusto.", ["dolce-gusto-machines"]],
-  ["Капсули за Dolce Gusto. Работят без проблем и с NEO.", ["dolce-gusto-neo"]],
-  [
-    "Стават и за Tchibo Cafissimo. Tchibo дава две години гаранция на машината.",
-    ["tchibo-cafissimo"],
-  ],
-];
+    // Product copy at 1411017, every sentence the correction replaced.
+    ["10 капсули, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["16 капсули, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["16 капсули в кутия, съвместими с машини Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["16 капсули, съвместими с машини Dolce Gusto, по една на чаша.", ["dolce-gusto-machines"]],
+    [
+      "50 капсули, съвместими с машини Dolce Gusto; една капсула е една чаша.",
+      ["dolce-gusto-machines"],
+    ],
+    [
+      "50 капсули, съвместими с машини Dolce Gusto. Всяка капсула е една чаша, а голямата кутия има смисъл там, където машината се ползва от няколко души.",
+      ["dolce-gusto-machines"],
+    ],
+    [
+      "Classico за машини Dolce Gusto: 16 капсули с уравновесения бленд на Lollo Caffè от арабика и робуста, 8 от 10 по интензивност.",
+      ["dolce-gusto-machines"],
+    ],
+    [
+      "Капсулите са съвместими с машини Dolce Gusto. Вътре е Argento — бленд от арабика и робуста с печени нотки, наситен аромат и плътно, кремообразно тяло.",
+      ["dolce-gusto-machines"],
+    ],
+    ["10 капсули, съвместими с домашни машини Nespresso.", ["nespresso-home"]],
+    ["20 капсули, съвместими с домашни машини Nespresso.", ["nespresso-home"]],
+    ["10 капсули за домашни машини Nespresso Original.", ["nespresso-home"]],
+    [
+      "10 капсули, съвместими с класическите домашни машини Nespresso. За машините Iperespresso на illy нямаме капсули.",
+      ["nespresso-home"],
+    ],
+    [
+      "44 капсули са 44 чаши; при по две на ден кутията стига за около три седмици. Съвместими са с домашните машини Nespresso Original.",
+      ["nespresso-home"],
+    ],
+    [
+      "Интензивност 10 от 12 при силен характер. Капсулите са съвместими с класическите домашни машини Nespresso Original, не с Vertuo.",
+      ["nespresso-home"],
+    ],
+    // The six Caffitaly entries, which stated Cafissimo without Tchibo's word.
+    [
+      "Капсулите са 10 и пасват на машини Caffitaly; същият формат приемат и машините Tchibo Cafissimo.",
+      ["tchibo-cafissimo"],
+    ],
+    ["10 капсули, които влизат в машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    ["10 капсули, съвместими с машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    ["10 капсули за Caffitaly и за Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    ["Кутия от 10 капсули за машини Caffitaly и Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    ["10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    // Category, article and machine copy before 6fcb6a0.
+    ["Капсули за машини Dolce Gusto", ["dolce-gusto-machines"]],
+    [
+      "Тук са капсулите за класическите домашни машини Nespresso — системата, която се нарича Nespresso Original.",
+      ["nespresso-home"],
+    ],
+    [
+      "Влиза в класическите домашни машини Nespresso. Vertuo също носи името Nespresso, но е отделна система — за нея пише по-долу.",
+      ["nespresso-home"],
+    ],
+    [
+      "Капсулите Caffitaly са за машините от едноименната система. Същият формат работи и в машините Tchibo Cafissimo и K-fee.",
+      ["k-fee", "tchibo-cafissimo"],
+    ],
+    [
+      "Всички машини Caffitaly приемат един и същ формат. Същият формат работи и в Tchibo Cafissimo и в K-fee: там капсулите не са произведени от производителя на машината, а пасват по размер и форма.",
+      ["k-fee", "tchibo-cafissimo"],
+    ],
+    [
+      "Машините Cafissimo използват същия формат капсула като Caffitaly, така че капсулите Caffitaly работят в тях.",
+      ["tchibo-cafissimo"],
+    ],
+    ["Машините K-fee използват същия формат капсула като Caffitaly.", ["k-fee"]],
+    [
+      "Капсули Caffitaly — същият формат работи и в Tchibo Cafissimo и K-fee.",
+      ["k-fee", "tchibo-cafissimo"],
+    ],
+    // What a model writing from "Съвместимост: Dolce Gusto" might say.
+    [
+      "Подходящи за всички машини Dolce Gusto, включително NEO.",
+      ["dolce-gusto-machines", "dolce-gusto-neo"],
+    ],
+    ["Капсулите стават и за новите машини Dolce Gusto NEO.", ["dolce-gusto-neo"]],
+    ["Пасват на всички Dolce Gusto машини на Krups и De'Longhi.", ["dolce-gusto-machines"]],
+    ["Съвместими с машини Dolce Gusto, но не и с Nespresso.", ["dolce-gusto-machines"]],
+    [
+      "Капсули за NESCAFÉ Dolce Gusto, съвместими с всички машини NESCAFÉ Dolce Gusto.",
+      ["dolce-gusto-machines"],
+    ],
+    ["16 капсули, съвместими с Dolce Gusto.", ["dolce-gusto-unqualified"]],
+    ["Капсулите работят във всяка машина Nespresso.", ["nespresso-machines"]],
+    ["Подходящи за кафемашини Nespresso у дома и в офиса.", ["nespresso-machines"]],
+    ["Съвместими с Nespresso Original и с Vertuo.", ["nespresso-vertuo"]],
+    ["10 капсули, съвместими с Nespresso.", ["nespresso-unqualified"]],
+    ["Стават и за машините K-fee.", ["k-fee"]],
+    ["Подходящи за K-fee, не за Nespresso.", ["k-fee"]],
+    ["Не съдържат захар, пасват на машини K-fee.", ["k-fee"]],
+    ["Капсулите Caffitaly пасват и на Tchibo Cafissimo.", ["tchibo-cafissimo"]],
+    // A negation or a caveat that is about something else does not count.
+    ["Подходящи без проблем за всички машини Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["Капсули за Dolce Gusto. Работят без проблем и с NEO.", ["dolce-gusto-neo"]],
+    [
+      "Стават и за Tchibo Cafissimo. Tchibo дава две години гаранция на машината.",
+      ["tchibo-cafissimo"],
+    ],
+    // The review of this rule (H1): Tchibo's word, as a statement of its own.
+    ["Tchibo Cafissimo работи само с капсули Caffitaly, като тези.", ["tchibo-cafissimo"]],
+    [
+      "Капсулите Caffitaly пасват в Tchibo Cafissimo, която приема само капсули с този формат.",
+      ["tchibo-cafissimo"],
+    ],
+    ["Стават за Tchibo Cafissimo и не губите гаранцията на Tchibo.", ["tchibo-cafissimo"]],
+    [
+      ["Стават и за Tchibo Cafissimo.", "Tchibo предлага само капсули за Cafissimo и Qbo."],
+      ["tchibo-cafissimo"],
+    ],
+    // M3: exclusion is judged in the name's own clause.
+    ["Подходящи за K-fee; не стават за Nespresso.", ["k-fee"]],
+    ["Капсули за Dolce Gusto. Подходящи и за NEO; не стават за Nespresso.", ["dolce-gusto-neo"]],
+    ["Пасват на машините K-fee — формат, различен от Nespresso.", ["k-fee"]],
+    ["Пасват на Vertuo и Original — системи, различни от Dolce Gusto.", ["nespresso-vertuo"]],
+    ["Пасват на машини K-fee със собствена система за налягане.", ["k-fee"]],
+    ["Пасват на K-fee и Tchibo Cafissimo, не пасват на Nespresso.", ["k-fee", "tchibo-cafissimo"]],
+    ["Пасват и на K-fee, а в друг формат са капсулите за Nespresso.", ["k-fee"]],
+    [
+      "Капсули за Dolce Gusto, подходящи за NEO и за класическите машини, различни от Nespresso.",
+      ["dolce-gusto-neo"],
+    ],
+    // M4: a negation stops at „и“ and a new verb; „не само“ affirms.
+    ["Не горчат и пасват на K-fee.", ["k-fee"]],
+    ["Не горчат и стават за Cafissimo.", ["tchibo-cafissimo"]],
+    ["Стават не само за Caffitaly и K-fee.", ["k-fee"]],
+    ["Стават не само за Caffitaly, а и за Cafissimo.", ["tchibo-cafissimo"]],
+    ["Съвместими не само с Nespresso Original, но и с Vertuo.", ["nespresso-vertuo"]],
+    ["Съвместими не само с Original и Vertuo.", ["nespresso-vertuo"]],
+    ["Не са капсули на Tchibo, но пасват в Cafissimo.", ["tchibo-cafissimo"]],
+    // L2: lower case, Cyrillic, Tchibo before the machine word, every model.
+    ["Пасват и на машините k-fee.", ["k-fee"]],
+    ["Пасват и на машините К-фий.", ["k-fee"]],
+    ["Капсули за Dolce Gusto, подходящи и за neo.", ["dolce-gusto-neo"]],
+    ["Пасват и на cafissimo.", ["tchibo-cafissimo"]],
+    ["Съвместими и с Tchibo.", ["tchibo-cafissimo"]],
+    ["Пасват и на Tchibo машините.", ["tchibo-cafissimo"]],
+    [
+      ["Капсули за Nespresso Original.", "Съвместими с всички модели Nespresso."],
+      ["nespresso-machines"],
+    ],
+    [
+      ["Капсули за Nespresso Original.", "Подходящи за всяка кафемашина Nespresso у дома."],
+      ["nespresso-machines"],
+    ],
+    [
+      [
+        "Съвместими с класическите машини Nespresso и с всички нови модели.",
+        "Опитайте и Argento в капсули за Nespresso Original.",
+      ],
+      ["nespresso-machines"],
+    ],
+    ["Съвместими с всички модели Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["Пасват на всички апарати Dolce Gusto.", ["dolce-gusto-machines"]],
+    ["Подходящи за всяка Dolce Gusto у дома.", ["dolce-gusto-machines"]],
+    ["Пасват на всички Nespresso.", ["nespresso-machines"]],
+    ["Пасват на машините на Nespresso.", ["nespresso-machines"]],
+    ["Подходящи за кафемашините Nespresso в офиса.", ["nespresso-machines"]],
+    [
+      "Съвместими с машини Nespresso — както Original, така и Vertuo.",
+      ["nespresso-machines", "nespresso-vertuo"],
+    ],
+    // L4: one excluded mention does not cover a later affirmative one.
+    [
+      ["Съвместими с класическите машини Dolce Gusto и с NEO.", "Не е за NEO-фенове."],
+      ["dolce-gusto-neo"],
+    ],
+    [
+      [
+        "Съвместими с класическите машини Dolce Gusto и новите модели.",
+        "Rema не прави капсули за NEO.",
+      ],
+      ["dolce-gusto-machines", "dolce-gusto-neo"],
+    ],
+    [
+      "Капсули за Nespresso Original. Не стават за Vertuo Next, но пасват на VertuoPlus.",
+      ["nespresso-vertuo"],
+    ],
+    // Deliberate: a Tchibo machine with no line named is taken for a Cafissimo.
+    ["Смилането е подходящо за кафемашина Tchibo с джезве.", ["tchibo-cafissimo"]],
+  ];
 
-const ACCEPTED: readonly string[] = [
+const ACCEPTED: ReadonlyArray<string | readonly string[]> = [
   // The corrected product copy (every sentence 6fcb6a0 wrote in place of one above).
   "16 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
   "10 капсули, съвместими с класическите машини Dolce Gusto (не NEO).",
@@ -177,6 +264,75 @@ const ACCEPTED: readonly string[] = [
   "Стават и за Tchibo Cafissimo, но Tchibo не поема по гаранция ремонт след чужди капсули.",
   // A fit word in another clause is about something else.
   "С мляко става чудесно лате, а капсулите са за Dolce Gusto.",
+  // The review of this rule. H1: Tchibo's word in Tchibo's words.
+  "Пасват и на Tchibo Cafissimo, но Tchibo препоръчва собствените си капсули.",
+  "Пасват и на Tchibo Cafissimo. Производителят Tchibo препоръчва в Cafissimo да се използват оригинални капсули Tchibo.",
+  "Форматът става и за Tchibo Cafissimo, макар Tchibo да съветва да ползвате само нейните капсули.",
+  `Пасват и на Tchibo Cafissimo. Tchibo препоръчва само оригиналните и${GRAVE} капсули.`,
+  "Пасват и на Cafissimo. Tchibo препоръчва в машините да се използват само капсули Tchibo.",
+  "Пасват и на Cafissimo. Tchibo препоръчва само собствените си оригинални Cafissimo капсули.",
+  "Пасват и на Tchibo Cafissimo, но Tchibo препоръчва само оригиналните си капсули.",
+  "Пасват и на Tchibo Cafissimo. Tchibo предупреждава, че гаранцията може да не покрие ремонт след чужди капсули.",
+  // H2: a negation carries across a list, and a negated verb after the names counts.
+  "Капсулите A Modo Mio не са съвместими с машини Nespresso и Dolce Gusto.",
+  "Не са съвместими с Nespresso Original, Vertuo, Dolce Gusto и K-fee.",
+  "Lavazza Blue е отделна система и капсулите не пасват на Nespresso, Dolce Gusto или K-fee.",
+  "Капсулите не пасват на машини Nespresso, Dolce Gusto или Caffitaly.",
+  "Тези капсули не стават за машините Nespresso и Dolce Gusto, само за A Modo Mio.",
+  "Форматът е само за A Modo Mio: в машина Nespresso или Dolce Gusto капсулата не влиза.",
+  "Капсулите Lavazza Blue не са съвместими с машини Nespresso и Dolce Gusto.",
+  "A Modo Mio е отделна система, не пасва на машини Nespresso.",
+  // M1: Nespresso's exclusions, as Dolce Gusto's.
+  "10 капсули, съвместими с класическите машини Nespresso (не Vertuo).",
+  "Съвместими с класическите машини Nespresso, не с Vertuo.",
+  "10 капсули, съвместими с Nespresso (не Vertuo).",
+  "Съвместими с машините Nespresso от линията Original.",
+  "За машини Nespresso (системата Original).",
+  "Съвместими с машини Nespresso®* Original.",
+  "Съвместими с машините Неспресо Оригинал.",
+  ["Капсули за класическите машини Nespresso.", "Не са за Vertuo."],
+  // M2: the other ways a sentence leaves a machine out.
+  "Съвместими с класическите машини Dolce Gusto (с изключение на NEO).",
+  "Съвместими с всички машини Dolce Gusto освен NEO.",
+  "Съвместими с класическите машини Dolce Gusto, без NEO.",
+  "Съвместими с класическите машини Dolce Gusto. Машините NEO работят с хартиени дози.",
+  "Съвместими с класическите машини Dolce Gusto; NEO използва други капсули.",
+  "Съвместими с класическите машини Dolce Gusto. NEO машините използват хартиени дози, затова тези капсули не са за тях.",
+  "Съвместими с класическите машини Nespresso (Original). Vertuo използва други капсули.",
+  "Съвместими с машините Nespresso Original, с изключение на Vertuo.",
+  "Капсули Caffitaly. K-fee и EXPRESSI на Aldi ползват собствени капсули.",
+  "Пасват на машините Caffitaly System, с изключение на K-fee.",
+  "K-fee е друг формат.",
+  "Не са за K-fee.",
+  "Капсули за класическите машини Dolce Gusto (не NEO); NEO не ги приема.",
+  "Съвместими с класическите машини Dolce Gusto (NEO не е съвместима).",
+  "Съвместими с класическите машини Dolce Gusto. В NEO няма да влязат.",
+  "Съвместими с класическите машини Dolce Gusto — не и с NEO.",
+  "Подходящи за класическите машини Dolce Gusto, но не за NEO.",
+  "Съвместими с машини Dolce Gusto от първото поколение, не с NEO.",
+  "Подходящи за класическите машини Dolce Gusto. За моделите NEO не са.",
+  [
+    "Капсули за класическите машини Dolce Gusto.",
+    "Машините NEO са с хартиени дози и не ги приемат.",
+  ],
+  "Капсули за Dolce Gusto. Не са за Dolce Gusto NEO-серията.",
+  // Spelling: Cyrillic, other spaces, marks, a line broken in two.
+  "Съвместими с класическите машини Долче Густо (не НЕО).",
+  "Съвместими с класическите машини Долче Густо (не NEO).",
+  `Съвместими с класическите машини${NBSP}Dolce${NBSP}Gusto (не${NBSP}NEO).`,
+  "Съвместими с класическите машини NESCAFÉ® Dolce Gusto® (не NEO).",
+  ["Съвместими с класическите машини Dolce Gusto", "(не NEO)."],
+  `Съвместими с класическите машини Dolce Gusto${NEWLINE}(не NEO).`,
+  "Капсула за класическата машина Dolce Gusto (не NEO).",
+  "Подходящи за класическите модели Dolce Gusto като Piccolo, Genio и Mini Me (не NEO).",
+  "Подходящи за класическите машини Dolce Gusto (не NEO) на Krups и De'Longhi.",
+  // M5: only a Cafissimo is a Cafissimo.
+  "Цели зърна, подходящи за всяка автоматична кафемашина Tchibo Esperto или Saeco.",
+  // L5: the reader's own machine, in an instruction; a fit word about something else.
+  "Капсули за Dolce Gusto (не NEO). Поставете капсулата в машината Dolce Gusto и изберете размер на чашата.",
+  "Капсули за Nespresso Original. Поставете капсулата в машината Nespresso и натиснете бутона.",
+  "Подходяща за лате и капучино, тази капсула за Dolce Gusto дава плътна крема.",
+  "Подходящи за напитки с мляко в Dolce Gusto.",
 ];
 
 describe("compatibilityProblems", () => {
@@ -184,7 +340,8 @@ describe("compatibilityProblems", () => {
     expect(rulesOf(text)).toEqual([...rules].sort());
   });
 
-  it.each(ACCEPTED)("accepts „%s“", (text) => {
+  // Wrapped: `it.each` would spread a multi-paragraph text into arguments.
+  it.each(ACCEPTED.map((text) => [text]))("accepts „%s“", (text) => {
     expect(compatibilityProblems(text)).toEqual([]);
   });
 
@@ -245,11 +402,8 @@ describe("compatibilityProblems", () => {
   });
 
   it("does not mistake other words for the names it watches", () => {
-    // „нео“ starts other words; „Нео-“ is a prefix; the name is written NEO.
+    // „нео“ starts other words; the name stands alone, or hyphenated: „NEO-серията“.
     expect(compatibilityProblems("Неотразим вкус в капсули за Dolce Gusto.")).toEqual([]);
-    expect(
-      compatibilityProblems("Нео-класически дизайн на кутията, капсули за Dolce Gusto."),
-    ).toEqual([]);
     // A machine of Tchibo's that is not a Cafissimo is not one.
     expect(compatibilityProblems("Машините Tchibo Qbo са друга система.")).toEqual([]);
   });

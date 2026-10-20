@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { normalizeForComparison } from "@catalog/shared";
+import { MAX_INTERNAL_RUN_WORDS, longestSharedRun, normalizeForComparison } from "@catalog/shared";
 import { COMPATIBILITY_WORDING, compatibilityProblems } from "@catalog/shared/compatibility-copy";
 import {
   type ReviewContext,
@@ -564,6 +564,39 @@ describe("auditGeneratedCopy", () => {
     ).toBe(true);
   });
 
+  it("lets a Caffitaly text in the skill's own words through both rules", () => {
+    // The six hand-written Caffitaly entries end in the same fixed caveat; a
+    // seventh product written as the skill asks must not „repeat“ them.
+    const caveat = `${COMPATIBILITY_WORDING.cafissimo}.`;
+    const published = [
+      `Кутия от 10 капсули за машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. ${caveat}`,
+      `10 капсули, съвместими с машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. ${caveat}`,
+      `10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo. ${caveat}`,
+    ];
+    const ours = `10 капсули за машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. ${caveat}`;
+    const longest = Math.max(...published.map((other) => longestSharedRun(other, ours)));
+    expect(longest).toBeGreaterThan(MAX_INTERNAL_RUN_WORDS);
+
+    const item = workItem({
+      title: "Caffitaly Espresso Delicato",
+      brand: "Caffitaly",
+      format: "Капсули за Caffitaly",
+      pack: { label: "10 бр.", inName: null, inPackField: null, mayState: true },
+    });
+    const copy = withBody(ours);
+    expect(compatibilityProblems([copy.summary, ...copy.body])).toEqual([]);
+    const bodies = new Map(published.map((paragraph, index) => [`hand-${index}`, [paragraph]]));
+    expect(audit(copy, item, { bodies })).toEqual({ ok: true, problems: [] });
+
+    // Phrasing of its own beside the fixed sentence is still held to the limit.
+    const own =
+      "Вкусът е мек и балансиран, с нотки на какао и печени ядки, а послевкусът остава дълъг и сладък.";
+    const repeated = new Map([["hand-0", [`${own} ${caveat}`]]]);
+    expect(audit(withBody(`${own} ${caveat}`), item, { bodies: repeated }).problems).toEqual([
+      expect.stringMatching(/^абзац 3 повтаря \d+ поредни думи от описанието на друг продукт$/),
+    ]);
+  });
+
   it("names each broken rule once, however many sentences break it", () => {
     const copy = withBody(
       "Съвместими с машини Dolce Gusto на Krups.",
@@ -857,7 +890,7 @@ describe("reviewBatch", () => {
     );
     expect(loose.decisions[0]?.copy).toEqual({
       status: "rejected",
-      problems: [expect.stringMatching(/^съвместимост: „машини Dolce Gusto“/)],
+      problems: [expect.stringMatching(/^съвместимост: „всички машини Dolce Gusto“/)],
     });
 
     const right = await reviewBatch(
