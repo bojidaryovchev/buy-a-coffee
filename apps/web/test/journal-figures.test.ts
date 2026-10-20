@@ -438,8 +438,45 @@ describe("journal figures: pods", () => {
   });
 
   it("lists the intensity scales the pods declare on, lowest first", () => {
-    expect(figures.pods?.declared).toBe(4);
     expect(figures.pods?.scales).toEqual([9, 10, 12]);
+  });
+
+  it("gives one exact range over every pod counted by the piece", () => {
+    const range = figures.pods?.perCup;
+    expect(range?.count).toBe(5);
+    expect(plain(range?.cheapest.perCup ?? "")).toBe("0,20 €");
+    expect(plain(range?.dearest.perCup ?? "")).toBe("0,40 €");
+    expect(figures.pods?.byWeight).toBe(0);
+  });
+
+  /* A box listed by weight has its cups estimated, so it is in no exact price. */
+  it("leaves a pod sold by weight out of every price, and counts it", () => {
+    const weighed = computeJournalFigures(
+      [
+        pods("kafe-dozi", "13.50", "50", "medium"),
+        row({
+          category: "kafe-dozi",
+          price: "10.00",
+          weightValue: "250",
+          weightUnit: "g",
+          strength: "medium",
+        }),
+      ],
+      "EUR",
+    );
+    // The cup-cost figures still carry it, marked as an estimate…
+    const all = weighed.cupCost?.byMethod.pod;
+    expect(all?.count).toBe(2);
+    expect([all?.cheapest.estimated, all?.dearest.estimated]).toContain(true);
+    // …the pod figures do not.
+    expect(weighed.pods?.products).toBe(2);
+    expect(weighed.pods?.byWeight).toBe(1);
+    expect(weighed.pods?.perCup?.count).toBe(1);
+    expect(weighed.pods?.perCup?.cheapest.estimated).toBe(false);
+    expect(weighed.pods?.strengths).toHaveLength(1);
+    expect(weighed.pods?.strengths[0]?.products).toBe(2);
+    expect(weighed.pods?.strengths[0]?.perCup?.count).toBe(1);
+    expect(plain(weighed.pods?.perCup?.cheapest.perCup ?? "")).not.toContain("≈");
   });
 
   it("leaves a step with no priced pod without a price", () => {

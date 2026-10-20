@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { checkStructuredData } from "../test/helpers/structured-data";
-import { BG } from "./support/paths";
+import { BG, PRODUCT_LINK } from "./support/paths";
 import {
   expectImagesHaveAlt,
   expectLandmarks,
@@ -21,9 +21,9 @@ import { characters, shopTitle } from "./support/titles";
  */
 
 const ARTICLE = "/bg/blog/kafemashina-za-dozi-ese";
-const TITLE = "Кафемашина за хартиени дози ESE: как да изберете";
+const TITLE = "Кафемашина за хартиени дози: коя ги приема и какви дози има";
 const META =
-  "Дозата ESE е 44 мм и влиза в еспресо машина с цедка (филтър) за дози. Как да познаете такава кафемашина и как да изберете дозите по цена на чаша.";
+  "Как да познаете кафемашина за хартиени дози ESE, какво да проверите, преди да купите такава, и как да изберете дозите по цена на чаша и интензивност.";
 /** The machine-database brands with a model that takes ESE pods. */
 const POD_MACHINE_BRANDS = ["delonghi", "gaggia", "smeg"] as const;
 
@@ -137,6 +137,32 @@ test.describe("the ESE-machine guide", () => {
     await expect(articles).toHaveCount(1);
     await expect(articles).toHaveAttribute("href", ARTICLE);
     await expect(articles).toHaveText(TITLE);
+  });
+
+  /*
+   * Corrected with this article: the X7.1 was listed for pods with no source,
+   * and illy makes it for Iperespresso capsules only. Nothing on the illy page
+   * may send its owner to the pods any more.
+   */
+  test("the illy page lists the X7.1 among the machines we have nothing for", async ({ page }) => {
+    await page.goto(BG.machineBrand("illy"));
+    await expect(page.locator(`main a[href="${BG.pods}"]`)).toHaveCount(0);
+    await expect(page.locator("main #illy-x7-ese")).toHaveCount(0);
+    const unsupported = page.locator("main section", {
+      has: page.getByRole("heading", { name: "Модели, за които не предлагаме кафе" }),
+    });
+    await expect(unsupported).toContainText("X7.1 Iperespresso");
+  });
+
+  test("a pod's own page no longer offers it for the X7.1", async ({ page }) => {
+    await page.goto(BG.pods);
+    const first = await page.locator(`main ${PRODUCT_LINK}`).first().getAttribute("href");
+    await page.goto(first as string);
+    const fits = page.locator("main section", {
+      has: page.getByRole("heading", { name: "Става за тези машини" }),
+    });
+    await expect(fits).toContainText("De'Longhi Dedica");
+    await expect(fits).not.toContainText(/X7|illy/);
   });
 
   test("keeps the pods listing's title, heading and lead as they were", async ({ page }) => {

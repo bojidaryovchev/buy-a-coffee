@@ -56,6 +56,13 @@ export interface MachineModel {
    * maker's own range, so the page can say so instead of implying otherwise.
    */
   readonly crossFormat?: boolean;
+  /**
+   * Set on a machine for ESE pods that also brews ground coffee in its
+   * ordinary filters, when that is known from its maker or from this file's
+   * own note. Absent is "not known", never "pods only". The ESE-machine article
+   * names exactly these models (`content/journal/articles/ese-machine.ts`).
+   */
+  readonly alsoGround?: boolean;
   readonly note?: string;
 }
 
@@ -239,6 +246,7 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
         name: "Dedica (ръчна с цедка)",
         aliases: ["дедика"],
         system: "ese-pod",
+        alsoGround: true,
         note: "Работи с мляно кафе. С цедката за дози приема и хартиени дози ESE 44 мм.",
       },
     ],
@@ -430,12 +438,15 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
         name: "Classic (ръчна с цедка)",
         aliases: ["класик"],
         system: "ese-pod",
+        // The brand's summary above: the manual models take ground coffee too.
+        alsoGround: true,
         note: "С цедката за дози приема хартиени дози ESE 44 мм.",
       },
       {
         slug: "gaggia-carezza",
         name: "Carezza (ръчна с цедка)",
         system: "ese-pod",
+        alsoGround: true,
         note: "С цедката за дози приема хартиени дози ESE 44 мм.",
       },
       beans("gaggia-cadorna", "Cadorna (автоматична)"),
@@ -453,6 +464,9 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
         slug: "smeg-ecf01",
         name: "ECF01 (ръчна с цедка)",
         system: "ese-pod",
+        // Smeg: "The ECF01 espresso coffee machine works with paper pods or
+        // ground blends" (smeg.com/ie/inspirations/coffee-set---an-unadulterated-luxury.html).
+        alsoGround: true,
         note: "С цедката за дози приема хартиени дози ESE 44 мм.",
       },
     ],

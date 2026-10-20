@@ -859,13 +859,32 @@ owns the first in §1 (the row above was added with it). It says what an ESE pod
 is from the E.S.E. Consortium's page on the standard
 (<https://eseconsortium.com/standard>), names only the machines the machine
 database lists for pods, quotes every count and price from the catalog
-(`pods` in `apps/web/src/lib/catalog/journal-figures.ts`), and ends at
-`kafe-dozi`, which now links it as its one article (`article` in
-`apps/web/content/category-copy.ts`; §13.4). That listing is a stage-1 page of
-T1.1, so the link is a change to a treated page during its measurement window:
-it sits in the introduction under the products, and the title, `h1` and lead
-are unchanged. Being the newest article, it also takes the first of the three
-places the home page gives the journal, and „Арабика и робуста“ leaves it.
+(`pods` in `apps/web/src/lib/catalog/journal-figures.ts`, which prices only
+boxes whose pods are counted), and ends at `kafe-dozi`, which now links it as
+its one article (`article` in `apps/web/content/category-copy.ts`; §13.4).
+
+What it changes in the link graph, for whoever reads Milestone 1's
+measurement. `kafe-dozi` is a stage-1 page of T1.1, so each of these is a
+change around a treated page during its measurement window:
+
+- **Links into `kafe-dozi`:** three from the article itself (the machine list,
+  the closing sentence and the button), and the article in turn is linked from
+  the home page and from „Още от блога“ under each of the six other articles.
+- **A link out of `kafe-dozi`:** the article, in the introduction under the
+  products. The listing's title, `h1` and lead are unchanged.
+- **The home page:** its three journal places go to the newest articles, so
+  this one takes the first and „Арабика и робуста“ leaves the home page. That
+  article links the capsule hub, a held-back page, so the hub loses a link at
+  two removes from the home page.
+
+Written with it, and live wherever `apps/web/src/content/machines.ts` is: the
+illy X7.1 was listed for ESE pods („X7.1 (версия за дози)“) with no source.
+illy makes it for its Iperespresso capsules only, and publishes no E.S.E.
+version, so it is now „X7.1 Iperespresso“, among the machines nothing here
+fits. It leaves the pods group of `za-kafemashina/illy`, the „Става за тези
+машини“ list on every pod's product page and the list of pod brands in the
+formats article. Which pod machines also brew ground coffee is a field of the
+database now (`alsoGround`), not a sentence of the article.
 
 ### Deliberate deviations
 

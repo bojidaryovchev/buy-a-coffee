@@ -1,7 +1,7 @@
 import { MACHINE_BRANDS, type MachineBrand, type MachineModel } from "@/content/machines";
 import { STRENGTH_LABELS, STRENGTH_ORDER } from "@/lib/catalog/attributes";
 import { pluralize } from "@/lib/catalog/format";
-import type { CupRange, FormatSummary, PodFigures } from "@/lib/catalog/journal-figures";
+import type { FormatSummary, PodFigures } from "@/lib/catalog/journal-figures";
 import { getUnsupportedSystem } from "@/lib/recommend/systems";
 import {
   action,
@@ -49,14 +49,16 @@ import { WHICH_CAPSULE_SLUG } from "./which-capsule";
  *    — named nowhere here, because the machine database does not list it.
  *  - **Which machines take pods.** The machine database, `machines.ts`, and
  *    nothing else (`PRODUCT.md`, "Compatibility is a promise"). The list is
- *    built from the models whose system is `ese-pod`; the one typed sentence
- *    that names models — which of them also take ground coffee — restates
- *    those models' notes and is pinned to them in `journal-ese-machine.test.ts`.
+ *    built from the models whose system is `ese-pod`, and which of them brew
+ *    ground coffee too from their `alsoGround` flag, so no model is named in
+ *    typed prose.
  *    Dolce Gusto NEO is named as a system, from `systems.ts`, to say that its
  *    paper pods are a different thing.
- *  - **Every count and price.** `figures.formats`, `figures.cupCost` and
- *    `figures.pods`, computed from the catalog at render. Each paragraph that
- *    quotes one has a version that makes the same point without it.
+ *  - **Every count and price.** `figures.formats` and `figures.pods`,
+ *    computed from the catalog at render. The prices are exact because the
+ *    pod figures leave out a box sold by weight, and say how many they left
+ *    out. Each paragraph that quotes a figure has a version that makes the
+ *    same point without it.
  */
 
 export const ESE_MACHINE_SLUG = "kafemashina-za-dozi-ese";
@@ -72,44 +74,91 @@ export function podMachines(): ReadonlyArray<{
   });
 }
 
+/** "De'Longhi Dedica": a model as a reader names it, without the kind in brackets. */
+const modelName = (brand: MachineBrand, model: MachineModel): string =>
+  `${brand.name} ${model.name.replace(/\s*\(.*\)$/, "")}`;
+
+/** The pod machines in the database that brew ground coffee too, by name. */
+export function podMachinesAlsoGround(): string[] {
+  return podMachines().flatMap(({ brand, models }) =>
+    models.filter((model) => model.alsoGround).map((model) => modelName(brand, model)),
+  );
+}
+
 /** „слабо“, „средно“, „силно“: the shop's own steps, as the filter names them. */
 const stepLabel = (key: string): string => (STRENGTH_LABELS[key] ?? key).toLocaleLowerCase("bg");
 
-/** "В момента в категорията има 45 продукта, в кутии от 18 до 200 броя." */
+const doses = (count: number): string => pluralize(count, "доза", "дози");
+
+/** "В момента в категорията има 45 продукта, в кутии от 18 до 200 дози." */
 function choiceText(summary: FormatSummary | null): Block[] {
   if (!summary) return [];
-  // Pods are sold by the piece; a size written by weight would not read as „броя“.
-  const counts = summary.packs.every((pack) => /^\d+$/.test(pack)) ? summary.packs : [];
+  // Pods are sold by the piece; a size written by weight is not a number of pods.
+  const counts = summary.packs.every((pack) => /^\d+$/.test(pack)) ? summary.packs.map(Number) : [];
   const first = counts[0];
   const last = counts[counts.length - 1];
   const packs =
     first === undefined || last === undefined
       ? ""
-      : first === last
-        ? `, в кутии по ${first} броя`
-        : `, в кутии от ${first} до ${last} броя`;
+      : summary.products === 1
+        ? ` — кутия от ${doses(first)}`
+        : first === last
+          ? `, в кутии по ${doses(first)}`
+          : `, в кутии от ${first} до ${doses(last)}`;
   return [
     p(`В момента в категорията има ${pluralize(summary.products, "продукт", "продукта")}${packs}.`),
   ];
 }
 
-function priceText(range: CupRange | null): Block[] {
-  return range ? [p(`В момента дозите в каталога ни излизат ${rangeText(range)} на чаша.`)] : [];
+/**
+ * The per-cup range, which is exact: `figures.pods` prices only the boxes
+ * whose pods are counted. A box sold by weight is said to be left out.
+ */
+function priceText(pods: PodFigures | null): Block[] {
+  if (!pods) return [];
+  const weighed = pods.byWeight;
+  const sentences: string[] = [];
+  if (pods.perCup) {
+    sentences.push(
+      `В момента дозите в каталога ни излизат ${rangeText(pods.perCup)} на чаша${weighed > 0 ? ", когато броят им е обявен" : ""}.`,
+    );
+  }
+  if (weighed > 0) {
+    sentences.push(
+      weighed === 1
+        ? "1 продукт е обявен с тегло вместо с брой дози: при него броят е приблизителен и пред цената на чаша стои знакът ≈."
+        : `${weighed} продукта са обявени с тегло вместо с брой дози: при тях броят е приблизителен и пред цената на чаша стои знакът ≈.`,
+    );
+  }
+  return sentences.length > 0 ? [p(sentences.join(" "))] : [];
 }
 
-function strengthTable(pods: PodFigures | null): Block[] {
-  if (!pods || pods.strengths.length === 0) return [];
+function strengthText(pods: PodFigures | null): Block[] {
+  const steps = pods?.strengths ?? [];
+  const [only] = steps;
+  if (!only) return [];
+  if (steps.length === 1) {
+    return [
+      p(
+        `В момента дозите в каталога ни са само на една степен, „${stepLabel(only.key)}“: ${pluralize(only.products, "продукт", "продукта")}.`,
+        ...(only.perCup ? [` На чаша излиза ${rangeText(only.perCup)}.`] : []),
+      ),
+    ];
+  }
   return [
     p("Ето колко продукта има на всяка степен в момента и колко струва чаша при тях:"),
     table({
       caption: "Дозите по степен на интензивност",
       columns: ["Степен", "Продукти", "На чаша"],
-      rows: pods.strengths.map((step) => [
+      rows: steps.map((step) => [
         stepLabel(step.key),
         String(step.products),
         step.perCup ? rangeText(step.perCup) : "—",
       ]),
-      note: "Броят и цените се смятат от каталога при всяко негово обновяване.",
+      note:
+        (pods?.byWeight ?? 0) > 0
+          ? "Броят и цените се смятат от каталога при всяко негово обновяване. Цените са само за кутиите с обявен брой дози."
+          : "Броят и цените се смятат от каталога при всяко негово обновяване.",
     }),
   ];
 }
@@ -120,7 +169,7 @@ function scaleText(pods: PodFigures | null): Inline[] {
     return [
       "Числото на производителя е по неговата собствена скала, а при дозите в каталога ни се срещат скали до ",
       ...sentenceList(scales.map(String)),
-      ". Затова сравнявайте мястото на скалата, а не самото число.",
+      ". Затова сравнявайте мястото по скалата, а не самото число.",
     ];
   }
   return [
@@ -130,17 +179,18 @@ function scaleText(pods: PodFigures | null): Inline[] {
 
 export const eseMachine: Article = {
   slug: ESE_MACHINE_SLUG,
-  title: "Кафемашина за хартиени дози ESE: как да изберете",
+  title: "Кафемашина за хартиени дози: коя ги приема и какви дози има",
   description:
     "Хартиената доза ESE е 44 мм и влиза в еспресо машина с цедка за дози. Как да разберете дали вашата машина я приема, какво да проверите при нова и как да изберете дозите.",
   metaDescription:
-    "Дозата ESE е 44 мм и влиза в еспресо машина с цедка (филтър) за дози. Как да познаете такава кафемашина и как да изберете дозите по цена на чаша.",
+    "Как да познаете кафемашина за хартиени дози ESE, какво да проверите, преди да купите такава, и как да изберете дозите по цена на чаша и интензивност.",
   publishedAt: "2026-10-20",
   usesCatalog: true,
 
-  body: ({ formats, cupCost, pods }) => {
+  body: ({ formats, pods }) => {
     const machines = podMachines();
     const modelCount = machines.reduce((sum, entry) => sum + entry.models.length, 0);
+    const alsoGround = podMachinesAlsoGround();
     const neo = getUnsupportedSystem("dolce-gusto-neo");
     const podsHref = systemCategoryHref("ese-pod");
 
@@ -178,7 +228,7 @@ export const eseMachine: Article = {
       p("Ако вече имате машина и не сте сигурни дали приема дози, минете през тези стъпки по ред:"),
       ol(
         [
-          "Вижте какъв е видът на машината. Дозите са за еспресо машина с дръжка и цедка — ръчната, в която иначе слагате мляно кафе, — и за машини, направени само за дози. Автоматичната машина, която мели зърна сама, не ги приема: за нея се купува ",
+          "Вижте какъв е видът на машината. Дозите са за някои еспресо машини с дръжка — тези, за които има цедка за дози, — и за машини, направени само за дози. Автоматичната машина, която мели зърна сама, не ги приема: за нея се купува ",
           link(systemCategoryHref("beans"), "кафе на зърна"),
           ". Не ги приема и капсулната машина, която работи само с капсулите за своята система — за тях пише във ",
           link(articleHref(WHICH_CAPSULE_SLUG), "видове капсули за кафе"),
@@ -211,7 +261,7 @@ export const eseMachine: Article = {
       ...(machines.length > 0
         ? [
             p(
-              `В списъка ни дози ESE приемат ${pluralize(modelCount, "модел", "модела")} на ${pluralize(machines.length, "марка", "марки")}:`,
+              `В списъка ни дози ESE ${modelCount === 1 ? "приема" : "приемат"} ${pluralize(modelCount, "модел", "модела")} на ${pluralize(machines.length, "марка", "марки")}:`,
             ),
             ul(
               ...machines.map(({ brand, models }) => [
@@ -221,7 +271,7 @@ export const eseMachine: Article = {
               ]),
             ),
             p(
-              "При всички тях дозите влизат с цедката за дози. Ако вашият модел е тук, дозите от категорията ",
+              `${modelCount === 1 ? "При него" : "При всички тях"} дозите влизат с цедката за дози. Ако вашият модел е тук, дозите от категорията `,
               link(podsHref, "кафе дози"),
               " стават за него.",
             ),
@@ -246,7 +296,15 @@ export const eseMachine: Article = {
         ],
         [
           strong("Мляното кафе. "),
-          "Ако искате да варите и мляно кафе, търсете машина с цедки и за двете. От машините в нашия списък така работят De'Longhi Dedica и ръчните модели на Gaggia. Мляно кафе в пакет обаче не предлагаме — при нас има зърна, капсули и дози.",
+          "Ако искате да варите и мляно кафе, търсете машина с цедки и за двете.",
+          ...(alsoGround.length > 0
+            ? [
+                " От машините за дози в нашия списък с мляно кафе работят и ",
+                ...sentenceList(alsoGround),
+                ".",
+              ]
+            : []),
+          " Мляно кафе в пакет обаче не предлагаме — при нас има зърна, капсули и дози.",
         ],
         [
           strong("Цената и поддръжката. "),
@@ -254,7 +312,7 @@ export const eseMachine: Article = {
         ],
       ),
       p(
-        "Едно предимство на формата не зависи от модела: дозите не ви връзват за една марка кафе. По стандарта дози ESE от различни марки стават за машините със знака ESE, докато при капсулите всяка система приема само своите.",
+        "Дози ESE правят различни марки по един и същ стандарт, така че за машина със знака ESE можете да избирате между тях. При капсулите избирате сред капсулите за вашата система.",
       ),
 
       h2("Как да изберете дозите"),
@@ -265,9 +323,9 @@ export const eseMachine: Article = {
 
       h3("Цената на чаша"),
       p(
-        "При дозите цената на чаша е точна: една доза е една чаша, така че цената на кутията се дели на броя дози в нея. Тя стои до цената на кутията при всеки продукт. Сравнявайте по нея, защото кутиите са с различен брой дози.",
+        "Когато броят дози в кутията е обявен, цената на чаша е точна: една доза е една чаша, така че цената на кутията се дели на броя дози в нея. Тя стои до цената на кутията при всеки продукт. Сравнявайте по нея, защото кутиите са с различен брой дози.",
       ),
-      ...priceText(cupCost?.byMethod.pod ?? null),
+      ...priceText(pods),
       p(
         "Защо цената на кутията подвежда и как се стига до цената на чаша, пише в ",
         link(articleHref(CUP_COST_SLUG), "колко струва една чаша кафе"),
@@ -280,7 +338,7 @@ export const eseMachine: Article = {
         ...sentenceList(STRENGTH_ORDER.map(stepLabel)),
         ". По тях дозите се отделят с филтъра „Интензивност“ в категорията.",
       ),
-      ...strengthTable(pods),
+      ...strengthText(pods),
       p(
         "Степента не е оценка за качество: тя казва колко интензивно е кафето, а не колко е хубаво.",
       ),

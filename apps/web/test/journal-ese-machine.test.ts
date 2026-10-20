@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ARTICLES } from "../content/journal";
-import { ESE_MACHINE_SLUG, podMachines } from "../content/journal/articles/ese-machine";
+import {
+  ESE_MACHINE_SLUG,
+  podMachines,
+  podMachinesAlsoGround,
+} from "../content/journal/articles/ese-machine";
 import { rangeText } from "../content/journal/articles/cup-cost";
 import type { Block, Inline } from "../content/journal/blocks";
 import { categoryCopyFor } from "../content/category-copy";
@@ -13,7 +17,7 @@ import {
   type JournalFigures,
 } from "@/lib/catalog/journal-figures";
 import { collectLinks, getArticle, plainText, summariseArticle } from "@/lib/journal";
-import { getBrewingSystem, getUnsupportedSystem } from "@/lib/recommend/systems";
+import { getUnsupportedSystem } from "@/lib/recommend/systems";
 import { targetHref, type RouteTarget } from "@/lib/routes";
 import { DESCRIPTION_LIMIT } from "@/lib/seo/description";
 import { TITLE_LIMIT, fullTitle, titleLength } from "@/lib/seo/title";
@@ -33,42 +37,31 @@ import { KEYWORD_MAP, carries, carriesIgnoringPunctuation } from "./keyword-map"
 const article = getArticle(ESE_MACHINE_SLUG)!;
 
 /** A catalog of pods unlike the fixture's, so a figure typed to match it would show. */
+const pod = (price: string, pieces: string, strength: string, intensity: string) =>
+  row({ category: "kafe-dozi", price, weightValue: pieces, strength, intensity });
+
 const POD_FIGURES: JournalFigures = computeJournalFigures(
   [
+    pod("7.20", "18", "weak", "7 от 9"),
+    pod("30.00", "150", "strong", "10 от 12"),
+    pod("36.00", "100", "strong", "9 от 10"),
+    pod("13.50", "50", "medium", "8 от 13"),
+    row({ category: "nespresso", price: "3.90", weightValue: "10", strength: "weak" }),
+  ],
+  "EUR",
+);
+
+/** The same, plus a box sold by weight, whose cups are an estimate. */
+const WEIGHED_FIGURES: JournalFigures = computeJournalFigures(
+  [
+    pod("7.20", "18", "weak", "7 от 9"),
+    pod("30.00", "150", "strong", "10 от 12"),
     row({
       category: "kafe-dozi",
-      price: "7.20",
-      weightValue: "18",
-      strength: "weak",
-      intensity: "7 от 9",
-    }),
-    row({
-      category: "kafe-dozi",
-      price: "30.00",
-      weightValue: "150",
+      price: "10.00",
+      weightValue: "250",
+      weightUnit: "g",
       strength: "strong",
-      intensity: "10 от 12",
-    }),
-    row({
-      category: "kafe-dozi",
-      price: "36.00",
-      weightValue: "100",
-      strength: "strong",
-      intensity: "9 от 10",
-    }),
-    row({
-      category: "kafe-dozi",
-      price: "13.50",
-      weightValue: "50",
-      strength: "medium",
-      intensity: "8 от 13",
-    }),
-    row({
-      category: "nespresso",
-      price: "3.90",
-      weightValue: "10",
-      strength: "weak",
-      intensity: "5 от 12",
     }),
   ],
   "EUR",
@@ -76,6 +69,7 @@ const POD_FIGURES: JournalFigures = computeJournalFigures(
 
 const VARIANTS = [
   ["the pod catalog", POD_FIGURES],
+  ["a pod sold by weight", WEIGHED_FIGURES],
   ["the journal fixture", FIXTURE_FIGURES],
   ["no catalog", EMPTY_JOURNAL_FIGURES],
 ] as const;
@@ -103,6 +97,18 @@ function links(blocks: readonly Block[]): Array<{ href: RouteTarget; text: strin
   return found;
 }
 
+/** The list item that opens with `lead`, as plain text. */
+function listItem(blocks: readonly Block[], lead: string): string {
+  for (const block of blocks) {
+    if (block.type !== "list") continue;
+    for (const item of block.items) {
+      const said = plainText([{ type: "paragraph", content: item }]);
+      if (said.startsWith(lead)) return said;
+    }
+  }
+  throw new Error(`no list item opens with „${lead}“`);
+}
+
 const bg = (target: RouteTarget) => targetHref("bg", target);
 
 describe("the ESE-machine guide: where it is and what it is called", () => {
@@ -119,18 +125,23 @@ describe("the ESE-machine guide: where it is and what it is called", () => {
     expect([...meta].length).toBeGreaterThanOrEqual(70);
   });
 
-  /* `docs/seo.md` §1: the page carries its own head term, and nobody else's. */
-  it("owns „кафемашина за хартиени дози“ in its title, which is also its h1", () => {
+  /*
+   * `docs/seo.md` §1: the page carries its own head term, and nobody else's.
+   * The title is the page's `h1` too (`blog/[slug]/page.tsx`); that the
+   * rendered `h1` is this text is `e2e/ese-guide.spec.ts`'s to check.
+   */
+  it("carries its own head term at the front of its title", () => {
     const own = KEYWORD_MAP.find((entry) => entry.page === `blog/${ESE_MACHINE_SLUG}`);
     expect(own?.head).toEqual(["кафемашина за хартиени дози"]);
-    // The page's h1 is the article's title (`blog/[slug]/page.tsx`).
-    expect(carries(article.title, "кафемашина за хартиени дози")).toBe(true);
+    expect(carries(article.title, own!.head[0]!)).toBe(true);
+    expect(article.title.toLowerCase().startsWith(own!.head[0]!)).toBe(true);
   });
 
-  it("carries no other page's head term, read either way", () => {
-    for (const owner of KEYWORD_MAP) {
-      if (owner.page === `blog/${ESE_MACHINE_SLUG}`) continue;
+  it("carries no other page's head term, phrase by phrase or through the punctuation", () => {
+    const others = KEYWORD_MAP.filter((owner) => owner.page !== `blog/${ESE_MACHINE_SLUG}`);
+    for (const owner of others) {
       for (const term of [...owner.head, ...(owner.twins ?? [])]) {
+        expect(carries(article.title, term), `${term} (${owner.page})`).toBe(false);
         expect(carriesIgnoringPunctuation(article.title, term), `${term} (${owner.page})`).toBe(
           false,
         );
@@ -142,7 +153,26 @@ describe("the ESE-machine guide: where it is and what it is called", () => {
     }
   });
 
-  it("is the one article every blog row of the keyword map names", () => {
+  it("says something other than the pods listing does in a result", () => {
+    const meta = summariseArticle(article).metaDescription;
+    const listing = categoryCopyFor({ slug: "kafe-dozi", sourceKey: "kafe-dozi" })!.description;
+    expect(meta).toMatch(/хартиени/);
+    // No run of five words in common with the listing's own description.
+    const words = (value: string) =>
+      value
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(Boolean);
+    const mine = words(meta);
+    const theirs = words(listing).join(" ");
+    for (let at = 0; at + 5 <= mine.length; at += 1) {
+      expect(theirs, mine.slice(at, at + 5).join(" ")).not.toContain(
+        mine.slice(at, at + 5).join(" "),
+      );
+    }
+  });
+
+  it("is an article for every blog row of the keyword map, each carrying its term", () => {
     for (const owner of KEYWORD_MAP.filter((entry) => entry.page.startsWith("blog/"))) {
       const listed = getArticle(owner.page.slice("blog/".length));
       expect(listed, owner.page).not.toBeNull();
@@ -180,51 +210,57 @@ describe("the ESE-machine guide: machines", () => {
       expect(said, model.name).toContain(model.name);
       expect(linked, brand.slug).toContain(`/bg/za-kafemashina/${brand.slug}`);
     }
-    expect(podMachines().map(({ brand }) => brand.slug)).toEqual(
-      MACHINE_BRANDS.filter((brand) => brand.models.some((m) => m.system === "ese-pod")).map(
-        (brand) => brand.slug,
-      ),
-    );
+    expect(podMachines().flatMap(({ models }) => models)).toEqual(pods.map(({ model }) => model));
   });
 
   it("counts the models and brands it lists from the database", () => {
     const models = MODELS.filter(({ model }) => model.system === "ese-pod");
     const brands = new Set(models.map(({ brand }) => brand.slug));
     expect(text(EMPTY_JOURNAL_FIGURES)).toContain(
-      `дози ESE приемат ${models.length} модела на ${brands.size} марки`,
+      `дози ESE приемат ${models.length} модела на ${brands.size} марки:`,
     );
   });
 
-  /* The one typed sentence that names models says what their notes say. */
-  it("says only of models whose entries say so that they take ground coffee too", () => {
-    expect(text(EMPTY_JOURNAL_FIGURES)).toContain(
-      "така работят De'Longhi Dedica и ръчните модели на Gaggia",
-    );
-    const dedica = getMachineModel("delonghi-dedica");
-    expect(dedica?.model.system).toBe("ese-pod");
-    expect(dedica?.model.note).toMatch(/мляно кафе/);
-    const gaggia = MACHINE_BRANDS.find((brand) => brand.slug === "gaggia")!;
-    expect(gaggia.summary).toMatch(/Ръчните модели с цедка работят с мляно кафе и с дози ESE/);
-    const gaggiaPods = gaggia.models.filter((model) => model.system === "ese-pod");
-    expect(gaggiaPods.length).toBeGreaterThan(0);
-    for (const model of gaggiaPods) expect(model.name).toMatch(/ръчна с цедка/);
+  /*
+   * Which pod machines also take ground coffee is the database's `alsoGround`,
+   * and the sentence names exactly those: a model left out, or one named
+   * without the flag, fails here.
+   */
+  it("names as taking ground coffee exactly the pod machines flagged for it", () => {
+    const item = listItem(article.body(EMPTY_JOURNAL_FIGURES), "Мляното кафе.");
+    const flagged = MODELS.filter(({ model }) => model.system === "ese-pod" && model.alsoGround);
+    expect(flagged.length).toBeGreaterThan(0);
+    expect(podMachinesAlsoGround()).toHaveLength(flagged.length);
+    for (const { model } of MODELS.filter(({ model }) => model.system === "ese-pod")) {
+      expect(mentions(item, bare(model.name)), model.slug).toBe(model.alsoGround === true);
+    }
   });
 
-  it("names Dolce Gusto NEO as a system with paper pods, not as an ESE machine", () => {
-    const neo = getUnsupportedSystem("dolce-gusto-neo");
-    expect(neo?.name).toBe("Dolce Gusto NEO");
-    expect(neo?.explanation).toMatch(/хартиени дози/);
-    expect(text(EMPTY_JOURNAL_FIGURES)).toContain("Дозите ESE не са за тях, а дози NEO нямаме.");
-    // No NEO machine is said anywhere to take ESE pods.
-    expect(MODELS.filter(({ model }) => model.system === "dolce-gusto-neo").length).toBeGreaterThan(
-      0,
-    );
+  it("flags ground coffee only on a machine for pods", () => {
+    for (const { model } of MODELS.filter(({ model }) => model.alsoGround)) {
+      expect(model.system, model.slug).toBe("ese-pod");
+    }
   });
 
-  it("describes the pod as the shop's own system entry does", () => {
-    // 44 mm across, the paper wider than the coffee: `systems.ts` and the standard agree.
-    expect(getBrewingSystem("ese-pod")?.recognise).toMatch(/44 мм/);
-    expect(getBrewingSystem("ese-pod")?.recognise).toMatch(/хартиеният ръб около него е по-широк/);
+  /* Corrected on 20 October 2026: illy publishes no E.S.E. version of the X7.1. */
+  it("lists the illy X7.1 as the Iperespresso machine illy says it is", () => {
+    expect(getMachineModel("illy-x7-ese")).toBeNull();
+    expect(getMachineModel("illy-x7")?.model.system).toBe("illy-iperespresso");
+    const illy = MACHINE_BRANDS.find((brand) => brand.slug === "illy")!;
+    expect(illy.models.some((model) => model.system === "ese-pod")).toBe(false);
+    expect(text(EMPTY_JOURNAL_FIGURES)).not.toMatch(/X7|illy/);
+  });
+
+  it("warns that Dolce Gusto NEO's paper pods are another system, by the system's own name", () => {
+    const neo = getUnsupportedSystem("dolce-gusto-neo")!;
+    const warning = article
+      .body(EMPTY_JOURNAL_FIGURES)
+      .find((block) => block.type === "callout" && block.title?.includes(neo.name));
+    expect(warning?.type === "callout" && warning.tone).toBe("caution");
+    // No NEO machine is listed for pods.
+    for (const { model } of MODELS.filter(({ model }) => model.system === "dolce-gusto-neo")) {
+      expect(text(EMPTY_JOURNAL_FIGURES)).not.toContain(bare(model.name));
+    }
   });
 });
 
@@ -253,16 +289,15 @@ describe("the ESE-machine guide: figures", () => {
     expect(numerals.filter((numeral) => !allowed.has(numeral))).toEqual([]);
   });
 
-  it("quotes the product count and the pack sizes the catalog has", () => {
-    const summary = POD_FIGURES.formats?.byMethod.pod;
-    expect(summary?.products).toBe(4);
+  it("quotes the product count and the box sizes the catalog has", () => {
+    expect(POD_FIGURES.formats?.byMethod.pod?.products).toBe(4);
     expect(text(POD_FIGURES)).toContain(
-      "В момента в категорията има 4 продукта, в кутии от 18 до 150 броя.",
+      "В момента в категорията има 4 продукта, в кутии от 18 до 150 дози.",
     );
   });
 
-  it("quotes the price per cup the catalog computes, exact, with no sign of an estimate", () => {
-    const range = POD_FIGURES.cupCost?.byMethod.pod;
+  it("quotes the exact price per cup the catalog computes", () => {
+    const range = POD_FIGURES.pods?.perCup;
     expect(range).toBeTruthy();
     expect(text(POD_FIGURES)).toContain(
       `В момента дозите в каталога ни излизат ${rangeText(range!)} на чаша.`,
@@ -270,21 +305,48 @@ describe("the ESE-machine guide: figures", () => {
     expect(rangeText(range!)).not.toContain("≈");
   });
 
+  /* A box sold by weight would put „≈“ beside a sentence that says „точна“. */
+  it("leaves a pod sold by weight out of its exact prices, and says so", () => {
+    const blocks = article.body(WEIGHED_FIGURES);
+    const said = plainText(blocks);
+    expect(WEIGHED_FIGURES.cupCost?.byMethod.pod?.count).toBe(3);
+    expect(WEIGHED_FIGURES.pods?.byWeight).toBe(1);
+    expect(said).toContain(
+      `излизат ${rangeText(WEIGHED_FIGURES.pods!.perCup!)} на чаша, когато броят им е обявен.`,
+    );
+    expect(said).toContain("1 продукт е обявен с тегло вместо с брой дози");
+    // The only „≈“ is the one the sentence explains; no price carries it.
+    expect(said).not.toMatch(/≈\s*\d/);
+    const table = blocks.find((block) => block.type === "table");
+    expect(table?.type === "table" && table.note).toContain("само за кутиите с обявен брой дози");
+  });
+
   it("tabulates the shop's strength steps with the catalog's counts and prices", () => {
-    const blocks = article.body(POD_FIGURES);
-    const tables = blocks.filter((block) => block.type === "table");
+    const tables = article.body(POD_FIGURES).filter((block) => block.type === "table");
     expect(tables).toHaveLength(1);
     const rows = tables[0]!.type === "table" ? tables[0]!.rows : [];
-    expect(
-      rows.map((cells) => cells.map((cell) => plainText([{ type: "paragraph", content: cell }]))),
-    ).toEqual(
+    const cells = rows.map((cellsOfRow) =>
+      cellsOfRow.map((cell) => plainText([{ type: "paragraph", content: cell }])),
+    );
+    expect(cells).toEqual(
       (POD_FIGURES.pods?.strengths ?? []).map((step) => [
         STRENGTH_LABELS[step.key]!.toLocaleLowerCase("bg"),
         String(step.products),
         step.perCup ? rangeText(step.perCup) : "—",
       ]),
     );
-    expect(rows).toHaveLength(3);
+    expect(cells).toHaveLength(3);
+  });
+
+  /* A small catalog reads as Bulgarian, not as a template with a one in it. */
+  it("says one product and one step in words, with no table of one row", () => {
+    const blocks = article.body(FIXTURE_FIGURES);
+    const said = plainText(blocks);
+    expect(FIXTURE_FIGURES.formats?.byMethod.pod?.products).toBe(1);
+    expect(said).toContain("В момента в категорията има 1 продукт — кутия от 150 дози.");
+    expect(said).toContain("са само на една степен, „средно“: 1 продукт.");
+    expect(blocks.some((block) => block.type === "table")).toBe(false);
+    expect(said).not.toMatch(/1 броя|1 продукта|приемат 1 /);
   });
 
   it("names the intensity scales the pods are declared on", () => {
@@ -297,9 +359,12 @@ describe("the ESE-machine guide: figures", () => {
   it("makes each point without its figure when the catalog cannot be read", () => {
     const blocks = article.body(EMPTY_JOURNAL_FIGURES);
     expect(blocks.some((block) => block.type === "table")).toBe(false);
-    const said = plainText(blocks);
-    expect(said).toContain("При дозите цената на чаша е точна");
-    expect(said).toContain("скалите на различните марки не са еднакви");
+    for (const figures of [POD_FIGURES, FIXTURE_FIGURES]) {
+      // Every heading is there with or without the catalog.
+      const headings = (all: readonly Block[]) =>
+        all.flatMap((block) => (block.type === "heading" ? [block.text] : []));
+      expect(headings(blocks)).toEqual(headings(article.body(figures)));
+    }
   });
 });
 
