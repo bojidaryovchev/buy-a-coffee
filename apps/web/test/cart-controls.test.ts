@@ -598,6 +598,104 @@ describe("the cart page", () => {
     }
   });
 
+  it("asks again at the end even when the answer names the same end", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      // The server's clock a moment behind: the promotion still prices the line.
+      const endsAt = new Date(Date.now() + 60_000).toISOString();
+      const fetch = serve([product({ id: A, title: "Lavazza", priceEndsAt: endsAt })]);
+      render(createElement(CartView, { locale: "bg" }));
+      fill([{ productId: A, quantity: 1 }]);
+      await screen.findByRole("link", { name: "Lavazza" });
+
+      await act(async () => void vi.advanceTimersByTime(63_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      // The same end, now past by the browser's clock: asked again 30 s later.
+      await act(async () => void vi.advanceTimersByTime(31_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the cart and what was typed when asking again in the background fails, and tries again", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const answer = () =>
+        new Response(JSON.stringify({ products: [product({ id: A, title: "Lavazza" })] }));
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(answer())
+        // Back to the tab: the limiter says wait seven seconds.
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ error: "rate_limited" }), {
+            status: 429,
+            headers: { "retry-after": "7" },
+          }),
+        )
+        // The first quiet retry: the network is gone.
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValue(answer());
+      vi.stubGlobal("fetch", fetch);
+      render(createElement(CartView, { locale: "bg" }));
+      fill([{ productId: A, quantity: 1 }]);
+      await screen.findByRole("link", { name: "Lavazza" });
+      await act(async () =>
+        fireEvent.change(screen.getByRole("textbox", { name: "Име" }), {
+          target: { value: "Иван" },
+        }),
+      );
+
+      await act(async () => void document.dispatchEvent(new Event("visibilitychange")));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      // Still the cart, the form and the name, with no alarm.
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.getByRole("link", { name: "Lavazza" })).toBeTruthy();
+      expect((screen.getByRole("textbox", { name: "Име" }) as HTMLInputElement).value).toBe("Иван");
+
+      // Not before the seven seconds the server asked for.
+      await act(async () => void vi.advanceTimersByTime(6_000));
+      expect(fetch).toHaveBeenCalledTimes(2);
+      await act(async () => void vi.advanceTimersByTime(2_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+      expect(screen.queryByRole("alert")).toBeNull();
+
+      // Twice failed: ten seconds, then an answer, and the form untouched.
+      await act(async () => void vi.advanceTimersByTime(9_000));
+      expect(fetch).toHaveBeenCalledTimes(3);
+      await act(async () => void vi.advanceTimersByTime(2_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect((screen.getByRole("textbox", { name: "Име" }) as HTMLInputElement).value).toBe("Иван");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says it could not load the cart when asking again after a refusal fails", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ products: [product({ id: A, title: "Lavazza" })] })),
+      )
+      .mockResolvedValue(new Response("{}", { status: 503 }));
+    vi.stubGlobal("fetch", fetch);
+    actions.submitCartOrder.mockResolvedValue({
+      status: "error",
+      message: "Цените се промениха — прегледайте количката и изпратете отново.",
+    });
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+    await fillOrder();
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
+    );
+    // The refusal asks out loud: a failure then is said, with the products kept.
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText(/Продуктите ви са запазени/)).toBeTruthy();
+  });
+
   it("says when it could not load the products, and keeps them", async () => {
     vi.stubGlobal(
       "fetch",

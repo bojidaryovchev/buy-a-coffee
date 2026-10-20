@@ -432,8 +432,11 @@ suite("an order under a promotion (integration)", () => {
     expect(body).not.toMatch(/regular/i);
   });
 
-  const orderOf = (lines: Array<{ productId: string; quantity: number; price?: string | null }>) =>
-    actions.submitCartOrder(IDLE, form({ lines: JSON.stringify(lines), ...TO_ADDRESS }));
+  const orderOf = (
+    lines: Array<{ productId: string; quantity: number; price?: string | null }>,
+    fields: Record<string, string> = {},
+  ) =>
+    actions.submitCartOrder(IDLE, form({ lines: JSON.stringify(lines), ...TO_ADDRESS, ...fields }));
 
   it("refuses a price that moved since the cart showed it, then takes the new one", async () => {
     const { announced, promotion } = await scene();
@@ -542,6 +545,60 @@ suite("an order under a promotion (integration)", () => {
     expect(confirmations[0]!.lines[0]).not.toHaveProperty("reduction");
     const [line] = await db.select().from(orderInquiryItems);
     expect(line).toMatchObject({ unitPrice: "4.00", regularUnitPrice: null, promotionId: null });
+  });
+
+  it("takes the same cart from the same phone to another place as a second order", async () => {
+    const { announced } = await scene();
+    const lines = [{ productId: announced, quantity: 1, price: "8.95" }];
+    const home = await orderOf(lines);
+    // Minutes later, the same box to the office: another order, not a repeat.
+    const office = await orderOf(lines, {
+      deliveryMethod: "office",
+      deliveryCourier: "econt",
+      deliveryOffice: "Еконт, бул. Марица 21",
+    });
+    const otherStreet = await orderOf(lines, { deliveryAddress: "ул. Капитан Райчо 5" });
+    for (const result of [home, office, otherStreet]) {
+      expect(result).toMatchObject({
+        status: "success",
+        message: expect.not.stringMatching(/^Вече получихме/),
+      });
+    }
+    const references = [home, office, otherStreet].map(
+      (result) => result.status === "success" && result.reference,
+    );
+    expect(new Set(references).size).toBe(3);
+    expect(await db.select().from(orderInquiries)).toHaveLength(3);
+    // And the first one again is the first one.
+    const again = await orderOf(lines);
+    expect(again).toMatchObject({
+      status: "success",
+      message: expect.stringMatching(/^Вече получихме заявката ви\./),
+    });
+    expect(again.status === "success" && again.reference).toBe(references[0]);
+    expect(await db.select().from(orderInquiries)).toHaveLength(3);
+  });
+
+  it("answers a repeat as the order taken, even after a product in it sold out", async () => {
+    const { announced, outside } = await scene();
+    const lines = [
+      { productId: announced, quantity: 1, price: "8.95" },
+      { productId: outside, quantity: 2, price: "4.50" },
+    ];
+    const first = await orderOf(lines);
+    expect(first.status).toBe("success");
+    await db.update(products).set({ availability: "out_of_stock" }).where(eq(products.id, outside));
+
+    const repeat = await orderOf(lines);
+    expect(repeat).toMatchObject({
+      status: "success",
+      message: expect.stringMatching(/^Вече получихме заявката ви\./),
+    });
+    expect(repeat.status === "success" && repeat.reference).toBe(
+      first.status === "success" && first.reference,
+    );
+    expect(await db.select().from(orderInquiries)).toHaveLength(1);
+    expect(sent).toHaveLength(1);
   });
 });
 

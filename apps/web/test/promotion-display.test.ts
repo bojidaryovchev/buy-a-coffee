@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProductPrice } from "@/app/(site)/[lang]/[slug]/_components/product-price";
 import { HomePromotions } from "@/components/home/sections";
 import { promotionLastDay, promotionUntil } from "@/lib/catalog/promotion-days";
@@ -116,6 +116,20 @@ describe("the product page's price under a promotion", () => {
     );
   });
 
+  it("ends the sentence with one full stop when the last day falls in another year", () => {
+    const root = block(
+      priced({
+        oldPrice: eur("9.95", "9,95 €"),
+        discountPercent: 10,
+        // The end of 5 January 2027 in Sofia; now is October 2026.
+        promotion: { ...promotion, endsAt: "2027-01-05T22:00:00.000Z" },
+      }),
+    );
+    const said = text(root.querySelector("[data-promotion]"));
+    expect(said).toMatch(/^Есенни дни\. Намалението важи до 5 януари 2027 г\.\s*Зачеркнатата/);
+    expect(said).not.toContain("г..");
+  });
+
   it("claims nothing when the 30-day lowest was no higher: the price, and only the price", () => {
     const root = block(priced({ promotion }));
     expect(text(root)).toContain("8,95 €");
@@ -176,10 +190,24 @@ function band(products: ProductCardView[]) {
 }
 
 describe("the home page's promotions band", () => {
+  // The band words the year against today: today is fixed, as the page's `now` is above.
+  beforeEach(() => void vi.useFakeTimers({ now: NOW, toFake: ["Date"] }));
+  afterEach(() => void vi.useRealTimers());
+
   it("names the promotion and its last day when it is behind every card", () => {
     const root = band([card({}), card({})]);
     expect(text(root.querySelector("h2"))).toBe("Намалени в момента");
     expect(text(root)).toContain("Есенни дни — до 15 ноември.");
+  });
+
+  it("ends its sentence with one full stop when the last day falls in another year", () => {
+    const nextYear = { ...promotion, endsAt: "2027-01-05T22:00:00.000Z" };
+    const labelled = text(band([card({ promotion: nextYear })]));
+    expect(labelled).toContain("Есенни дни — до 5 януари 2027 г.");
+    expect(labelled).not.toContain("г..");
+    const plain = text(band([card({ promotion: { ...nextYear, label: null } })]));
+    expect(plain).toContain("Промоция до 5 януари 2027 г.");
+    expect(plain).not.toContain("г..");
   });
 
   it("says nothing of promotions when the cards come from several, or from the source", () => {

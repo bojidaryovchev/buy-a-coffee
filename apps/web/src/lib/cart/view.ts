@@ -129,3 +129,23 @@ export function requoteDelay(endsAt: number, now: number): number {
   const until = endsAt - now + REQUOTE_AFTER_END_MS;
   return until <= 0 ? REQUOTE_RETRY_MS : Math.min(until, REQUOTE_MAX_MS);
 }
+
+/** The first quiet retry after a failed re-quote, doubling up to two minutes. */
+const RETRY_FIRST_MS = 5_000;
+const RETRY_MAX_MS = 2 * 60_000;
+/** However long a 429 asks for, the page tries again within ten minutes. */
+const RETRY_AFTER_MAX_MS = 10 * 60_000;
+
+/**
+ * How long the cart page waits before trying again a quiet re-quote that
+ * failed `failures` times in a row: 5, 10, 20 … seconds up to two minutes, or
+ * longer when the server said how long (`Retry-After`, in seconds).
+ */
+export function requoteRetryDelay(failures: number, retryAfterSeconds: number | null): number {
+  const backoff = Math.min(RETRY_FIRST_MS * 2 ** Math.max(0, failures - 1), RETRY_MAX_MS);
+  const asked =
+    retryAfterSeconds !== null && Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? retryAfterSeconds * 1000
+      : 0;
+  return Math.min(Math.max(backoff, asked), RETRY_AFTER_MAX_MS);
+}

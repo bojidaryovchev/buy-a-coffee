@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CartOrderForm } from "@/components/forms/cart-order-form";
 import { DeliveryPaymentBlock } from "@/components/commerce/delivery-payment-block";
 import { QuantityStepper } from "@/components/cart/quantity-stepper";
@@ -18,7 +18,7 @@ import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import type { CartLine } from "@/lib/cart/cart";
 import { cartStore, useCart } from "@/lib/cart/store";
-import { requoteDelay, type CartProductView } from "@/lib/cart/view";
+import { requoteDelay, requoteRetryDelay, type CartProductView } from "@/lib/cart/view";
 import { promotionUntil } from "@/lib/catalog/promotion-days";
 import {
   lineTotal,
@@ -86,8 +86,12 @@ export function CartView({ locale }: { locale: Locale }) {
   const { ready, lines } = useCart();
   const [quote, setQuote] = useState<Quote>({ status: "loading" });
   const [placed, setPlaced] = useState<Placed | null>(null);
-  /** Bumped to ask the server again about products it has already answered for. */
-  const [round, setRound] = useState(0);
+  /**
+   * Bumped to ask the server again about products it has already answered
+   * for: `quiet` when the page asks of its own accord (`requote`).
+   */
+  const [refresh, setRefresh] = useState({ round: 0, quiet: false });
+  const round = refresh.round;
 
   const ids = useMemo(() => [...new Set(lines.map((line) => line.productId))].sort(), [lines]);
   const idsKey = ids.join(",");
@@ -102,21 +106,52 @@ export function CartView({ locale }: { locale: Locale }) {
   const needed =
     quote.status === "loading" ||
     (quote.status === "ready" && (quote.round !== round || ids.some((id) => !quote.asked.has(id))));
-  const request = needed && ready && idsKey !== "" ? `${idsKey}|${round}` : "";
+  /*
+   * A quiet request is the page asking again of its own accord — back to the
+   * tab, back from the history, at a price's end, or retrying one of those —
+   * about products it already holds an answer for. If it fails (the network,
+   * a 429), that answer stays on the screen with the form and whatever was
+   * typed into it, and the page tries again later, waiting longer each time.
+   * Only a first answer, or one asked for because the action refused the
+   * cart, may end in "Не успяхме да заредим количката".
+   */
+  const quiet = refresh.quiet && quote.status === "ready" && ids.every((id) => quote.asked.has(id));
+  const request =
+    needed && ready && idsKey !== "" ? `${idsKey}|${round}|${quiet ? "quiet" : ""}` : "";
+
+  const requote = useCallback(
+    (quietly: boolean) => setRefresh(({ round }) => ({ round: round + 1, quiet: quietly })),
+    [],
+  );
+  /** Quiet requests that failed in a row, and the retry waiting for the next. */
+  const retry = useRef<{ failures: number; timer?: ReturnType<typeof setTimeout> }>({
+    failures: 0,
+  });
+  useEffect(() => {
+    const pending = retry.current;
+    return () => clearTimeout(pending.timer);
+  }, []);
 
   useEffect(() => {
     if (!request) return;
-    const [forIds = "", forRound = "0"] = request.split("|");
+    const [forIds = "", forRound = "0", mode = ""] = request.split("|");
+    const pending = retry.current;
+    clearTimeout(pending.timer);
     const controller = new AbortController();
     void (async () => {
+      let retryAfter: number | null = null;
       try {
         const response = await fetch(`/api/cart?ids=${forIds}`, {
           signal: controller.signal,
           headers: { accept: "application/json" },
           cache: "no-store",
         });
-        if (!response.ok) throw new Error(String(response.status));
+        if (!response.ok) {
+          retryAfter = Number(response.headers.get("retry-after")) || null;
+          throw new Error(String(response.status));
+        }
         const data = (await response.json()) as { products: CartProductView[] };
+        pending.failures = 0;
         setQuote({
           status: "ready",
           asked: new Set(forIds.split(",")),
@@ -124,11 +159,20 @@ export function CartView({ locale }: { locale: Locale }) {
           products: new Map(data.products.map((product) => [product.id, product])),
         });
       } catch {
-        if (!controller.signal.aborted) setQuote({ status: "failed" });
+        if (controller.signal.aborted) return;
+        if (mode === "quiet") {
+          pending.failures += 1;
+          pending.timer = setTimeout(
+            () => requote(true),
+            requoteRetryDelay(pending.failures, retryAfter),
+          );
+          return;
+        }
+        setQuote({ status: "failed" });
       }
     })();
     return () => controller.abort();
-  }, [request]);
+  }, [request, requote]);
 
   const products = quote.status === "ready" ? quote.products : null;
   /*
@@ -167,8 +211,8 @@ export function CartView({ locale }: { locale: Locale }) {
     },
     [orderable, products],
   );
-  const requote = useCallback(() => setRound((count) => count + 1), []);
-  const onCartRefused = requote;
+  // Refused by the action: asked again out loud, as a first answer is.
+  const onCartRefused = useCallback(() => requote(false), [requote]);
 
   /*
    * A price can change while the page is open: a promotion ends at midnight,
@@ -181,10 +225,10 @@ export function CartView({ locale }: { locale: Locale }) {
    */
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") requote();
+      if (document.visibilityState === "visible") requote(true);
     };
     const onShow = (event: PageTransitionEvent) => {
-      if (event.persisted) requote();
+      if (event.persisted) requote(true);
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("pageshow", onShow);
@@ -201,11 +245,17 @@ export function CartView({ locale }: { locale: Locale }) {
     });
     return ends.length > 0 ? Math.min(...ends) : null;
   }, [lines, products]);
+  /*
+   * Set again with every answer, not only when the end it names moves: an
+   * answer that still names the same end — the server's clock a moment
+   * behind, or a six-hour step towards a later end — must be asked about
+   * again too.
+   */
   useEffect(() => {
     if (nextPriceEnd === null) return;
-    const timer = setTimeout(requote, requoteDelay(nextPriceEnd, Date.now()));
+    const timer = setTimeout(() => requote(true), requoteDelay(nextPriceEnd, Date.now()));
     return () => clearTimeout(timer);
-  }, [nextPriceEnd, requote]);
+  }, [nextPriceEnd, products, requote]);
 
   if (placed) return <PlacedView placed={placed} locale={locale} />;
 
@@ -245,7 +295,7 @@ export function CartView({ locale }: { locale: Locale }) {
           type="button"
           onClick={() => {
             setQuote({ status: "loading" });
-            setRound((count) => count + 1);
+            requote(false);
           }}
           className={buttonClasses({ variant: "secondary", className: "mt-4" })}
         >

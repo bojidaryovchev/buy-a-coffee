@@ -352,7 +352,9 @@ function promotionLine(products: readonly ProductCardView[]): string | null {
   }
   const until = promotionUntil(promotion.endsAt);
   if (!until) return null;
-  return promotion.label ? `${promotion.label} — ${until}.` : `Промоция ${until}.`;
+  const line = promotion.label ? `${promotion.label} — ${until}` : `Промоция ${until}`;
+  // A date in another year already ends in a full stop: "до 5 януари 2027 г.".
+  return line.endsWith(".") ? line : `${line}.`;
 }
 
 /* --- 6. New arrivals ----------------------------------------------------- */

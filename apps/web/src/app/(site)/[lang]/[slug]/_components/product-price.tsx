@@ -2,6 +2,12 @@ import { Badge } from "@/components/ui/primitives";
 import { promotionUntil } from "@/lib/catalog/promotion-days";
 import type { ProductDetailView } from "@/lib/catalog/types";
 
+/**
+ * Text ended with one full stop: a date in another year already ends in one
+ * ("до 5 януари 2027 г."), and a second would read as a typo.
+ */
+const sentence = (text: string) => (/[.!?…]$/.test(text) ? text : `${text}.`);
+
 type PricedProduct = Pick<
   ProductDetailView,
   "price" | "oldPrice" | "discountPercent" | "promotion" | "servingPrice" | "unitPrice"
@@ -39,11 +45,7 @@ export function ProductPrice({
   const promotion = reduced ? (product.promotion ?? null) : null;
   const until = promotion ? promotionUntil(promotion.endsAt, now) : null;
   // The owner's words as a sentence of their own: "Есенни дни." — not "дни!.".
-  const label = promotion?.label
-    ? /[.!?…]$/.test(promotion.label)
-      ? promotion.label
-      : `${promotion.label}.`
-    : null;
+  const label = promotion?.label ? sentence(promotion.label) : null;
 
   return (
     <div className="mt-5">
@@ -97,7 +99,7 @@ export function ProductPrice({
                 <span className="font-semibold text-ink-900">{label}</span>{" "}
               </>
             )}
-            {until && <span className="tabular-nums">{`Намалението важи ${until}.`}</span>}
+            {until && <span className="tabular-nums">{sentence(`Намалението важи ${until}`)}</span>}
           </p>
           <p className="mt-1 text-xs text-ink-500">
             Зачеркнатата цена е най-ниската ни цена за последните 30 дни преди намалението.

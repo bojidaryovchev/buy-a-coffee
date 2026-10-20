@@ -41,6 +41,7 @@ import {
   CART_MESSAGES,
   CHECK_EMAIL_MESSAGE,
   CHECK_FIELDS_MESSAGE,
+  type CartOrderInput,
   type FormState,
   cartOrderSchema,
   contactSchema,
@@ -202,6 +203,44 @@ async function announceOrder(order: {
 const decoyReference = (): string => recordReference(randomUUID());
 
 /**
+ * The idempotency keys of an order from the cart: this five-minute window's,
+ * which it is stored under, and the window before's, which a press is matched
+ * against too.
+ *
+ * The same customer sending the same cart to the same place twice has ordered
+ * once: the phone, the lines (sorted, so the order they happen to be in does
+ * not make a second key) and the delivery as it is stored. The same cart from
+ * the same phone to another address is another order. No price in it: a
+ * second press just after a promotion began or ended is still the same order,
+ * not a second one at the new price — the first press's prices stand, and the
+ * call confirms them either way. Two windows, so two presses a moment apart are
+ * one order even across a window's edge, and promotions begin and end at Sofia
+ * midnight, which is always one: a press is one order for between five and ten
+ * minutes.
+ */
+function orderKeys(
+  input: CartOrderInput,
+  delivery: StoredDelivery,
+  now: number,
+): { readonly key: string; readonly earlierKey: string } {
+  const parts = [
+    "cart",
+    input.phone,
+    delivery.deliveryMethod ?? "",
+    delivery.deliveryCourier ?? "",
+    delivery.deliveryCity ?? "",
+    delivery.deliveryPostcode ?? "",
+    delivery.deliveryAddress ?? "",
+    delivery.deliveryOffice ?? "",
+    ...input.lines.map((line) => `${line.productId}:${line.quantity}`).sort(),
+  ];
+  return {
+    key: idempotencyKey(parts, ORDER_WINDOW_MS, now),
+    earlierKey: idempotencyKey(parts, ORDER_WINDOW_MS, now - ORDER_WINDOW_MS),
+  };
+}
+
+/**
  * An order from the cart: every line in one enquiry, and one phone call.
  *
  * The browser posts product ids and quantities, and the price it showed for
@@ -265,6 +304,31 @@ export async function submitCartOrder(
   const input = parsed.data;
 
   try {
+    const delivery = deliveryColumns(input);
+    const { key, earlierKey } = orderKeys(input, delivery, Date.now());
+
+    /*
+     * A repeat of an order already taken is answered as that order, before
+     * anything about the cart is checked again: whatever happened since — a
+     * product sold out, a price moved at midnight — the first press's order
+     * stands, and the customer is shown its reference, not a refusal.
+     */
+    const repeat = await findInquiry([key, earlierKey]);
+    if (repeat) {
+      await subscribeFromForm({
+        ticked: input.newsletterConsent,
+        email: input.email || undefined,
+        source: "cart_form",
+        fingerprint,
+        metadata,
+      });
+      return {
+        status: "success",
+        message: orderSuccessMessage("Вече получихме заявката ви."),
+        reference: recordReference(repeat),
+      };
+    }
+
     const found = await listProductsForOrder(input.lines.map((line) => line.productId));
 
     const refused = input.lines.filter((line) => {
@@ -290,45 +354,20 @@ export async function submitCartOrder(
     const units = items.reduce((sum, item) => sum + item.quantity, 0);
 
     /*
-     * The same customer sending the same cart twice has ordered once. Sorted,
-     * so the order the lines happen to be in does not make a second key. No
-     * price in it: a second press just after a promotion began or ended is
-     * still the same order, not a second one at the new price — the first
-     * press's prices stand, and the call confirms them either way.
-     *
-     * The key is the five-minute window's, and a press is matched against
-     * this window and the one before it, so two presses a moment apart are
-     * one order even across a window's edge — and promotions begin and end at
-     * Sofia midnight, which is always one.
-     */
-    const parts = [
-      "cart",
-      input.phone,
-      ...input.lines.map((line) => `${line.productId}:${line.quantity}`).sort(),
-    ];
-    const now = Date.now();
-    const key = idempotencyKey(parts, ORDER_WINDOW_MS, now);
-    const earlierKey = idempotencyKey(parts, ORDER_WINDOW_MS, now - ORDER_WINDOW_MS);
-
-    /*
      * A price that moved since the page showed it refuses the order, as a
      * withdrawn product does: the page asks again, shows the new price, and
      * the customer sends what they have seen. The page's price is a hint and
-     * only compared; what is stored is read here. A repeat of an order already
-     * taken is answered as that order, whatever the prices did since.
+     * only compared; what is stored is read here.
      */
-    if (!(await findInquiry([key, earlierKey]))) {
-      const repriced = input.lines.some(
-        (line, index) =>
-          line.price !== undefined && !samePrice(line.price, items[index]!.unitPrice),
-      );
-      if (repriced) {
-        return {
-          status: "error",
-          message: CART_MESSAGES.repriced,
-          values: submittedValues(formData, CART_FIELDS),
-        };
-      }
+    const repriced = input.lines.some(
+      (line, index) => line.price !== undefined && !samePrice(line.price, items[index]!.unitPrice),
+    );
+    if (repriced) {
+      return {
+        status: "error",
+        message: CART_MESSAGES.repriced,
+        values: submittedValues(formData, CART_FIELDS),
+      };
     }
     const callback = callbackSentence(new Date(), siteConfig.commerce.openingHours);
 
@@ -343,7 +382,7 @@ export async function submitCartOrder(
         productId: null,
         productName: null,
         productSlug: null,
-        ...deliveryColumns(input),
+        ...delivery,
         phone: input.phone,
         email: input.email || null,
         quantity: units,
@@ -380,7 +419,7 @@ export async function submitCartOrder(
       items: stored,
       phone: input.phone,
       email: input.email || null,
-      delivery: deliveryColumns(input),
+      delivery,
       callback,
     });
 
