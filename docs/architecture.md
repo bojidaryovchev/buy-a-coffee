@@ -523,13 +523,20 @@ write rolls back.
 
 **Revalidation** (`revalidate.ts`). After a write, and when the cron's refresh
 reports `shopChanged` (a promotion started or ended, a running one gained or
-lost a product, or a reference moved), `revalidatePath("/(site)/[lang]",
-"layout")` and `/sitemap.xml`. Not `revalidatePath("/", "layout")`: there is no
-`app/layout.tsx`, and it would cover the admin too. Without it a cached landing
-page would keep the old price for up to five minutes (`e2e/promotions.spec.ts`
-fails exactly there when it is turned off). Known lag: the search typeahead's
-CDN cache (`s-maxage=60, stale-while-revalidate=300`) is not purged and can
-show the old price for a few minutes.
+lost a product, or a reference moved), every page route under the shop's
+layout is revalidated as a `"page"` (`SHOP_PAGE_ROUTES`), and `/sitemap.xml`.
+**Not the layout:** `revalidatePath("/(site)/[lang]", "layout")` reaches
+everything in one call, but a route that prebuilds its whole list
+(`dynamicParams = false`: the journal's articles, the machine pages) is then
+regenerated as a 404, and the 404 is cached — one saved promotion took every
+article and machine page off the site in the e2e suite. Those two follow on
+their own clocks (`SELF_TIMED_ROUTES`: 300 seconds and an hour), and
+`test/promotion-revalidate.test.ts` holds both lists to the app's folders.
+Without revalidation a cached landing page would keep the old price for up to
+five minutes (`e2e/promotions.spec.ts` fails exactly there when it is turned
+off). Known lag: the search typeahead's CDN cache (`s-maxage=60,
+stale-while-revalidate=300`) is not purged and can show the old price for a
+few minutes.
 
 **The editor's preview** (`preview.ts`) draws what the shop will show, through
 the same rules: the winning promotion's price where two overlap, no struck
