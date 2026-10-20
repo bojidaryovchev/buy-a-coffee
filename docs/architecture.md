@@ -528,7 +528,7 @@ shared with `/api/revalidate`). After a write, and when the cron's refresh
 reports `shopChanged` (a promotion started or ended, a running one gained or
 lost a product, or a reference moved), every page route under the shop's
 layout is revalidated as a `"page"` (`SHOP_PAGE_ROUTES`), `/llms.txt` by its
-path, and the sitemap by its tag (`revalidateTag("sitemap", { expire: 0 })`).
+path, and the sitemap by its tag (`revalidateTag(SITEMAP_TAG, { expire: 0 })`).
 **Not the layout:** `revalidatePath("/(site)/[lang]", "layout")` reaches
 everything in one call, but a route that prebuilds its whole list
 (`dynamicParams = false`: the journal's articles, the machine pages) is then
@@ -1535,12 +1535,12 @@ own sitemap serialisation (`resolveSitemap`) of the same entries the metadata
 file produced: the same XML, URLs, `hreflang` sets, images and `lastmod` dates,
 byte for byte. What it says about caching (`lib/seo/sitemap-cache.ts`):
 
-| Header              | Value                                                                     | Read by                                                                                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Cache-Control`     | `public, max-age=0, must-revalidate`                                      | Browsers and crawlers: ask every time. What Next.js sends for a sitemap                                                                                                                                        |
-| `CDN-Cache-Control` | `public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400` | Vercel's CDN, which prefers it to `Cache-Control`: fresh for an hour, then for ten minutes served stale while one request redraws it; for a day, an error from the function is answered with the copy it holds |
-| `Vercel-Cache-Tag`  | `sitemap`                                                                 | The shop's own tag: `revalidateTag("sitemap", { expire: 0 })` in the shop's revalidation drops the CDN's copy                                                                                                  |
-| `x-sitemap-copy`    | `drawn`, `recent` or `kept`                                               | Whoever is checking: which copy this is (below)                                                                                                                                                                |
+| Header              | Value                                                                     | Read by                                                                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Cache-Control`     | `public, max-age=0, must-revalidate`                                      | Browsers and crawlers: ask every time. What Next.js sends for a sitemap                                                                                                                                                                                |
+| `CDN-Cache-Control` | `public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400` | Vercel's CDN, which prefers it to `Cache-Control`: fresh for an hour, then for ten minutes served stale while one request redraws it; for a day, an error from the function is answered with the copy it holds                                         |
+| `Vercel-Cache-Tag`  | `buy-a-coffee.com:sitemap`                                                | The shop's own tag (`SITEMAP_TAG`, the site's host and `:sitemap`): `revalidateTag(SITEMAP_TAG, { expire: 0 })` in the shop's revalidation drops the CDN's copy. Named after the site because a Vercel team's projects may share tags and a data cache |
+| `x-sitemap-copy`    | `drawn`, `recent` or `kept`                                               | Whoever is checking: which copy this is (below)                                                                                                                                                                                                        |
 
 The short stale window is deliberate. A prerendered route's default `expire` is
 a year (Next.js docs, "CDN Caching"), so a URL fetched once a day would be
@@ -1564,15 +1564,21 @@ can be behind.
   that expires the tag also expires a small "changed since" mark under it.
 - **`kept`**: every good draw is kept in Next.js's data cache (`unstable_cache`,
   the cache for non-`fetch` data without Cache Components, which persists
-  across requests, instances and deployments). When a draw fails, the database
-  down, that copy is handed out instead of a 500, however old, with the CDN told
-  to keep it a minute only (`public, s-maxage=60, stale-if-error=86400`), and
-  `sitemap.draw_failed` in the log. It carries no tag, so a revalidation, which
+  across requests, instances and deployments), under keys that name the site.
+  When a draw fails, the database down, or takes longer than 5 seconds (one
+  that does not answer must not hold every request), that copy is handed out
+  instead, with the CDN told to keep it a minute only (`public, s-maxage=60,
+stale-if-error=86400`), and `sitemap.draw_failed` in the log with the copy's
+  age. Not a copy older than a week, and not one whose first `<loc>` is on
+  another origin (another project's, from a cache the team shares): then the
+  route answers `503` with `Retry-After: 60`, logs `sitemap.unavailable` with
+  the reason and the age, and the CDN answers with its own copy for a day
+  (`stale-if-error`). The kept copy carries no tag, so a revalidation, which
   makes the next request draw, cannot also throw away the copy that stands in
   when that draw fails; and the sitemap's revalidation is by its own tag rather
   than `revalidatePath("/sitemap.xml")`, whose implicit tag expires every cache
-  entry the route reads. Only when nothing has ever been kept does the failure
-  reach the response, and then the CDN's own copy still answers for a day.
+  entry the route reads. `test/sitemap-kept-guard.test.ts` fails on any
+  `revalidatePath` of the sitemap or of a layout, which would do the same.
 
 `/sitemap.xml?anything` is answered `308` to `/sitemap.xml`, without a draw:
 each query string would be a CDN entry, and a draw, of its own. Next.js's own
@@ -1697,10 +1703,14 @@ search typeahead's own CDN cache (see "Revalidation" above).
 
 Local `next start` has no CDN. There every sitemap request reaches the function
 and the CDN headers are only headers, so what the CDN does with them, and
-whether a revalidated tag drops its copy, can only be seen on a deployment. On
-a preview (a preview reads the Neon branch `preview`, never production; see
-`DATABASE_URL` in `apps/web/env.schema.mjs`), with the deployment protection
-bypass header if the preview asks for a login:
+whether a revalidated tag drops its copy, can only be seen on a deployment.
+**The m2 preview reads an isolated, non-production Neon project**: not
+production's database, and not the shared Neon branch `preview` that other
+previews read (`DATABASE_URL` in `apps/web/env.schema.mjs`). Every change below
+is made there and nowhere else. Send the deployment protection bypass header if
+the preview asks for a login, and give the Preview environment a
+`REVALIDATE_SECRET` of its own first (it is a production-only variable), then
+redeploy it.
 
 1. **Headers.** `curl -sI https://<preview>/sitemap.xml` twice. Expected: the
    `cdn-cache-control` above (unless Vercel strips the directives it consumes)
@@ -1710,37 +1720,36 @@ bypass header if the preview asks for a login:
    past 3600 without ever turning `STALE`.
 2. **One address.** `curl -sI "https://<preview>/sitemap.xml?x=1"` answers
    `308` with `location: /sitemap.xml`.
-3. **A change in the preview branch only.** Note a product's `<lastmod>`, then
-   run this in the `preview` branch, never in production:
-
-   ```sql
-   update products set copy_written_at = now() where slug = '<slug>';
-   ```
-
-   While the CDN copy is fresh, `/sitemap.xml` still shows the old date
-   (`HIT`); within the hour it shows the new one, with no deploy.
-
-4. **The purge.** `REVALIDATE_SECRET` is a production-only variable, so give
-   the Preview environment a value of its own first (and redeploy the
-   preview), then:
+3. **The purge, in under a minute.** All four steps within 60 seconds, so that
+   neither the CDN's hour nor the server's one-minute reuse can be what
+   answers the last one:
 
    ```bash
+   curl -s -D - -o before.xml "https://<preview>/sitemap.xml"   # note x-vercel-cache and <slug>'s <lastmod>
+   psql "$PREVIEW_DATABASE_URL" -c "update products set copy_written_at = now() where slug = '<slug>'"
    curl -s -X POST "https://<preview>/api/revalidate" \
      -H "authorization: Bearer $REVALIDATE_SECRET" \
      -H "content-type: application/json" \
      -d '{"slugs":["<slug>"]}'
+   curl -s -D - -o after.xml "https://<preview>/sitemap.xml"
    ```
 
-   Expected answer:
+   The POST answers
    `{"scope":null,"routes":[],"paths":["/bg/<slug>"],"files":["/sitemap.xml"]}`.
-   The next `curl -s -D - https://<preview>/sitemap.xml` should answer
-   `x-vercel-cache: MISS` and `x-sitemap-copy: drawn`, with the new
-   `<lastmod>`. If it is still `HIT` with the old date, the tag does not reach
-   the CDN's copy: the sitemap is still no more than the CDN's hour behind, and
-   a purge would need `invalidateByTag` from `@vercel/functions`.
+   The last fetch should answer `x-vercel-cache: MISS` and
+   `x-sitemap-copy: drawn`, and `after.xml` has `<slug>`'s `<lastmod>` at the time of the
+   update. If it answers `HIT` with the old date, Vercel kept its copy:
+   `{ expire: 0 }` does not delete there. The switch is one line in
+   `expireSitemap()` (`lib/revalidate-shop.ts`), written out in its comment:
+   the deprecated single-argument `revalidateTag(SITEMAP_TAG)`, which Vercel's
+   purge docs list as a deletion. Redeploy and repeat; if even that leaves the
+   copy, the purge needs `invalidateByTag` from `@vercel/functions`, and the
+   sitemap is meanwhile still no more than the CDN's hour behind.
 
-5. Put the product's `copy_written_at` back in the `preview` branch, or reset
-   the branch from production, which is how it is kept anyway.
+4. **Without a purge** (slow, optional). Change `copy_written_at` again without
+   the POST: `/sitemap.xml` keeps the old date (`HIT`) and shows the new one
+   within the hour, with no deploy.
+5. Put the product's `copy_written_at` back, or reset the preview's database.
 
 The kept copy is not for checking on a shared preview database, which would
 have to be taken away. `e2e/sitemap-outage.spec.ts` does that on a local
