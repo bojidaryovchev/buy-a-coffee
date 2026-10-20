@@ -1221,6 +1221,7 @@ pnpm --filter @catalog/web test:e2e          # Playwright, desktop and mobile
 pnpm reference:coverage                      # functional parity with the crawler
 pnpm check:originality                       # no source branding or copy
 pnpm check:launch                            # nothing undecided would render
+pnpm check:bundle                            # after a build: no crypto-browserify
 ```
 
 Storefront unit tests live in `apps/web/test/`; components are rendered with

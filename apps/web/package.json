@@ -27,6 +27,7 @@
     "reference:coverage:write": "tsx scripts/reference-coverage.ts --write",
     "check:originality": "tsx scripts/check-originality.ts",
     "check:launch": "tsx scripts/check-launch.ts",
+    "check:bundle": "tsx scripts/check-bundle.ts",
     "copy:apply": "tsx scripts/apply-product-copy.ts",
     "copy:todo": "tsx scripts/copy-todo.ts",
     "mail:prune-foreign": "tsx scripts/mail-prune-foreign.ts",
