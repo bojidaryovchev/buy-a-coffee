@@ -8,16 +8,20 @@ import type * as RevalidateRoute from "@/app/api/revalidate/route";
  * exactly one of the two shapes is refused before anything happens, nothing
  * is ever revalidated as the layout (which turns the `dynamicParams = false`
  * pages into cached 404s; `lib/revalidate-shop.ts`), and the answer names what
- * was refreshed. `revalidatePath` is a recorder; nothing here touches a
- * database or a cache.
+ * was refreshed. `revalidatePath` and `revalidateTag` are recorders; nothing
+ * here touches a database or a cache.
  */
 
 const calls = vi.hoisted(() => [] as Array<[string, string | undefined]>);
+const tags = vi.hoisted(() => [] as Array<[string, unknown]>);
 const fail = vi.hoisted(() => ({ next: false }));
 vi.mock("next/cache", () => ({
   revalidatePath: (path: string, type?: string) => {
     if (fail.next) throw new Error("cache unavailable");
     calls.push([path, type]);
+  },
+  revalidateTag: (tag: string, profile: unknown) => {
+    tags.push([tag, profile]);
   },
 }));
 
@@ -28,6 +32,10 @@ let route: typeof RevalidateRoute;
 
 const { SELF_TIMED_ROUTES, SHOP_PAGE_ROUTES, checkShopPath, isProductSlug } =
   await import("@/lib/revalidate-shop");
+const { REVALIDATE_CALLS, revalidateCallLimit } = await import("@/lib/revalidate-request");
+
+/** The sitemap expired at once, by the shop's tag. */
+const SITEMAP_EXPIRED: Array<[string, unknown]> = [["sitemap", { expire: 0 }]];
 
 function post(
   body: unknown,
@@ -49,8 +57,10 @@ beforeEach(async () => {
   // A fresh module each time: the rate limiter's window starts empty.
   vi.resetModules();
   route = await import("@/app/api/revalidate/route");
-  vi.stubEnv("CRON_SECRET", SECRET);
+  vi.stubEnv("REVALIDATE_SECRET", SECRET);
+  vi.stubEnv("CRON_SECRET", "c".repeat(40));
   calls.length = 0;
+  tags.length = 0;
   fail.next = false;
   vi.spyOn(console, "info").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -62,20 +72,27 @@ afterEach(() => {
 });
 
 describe("who may call it", () => {
-  it("does not exist while no CRON_SECRET is configured", async () => {
-    vi.stubEnv("CRON_SECRET", "");
-    const response = await route.POST(post({ scope: "catalog" }));
-    expect(response.status).toBe(404);
+  it("does not exist while no REVALIDATE_SECRET is configured, CRON_SECRET or not", async () => {
+    vi.stubEnv("REVALIDATE_SECRET", "");
+    for (const authorization of [`Bearer ${SECRET}`, `Bearer ${"c".repeat(40)}`, null]) {
+      const response = await route.POST(post({ scope: "catalog" }, { authorization }));
+      expect(response.status, String(authorization)).toBe(404);
+    }
+    vi.stubEnv("REVALIDATE_SECRET", "   ");
+    expect((await route.POST(post({ scope: "catalog" }))).status).toBe(404);
     expect(calls).toEqual([]);
+    expect(tags).toEqual([]);
   });
 
-  it("answers 401 without the secret, or with the wrong one, and refreshes nothing", async () => {
-    for (const authorization of [null, "Bearer wrong", SECRET, `Basic ${SECRET}`]) {
+  it("answers 401 without the secret, with the wrong one, or with CRON_SECRET, and refreshes nothing", async () => {
+    const cron = `Bearer ${"c".repeat(40)}`;
+    for (const authorization of [null, "Bearer wrong", SECRET, `Basic ${SECRET}`, cron]) {
       const response = await route.POST(post({ scope: "catalog" }, { authorization }));
       expect(response.status, String(authorization)).toBe(401);
       expect(response.headers.get("www-authenticate")).toBe("Bearer");
     }
     expect(calls).toEqual([]);
+    expect(tags).toEqual([]);
   });
 
   it("is POST only", () => {
@@ -178,7 +195,7 @@ describe("what it accepts", () => {
 });
 
 describe("what it refreshes", () => {
-  it("for the catalog: every page route as a page, and the sitemap, never the layout", async () => {
+  it("for the catalog: every page route as a page, llms.txt and the sitemap, never the layout", async () => {
     const response = await route.POST(post({ scope: "catalog" }));
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -186,17 +203,18 @@ describe("what it refreshes", () => {
       scope: string;
       routes: string[];
       paths: string[];
-      sitemap: string;
+      files: string[];
     };
     expect(body.scope).toBe("catalog");
     expect(body.routes).toEqual(SHOP_PAGE_ROUTES.map((page) => `/(site)/[lang]${page}`));
     expect(body.paths).toEqual([]);
-    expect(body.sitemap).toBe("/sitemap.xml");
+    expect(body.files).toEqual(["/sitemap.xml", "/llms.txt"]);
 
     expect(calls).toEqual([
       ...SHOP_PAGE_ROUTES.map((page): [string, string] => [`/(site)/[lang]${page}`, "page"]),
-      ["/sitemap.xml", undefined],
+      ["/llms.txt", undefined],
     ]);
+    expect(tags).toEqual(SITEMAP_EXPIRED);
     expect(calls.some(([, type]) => type === "layout")).toBe(false);
     for (const page of SELF_TIMED_ROUTES) {
       expect(calls.some(([path]) => path.endsWith(page))).toBe(false);
@@ -211,7 +229,12 @@ describe("what it refreshes", () => {
       }),
     );
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { scope: null; routes: string[]; paths: string[] };
+    const body = (await response.json()) as {
+      scope: null;
+      routes: string[];
+      paths: string[];
+      files: string[];
+    };
     expect(body.scope).toBeNull();
     expect(body.routes).toEqual([]);
     expect(body.paths).toEqual([
@@ -220,13 +243,14 @@ describe("what it refreshes", () => {
       "/bg/lavazza-crema",
       "/bg/illy-classico",
     ]);
+    expect(body.files).toEqual(["/sitemap.xml"]);
     expect(calls).toEqual([
       ["/bg/marki/lavazza", undefined],
       ["/bg", undefined],
       ["/bg/lavazza-crema", undefined],
       ["/bg/illy-classico", undefined],
-      ["/sitemap.xml", undefined],
     ]);
+    expect(tags).toEqual(SITEMAP_EXPIRED);
   });
 
   it("answers 500, and says so in the log, when the cache cannot be reached", async () => {
@@ -244,7 +268,26 @@ describe("what it refreshes", () => {
     const limited = await route.POST(post({ paths: ["/bg"] }));
     expect(limited.status).toBe(429);
     expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
-    expect(calls).toHaveLength(20 * 2);
+    expect(calls).toHaveLength(20);
+    expect(tags).toHaveLength(20);
+  });
+});
+
+describe("its ceiling", () => {
+  it("is twenty calls on every deployment, whatever the environment says", () => {
+    expect(REVALIDATE_CALLS).toBe(20);
+    for (const value of [undefined, "1000", "100000", "5", "abc"]) {
+      expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: value }, true), String(value)).toBe(20);
+    }
+  });
+
+  it("may be raised, never lowered, off a deployment, up to 100,000", () => {
+    expect(revalidateCallLimit({}, false)).toBe(20);
+    expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: "1000" }, false)).toBe(1000);
+    expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: "5" }, false)).toBe(20);
+    expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: "100001" }, false)).toBe(20);
+    expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: "1e3" }, false)).toBe(1000);
+    expect(revalidateCallLimit({ REVALIDATE_RATE_LIMIT: "12.5" }, false)).toBe(20);
   });
 });
 

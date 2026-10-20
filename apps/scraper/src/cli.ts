@@ -247,17 +247,18 @@ export async function main(argv: readonly string[]): Promise<number> {
             ? { productLimit: num(flags, "product-limit") }
             : {}),
         });
-        // Changed pages are announced to IndexNow after a live run that
-        // completed; nothing is sent without INDEXNOW_KEY and SITE_URL.
+        // After a live run that completed: first the storefront is asked to
+        // redraw the catalog, when the run wrote something it shows (nothing
+        // is sent without SITE_URL and REVALIDATE_SECRET); then the changed
+        // pages are announced to IndexNow (nothing without INDEXNOW_KEY and
+        // SITE_URL), so an engine that comes at once finds them redrawn.
         const completedRun =
           !result.dryRun && result.status === "succeeded" ? result.syncRunId : null;
-        const indexNow = completedRun ? await announceSyncChanges(runtime, completedRun) : null;
-        // And the storefront asked to redraw the catalog, when the run wrote
-        // something it shows; nothing is sent without SITE_URL and CRON_SECRET.
         const storefront =
           completedRun && syncChangedShop(result)
             ? await refreshStorefront(runtime, { scope: "catalog" })
             : null;
+        const indexNow = completedRun ? await announceSyncChanges(runtime, completedRun) : null;
         printJson({
           command,
           syncRunId: result.syncRunId,

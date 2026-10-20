@@ -31,6 +31,27 @@ import {
 
 export const REVALIDATE_LIMITS = { bodyBytes: 16 * 1024, paths: 100, slugs: 100 } as const;
 
+/** Calls allowed in ten minutes. */
+export const REVALIDATE_CALLS = 20;
+
+/**
+ * The ceiling on calls, `REVALIDATE_CALLS` on every deployment. Off one — a
+ * laptop, the end-to-end suite, whose runs against one database add up
+ * within the window — `REVALIDATE_RATE_LIMIT` may raise it (never lower it),
+ * up to 100,000. `deployment` is `isDeployment()` (`lib/auth.ts`): production
+ * or a preview on Vercel, or `NEXT_PUBLIC_ENVIRONMENT=production` elsewhere.
+ */
+export function revalidateCallLimit(
+  env: Readonly<Record<string, string | undefined>>,
+  deployment: boolean,
+): number {
+  if (deployment) return REVALIDATE_CALLS;
+  const raised = Number(env.REVALIDATE_RATE_LIMIT);
+  return Number.isInteger(raised) && raised > REVALIDATE_CALLS && raised <= 100_000
+    ? raised
+    : REVALIDATE_CALLS;
+}
+
 export type RevalidateTarget =
   { readonly scope: "catalog" } | { readonly scope: null; readonly paths: readonly string[] };
 

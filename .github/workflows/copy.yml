@@ -22,7 +22,7 @@
 # Configuration (names only):
 #   secrets    DATABASE_URL, CLAUDE_CODE_OAUTH_TOKEN, INDEXNOW_KEY (optional:
 #              the same key the storefront serves; announces changed pages),
-#              CRON_SECRET (optional: the storefront's own; asks it to redraw
+#              REVALIDATE_SECRET (optional: the storefront's own; asks it to redraw
 #              the catalog after a run that wrote something, as sync.yml does)
 #   variables  COPY_LIMIT (products per run, default 40),
 #              CLAUDE_COPY_MODEL (default claude-opus-5-5)
@@ -169,7 +169,7 @@ jobs:
           # Changed product pages are announced to IndexNow when the key is set.
           INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
           # The storefront is asked to redraw the catalog when this is set.
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           SITE_URL: https://buy-a-coffee.com
           APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
           LIMIT: ${{ inputs.limit || vars.COPY_LIMIT }}

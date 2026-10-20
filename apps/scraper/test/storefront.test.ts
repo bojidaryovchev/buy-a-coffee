@@ -81,29 +81,48 @@ describe("whether a sync changed the shop", () => {
 });
 
 describe("refreshStorefront", () => {
-  it("skips, and says why, without CRON_SECRET", async () => {
+  it("skips, and says why, without REVALIDATE_SECRET", async () => {
     vi.stubEnv("SITE_URL", "https://buy-a-coffee.com");
-    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("REVALIDATE_SECRET", "");
     const send = vi.fn();
     vi.stubGlobal("fetch", send);
     const { logger, lines } = recordingLogger();
 
     const result = await refreshStorefront({ logger }, { scope: "catalog" });
-    expect(result).toMatchObject({ ok: false, skipped: "CRON_SECRET is not set" });
+    expect(result).toMatchObject({ ok: false, skipped: "REVALIDATE_SECRET is not set" });
     expect(send).not.toHaveBeenCalled();
     expect(lines).toEqual([
       expect.objectContaining({
         level: "info",
         message: "storefront.revalidate.skipped",
-        context: expect.objectContaining({ reason: "CRON_SECRET is not set" }),
+        context: expect.objectContaining({ reason: "REVALIDATE_SECRET is not set" }),
       }),
     ]);
+  });
+
+  it("does not send a secret with a line break in it, and neither returns nor logs it", async () => {
+    // The real fetch: it would refuse the header and quote "Bearer <secret>".
+    const secret = `${"k".repeat(40)}
+X-Injected: 1`;
+    vi.stubEnv("SITE_URL", "http://127.0.0.1:9");
+    vi.stubEnv("REVALIDATE_SECRET", secret);
+    const { logger, lines } = recordingLogger();
+
+    const result = await refreshStorefront({ logger }, { scope: "catalog" });
+    expect(result).toMatchObject({ ok: false, status: null, error: null });
+    expect(result.skipped).toMatch(/^REVALIDATE_SECRET is not one token/);
+    expect(lines).toEqual([
+      expect.objectContaining({ level: "info", message: "storefront.revalidate.skipped" }),
+    ]);
+    const everything = JSON.stringify({ result, lines });
+    expect(everything).not.toContain("k".repeat(40));
+    expect(everything).not.toContain("X-Injected");
   });
 
   it("warns on a refusal, never throws, and never logs the secret", async () => {
     const secret = "k".repeat(40);
     vi.stubEnv("SITE_URL", "https://buy-a-coffee.com");
-    vi.stubEnv("CRON_SECRET", secret);
+    vi.stubEnv("REVALIDATE_SECRET", secret);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("Unauthorized", { status: 401 })),
@@ -121,7 +140,7 @@ describe("refreshStorefront", () => {
   it("reports what the storefront refreshed", async () => {
     vi.stubEnv("SITE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://buy-a-coffee.com");
-    vi.stubEnv("CRON_SECRET", "k".repeat(40));
+    vi.stubEnv("REVALIDATE_SECRET", "k".repeat(40));
     const send = vi.fn(
       async () =>
         new Response(JSON.stringify({ routes: new Array(24).fill("r"), paths: [] }), {

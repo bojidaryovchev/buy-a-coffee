@@ -21,11 +21,12 @@
 # fails fast with a clear message while any is missing):
 #   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN, INDEXNOW_KEY (optional: the
 #              key the storefront serves; announces changed product pages),
-#              CRON_SECRET (optional: the same value as the storefront's own
-#              CRON_SECRET on Vercel; after a run that changed something the
-#              sync asks the storefront to redraw the catalog and the sitemap,
-#              POST /api/revalidate. Without it the run says so in its summary,
-#              and pages catch up in 5 minutes, the sitemap within the hour)
+#              REVALIDATE_SECRET (optional: the same value as the storefront's
+#              own REVALIDATE_SECRET on Vercel; after a run that changed
+#              something the sync asks the storefront to redraw the catalog
+#              and the sitemap, POST /api/revalidate. Without it the run says
+#              so in its summary, and pages catch up in 5 minutes, the sitemap
+#              within the hour. Not CRON_SECRET, which stays on Vercel alone)
 #   variables  STORAGE_DRIVER, STORAGE_PUBLIC_BASE_URL, CRAWL_USER_AGENT
 #
 # Exit codes of the CLI (apps/scraper/src/cli.ts), each reported by its own
@@ -81,10 +82,10 @@ jobs:
         env:
           PRODUCT_LIMIT: ${{ inputs.product_limit }}
           # Whether it is set, never the value.
-          HAS_CRON_SECRET: ${{ secrets.CRON_SECRET != '' }}
+          HAS_REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET != '' }}
         run: |
-          if [ "$HAS_CRON_SECRET" != "true" ]; then
-            echo "::notice title=Storefront refresh off::Secret CRON_SECRET is not set, so the storefront is not asked to redraw the catalog after the sync. Add the storefront's own CRON_SECRET under Settings > Secrets and variables > Actions."
+          if [ "$HAS_REVALIDATE_SECRET" != "true" ]; then
+            echo "::notice title=Storefront refresh off::Secret REVALIDATE_SECRET is not set, so the storefront is not asked to redraw the catalog after the sync. Add the same value as the storefront's REVALIDATE_SECRET on Vercel under Settings > Secrets and variables > Actions."
           fi
           missing=()
           [ -n "$DATABASE_URL" ]             || missing+=("secret DATABASE_URL")
@@ -141,7 +142,7 @@ jobs:
           # Changed product pages are announced to IndexNow when the key is set.
           INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
           # The storefront is asked to redraw the catalog when this is set.
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           SITE_URL: https://buy-a-coffee.com
           DRY_RUN: ${{ inputs.dry_run }}
           PRODUCT_LIMIT: ${{ inputs.product_limit }}

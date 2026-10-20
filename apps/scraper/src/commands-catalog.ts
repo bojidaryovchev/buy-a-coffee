@@ -327,11 +327,12 @@ async function runCopy(runtime: Runtime, args: readonly string[]): Promise<numbe
     checkSources: createSourceCheck(),
   });
 
-  const announced = await announceChanges(runtime, result.changed);
   // A new text or a corrected size shows on the product page and on every
-  // card of it, so the whole catalog, not the product page alone.
+  // card of it, so the whole catalog, not the product page alone. Before
+  // IndexNow, so an engine that comes at once finds the pages redrawn.
   const storefront =
     result.changed.length > 0 ? await refreshStorefront(runtime, { scope: "catalog" }) : null;
+  const announced = await announceChanges(runtime, result.changed);
 
   process.stdout.write(
     `${JSON.stringify(
@@ -393,7 +394,7 @@ export async function announceChanges(
 /** What `refreshStorefront` reports, for the run's printed result and the job summary. */
 export interface StorefrontRefresh {
   readonly ok: boolean;
-  /** Why nothing was sent, when nothing was: a missing `SITE_URL` or `CRON_SECRET`. */
+  /** Why nothing was sent, when nothing was: a missing `SITE_URL` or `REVALIDATE_SECRET`. */
   readonly skipped: string | null;
   readonly status: number | null;
   readonly routes: number;
@@ -405,7 +406,9 @@ const SKIPPED_BECAUSE: Record<string, string> = {
   "no-site-url": "SITE_URL is not set",
   "bad-site-url": "SITE_URL is not a URL",
   "insecure-site-url": "SITE_URL is not https",
-  "no-secret": "CRON_SECRET is not set",
+  "no-secret": "REVALIDATE_SECRET is not set",
+  "bad-secret":
+    "REVALIDATE_SECRET is not one token of visible ASCII (a line break pasted into it?)",
 };
 
 /**
@@ -413,7 +416,7 @@ const SKIPPED_BECAUSE: Record<string, string> = {
  * through `@catalog/shared/revalidate`): without it the pages show the change
  * within their five minutes and the sitemap within the CDN's hour.
  *
- * Optional: without `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and `CRON_SECRET`
+ * Optional: without `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and `REVALIDATE_SECRET`
  * nothing is sent, and the log says which is missing. A refusal, a timeout or
  * a network error is a warning, never fatal - the change is already written.
  */
@@ -423,7 +426,7 @@ export async function refreshStorefront(
 ): Promise<StorefrontRefresh> {
   const outcome = await requestRevalidation({
     siteUrl: revalidationSiteUrl(process.env),
-    secret: process.env.CRON_SECRET,
+    secret: process.env.REVALIDATE_SECRET,
     body,
   });
   if (outcome.skipped) {

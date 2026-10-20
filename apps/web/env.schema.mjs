@@ -257,11 +257,6 @@ export const vars = [
     example: "openssl rand -hex 32",
     summary:
       "Authorises the scheduled routes under /api/cron/. Vercel sends it as a bearer token with each cron call; anything without it is refused.",
-    detail: [
-      "Also authorises POST /api/revalidate, which the catalog sync, the copywriter",
-      "and copy:apply call after a change; give GitHub Actions the same value as",
-      "its secret CRON_SECRET.",
-    ],
     validate: (v, { isProductionish } = {}) =>
       v.length < 32
         ? {
@@ -275,6 +270,40 @@ export const vars = [
         "The scheduled routes cannot be told apart from anyone on the internet calling them.",
       levelWhenLocal: "note",
       messageWhenLocal: "Only needed to call /api/cron/ routes yourself. Set it before deploying.",
+    },
+  },
+  {
+    name: "REVALIDATE_SECRET",
+    kind: "secret",
+    targets: PROD,
+    required: false,
+    section: "Scheduled jobs",
+    example: "openssl rand -hex 32",
+    summary:
+      "Authorises POST /api/revalidate, which the catalog sync, the copywriter and copy:apply call after a change, so the pages and the sitemap are redrawn at once.",
+    detail: [
+      "Its own secret, not CRON_SECRET: it also goes to GitHub Actions (the",
+      "repository secret REVALIDATE_SECRET, the same value) and to the shell that",
+      "runs copy:apply, and all it can do is refresh caches.",
+    ],
+    validate: (v, { isProductionish } = {}) =>
+      v.length < 32
+        ? {
+            level: isProductionish ? "error" : "warning",
+            message: `Only ${v.length} characters; at least 32 are needed. Use openssl rand -hex 32.`,
+          }
+        : !/^[\x21-\x7e]+$/.test(v)
+          ? {
+              level: "error",
+              message: "Spaces or line breaks inside: the callers will not send it.",
+            }
+          : null,
+    missing: {
+      level: "warning",
+      message:
+        "/api/revalidate answers 404 and the sync and copy scripts skip it: pages catch up within 5 minutes, the sitemap within about 70.",
+      levelWhenLocal: "note",
+      messageWhenLocal: "Only needed to call /api/revalidate yourself.",
     },
   },
 

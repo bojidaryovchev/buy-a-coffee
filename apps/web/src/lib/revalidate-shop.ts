@@ -1,8 +1,8 @@
 import "server-only";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { SHIPPING_LOCALES, isShipping } from "@/i18n/config";
 import { canonicalSegments, href, isReservedSlug, localeOfPath, productHref } from "@/lib/routes";
-import { SITEMAP_PATH } from "@/lib/seo/sitemap-cache";
+import { SITEMAP_PATH, SITEMAP_TAG } from "@/lib/seo/sitemap-cache";
 
 /**
  * Make the shop's pages draw themselves afresh on their next visit: after a
@@ -31,11 +31,20 @@ import { SITEMAP_PATH } from "@/lib/seo/sitemap-cache";
  * slip in.
  *
  * Patterns are file paths, route group included, as Next.js builds its tags.
- * The sitemap is outside the layout and lists what is reduced, so it is named
- * on its own (`lib/seo/sitemap-cache.ts` says what that reaches on Vercel). In
- * a server action the pages are marked at once; from a route handler (the
- * cron, `/api/revalidate`) on their next visit, which comes to the same thing
- * for the reader.
+ * Two files outside the layout list what is reduced, so they are named on
+ * their own: the sitemap, by its tag, expired at once
+ * (`revalidateTag(SITEMAP_TAG, { expire: 0 })`; `lib/seo/sitemap-cache.ts`
+ * says why a tag and what that reaches on Vercel), and `/llms.txt`, a
+ * prerendered route, by its path. In a server action the pages are marked at
+ * once; from a route handler (the cron, `/api/revalidate`) on their next
+ * visit, which comes to the same thing for the reader.
+ *
+ * Every refresh here expires: the next visit to each page waits for a fresh
+ * render instead of being served the old one while it is drawn (`"max"`).
+ * That is what makes a saved promotion's price right at once, and it is the
+ * cost of `/api/revalidate`'s catalog scope too: after a sync, the first
+ * visitor to each page waits for its render (`docs/architecture.md`,
+ * "Catalog freshness").
  *
  * Moved here from `lib/promotions/revalidate.ts`, which re-exports it, when
  * the catalog's own changes started using it too.
@@ -76,21 +85,31 @@ export const SHOP_PAGE_ROUTES = [
  */
 export const SELF_TIMED_ROUTES = ["/blog/[slug]", "/za-kafemashina/[brand]"] as const;
 
+/** The map of the shop for AI search: a prerendered route that lists what the sitemap lists. */
+export const LLMS_PATH = "/llms.txt";
+
 /** What one call refreshed, for the caller's log. */
 export interface ShopRevalidation {
   /** Route patterns refreshed as pages, every URL they serve included. */
   readonly routes: readonly string[];
   /** Single URL paths refreshed, each that one page only. */
   readonly paths: readonly string[];
-  readonly sitemap: string;
+  /** The files outside the layout refreshed with them: the sitemap, and for the whole shop `/llms.txt`. */
+  readonly files: readonly string[];
 }
 
-/** Every page of the shop, route by route, and the sitemap. */
+/** The sitemap at once: the CDN's copy and the server's "changed since" mark. */
+function expireSitemap(): void {
+  revalidateTag(SITEMAP_TAG, { expire: 0 });
+}
+
+/** Every page of the shop, route by route, the sitemap and `/llms.txt`. */
 export function revalidateShop(): ShopRevalidation {
   const routes = SHOP_PAGE_ROUTES.map((route) => `${SHOP_ROOT}${route}`);
   for (const route of routes) revalidatePath(route, "page");
-  revalidatePath(SITEMAP_PATH);
-  return { routes, paths: [], sitemap: SITEMAP_PATH };
+  revalidatePath(LLMS_PATH);
+  expireSitemap();
+  return { routes, paths: [], files: [SITEMAP_PATH, LLMS_PATH] };
 }
 
 /**
@@ -101,8 +120,8 @@ export function revalidateShop(): ShopRevalidation {
 export function revalidateShopPaths(paths: readonly string[]): ShopRevalidation {
   const unique = [...new Set(paths)];
   for (const path of unique) revalidatePath(path);
-  revalidatePath(SITEMAP_PATH);
-  return { routes: [], paths: unique, sitemap: SITEMAP_PATH };
+  expireSitemap();
+  return { routes: [], paths: unique, files: [SITEMAP_PATH] };
 }
 
 /** Each shipping locale's address for a product slug. */

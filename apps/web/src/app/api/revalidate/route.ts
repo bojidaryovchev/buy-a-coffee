@@ -1,6 +1,7 @@
-import { guardCron } from "@/lib/cron-auth";
+import { isDeployment } from "@/lib/auth";
+import { checkCronAuth } from "@/lib/cron-auth";
 import { createRateLimiter, sharedStore } from "@/lib/rate-limit";
-import { readRevalidateRequest } from "@/lib/revalidate-request";
+import { readRevalidateRequest, revalidateCallLimit } from "@/lib/revalidate-request";
 import { revalidateShop, revalidateShopPaths } from "@/lib/revalidate-shop";
 
 /**
@@ -13,15 +14,23 @@ import { revalidateShop, revalidateShopPaths } from "@/lib/revalidate-shop";
  * hears about it. They call this when a run changed something
  * (`@catalog/shared/revalidate`).
  *
- * Behind `CRON_SECRET`, as the cron routes are (`lib/cron-auth.ts`): no secret
- * configured, 404; a missing or wrong bearer token, 401. The body is checked
- * strictly before anything happens (`lib/revalidate-request.ts`), and only
- * page routes and single pages are ever named, never the layout
- * (`lib/revalidate-shop.ts` says why). At most twenty calls in ten minutes:
- * a caller looping on it gets 429, not a shop regenerated over and over. The
- * counter is the shared table the forms use, and fails open, because a
- * refresh that does not happen is harmless and one that is refused while the
- * table is unreachable would only add an error to a failure.
+ * **Its own secret, `REVALIDATE_SECRET`**, checked the way the cron routes
+ * check theirs (`checkCronAuth` in `lib/cron-auth.ts`: both sides hashed,
+ * compared in constant time): none configured, 404, the answer an unknown
+ * path gets; a missing or wrong bearer token, 401. Not `CRON_SECRET`, which
+ * also lets anyone holding it send the newsletter and run the deletions, and
+ * which therefore stays on Vercel alone: this one has to sit in GitHub Actions
+ * and in the owner's shell too, and all it can do is refresh caches.
+ *
+ * The body is checked strictly before anything happens
+ * (`lib/revalidate-request.ts`), and only page routes and single pages are
+ * ever named, never the layout (`lib/revalidate-shop.ts` says why). At most
+ * twenty calls in ten minutes: a caller looping on it gets 429, not a shop
+ * regenerated over and over. The counter is the shared table the forms use,
+ * and fails open, because a refresh that does not happen is harmless and one
+ * that is refused while the table is unreachable would only add an error to a
+ * failure. Off a deployment (a laptop, the end-to-end suite) the ceiling may be
+ * raised with `REVALIDATE_RATE_LIMIT`; on one it never moves.
  *
  * The answer says what was refreshed. Never cached.
  */
@@ -29,7 +38,7 @@ export const dynamic = "force-dynamic";
 
 const limiter = createRateLimiter({
   name: "revalidate",
-  limit: 20,
+  limit: revalidateCallLimit(process.env, isDeployment()),
   windowMs: 10 * 60_000,
   onStoreError: "allow",
   store: sharedStore,
@@ -38,8 +47,15 @@ const limiter = createRateLimiter({
 const NO_STORE = { "cache-control": "no-store" } as const;
 
 export async function POST(request: Request): Promise<Response> {
-  const refused = guardCron(request);
-  if (refused) return refused;
+  // Read on every call, so a rotated secret takes effect at once.
+  const verdict = checkCronAuth(
+    request.headers.get("authorization"),
+    process.env.REVALIDATE_SECRET?.trim(),
+  );
+  if (verdict === "not_found") return new Response("Not Found", { status: 404 });
+  if (verdict === "unauthorized") {
+    return new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } });
+  }
 
   // One caller holds the secret, so one bucket.
   const rate = await limiter.check("storefront");
@@ -70,6 +86,7 @@ export async function POST(request: Request): Promise<Response> {
         scope: target.scope,
         routes: revalidated.routes.length,
         paths: revalidated.paths.length,
+        files: revalidated.files,
       }),
     );
     return Response.json({ scope: target.scope, ...revalidated }, { headers: NO_STORE });

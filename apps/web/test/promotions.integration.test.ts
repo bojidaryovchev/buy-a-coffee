@@ -47,6 +47,10 @@ vi.mock("next/cache", () => ({
   revalidatePath: (path: string, type?: string) => {
     harness.revalidated.push(type ? `${path} ${type}` : path);
   },
+  // The sitemap, which the shop's revalidation expires by its tag (`lib/revalidate-shop.ts`).
+  revalidateTag: (tag: string) => {
+    harness.revalidated.push(`tag ${tag}`);
+  },
 }));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {

@@ -29,7 +29,7 @@
  * After a run that wrote something, the storefront is asked to redraw the
  * catalog (`POST /api/revalidate`): the text shows on the product page and on
  * every card of it, and the sitemap dates the page by it. That needs
- * `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and the storefront's `CRON_SECRET` in
+ * `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and the storefront's `REVALIDATE_SECRET` in
  * the shell; without them it says so and the pages catch up on their own, in
  * five minutes, and the sitemap within about an hour. It never fails the run.
  */
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
     if (!dryRun && written > 0) {
       const outcome = await requestRevalidation({
         siteUrl: revalidationSiteUrl(process.env),
-        secret: process.env.CRON_SECRET,
+        secret: process.env.REVALIDATE_SECRET,
         body: { scope: "catalog" },
       });
       console.log(`  storefront: ${describeRefresh(outcome)}`);
@@ -134,7 +134,9 @@ const CATCH_UP = "pages catch up within 5 minutes, the sitemap within about an h
 
 function describeRefresh(outcome: StorefrontRevalidationResult): string {
   if (outcome.skipped === "no-secret")
-    return `not asked to refresh (CRON_SECRET is not set); ${CATCH_UP}`;
+    return `not asked to refresh (REVALIDATE_SECRET is not set); ${CATCH_UP}`;
+  if (outcome.skipped === "bad-secret")
+    return `not asked to refresh (REVALIDATE_SECRET is not one token: a line break pasted into it?); ${CATCH_UP}`;
   if (outcome.skipped)
     return `not asked to refresh (SITE_URL is missing or not https); ${CATCH_UP}`;
   if (outcome.ok) return `asked to refresh ${outcome.routes} page routes and the sitemap`;
