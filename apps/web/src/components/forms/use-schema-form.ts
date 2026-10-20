@@ -142,6 +142,7 @@ export function useSchemaForm<S extends AnySchema>({
   sending,
   serverErrors,
   defaultValues,
+  takesOver = false,
 }: {
   schema: S;
   /** Called in a transition with the form's `FormData`, only when it is valid. */
@@ -153,6 +154,13 @@ export function useSchemaForm<S extends AnySchema>({
   sending?: boolean;
   serverErrors?: ServerFieldErrors;
   defaultValues?: DefaultValues<z.input<S>>;
+  /**
+   * The form takes over from one that is already on the screen with these
+   * `serverErrors` showing (the newsletter band, `newsletter-form.tsx`). The
+   * answer it starts with is then not news, and focus stays where the person
+   * has put it; only a later answer moves it.
+   */
+  takesOver?: boolean;
 }): SchemaForm<S> {
   const errors = useMemo(() => asFieldErrors(serverErrors), [serverErrors]);
   const form = useForm<z.input<S>, unknown, z.output<S>>({
@@ -179,9 +187,10 @@ export function useSchemaForm<S extends AnySchema>({
     if (!pending) inFlight.current = false;
   }, [pending]);
   // The answer is in: the next press may send.
+  const shownAlready = useRef(takesOver ? errors : undefined);
   useEffect(() => {
     inFlight.current = false;
-    if (errors) focusFirst(formRef.current, Object.keys(errors));
+    if (errors && errors !== shownAlready.current) focusFirst(formRef.current, Object.keys(errors));
   }, [errors]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {

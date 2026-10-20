@@ -359,38 +359,15 @@ export type CartOrderInput = z.infer<typeof cartOrderSchema>;
 export type NewsletterInput = z.infer<typeof newsletterSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 
-/**
- * The form-level line when any field is refused. One sentence for the browser
- * and the server alike; the field messages say what is wrong with each.
- */
-export const CHECK_FIELDS_MESSAGE = "Поправете отбелязаните полета и изпратете отново.";
-
-/** The newsletter has one field, so its line names it. */
-export const CHECK_EMAIL_MESSAGE = "Поправете имейл адреса и опитайте отново.";
-
-/** Uniform result shape for every form action. */
-export type FormState =
-  | { status: "idle" }
-  | {
-      status: "success";
-      message: string;
-      /** An order's short reference (`recordReference`), for the customer to quote. */
-      reference?: string;
-    }
-  | {
-      status: "error";
-      message: string;
-      fieldErrors?: Record<string, string>;
-      /**
-       * What was typed, handed back when the server refused it. With
-       * JavaScript the fields never lost it; without, the page is drawn anew
-       * from the server's answer, and this is what puts the text back in the
-       * fields instead of making the person type a whole message again.
-       */
-      values?: Record<string, string>;
-    };
-
-export const IDLE_FORM_STATE: FormState = { status: "idle" };
+/* The answer's shape and the form-level lines are in a module without zod, so
+   a component that needs only them does not bring zod along (`form-state.ts`).
+   Re-exported here, where every form has always found them. */
+export {
+  CHECK_EMAIL_MESSAGE,
+  CHECK_FIELDS_MESSAGE,
+  IDLE_FORM_STATE,
+  type FormState,
+} from "./form-state";
 
 /** Flatten Zod issues into one message per field. */
 export function toFieldErrors(error: z.ZodError): Record<string, string> {

@@ -2473,7 +2473,11 @@ and says „Изпраща се…“ at the width it had. Success replaces the 
 With JavaScript the address is checked with `newsletterSchema` when the button
 is pressed, and nothing is sent until it passes; without, the server's answer
 says the same thing in the same place and keeps the address in the field
-(Inputs, "Validation"). The analytics event `newsletter_submitted` records the
+(Inputs, "Validation"). That check is not in the page's first scripts: it is
+fetched as the band nears the screen or the form is touched, and takes over
+the form already drawn, so nothing on the screen moves or is redrawn, and the
+field keeps what was typed, its focus and its caret. A press before then goes
+to the server, which answers in the same place. The analytics event `newsletter_submitted` records the
 outcome of what reached the server.
 
 **Where it is not.** A page renders `<NewsletterBandOff />` (a hidden

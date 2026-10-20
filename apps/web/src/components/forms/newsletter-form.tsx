@@ -1,51 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId } from "react";
-import { subscribeToNewsletter } from "@/lib/forms/actions";
 import {
-  CHECK_EMAIL_MESSAGE,
-  IDLE_FORM_STATE,
-  newsletterSchema,
-  type FormState,
-} from "@/lib/forms/schemas";
-import { Button } from "@/components/ui/primitives";
-import { HoneypotField } from "@/components/forms/honeypot-field";
-import { INPUT_CLASS } from "@/components/forms/field-styles";
-import { useActionForm } from "@/components/forms/use-schema-form";
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ComponentType,
+  type FormEvent,
+  type RefObject,
+} from "react";
+import { flushSync } from "react-dom";
 import { useAnalytics } from "@/components/analytics-provider";
-import { useLocale } from "@/i18n/use-locale";
-import { href, routes } from "@/lib/routes";
-
-const SUBMIT_LABEL = "Абонирай ме";
-const PENDING_LABEL = "Изпраща се…";
-
-function SubmitButton({ pending }: { pending: boolean }) {
-  return (
-    <Button type="submit" disabled={pending} aria-busy={pending || undefined} className="shrink-0">
-      {/*
-        Both labels are laid out in one grid cell and only one is visible, so
-        the button is as wide as the longer of the two whichever it shows: it
-        does not jump when the form starts submitting (DESIGN.md, "Buttons",
-        Pending). A second click while it is disabled sends nothing.
-      */}
-      <span className="grid">
-        <span className={`col-start-1 row-start-1 ${pending ? "invisible" : ""}`}>
-          {SUBMIT_LABEL}
-        </span>
-        <span
-          aria-hidden={!pending}
-          className={`col-start-1 row-start-1 ${pending ? "" : "invisible"}`}
-        >
-          {PENDING_LABEL}
-        </span>
-      </span>
-    </Button>
-  );
-}
-
-const fieldErrorsOf = (state: FormState) =>
-  state.status === "error" ? state.fieldErrors : undefined;
+import type { NewsletterEnhancementProps } from "@/components/forms/newsletter-enhancement";
+import { NewsletterView, type NewsletterBehaviour } from "@/components/forms/newsletter-view";
+import { subscribeToNewsletter } from "@/lib/forms/actions";
+import { IDLE_FORM_STATE, type FormState } from "@/lib/forms/form-state";
 
 /**
  * Newsletter signup.
@@ -57,36 +28,38 @@ const fieldErrorsOf = (state: FormState) =>
  *
  * It works before any script runs: a plain form posting to a server action,
  * which checks the address with `newsletterSchema` and answers in the line
- * under the field. With the script, the same schema checks it when the button
- * is pressed, and nothing is sent until it passes (`use-schema-form.ts`). The
- * field sits beside the button only where the form has room for both and a
- * whole address (`@md`, 28rem of form, decided by the form's own width rather
- * than the window's); narrower, they stack and each takes the full width.
+ * under the field. With the script, the same schema checks it in the browser
+ * when the button is pressed, and nothing is sent until it passes
+ * (`use-schema-form.ts`), as on every form of the site.
+ *
+ * That check is react-hook-form and zod, and the band is on almost every page,
+ * below the fold. Loaded with the page, they were in every page's first
+ * script, which a phone downloads before it can paint. So the page gets this
+ * module, which knows no zod, and the check comes later, in two steps:
+ *
+ *   - Until then the form is the plain one, driven from here: a press sends
+ *     the form to the action as the browser would have posted it, and the
+ *     server's answer is drawn where the browser's would be. Nothing is lost
+ *     by pressing early; the server checks every address anyway.
+ *   - The check is fetched when the band comes within a screen and a half of
+ *     the viewport, or the form is first touched — focus, a pointer, a key —
+ *     whichever is first (`useEnhancement`), and then takes the form over
+ *     (`newsletter-enhancement.tsx`) between two things the person does,
+ *     never while a press is on its way.
+ *
+ * The takeover redraws nothing. Both forms draw through one view
+ * (`newsletter-view.tsx`), rendered here, at the same place in the tree; the
+ * enhancement only hands it different handlers. The field someone is typing
+ * in stays the same element, so its text, its focus and its caret are simply
+ * not touched — an email field has no selection API, so a caret could not be
+ * put back if it were lost — and nothing on the page moves. The answer state
+ * is this component's, so an answer already on the screen is still the one
+ * shown after, and `newsletter_submitted` fires from here, whichever form
+ * reached the server.
  */
 export function NewsletterForm({ source }: { source: string }) {
-  const {
-    state,
-    formAction,
-    form: { register },
-    formProps,
-    pending,
-    errorOf,
-    ariaFor,
-    lineFor,
-  } = useActionForm({
-    schema: newsletterSchema,
-    action: subscribeToNewsletter,
-    initialState: IDLE_FORM_STATE,
-    fieldErrorsOf,
-    defaultValuesOf: (drawnWith) => ({
-      email: drawnWith.status === "error" ? (drawnWith.values?.email ?? "") : "",
-      source,
-    }),
-  });
-  const emailId = useId();
-  const consentId = `${emailId}-consent`;
+  const [state, formAction, sending] = useActionState(subscribeToNewsletter, IDLE_FORM_STATE);
   const analytics = useAnalytics();
-  const locale = useLocale();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -96,66 +69,216 @@ export function NewsletterForm({ source }: { source: string }) {
     }
   }, [state, analytics]);
 
-  if (state.status === "success") {
-    return (
-      <p
-        role="status"
-        className="rounded-md border border-pine-500 bg-paper-raised px-4 py-3 text-base text-ink-900"
-      >
-        {state.message}
-      </p>
-    );
-  }
+  const form = useRef<HTMLFormElement | null>(null);
+  const [transitionPending, startTransition] = useTransition();
+  const pending = sending || transitionPending;
+  /* Set on the press, before the transition has rendered, and cleared when the
+     answer is in: a double press sends once, and the takeover waits. */
+  const inFlight = useRef(false);
+  const canTakeOver = useCallback(() => !inFlight.current, []);
+  const { Enhancement, retry } = useEnhancement(form, canTakeOver);
+  const [enhanced, setEnhanced] = useState<NewsletterBehaviour | null>(null);
+  const plain = enhanced === null;
 
-  const emailError = errorOf("email");
-  /* One line under the field: the field's own message when it has one, else
-     the form's (a refusal of the whole request, such as the rate limit). */
-  const formMessage = lineFor(state.status === "error" ? state : undefined, CHECK_EMAIL_MESSAGE);
+  // The answer is in: the next press may send, and a held takeover may go.
+  useEffect(() => {
+    if (pending) return;
+    inFlight.current = false;
+    retry();
+  }, [pending, state, retry]);
+
+  /* The plain form's half of what `useSchemaForm` does with an answer: focus
+     goes to the field the server refused. Also on the first render, for a
+     page drawn from a refusal posted before the script ran. */
+  useEffect(() => {
+    if (!plain || state.status !== "error" || !state.fieldErrors?.email) return;
+    const field = form.current?.elements.namedItem("email");
+    if (field instanceof HTMLInputElement) field.focus();
+  }, [state, plain]);
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (inFlight.current || pending) return;
+    inFlight.current = true;
+    // What the browser would have posted, honeypot and hidden fields included.
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  };
+
+  const behaviour: NewsletterBehaviour = enhanced ?? {
+    enhanced: false,
+    onSubmit,
+    emailField: { name: "email" },
+    sourceField: { name: "source" },
+    pending,
+    ...answerLines(state),
+  };
+
+  /* The `<form>` is this component's, for the triggers, and after the
+     takeover the enhancement's too, which moves focus with it. */
+  const enhancedForm = enhanced?.formRef;
+  const formRef = useCallback(
+    (node: HTMLFormElement | null) => {
+      form.current = node;
+      if (enhancedForm) enhancedForm.current = node;
+    },
+    [enhancedForm],
+  );
 
   return (
-    <form {...formProps} action={formAction} className="@container relative">
-      <input type="hidden" {...register("source")} value={source} />
-      <HoneypotField />
-
-      <label htmlFor={emailId} className="sr-only">
-        Имейл адрес
-      </label>
-      <div className="flex flex-col gap-2 @md:flex-row">
-        <input
-          id={emailId}
-          {...register("email")}
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="Вашият имейл адрес"
-          defaultValue={state.status === "error" ? state.values?.email : undefined}
-          {...ariaFor("email", emailId, consentId)}
-          inputMode="email"
-          className={`${INPUT_CLASS} min-w-0 @md:flex-1`}
+    <>
+      <NewsletterView
+        source={source}
+        state={state}
+        formAction={formAction}
+        formRef={formRef}
+        behaviour={behaviour}
+      />
+      {Enhancement ? (
+        <Enhancement
+          state={state}
+          formAction={formAction}
+          sending={sending}
+          source={source}
+          onBehaviour={setEnhanced}
         />
-        <SubmitButton pending={pending} />
-      </div>
-
-      <p aria-live="polite" className="mt-1.5 min-h-5 text-sm">
-        {emailError ? (
-          <span id={`${emailId}-error`} className="text-critical">
-            {emailError}
-          </span>
-        ) : (
-          formMessage && <span className="text-critical">{formMessage}</span>
-        )}
-      </p>
-
-      <p id={consentId} className="text-xs text-ink-500">
-        Можете да се отпишете по всяко време. Какво пазим и защо — в{" "}
-        <Link
-          href={href(locale, routes.privacy)}
-          className="text-pine-700 underline underline-offset-2 hover:text-pine-900"
-        >
-          политиката за поверителност
-        </Link>
-        .
-      </p>
-    </form>
+      ) : null}
+    </>
   );
+}
+
+/**
+ * The server's answer as the plain form shows it: exactly what
+ * `useSchemaForm` draws from the same answer on its first render (the
+ * field's message, else the form's line), so that the takeover changes
+ * nothing on the screen.
+ */
+export function answerLines(
+  state: FormState,
+): Pick<NewsletterBehaviour, "emailError" | "formMessage"> {
+  if (state.status !== "error") return { emailError: undefined, formMessage: undefined };
+  const { fieldErrors } = state;
+  const fieldsRefused = fieldErrors !== undefined && Object.keys(fieldErrors).length > 0;
+  return {
+    emailError: fieldErrors?.email,
+    formMessage: fieldErrors && !fieldsRefused ? undefined : state.message,
+  };
+}
+
+type Enhancement = ComponentType<NewsletterEnhancementProps>;
+
+/**
+ * How far from the viewport the band starts fetching the check: a screen and
+ * a half above or below. Generous on purpose: a flick on a phone covers a
+ * screen in a fraction of a second, and the check (some 25 KB with brotli)
+ * should be in before the form is reached, not after it is touched.
+ */
+export const APPROACH_MARGIN = "150% 0px";
+
+let enhancement: Promise<Enhancement> | undefined;
+
+/**
+ * The enhancement's module, fetched once per page load whichever trigger
+ * asks first. A failed fetch is forgotten, so a later touch asks again; the
+ * plain form works meanwhile.
+ */
+function loadEnhancement(): Promise<Enhancement> {
+  enhancement ??= import("@/components/forms/newsletter-enhancement").then(
+    (module) => module.NewsletterEnhancement,
+    (error: unknown) => {
+      enhancement = undefined;
+      throw error;
+    },
+  );
+  return enhancement;
+}
+
+/**
+ * Fetch the enhancement when it is about to be needed, and hand it over when
+ * it is safe to.
+ *
+ * Needed: the form comes within `APPROACH_MARGIN` of the viewport, or it gets
+ * focus, a pointer or a key — and if focus got there before the page's script
+ * did, at once. A band hidden on its page (`NewsletterBandOff`) never comes
+ * near, and is never touched, so there it is never fetched.
+ *
+ * Safe: in a task of its own, never inside the event that asked for it — an
+ * Enter that is about to submit the form finishes first — and not while a
+ * press of the plain form is on its way (`canTakeOver`); `retry` is called
+ * again when the answer is in. The check and the swap run in one synchronous
+ * stretch (`flushSync`), so nothing the person does can come between them.
+ */
+function useEnhancement(
+  form: RefObject<HTMLFormElement | null>,
+  canTakeOver: () => boolean,
+): { Enhancement: Enhancement | null; retry: () => void } {
+  const [Enhancement, setEnhancement] = useState<Enhancement | null>(null);
+  const retryRef = useRef(() => {});
+
+  useEffect(() => {
+    const element = form.current;
+    if (!element) return;
+    let live = true;
+    let loaded: Enhancement | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let disarm = () => {};
+
+    const takeOver = () => {
+      timer = undefined;
+      // Gone means it was answered with success: nothing left to take over.
+      if (!live || !loaded || !element.isConnected || !canTakeOver()) return;
+      const component = loaded;
+      loaded = null;
+      flushSync(() => setEnhancement(() => component));
+    };
+    retryRef.current = () => {
+      if (live && loaded && timer === undefined) timer = setTimeout(takeOver, 0);
+    };
+
+    const load = () => {
+      disarm();
+      loadEnhancement().then(
+        (component) => {
+          loaded = component;
+          retryRef.current();
+        },
+        // Not the viewport again: offline, that would ask on every frame.
+        () => live && arm(false),
+      );
+    };
+
+    const arm = (nearing: boolean) => {
+      const events = new AbortController();
+      for (const type of ["focusin", "pointerdown", "keydown"] as const) {
+        element.addEventListener(type, load, { signal: events.signal });
+      }
+      const observer =
+        nearing && typeof IntersectionObserver === "function"
+          ? new IntersectionObserver(
+              (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) load();
+              },
+              { rootMargin: APPROACH_MARGIN },
+            )
+          : undefined;
+      observer?.observe(element);
+      disarm = () => {
+        events.abort();
+        observer?.disconnect();
+      };
+    };
+
+    if (element.contains(document.activeElement)) load();
+    else arm(true);
+
+    return () => {
+      live = false;
+      clearTimeout(timer);
+      disarm();
+      retryRef.current = () => {};
+    };
+  }, [form, canTakeOver]);
+
+  const retry = useCallback(() => retryRef.current(), []);
+  return { Enhancement, retry };
 }

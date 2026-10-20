@@ -669,6 +669,29 @@ and focuses the first. A valid form is sent by hand as its `FormData`. The
 action, which validates with the same schema and redraws the form with the
 same messages and what was typed. The server is the authority either way.
 
+**The newsletter band's check comes late.** The band is on almost every page,
+below the fold, so its check is in no page's first scripts: react-hook-form,
+the resolver and zod, some 25 KB with brotli, had been on every page, ahead of
+its first paint. A page gets the plain form
+([`components/forms/newsletter-form.tsx`](../apps/web/src/components/forms/newsletter-form.tsx)),
+which imports nothing that brings zod (the answer's shape and lines are in
+[`lib/forms/form-state.ts`](../apps/web/src/lib/forms/form-state.ts)): a press
+sends the form to the action as the browser would post it, and the server
+answers in the same place. The check
+([`newsletter-enhancement.tsx`](../apps/web/src/components/forms/newsletter-enhancement.tsx))
+is fetched when the band comes within a screen and a half of the viewport or
+the form is touched, and takes the form over between two things the person
+does, never while a press is on its way. It redraws nothing: both forms draw
+through one view
+([`newsletter-view.tsx`](../apps/web/src/components/forms/newsletter-view.tsx))
+rendered in one place, and the check hands it react-hook-form's handlers, so
+the field being typed in keeps its text, its focus and its caret, and nothing
+moves. The answer state and the analytics event stay with the plain form, so
+an answer already on the screen is still the one shown. A component in the
+browser that needs a constant from a module that builds a schema has the same
+problem: `lib/catalog/filter-query.ts` holds what the header's search field and
+the listing's toolbar need of `lib/catalog/filters.ts`, without the schema.
+
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
 safe in the database before any notification is attempted, so a misconfigured
