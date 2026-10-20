@@ -9,7 +9,13 @@ import {
 } from "./commands.ts";
 import { runImagesCommand } from "./commands-images.ts";
 import { commandCutout } from "./commands-cutout.ts";
-import { CATALOG_HELP, announceSyncChanges, runCatalogCommand } from "./commands-catalog.ts";
+import {
+  CATALOG_HELP,
+  announceSyncChanges,
+  refreshStorefront,
+  runCatalogCommand,
+  syncChangedShop,
+} from "./commands-catalog.ts";
 import { createRuntime } from "./runtime.ts";
 
 /**
@@ -241,16 +247,23 @@ export async function main(argv: readonly string[]): Promise<number> {
             ? { productLimit: num(flags, "product-limit") }
             : {}),
         });
-        // Changed pages are announced to IndexNow after a live run that
-        // completed; nothing is sent without INDEXNOW_KEY and SITE_URL.
-        const indexNow =
-          !result.dryRun && result.syncRunId && result.status === "succeeded"
-            ? await announceSyncChanges(runtime, result.syncRunId)
+        // After a live run that completed: first the storefront is asked to
+        // redraw the catalog, when the run wrote something it shows (nothing
+        // is sent without SITE_URL and REVALIDATE_SECRET); then the changed
+        // pages are announced to IndexNow (nothing without INDEXNOW_KEY and
+        // SITE_URL), so an engine that comes at once finds them redrawn.
+        const completedRun =
+          !result.dryRun && result.status === "succeeded" ? result.syncRunId : null;
+        const storefront =
+          completedRun && syncChangedShop(result)
+            ? await refreshStorefront(runtime, { scope: "catalog" })
             : null;
+        const indexNow = completedRun ? await announceSyncChanges(runtime, completedRun) : null;
         printJson({
           command,
           syncRunId: result.syncRunId,
           indexNow,
+          storefront,
           status: result.status,
           dryRun: result.dryRun,
           catalogSource: result.discovery.source,

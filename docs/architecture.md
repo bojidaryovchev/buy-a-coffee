@@ -69,7 +69,8 @@ brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 | `/bg/byuletin/otpisvane` [`newsletter/unsubscribe`]                    | Tokenised unsubscribe. GET confirms, POST unsubscribes                                                                                                                                                 |
 | `/bg/poveritelnost`, `/bg/obshti-usloviya`, `/bg/biskvitki`            | Legal documents written for this business [`privacy`, `terms`, `cookies`]                                                                                                                              |
 | `/products/…`, `/categories/…`, `/brands/…`, `/wizard/…`, `/search`, … | The pre-locale URLs. None is served; each answers 308 to its `/bg` equivalent, query string kept                                                                                                       |
-| `/sitemap.xml`, `/robots.txt`                                          | Generated from the live catalog; one entry per page per shipping locale, each with its `hreflang` set                                                                                                  |
+| `/sitemap.xml`                                                         | Drawn from the live catalog on request and kept by the CDN for an hour (see "Catalog freshness"); one entry per page per shipping locale, each with its `hreflang` set                                 |
+| `/robots.txt`                                                          | Generated at build: the crawler rules, the same for the whole deployment                                                                                                                               |
 | `/llms.txt`                                                            | A plain-language map of the shop, generated from the catalog; closed whenever `robots.txt` is                                                                                                          |
 | `/opengraph-image`, `/manifest.webmanifest`                            | The default share card and the web app manifest                                                                                                                                                        |
 | `/media/[...key]`                                                      | Development-only local image serving; refuses everything once an image host is configured                                                                                                              |
@@ -88,6 +89,7 @@ brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 | `/api/cron/retention`                                                  | Daily retention deletion (Vercel cron)                                                                                                                                                                 |
 | `/api/cron/promotions`                                                 | Hourly promotions refresh and shop revalidation (Vercel cron)                                                                                                                                          |
 | `/api/cron/newsletter`                                                 | Daily: the monthly draft in the first week, and resuming a stalled send (Vercel cron)                                                                                                                  |
+| `/api/revalidate`                                                      | POST, behind `REVALIDATE_SECRET`: the sync and the copy scripts ask for the catalog's pages, the sitemap and `llms.txt` to be redrawn (see "Catalog freshness")                                        |
 | `/api/admin/newsletter/*`, `/api/admin/promotions/*`                   | The two editors' previews, product searches and the newsletter's uploads, behind the panel session                                                                                                     |
 
 The admin panel, the API, `/media`, the share card and every file with an
@@ -522,10 +524,12 @@ save, stop and delete run the refresh in the same transaction as the write, so
 the shop never sees new dates beside old references; if the refresh fails the
 write rolls back.
 
-**Revalidation** (`revalidate.ts`). After a write, and when the cron's refresh
+**Revalidation** (`revalidate.ts`, which re-exports `lib/revalidate-shop.ts`,
+shared with `/api/revalidate`). After a write, and when the cron's refresh
 reports `shopChanged` (a promotion started or ended, a running one gained or
 lost a product, or a reference moved), every page route under the shop's
-layout is revalidated as a `"page"` (`SHOP_PAGE_ROUTES`), and `/sitemap.xml`.
+layout is revalidated as a `"page"` (`SHOP_PAGE_ROUTES`), `/llms.txt` by its
+path, and the sitemap by its tag (`revalidateTag("sitemap", { expire: 0 })`).
 **Not the layout:** `revalidatePath("/(site)/[lang]", "layout")` reaches
 everything in one call, but a route that prebuilds its whole list
 (`dynamicParams = false`: the journal's articles, the machine pages) is then
@@ -1380,7 +1384,9 @@ is withheld.
 - `SearchAction` is declared only because the search route genuinely exists.
 - The sitemap is generated from the live catalog, so it can never advertise a
   product we no longer sell: one entry per page per shipping locale, each with
-  the page's `hreflang` set. It lists only what is indexable. Consumables is
+  the page's `hreflang` set. It is drawn on request, about an hour behind the
+  database at most, and stands in with its last good copy while the database
+  cannot be read ("Catalog freshness"). It lists only what is indexable. Consumables is
   left out while it lists nothing, each landing listing while its selection is
   empty, and promotions while nothing is reduced. `/llms.txt` lists what the
   sitemap lists, on the same switches.
@@ -1483,10 +1489,15 @@ copied product, a sync run — and clean up after. Every such write goes through
 `e2e/support/database.ts`, which refuses before connecting unless the host is
 `localhost` or `127.0.0.1` or `CI` is set: a shell left pointing at
 production after a migration must make the suite stop, not write.
-`e2e/promotion.spec.ts` runs in a desktop-only "after" project once every
-other spec has finished, because a running promotion fills the promotions page
-that other specs compare against the build-time sitemap; on its own it runs
-with `--project after --no-deps`.
+`e2e/promotion.spec.ts`, `e2e/promotions.spec.ts` and `e2e/sitemap-fresh.spec.ts`
+run in a desktop-only "after" project once every other spec has finished,
+and one at a time (`workers: 1`): a running promotion fills the promotions
+page, and all three change the sitemap, which is drawn per request, while
+other specs walk it or compare pages with it; and against each other, the
+panel's promotion could pick the product `sitemap-fresh` adds, or meet the
+other promotion's badges. `e2e/sitemap-outage.spec.ts` takes the database
+away from the server, so it runs last of all, alone, in the "outage"
+project. On its own each runs with `--project <name> --no-deps`.
 
 ## Deployment
 
@@ -1514,9 +1525,236 @@ search results.
 ## Catalog freshness
 
 Catalog pages revalidate every 5 minutes (search every minute; journal
-articles, the sitemap and `llms.txt` every hour), so a background sync becomes
-visible without a redeploy. The proxy's list of existing slugs is held for the
-same 5 minutes. No customer request ever waits on the sync.
+articles and `llms.txt` every hour), so a background sync becomes visible
+without a redeploy. The proxy's list of existing slugs is held for the same 5
+minutes. No customer request ever waits on the sync. The sitemap is drawn on
+request and cached by the CDN for about an hour at most, and the writers
+outside the app ask for the pages, the sitemap and `llms.txt` to be redrawn at
+once when they change something.
+
+### The sitemap
+
+`/sitemap.xml` is a route handler (`apps/web/src/app/sitemap.xml/route.ts`;
+the entries are `lib/seo/sitemap.ts`). A route handler is not cached by
+default (Next.js docs, "Route Handlers"), and `await connection()` says so in
+the code; not `dynamic = "force-dynamic"`, which would make every cache read in
+the route no-store, the kept copy below included. The document is Next.js's
+own sitemap serialisation (`resolveSitemap`) of the same entries the metadata
+file produced: the same XML, URLs, `hreflang` sets, images and `lastmod` dates,
+byte for byte. What it says about caching (`lib/seo/sitemap-cache.ts`):
+
+| Header              | Value                                                                     | Read by                                                                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cache-Control`     | `public, max-age=0, must-revalidate`                                      | Browsers and crawlers: ask every time. What Next.js sends for a sitemap                                                                                                                                        |
+| `CDN-Cache-Control` | `public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400` | Vercel's CDN, which prefers it to `Cache-Control`: fresh for an hour, then for ten minutes served stale while one request redraws it; for a day, an error from the function is answered with the copy it holds |
+| `Vercel-Cache-Tag`  | `sitemap`                                                                 | The shop's own tag: `revalidateTag("sitemap", { expire: 0 })` in the shop's revalidation drops the CDN's copy                                                                                                  |
+| `x-sitemap-copy`    | `drawn`, `recent` or `kept`                                               | Whoever is checking: which copy this is (below)                                                                                                                                                                |
+
+The short stale window is deliberate. A prerendered route's default `expire` is
+a year (Next.js docs, "CDN Caching"), so a URL fetched once a day would be
+served, every time, the copy drawn on its previous visit. A crawler fetches a
+sitemap rarely; an hour and ten minutes, plus the minute below, is the most it
+can be behind.
+
+**Which copy the function hands out** (`lib/seo/sitemap-copy.ts`):
+
+- **`drawn`**: a fresh draw from the database, the default. There is no
+  server-side cache in front of it that answers for an hour and refreshes in
+  the background: it would stack on the CDN's hour, the CDN would refill from a
+  copy already an hour old, and a rarely fetched sitemap would always be one
+  visit behind.
+- **`recent`**: a draw that began less than a minute ago, handed out again, and
+  requests that arrive while a draw is under way share it. Next.js lists `rsc`
+  and `next-router-*` in every app route's `Vary`, and a route cannot take that
+  back, so the CDN keeps a copy per value of those headers; whatever comes in
+  under them costs at most one draw a minute per instance. A draw is not reused
+  once the sitemap has been declared changed since it began: the revalidation
+  that expires the tag also expires a small "changed since" mark under it.
+- **`kept`**: every good draw is kept in Next.js's data cache (`unstable_cache`,
+  the cache for non-`fetch` data without Cache Components, which persists
+  across requests, instances and deployments). When a draw fails, the database
+  down, that copy is handed out instead of a 500, however old, with the CDN told
+  to keep it a minute only (`public, s-maxage=60, stale-if-error=86400`), and
+  `sitemap.draw_failed` in the log. It carries no tag, so a revalidation, which
+  makes the next request draw, cannot also throw away the copy that stands in
+  when that draw fails; and the sitemap's revalidation is by its own tag rather
+  than `revalidatePath("/sitemap.xml")`, whose implicit tag expires every cache
+  entry the route reads. Only when nothing has ever been kept does the failure
+  reach the response, and then the CDN's own copy still answers for a day.
+
+`/sitemap.xml?anything` is answered `308` to `/sitemap.xml`, without a draw:
+each query string would be a CDN entry, and a draw, of its own. Next.js's own
+`_rsc` is the exception: a request with an `rsc` header is answered `307` to
+`?_rsc=<hash>` by Next.js before the route runs, and sending it back would be
+a loop, so it is served (with the shared draw).
+
+**Why not `app/sitemap.ts` with `revalidate = 3600`, as it was until 20
+October 2026.** On Vercel that file was served as the copy made at build until
+the next deploy (`X-Vercel-Cache: HIT`, `Last-Modified` the deploy time, `Age`
+far past an hour), so a product the sync added, a `copy:apply` or a price
+change never reached the sitemap without an unrelated deploy:
+
+1. "`sitemap.js` is a special Route Handler that is cached by default unless it
+   uses a Request-time API or dynamic config option" (Next.js docs,
+   `sitemap.xml`). Ours used neither, so the build prerendered it; the build
+   table even printed `○ /sitemap.xml 1h 1y`, and the prerender manifest kept
+   `initialRevalidateSeconds: 3600`.
+2. The build hands its output to the deployment adapter (Next.js docs,
+   "Deploying to Platforms": Vercel's adapter uses the same public API as any
+   other), where `prerenders` are the "ISR-enabled routes" and `staticFiles`
+   the "static assets" (`07-adapters/09-output-types.md`). For a prerendered
+   route whose path is a metadata file's name (`isStaticMetadataFile`:
+   `/sitemap.xml`, `/robots.txt`, `/favicon.ico`, `/manifest.webmanifest`),
+   `next/dist/build/adapter/build-complete.js` emits the built body as a static
+   file and drops both the function and the prerender with its `revalidate`
+   ("Skip static metadata routes only when they are prerendered"). A probe
+   adapter on this build showed exactly that: `/sitemap.xml` one
+   `STATIC_FILE` (`sitemap.xml.body`), no `APP_ROUTE`, no `PRERENDER`, while
+   `/llms.txt`, with the same `revalidate`, came through as a `PRERENDER` with
+   `initialRevalidate: 3600`. Nothing was left on Vercel to regenerate, and
+   `revalidatePath("/sitemap.xml")` had nothing to expire.
+3. `next start` reads the prerender manifest itself and honours the
+   `revalidate`, which is why it never showed locally.
+4. The metadata route also sets its own `Cache-Control`, which says
+   `max-age=0`, and Next.js adds `s-maxage` only to a response that has none
+   (`next/dist/build/templates/app-route.js`), so no CDN was ever told how long
+   it could keep the file.
+
+`robots.txt` still takes that path, which is right for it: it changes only
+with a deploy. `test/sitemap-route.test.ts` fails if a `sitemap.ts` comes back.
+
+### `POST /api/revalidate`
+
+The sync, the copywriter and `copy:apply` change the database from outside
+the app. After a run that changed something, each asks the storefront to
+redraw what it shows (`@catalog/shared/revalidate`), before it announces the
+changed pages to IndexNow, so an engine that comes at once finds them redrawn:
+
+| Caller                            | When                                                                                                                                                 | Body                  |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `pnpm sync:catalog` (`sync.yml`)  | A live run that succeeded and created, changed, moved, hid, removed or restored a product or a brand or category, mirrored a photo or read a page in | `{"scope":"catalog"}` |
+| `pnpm catalog:copy` (`copy.yml`)  | A run that wrote a text or corrected a pack size                                                                                                     | `{"scope":"catalog"}` |
+| `pnpm copy:apply` (owner's shell) | A run that wrote at least one row                                                                                                                    | `{"scope":"catalog"}` |
+
+The catalog scope is `revalidateShop()` (`lib/revalidate-shop.ts`), exactly
+what a saved promotion does: every page route of the shop, page by page, never
+the layout and never the two `dynamicParams = false` routes; `/llms.txt` by its
+path; and the sitemap by its tag. The endpoint also takes `{"paths": [...],
+"slugs": [...]}` (either or both, at most 100 each): those pages only, each with
+`revalidatePath(url)`, and the sitemap. A path is a published URL
+(`/bg/marki/lavazza`); a slug is a product's, refreshed in every shipping
+locale. Anything else is refused whole with the reason (unknown field or scope,
+a path that is not a page of the shop, a self-timed route, a body over 16 KiB)
+and nothing is refreshed. The answer lists what was refreshed:
+
+```json
+{
+  "scope": "catalog",
+  "routes": ["/(site)/[lang]", "/(site)/[lang]/[slug]", "…"],
+  "paths": [],
+  "files": ["/sitemap.xml", "/llms.txt"]
+}
+```
+
+**Its own secret, `REVALIDATE_SECRET`**, checked as the cron routes check
+theirs (`checkCronAuth`, constant time): none configured, 404; a missing or
+wrong bearer token, 401. Not `CRON_SECRET`, which also sends the newsletter and
+runs the deletions and so stays on Vercel alone; this one has to sit in GitHub
+Actions and in the owner's shell as well, and all it can do is refresh caches.
+At most 20 calls in 10 minutes (429 after) on the forms' shared limiter table,
+failing open. Off a deployment (`isDeployment()`: not production or a preview)
+`REVALIDATE_RATE_LIMIT` may raise that ceiling, never lower it; the end-to-end
+suite's server gets 1,000, since runs against one database add up within the
+window. On a deployment it is 20 whatever the variable says.
+
+The callers read `SITE_URL` (else `NEXT_PUBLIC_SITE_URL`) and
+`REVALIDATE_SECRET`, send the secret only to an `https:` site, follow no
+redirect, and do not send a secret that is not one token of visible ASCII (a
+line break pasted into it would make `fetch` refuse the header and quote it in
+its error). What they report is a fixed code, never an error's message. Without
+the settings the run logs `storefront.revalidate.skipped` with the reason and
+the job summary shows a notice; a refusal, a timeout or a network error is a
+warning. Neither ever fails a run: the change is already written, and the
+pages catch up within their 5 minutes and the sitemap within the CDN's hour.
+
+**Known trade-off: the catalog scope expires, it does not mark stale.** Every
+refresh here makes the next visit to each page wait for a fresh render, rather
+than serving the old one while the new one is drawn (`revalidatePath` has no
+stale-while-revalidate form; `revalidateTag(tag, "max")` does, for tagged
+data). That is what makes a saved promotion's price right at once, and after a
+sync it means the first visitor to each listing, brand page and the home page
+waits for its render. (The product pages are drawn per request on `main`
+anyway.) Later, a sync that knows what it changed could send just those
+products as `slugs`, with the listings that show them as `paths`, instead of
+the whole catalog; the endpoint already takes both.
+
+**Owner action, once:** generate a new value (`openssl rand -hex 32`) and add it
+as `REVALIDATE_SECRET` to the Production environment on Vercel and as the
+repository secret `REVALIDATE_SECRET` under GitHub Settings > Secrets and
+variables > Actions, the same value in both. `CRON_SECRET` stays as it is, on
+Vercel only. Until then `/api/revalidate` answers 404, the sync and copywriter
+jobs say "Storefront refresh off", and the timers do the work. For
+`copy:apply`, have `SITE_URL=https://buy-a-coffee.com` and `REVALIDATE_SECRET`
+in the shell that runs it.
+
+Not covered yet: the copy review in the admin panel writes copy without asking
+for a refresh (pages within 5 minutes, the sitemap within the hour), and the
+search typeahead's own CDN cache (see "Revalidation" above).
+
+### Checking it on Vercel
+
+Local `next start` has no CDN. There every sitemap request reaches the function
+and the CDN headers are only headers, so what the CDN does with them, and
+whether a revalidated tag drops its copy, can only be seen on a deployment. On
+a preview (a preview reads the Neon branch `preview`, never production; see
+`DATABASE_URL` in `apps/web/env.schema.mjs`), with the deployment protection
+bypass header if the preview asks for a login:
+
+1. **Headers.** `curl -sI https://<preview>/sitemap.xml` twice. Expected: the
+   `cdn-cache-control` above (unless Vercel strips the directives it consumes)
+   and `x-sitemap-copy: drawn`, with `x-vercel-cache: MISS` the first time and
+   `HIT` with a small `age` the second. The old file answered `HIT` from the
+   first request, with `last-modified` the deploy time and an `age` that grew
+   past 3600 without ever turning `STALE`.
+2. **One address.** `curl -sI "https://<preview>/sitemap.xml?x=1"` answers
+   `308` with `location: /sitemap.xml`.
+3. **A change in the preview branch only.** Note a product's `<lastmod>`, then
+   run this in the `preview` branch, never in production:
+
+   ```sql
+   update products set copy_written_at = now() where slug = '<slug>';
+   ```
+
+   While the CDN copy is fresh, `/sitemap.xml` still shows the old date
+   (`HIT`); within the hour it shows the new one, with no deploy.
+
+4. **The purge.** `REVALIDATE_SECRET` is a production-only variable, so give
+   the Preview environment a value of its own first (and redeploy the
+   preview), then:
+
+   ```bash
+   curl -s -X POST "https://<preview>/api/revalidate" \
+     -H "authorization: Bearer $REVALIDATE_SECRET" \
+     -H "content-type: application/json" \
+     -d '{"slugs":["<slug>"]}'
+   ```
+
+   Expected answer:
+   `{"scope":null,"routes":[],"paths":["/bg/<slug>"],"files":["/sitemap.xml"]}`.
+   The next `curl -s -D - https://<preview>/sitemap.xml` should answer
+   `x-vercel-cache: MISS` and `x-sitemap-copy: drawn`, with the new
+   `<lastmod>`. If it is still `HIT` with the old date, the tag does not reach
+   the CDN's copy: the sitemap is still no more than the CDN's hour behind, and
+   a purge would need `invalidateByTag` from `@vercel/functions`.
+
+5. Put the product's `copy_written_at` back in the `preview` branch, or reset
+   the branch from production, which is how it is kept anyway.
+
+The kept copy is not for checking on a shared preview database, which would
+have to be taken away. `e2e/sitemap-outage.spec.ts` does that on a local
+database, after a revalidation: the sitemap answers `200` with
+`x-sitemap-copy: kept` and the last good document, and is drawn again once the
+database is back.
 
 ## Changing the branding
 

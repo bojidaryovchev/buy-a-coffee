@@ -17,10 +17,13 @@ import { asDistinctVisitor } from "./support/hydration";
  * afterwards, straight from the database: a promotion that has started is
  * history the panel itself never deletes.
  *
- * Desktop only. A promotion is the whole shop's price, and the phone project
- * runs at the same time against the same database: its promotion would put a
- * second "−10%" on the related products of this one's page, and the checks
- * that the badge is there, and then gone, would be reading the other run.
+ * Once, in the "after" project (`playwright.config.ts`), alone. A promotion is
+ * the whole shop's price, and puts the promotions page in the sitemap, which is
+ * drawn per request: a second run beside it (the phone project, or another
+ * shop-wide spec) would put a second "−10%" on the related products of this
+ * one's page, and the checks that the badge is there, and then gone, would be
+ * reading the other run; a spec walking the sitemap meanwhile would read a
+ * shop half changed.
  */
 
 /** What `playwright.config.ts` gives the server it starts; not a real password. */
@@ -127,7 +130,7 @@ test.afterAll(async () => {
 test("a promotion the owner saves is the shop's price at once, and stopping it brings the price back", async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "one promotion at a time: see above");
+  test.skip(testInfo.project.name !== "after", "one promotion at a time: see above");
   test.setTimeout(120_000);
   const product = await chooseProduct();
   await establish(product);

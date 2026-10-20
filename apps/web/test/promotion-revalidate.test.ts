@@ -11,9 +11,11 @@ import { describe, expect, it, vi } from "vitest";
  */
 
 const revalidated = vi.hoisted(() => [] as Array<[string, string | undefined]>);
+const tags = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({
   revalidatePath: (route: string, type?: string) => revalidated.push([route, type]),
+  revalidateTag: (tag: string, profile: unknown) => tags.push([tag, profile]),
 }));
 
 const { SELF_TIMED_ROUTES, SHOP_PAGE_ROUTES, revalidateShop } =
@@ -52,12 +54,15 @@ describe("what a saved promotion refreshes", () => {
     for (const route of SHOP_PAGE_ROUTES) expect(prebuildsItsList(route), route).toBe(false);
   });
 
-  it("refreshes each of them as a page, never the layout, and the sitemap", () => {
+  it("refreshes each of them as a page, never the layout, and the sitemap and llms.txt", () => {
     revalidated.length = 0;
+    tags.length = 0;
     revalidateShop();
     expect(revalidated).toContainEqual(["/(site)/[lang]", "page"]);
     expect(revalidated).toContainEqual(["/(site)/[lang]/[slug]", "page"]);
-    expect(revalidated).toContainEqual(["/sitemap.xml", undefined]);
+    // `/llms.txt` by its path; the sitemap by the shop's tag, at once (`lib/seo/sitemap-cache.ts`).
+    expect(revalidated).toContainEqual(["/llms.txt", undefined]);
+    expect(tags).toEqual([["sitemap", { expire: 0 }]]);
     expect(revalidated.some(([, type]) => type === "layout")).toBe(false);
     expect(revalidated).toHaveLength(SHOP_PAGE_ROUTES.length + 1);
   });

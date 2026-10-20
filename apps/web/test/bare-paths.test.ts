@@ -15,7 +15,7 @@ import { ROUTE_SEGMENTS } from "@/i18n/slugs";
  * Allowed bare: the admin panel and the API, which have no locale by design,
  * fragments and `tel:`/`mailto:` (which do not start with `/`), and the files
  * whose job is paths — the route table, the slug tables, the legacy map, the
- * proxy and the list of routes a promotion revalidates.
+ * proxy and the list of routes a promotion or a catalog change revalidates.
  */
 
 const WEB = path.resolve(import.meta.dirname, "..");
@@ -27,8 +27,9 @@ const EXEMPT = [
   // Its matcher and its exemptions are the list of paths it must not touch.
   "src/proxy.ts",
   // Its list is the app's route folders, as `revalidatePath` names them, not
-  // links; `test/promotion-revalidate.test.ts` holds it to the folders.
-  "src/lib/promotions/revalidate.ts",
+  // links; `test/promotion-revalidate.test.ts` holds it to the folders. (It
+  // was `src/lib/promotions/revalidate.ts`, which now only re-exports it.)
+  "src/lib/revalidate-shop.ts",
 ].map((entry) => entry.split("/").join(path.sep));
 
 /** Paths that are deliberately unprefixed. */

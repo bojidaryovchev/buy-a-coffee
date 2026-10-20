@@ -25,10 +25,22 @@
  * legitimately has no copy written for it yet. Until someone writes it, that
  * product publishes a sentence generated from its attributes
  * (`lib/catalog/fallback-copy.ts`) — never the source's description.
+ *
+ * After a run that wrote something, the storefront is asked to redraw the
+ * catalog (`POST /api/revalidate`): the text shows on the product page and on
+ * every card of it, and the sitemap dates the page by it. That needs
+ * `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and the storefront's `REVALIDATE_SECRET` in
+ * the shell; without them it says so and the pages catch up on their own, in
+ * five minutes, and the sitemap within about an hour. It never fails the run.
  */
 import { sql } from "drizzle-orm";
 import { createDatabase } from "@catalog/db";
 import { products } from "@catalog/db/schema";
+import {
+  requestRevalidation,
+  revalidationSiteUrl,
+  type StorefrontRevalidationResult,
+} from "@catalog/shared/revalidate";
 import { productCopy } from "../content/product-copy.ts";
 import { publishProductCopy } from "./product-copy-publish.ts";
 
@@ -104,9 +116,31 @@ async function main(): Promise<void> {
       );
     const count = publishing?.count ?? 0;
     console.log(`\n  products publishing our copy: ${count} / ${active.length}`);
+
+    if (!dryRun && written > 0) {
+      const outcome = await requestRevalidation({
+        siteUrl: revalidationSiteUrl(process.env),
+        secret: process.env.REVALIDATE_SECRET,
+        body: { scope: "catalog" },
+      });
+      console.log(`  storefront: ${describeRefresh(outcome)}`);
+    }
   } finally {
     await close();
   }
+}
+
+const CATCH_UP = "pages catch up within 5 minutes, the sitemap within about an hour";
+
+function describeRefresh(outcome: StorefrontRevalidationResult): string {
+  if (outcome.skipped === "no-secret")
+    return `not asked to refresh (REVALIDATE_SECRET is not set); ${CATCH_UP}`;
+  if (outcome.skipped === "bad-secret")
+    return `not asked to refresh (REVALIDATE_SECRET is not one token: a line break pasted into it?); ${CATCH_UP}`;
+  if (outcome.skipped)
+    return `not asked to refresh (SITE_URL is missing or not https); ${CATCH_UP}`;
+  if (outcome.ok) return `asked to refresh ${outcome.routes} page routes and the sitemap`;
+  return `refresh failed (${outcome.error ?? `status ${outcome.status}`}); ${CATCH_UP}`;
 }
 
 main().catch((error: unknown) => {

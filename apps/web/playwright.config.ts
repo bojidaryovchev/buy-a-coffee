@@ -15,7 +15,9 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.E2E_PORT ?? 8765);
 
 /** The specs that write shop-wide state to the database (the "after" project below). */
-const SHOP_WIDE = /(^|[\\/])promotion\.spec\.ts$/;
+const SHOP_WIDE = /(^|[\\/])(promotion|promotions|sitemap-fresh)\.spec\.ts$/;
+/** The spec that takes the database away from the server (the "outage" project below). */
+const OUTAGE = /(^|[\\/])sitemap-outage\.spec\.ts$/;
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -41,23 +43,44 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: SHOP_WIDE },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: [SHOP_WIDE, OUTAGE] },
     // Mobile is a first-class target, not an afterthought: the drawer,
     // filter sheet and layout all differ there.
-    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: SHOP_WIDE },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: [SHOP_WIDE, OUTAGE] },
     /*
      * Specs that change what the whole shop shows run once every other spec
-     * has finished. A running promotion puts a product on the promotions page,
-     * which is rendered per request, while the sitemap was rendered at build:
-     * a spec comparing the two in the middle of it would read a shop that is
-     * half changed. Run alone, they cannot be met by anything else. If a spec
-     * in the projects before them fails, these are reported as not run.
+     * has finished, and one at a time. The sitemap is drawn per request, so
+     * whatever they write is in it at once: a promotion puts the promotions
+     * page in it and takes it out again (`promotion.spec.ts`, and
+     * `promotions.spec.ts` through the panel), and `sitemap-fresh.spec.ts`
+     * adds a product to it and to the Lavazza beans landing. A spec walking
+     * the sitemap (`seo-audit`, `link-graph`) or comparing it with a page
+     * (`stitch`) in the middle of that would read a shop that is half changed,
+     * so these run after them. And against each other: `promotions.spec.ts`
+     * promotes a Lavazza bean product it picks from the database, which could
+     * be the one `sitemap-fresh.spec.ts` adds and deletes, and checks badges a
+     * second running promotion would also draw. Desktop only; every spec here
+     * either is, or writes what the phone run would read twice. If a spec in
+     * the projects before them fails, these are reported as not run.
      */
     {
       name: "after",
       use: { ...devices["Desktop Chrome"] },
       testMatch: SHOP_WIDE,
       dependencies: ["desktop", "mobile"],
+      workers: 1,
+    },
+    /*
+     * Last and alone: the database is taken away from the server and given
+     * back, to show the sitemap stands in with its kept copy. Nothing else
+     * could run while the database is gone.
+     */
+    {
+      name: "outage",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: OUTAGE,
+      dependencies: ["after"],
+      workers: 1,
     },
   ],
 
@@ -82,6 +105,13 @@ export default defineConfig({
           ADMIN_SESSION_SECRET: "e2e-only-not-a-real-session-secret-0123456789",
           // Served at /<key>.txt for `seo-audit.spec.ts`; no spec submits anything.
           INDEXNOW_KEY: "e2e-only-indexnow-key-0123",
+          // Opens `/api/revalidate` to the specs that hold it
+          // (`sitemap-fresh.spec.ts`, `sitemap-outage.spec.ts`). Not the
+          // secret of anything.
+          REVALIDATE_SECRET: "e2e-only-revalidate-secret-not-a-real-one-0123456789",
+          // Runs against one database add up within the endpoint's ten-minute
+          // window; honoured only off a deployment (`revalidateCallLimit`).
+          REVALIDATE_RATE_LIMIT: "1000",
         },
         timeout: 120_000,
         stdout: "ignore",
