@@ -100,9 +100,18 @@ const interLatin = localFont({
  *
  * Self-hosted because `next/font/google` loads an extra axis only together
  * with the whole weight range: 167 KB of Cyrillic and Latin, against 75 KB for
- * these files and 58 KB for the three fixed weights they replace (19 October
- * 2026). They are Google Fonts' own subset files for `opsz 7..72, wght 600`,
- * under the SIL Open Font License (`fonts/OFL-Literata.txt`).
+ * Google's own subset files for `opsz 7..72, wght 600` and 58 KB for the three
+ * fixed weights they replaced (19 October 2026). Under the SIL Open Font
+ * License (`fonts/OFL-Literata.txt`).
+ *
+ * The axis is limited to 12–72, the way Inter's weight axis is below: the
+ * shop sets Literata from 13 px (a card's name on a phone) to 64 px (the hero
+ * on a desktop), measured across every page type at both widths on 20
+ * October 2026, and the masters for 7–12 px were a quarter of the files.
+ * fontTools' instancer (`varLib.instancer opsz=12:72`), every glyph, feature
+ * and name kept; every character draws the same to within half a unit of 1000
+ * at every optical size from 12 to 72. Cyrillic and Latin went from 75 to
+ * 57 KB preloaded on every page.
  *
  * One face per subset, each with its own `unicode-range`, as Google serves
  * them, so a page downloads only the subsets its text uses. `--font-display`
