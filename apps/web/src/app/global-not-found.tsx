@@ -94,7 +94,8 @@ export default async function GlobalNotFound() {
             </main>
           </>
         )}
-        <Measurement />
+        {/* On Vercel only, as in the shop's layout. */}
+        {process.env.VERCEL ? <Measurement /> : null}
       </body>
     </html>
   );

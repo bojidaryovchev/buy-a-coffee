@@ -114,7 +114,9 @@ export default async function SiteLayout({ children, params }: LayoutProps) {
         <SiteFrame navigation={navigation} dict={dict}>
           {children}
         </SiteFrame>
-        <Measurement />
+        {/* Only where the platform serves its scripts: anywhere else (`next
+            start`, the browser suite) they are two 404s in the console. */}
+        {process.env.VERCEL ? <Measurement /> : null}
         <MotionGate />
       </body>
     </html>

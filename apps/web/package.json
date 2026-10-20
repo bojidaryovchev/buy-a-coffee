@@ -22,6 +22,7 @@
     "seed:reference": "tsx scripts/seed-reference.ts",
     "reference:coverage": "tsx scripts/reference-coverage.ts",
     "measure:budgets": "tsx scripts/measure-budgets.ts",
+    "measure:lighthouse": "tsx scripts/measure-lighthouse.ts",
     "indexnow:submit": "tsx scripts/indexnow-submit.ts",
     "reference:coverage:write": "tsx scripts/reference-coverage.ts --write",
     "check:originality": "tsx scripts/check-originality.ts",
