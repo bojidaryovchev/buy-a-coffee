@@ -241,6 +241,39 @@ export interface BeanFigures {
   readonly decaf: number;
 }
 
+/* --- Pods ---------------------------------------------------------------- */
+
+/** One step of the shop's own three-step strength filter, among the pods. */
+export interface PodStrength {
+  /** `weak`, `medium` or `strong`: the key `STRENGTH_LABELS` translates. */
+  readonly key: string;
+  readonly products: number;
+  /** Price per cup across the step's pods counted by the piece; null when none is. */
+  readonly perCup: CupRange | null;
+}
+
+/**
+ * What the ESE-machine article quotes about choosing pods: how they sit on the
+ * shop's strength filter, what a cup costs on each step, and the intensity
+ * scales their makers declare on.
+ *
+ * Every price here is exact, because the article says it is: only a box whose
+ * pods are counted is priced. A box sold by weight has its cups estimated
+ * (`packServings`), and is counted in `byWeight` instead of in any range.
+ */
+export interface PodFigures {
+  /** Active products in the pod category. */
+  readonly products: number;
+  /** Price per cup across the pods counted by the piece; null when none is. */
+  readonly perCup: CupRange | null;
+  /** Priced pods whose cups are estimated from a weight, and so in no price here. */
+  readonly byWeight: number;
+  /** The steps in use, weak to strong; a step no pod is on is left out. */
+  readonly strengths: readonly PodStrength[];
+  /** The tops of the intensity scales the pods are declared on, lowest first. */
+  readonly scales: readonly number[];
+}
+
 /* --- Landing listings ---------------------------------------------------- */
 
 /**
@@ -266,6 +299,7 @@ export interface JournalFigures {
   readonly intensity: IntensityFigures | null;
   readonly composition: CompositionFigures | null;
   readonly beans: BeanFigures | null;
+  readonly pods: PodFigures | null;
   /** The landing listings an article may link to. Never null: absent is `false`. */
   readonly landings: JournalLandings;
 }
@@ -277,6 +311,7 @@ export const EMPTY_JOURNAL_FIGURES: JournalFigures = {
   intensity: null,
   composition: null,
   beans: null,
+  pods: null,
   landings: NO_JOURNAL_LANDINGS,
 };
 
@@ -661,6 +696,45 @@ function beanFigures(rows: readonly JournalCatalogRow[], currency: string): Bean
 }
 
 /**
+ * What the ESE-machine article quotes about the pods. The per-cup prices are
+ * the same priced packs every other figure uses, less any estimated from a
+ * weight, grouped by the strength step the record carries; a pod with no step
+ * is in the count and on no step.
+ */
+function podFigures(placed: readonly PlacedRow[], packs: readonly PricedPack[]): PodFigures | null {
+  const rows = placed.filter(({ system }) => system.method === "pod").map(({ row }) => row);
+  if (rows.length === 0) return null;
+
+  const podPacks = packs.filter((pack) => pack.system.method === "pod");
+  const exact = podPacks.filter((pack) => !pack.estimated);
+  const priced = new Map(exact.map((pack) => [pack.slug, pack]));
+
+  const strengths = STRENGTH_ORDER.flatMap((key): PodStrength[] => {
+    const onStep = rows.filter((row) => row.attributes.strength === key);
+    if (onStep.length === 0) return [];
+    const stepPacks = onStep.flatMap((row) => {
+      const pack = priced.get(row.slug);
+      return pack ? [pack] : [];
+    });
+    return [{ key, products: onStep.length, perCup: rangeOf(stepPacks) }];
+  });
+
+  const scales = new Set<number>();
+  for (const row of rows) {
+    const reading = parseIntensity(row.attributes.intensity);
+    if (reading) scales.add(reading.max);
+  }
+
+  return {
+    products: rows.length,
+    perCup: rangeOf(exact),
+    byWeight: podPacks.length - exact.length,
+    strengths,
+    scales: [...scales].sort((a, b) => a - b),
+  };
+}
+
+/**
  * Everything the journal quotes, from one pass over the active catalog.
  *
  * `currency` is the shop's currency; it is a parameter rather than an import
@@ -758,6 +832,7 @@ export function computeJournalFigures(
       placed.filter(({ system }) => system.method === "beans").map(({ row }) => row),
       currency,
     ),
+    pods: podFigures(placed, packs),
     landings,
   };
 }

@@ -313,6 +313,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     lead: "Кафе дози ESE: хартиените дози, които мнозина търсят и като ESE капсули или дозети. Всяка доза е 44 мм и пасва на еспресо машина с цедка за дози ESE, без мелене и без пресоване на кафето. При всяка опаковка пише колко струва една чаша, така че дозите се сравняват помежду си лесно.",
     title: "Кафе дози ESE (хартиени дози 44 мм)",
     description: "Хартиени кафе дози ESE, 44 мм, за еспресо машини с цедка за дози",
+    article: "kafemashina-za-dozi-ese",
     links: [
       { phrase: "кафе капсулите", to: listing("kafe-kapsuli", "kapsuli") },
       { phrase: "кафето на зърна", to: listing("kafe-na-zyrna", "kafe-na-zarna") },

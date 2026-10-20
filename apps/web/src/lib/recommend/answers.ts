@@ -232,7 +232,12 @@ export function parseWizardAnswers(params: RawWizardParams): WizardAnswers {
    * and should not be asked it again.
    */
   const system = BREWING_SYSTEMS.find((entry) => entry.id === answers.system);
-  return { ...answers, brew: system ? system.method : answers.brew };
+  return {
+    ...answers,
+    // A model listed under another slug before is carried forward under its current one.
+    machine: machine ? machine.model.slug : answers.machine,
+    brew: system ? system.method : answers.brew,
+  };
 }
 
 /**

@@ -395,3 +395,107 @@ describe("journal figures: beans", () => {
     expect(computeJournalFigures([row({ category: "nespresso" })], "EUR").beans).toBeNull();
   });
 });
+
+describe("journal figures: pods", () => {
+  const pods = (
+    category: string,
+    price: string,
+    pieces: string,
+    strength: string,
+    intensity?: string,
+  ) => row({ category, price, weightValue: pieces, strength, ...(intensity ? { intensity } : {}) });
+
+  const figures = computeJournalFigures(
+    [
+      pods("kafe-dozi", "7.20", "18", "weak", "7 от 9"),
+      pods("kafe-dozi", "30.00", "150", "strong", "10 от 12"),
+      pods("kafe-dozi", "36.00", "100", "strong", "9 от 10"),
+      pods("kafe-dozi", "13.50", "50", "medium", "8 от 10"),
+      // A pod with no step and no readable intensity: counted, on no step.
+      row({ category: "kafe-dozi", price: "10.00", weightValue: "25", strength: "" }),
+      // Capsules on the same steps must not leak into the pod figures.
+      pods("nespresso", "1.00", "10", "weak", "3 от 13"),
+    ],
+    "EUR",
+  );
+
+  it("counts the pods and only the pods", () => {
+    expect(figures.pods?.products).toBe(5);
+  });
+
+  it("puts them on the shop's steps, weak to strong, with an exact price per cup on each", () => {
+    expect(
+      figures.pods?.strengths.map((step) => ({
+        key: step.key,
+        products: step.products,
+        count: step.perCup?.count,
+        cheapest: plain(step.perCup?.cheapest.perCup ?? ""),
+        dearest: plain(step.perCup?.dearest.perCup ?? ""),
+      })),
+    ).toEqual([
+      { key: "weak", products: 1, count: 1, cheapest: "0,40 €", dearest: "0,40 €" },
+      { key: "medium", products: 1, count: 1, cheapest: "0,27 €", dearest: "0,27 €" },
+      { key: "strong", products: 2, count: 2, cheapest: "0,20 €", dearest: "0,36 €" },
+    ]);
+    // Counted by the piece: no estimate anywhere.
+    for (const step of figures.pods?.strengths ?? []) {
+      expect(step.perCup?.cheapest.estimated).toBe(false);
+      expect(step.perCup?.dearest.estimated).toBe(false);
+    }
+  });
+
+  it("lists the intensity scales the pods declare on, lowest first", () => {
+    expect(figures.pods?.scales).toEqual([9, 10, 12]);
+  });
+
+  it("gives one exact range over every pod counted by the piece", () => {
+    const range = figures.pods?.perCup;
+    expect(range?.count).toBe(5);
+    expect(plain(range?.cheapest.perCup ?? "")).toBe("0,20 €");
+    expect(plain(range?.dearest.perCup ?? "")).toBe("0,40 €");
+    expect(figures.pods?.byWeight).toBe(0);
+  });
+
+  /* A box listed by weight has its cups estimated, so it is in no exact price. */
+  it("leaves a pod sold by weight out of every price, and counts it", () => {
+    const weighed = computeJournalFigures(
+      [
+        pods("kafe-dozi", "13.50", "50", "medium"),
+        row({
+          category: "kafe-dozi",
+          price: "10.00",
+          weightValue: "250",
+          weightUnit: "g",
+          strength: "medium",
+        }),
+      ],
+      "EUR",
+    );
+    // The cup-cost figures still carry it, marked as an estimate…
+    const all = weighed.cupCost?.byMethod.pod;
+    expect(all?.count).toBe(2);
+    expect([all?.cheapest.estimated, all?.dearest.estimated]).toContain(true);
+    // …the pod figures do not.
+    expect(weighed.pods?.products).toBe(2);
+    expect(weighed.pods?.byWeight).toBe(1);
+    expect(weighed.pods?.perCup?.count).toBe(1);
+    expect(weighed.pods?.perCup?.cheapest.estimated).toBe(false);
+    expect(weighed.pods?.strengths).toHaveLength(1);
+    expect(weighed.pods?.strengths[0]?.products).toBe(2);
+    expect(weighed.pods?.strengths[0]?.perCup?.count).toBe(1);
+    expect(plain(weighed.pods?.perCup?.cheapest.perCup ?? "")).not.toContain("≈");
+  });
+
+  it("leaves a step with no priced pod without a price", () => {
+    const unpriced = computeJournalFigures(
+      [row({ category: "kafe-dozi", price: null, weightValue: "50", strength: "medium" })],
+      "EUR",
+    );
+    expect(unpriced.pods?.strengths).toEqual([{ key: "medium", products: 1, perCup: null }]);
+  });
+
+  it("is absent when the catalog holds no pods", () => {
+    expect(computeJournalFigures([row({ category: "nespresso" })], "EUR").pods).toBeNull();
+    expect(EMPTY_JOURNAL_FIGURES.pods).toBeNull();
+  });
+});

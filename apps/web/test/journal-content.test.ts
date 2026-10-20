@@ -5,6 +5,7 @@ import { ARTICLES } from "../content/journal";
 import { ARABICA_ROBUSTA_SLUG } from "../content/journal/articles/arabica-robusta";
 import { CHOOSE_BEANS_SLUG } from "../content/journal/articles/choose-beans";
 import { CUP_COST_SLUG } from "../content/journal/articles/cup-cost";
+import { ESE_MACHINE_SLUG } from "../content/journal/articles/ese-machine";
 import { FORMATS_SLUG } from "../content/journal/articles/formats";
 import { WHICH_CAPSULE_SLUG } from "../content/journal/articles/which-capsule";
 import type { Block, Inline } from "../content/journal/blocks";
@@ -241,11 +242,19 @@ describe("journal: the set of articles", () => {
   });
 
   it("leads with the articles that answer a measured query", () => {
+    // The newest first: the ESE-machine guide (research 09, T2.3), then the
+    // two launch articles with the most demand behind them.
     expect(listArticles({ limit: 3 }).map((article) => article.slug)).toEqual([
+      ESE_MACHINE_SLUG,
       WHICH_CAPSULE_SLUG,
       CHOOSE_BEANS_SLUG,
-      ARABICA_ROBUSTA_SLUG,
     ]);
+    // The launch articles keep their written order among themselves.
+    expect(
+      listArticles()
+        .slice(1, 4)
+        .map((article) => article.slug),
+    ).toEqual([WHICH_CAPSULE_SLUG, CHOOSE_BEANS_SLUG, ARABICA_ROBUSTA_SLUG]);
   });
 
   it("gives every listing a canonical href under the journal", () => {

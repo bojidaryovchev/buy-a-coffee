@@ -93,6 +93,7 @@ term but must not carry it in its title or H1.
 | `za-kafemashina/<brand>`        | `капсули за <brand>` long tail; for Tchibo `tchibo cafissimo` 480                                                            | `tchibo капсули` 390, `капсули чибо` 320, `кафе капсули чибо` 210, `cafissimo капсули` 170                                                      | Caffitaly page                                 |
 | `kafe-za-vending-mashini`       | `кафе за вендинг машини` 90                                                                                                  | `кафе за вендинг` 50, `кафе за вендинг автомати` 50, `вендинг кафе` 40                                                                          | —                                              |
 | `blog/vidove-kapsuli-za-kafe`   | `видове капсули за кафе` 390                                                                                                 | `видове капсули за кафе долче густо` 170, `видове капсули долче густо` 70                                                                       | capsule parent                                 |
+| `blog/kafemashina-za-dozi-ese`  | `кафемашина за хартиени дози` 260                                                                                            | `кафемашина с хартиени дози` 210, `кафемашина с филтър дози` 140                                                                                | `kafe-dozi` (the article ends there)           |
 | Product `/<slug>`               | the product line, e.g. `lavazza super crema` 260, `lavazza crema e aroma` 720                                                | `<line> <format>`                                                                                                                               | another product with the same name (§6.1)      |
 
 ---
@@ -895,6 +896,46 @@ held with the rest by `apps/web/test/keyword-map.test.ts`.
   pages that compete for one search (§13.5, §13.7), and this one competes with
   none. It also keeps the held-back pages of T1.1's staged comparison
   unchanged but for the footer, which reaches every page alike.
+
+### The ESE-machine guide (20 October 2026)
+
+Research `09`, T2.3: an article at `/bg/blog/kafemashina-za-dozi-ese` for
+`кафемашина за хартиени дози` 260, `кафемашина с хартиени дози` 210 and
+`кафемашина с филтър дози` 140, measured for that research and not in §2. It
+owns the first in §1 (the row above was added with it). It says what an ESE pod
+is from the E.S.E. Consortium's page on the standard
+(<https://eseconsortium.com/standard>), names only the machines the machine
+database lists for pods, quotes every count and price from the catalog
+(`pods` in `apps/web/src/lib/catalog/journal-figures.ts`, which prices only
+boxes whose pods are counted), and ends at `kafe-dozi`, which now links it as
+its one article (`article` in `apps/web/content/category-copy.ts`; §13.4).
+
+What it changes in the link graph, for whoever reads Milestone 1's
+measurement. `kafe-dozi` is a stage-1 page of T1.1, so each of these is a
+change around a treated page during its measurement window:
+
+- **Links into `kafe-dozi`:** three from the article itself (the machine list,
+  the closing sentence and the button), and the article in turn is linked from
+  the home page and from „Още от блога“ under each of the six other articles.
+- **A link out of `kafe-dozi`:** the article, in the introduction under the
+  products. The listing's title, `h1` and lead are unchanged.
+- **The home page:** its three journal places go to the newest articles, so
+  this one takes the first and „Арабика и робуста“ leaves the home page. That
+  article links the capsule hub, a held-back page, so the hub loses a link at
+  two removes from the home page.
+
+Written with it, and live wherever `apps/web/src/content/machines.ts` is: the
+illy X7.1 was listed for ESE pods („X7.1 (версия за дози)“) with no source.
+illy makes it for its Iperespresso capsules only, and publishes no E.S.E.
+version, so it is now „X7.1 Iperespresso“, among the machines nothing here
+fits. It leaves the pods group of `za-kafemashina/illy` and the „Става за тези
+машини“ list on every pod's product page. Its old slug, `illy-x7-ese`, now
+names the Iperespresso machine, so an old wizard link that pairs it with the
+pod system is a contradiction and recommends nothing. In its place in the pods
+group is illy's own pod machine, the Easy, which illy's page lists for E.S.E.
+pods, put in from the top with no portafilter. Which pod machines also brew
+ground coffee is a field of the database now (`alsoGround`, sourced from the
+maker's page or the model's own entry), not a sentence of the article.
 
 ### Deliberate deviations
 

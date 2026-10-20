@@ -187,15 +187,26 @@ describe("the content as it is", () => {
     for (const p of pieces) expect(p.text.trim().length, p.id).toBeGreaterThan(100);
   });
 
-  it("shares no long run of words with the source, and repeats nothing", async () => {
-    const snapshot = await loadReferenceSnapshot();
-    expect(snapshot, "reference/latest must be committed").not.toBeNull();
-    const sources = sourceTexts(snapshot!.products, await loadReferencePages());
-    expect(sources.length).toBeGreaterThan(100);
+  /*
+   * Every piece against every source text and every other piece: about four
+   * seconds alone, and each article adds to it. The root config allows every
+   * test thirty seconds (`TIMEOUTS` in `vitest.shared.ts`); said here as well,
+   * so a run from this directory, under its own config, does not fail it on
+   * Vitest's five-second default.
+   */
+  it(
+    "shares no long run of words with the source, and repeats nothing",
+    { timeout: 30_000 },
+    async () => {
+      const snapshot = await loadReferenceSnapshot();
+      expect(snapshot, "reference/latest must be committed").not.toBeNull();
+      const sources = sourceTexts(snapshot!.products, await loadReferencePages());
+      expect(sources.length).toBeGreaterThan(100);
 
-    const audit = auditOwnContent([...pieces, ...productCopyPieces()], sources);
-    expect(audit.findings).toEqual([]);
-  });
+      const audit = auditOwnContent([...pieces, ...productCopyPieces()], sources);
+      expect(audit.findings).toEqual([]);
+    },
+  );
 
   it("uses the snapshot's product descriptions and page meta descriptions, and says what it lacks", async () => {
     const snapshot = await loadReferenceSnapshot();

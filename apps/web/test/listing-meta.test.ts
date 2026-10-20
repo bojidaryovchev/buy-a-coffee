@@ -3,6 +3,7 @@ import { brandFacts, brandFactsFor } from "../content/brand-facts";
 import { brandDisplayNames } from "../content/brand-names";
 import { categoryCopy, categoryNameFor, segmentParagraph } from "../content/category-copy";
 import { CHOOSE_BEANS_SLUG } from "../content/journal/articles/choose-beans";
+import { ESE_MACHINE_SLUG } from "../content/journal/articles/ese-machine";
 import { WHICH_CAPSULE_SLUG } from "../content/journal/articles/which-capsule";
 import { vendingCopy } from "../content/vending";
 import { siteConfig } from "@/config/site";
@@ -463,10 +464,12 @@ describe("links in category introductions", () => {
   /* §13.4: at most one article per listing, and only one that exists. */
   it("points a listing at an article the journal really has", () => {
     const withArticle = Object.entries(categoryCopy).filter(([, copy]) => copy.article);
-    // Capsule parent → capsule types; beans → how to choose beans.
+    // Capsule parent → capsule types; beans → how to choose beans; pods → the
+    // machine for pods.
     expect(withArticle.map(([sourceKey, copy]) => [sourceKey, copy.article])).toEqual([
       ["kafe-na-zyrna", CHOOSE_BEANS_SLUG],
       ["kafe-kapsuli", WHICH_CAPSULE_SLUG],
+      ["kafe-dozi", ESE_MACHINE_SLUG],
     ]);
     for (const [sourceKey, copy] of withArticle) {
       expect(getArticle(copy.article), sourceKey).not.toBeNull();
