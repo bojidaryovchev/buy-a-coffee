@@ -263,19 +263,42 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
         : []),
       "Подреждането е само по цена — за вкуса не казва нищо.",
     ],
+    /* In the searched words: „евтини капсули dolce gusto“, „евтини капсули
+       неспресо“, „евтино кафе на зърна“ (research 09, T1.2), with the
+       Cyrillic spelling where most people type it. */
     groupHeading: (system) => {
-      if (system.method === "capsule") return `Капсули за ${system.name}`;
-      return system.method === "pod" ? "Дози ESE" : "Кафе на зърна";
+      if (system.method === "capsule")
+        return `Най-евтини капсули за ${CHEAPEST_SYSTEM_NAMES[system.id] ?? system.name}`;
+      return system.method === "pod"
+        ? "Най-евтини дози ESE"
+        : "Най-евтино кафе на зърна — цена за кг";
     },
     llms: "Продуктите с най-ниска цена на чаша във всяка система.",
   },
 };
 
-/** Under a group's heading on the cheapest-per-cup page: what was chosen, out of what. */
-export function cheapestGroupNote(shown: number, poolSize: number): string {
-  return shown < poolSize
-    ? `${pluralize(shown, "продукт", "продукта")} с най-ниска цена на чаша от общо ${poolSize} в тази система.`
-    : `Това е всичко в тази система: ${pluralize(shown, "продукт", "продукта")}, от най-ниската цена на чаша.`;
+/** A system's name on the cheapest page's headings, where the Cyrillic is typed as often. */
+const CHEAPEST_SYSTEM_NAMES: Partial<Record<string, string>> = {
+  "dolce-gusto": "Dolce Gusto (Долче Густо)",
+  "nespresso-original": "Nespresso (Неспресо)",
+};
+
+/**
+ * Under a group's heading on the cheapest-per-cup page: the lowest price it
+ * lists, per cup and (for beans) per kilogram, then what was chosen, out of
+ * what. Both prices are the ones printed on the cards below, already formatted.
+ */
+export function cheapestGroupNote(
+  shown: number,
+  poolSize: number,
+  lowest: { readonly perCup?: string | null; readonly perKg?: string | null } = {},
+): string {
+  const prices = [lowest.perCup, lowest.perKg].filter(Boolean).join(", ");
+  const chosen =
+    shown < poolSize
+      ? `${pluralize(shown, "продукт", "продукта")} с най-ниска цена на чаша от общо ${poolSize} в тази система.`
+      : `Това е всичко в тази система: ${pluralize(shown, "продукт", "продукта")}, от най-ниската цена на чаша.`;
+  return prices ? `Най-ниската цена: ${prices}. ${chosen}` : chosen;
 }
 
 /** Which machine brands our own list holds models of, for one system. */

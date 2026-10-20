@@ -30,6 +30,7 @@ import {
   landingCopy,
   machineBrandCopy,
   machineBrandFeatures,
+  machineOwnSystemCopy,
   relatedCopy,
   type LandingFacts,
 } from "../content/landing-copy";
@@ -589,9 +590,13 @@ describe("the copy", () => {
 
   it("titles the machine pages: Tchibo for Cafissimo, the rest generically", () => {
     expect(machineBrandFeatures.tchibo?.title).toBe(
-      "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
+      "Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly",
     );
     expect(machineBrandFeatures.tchibo?.h1).toBe("Капсули за Tchibo Cafissimo");
+    // K-fee is its own system: nothing here fits it, and the title says so.
+    expect(machineOwnSystemCopy["k-fee"]?.title).toBe(
+      "Кафемашини K-fee — собствена система капсули, не Caffitaly",
+    );
     expect(machineBrandCopy.title("Krups", true)).toBe(
       "Капсули и кафе за кафемашини Krups — какво пасва",
     );
