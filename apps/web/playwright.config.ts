@@ -56,8 +56,9 @@ export default defineConfig({
          * notice instead, and a spec that checks the redirect would pass or
          * fail on whatever the machine's `.env.local` happened to hold. These
          * throwaway values make the gate's behaviour part of the test setup.
-         * They exist only for the server this config starts, no spec signs in
-         * with them, and they are not the password of anything.
+         * They exist only for the server this config starts, and they are not
+         * the password of anything; `promotions.spec.ts` signs in with this one
+         * to drive the panel.
          */
         env: {
           ADMIN_PASSWORD: "e2e-only-not-a-real-password",
