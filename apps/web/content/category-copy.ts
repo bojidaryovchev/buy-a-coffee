@@ -188,7 +188,8 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     ],
     sections: {
       /* Italian is what `content/brand-facts.ts` records, by the one standard
-         written there: Rema Caffè and Molini are not, and where a coffee is
+         written there (`isItalianBrand`): Rema Caffè and Molini are not,
+         Vandino is not until its company is confirmed, and where a coffee is
          roasted does not make its brand Italian. One pack per brand, the
          brands by name (`beans-sections.ts`). */
       italian: {

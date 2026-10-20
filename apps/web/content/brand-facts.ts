@@ -27,13 +27,18 @@ import { brandKeyBySlug } from "./brand-names";
  *     - `Company:` it names the Italian company that makes it, or that
  *       company's Italian registration;
  *     - `Town:` it prints the Italian town the house belongs to;
- *     - `Own words:` it calls the brand Italian in so many words;
+ *     - `Own words:` it calls the brand Italian in so many words, and the
+ *       site shows no sign of a label run from elsewhere;
  *     - `Own site:` the brand's own site is an Italian site, on an Italian
  *       domain — the weakest of the four, and the only evidence recorded for
  *       Lollo Caffè and Foodness.
  *    Two things do not count on their own: a name that sounds Italian (Rema
  *    Caffè's own site says its coffee is made in Plovdiv), and where the
  *    coffee was roasted or packed, which a label owned anywhere can print.
+ *  - `italianUnconfirmed` holds a brand that calls itself Italian but does
+ *    not meet the standard yet — no company recorded, and signs of a label
+ *    run from elsewhere — with what was found and where. Such a brand is
+ *    called Italian nowhere (`isItalianBrand`), and an entry never has both.
  *    The evidence was checked on 9 and 16 October 2026 against the sites the
  *    logo provenance record names (`brand-logo-provenance.ts`), whose
  *    packaging checks are also where the packs' wording is recorded. It was
@@ -56,11 +61,11 @@ import { brandKeyBySlug } from "./brand-names";
  * is not established that it makes them. **Amann** and **Julius Meinl** have
  * not been checked and have no entry, so neither is called Italian.
  *
- * **Vandino** is entered on its own site's words alone. Its company is not
- * recorded here — vandinocaffe.com was read for the brand's description and
- * its logo, not for an imprint — and nothing found ties the label to a company
- * outside Italy. Recording the company, as Molini's is recorded, would make it
- * a `Company:` entry, or take it out.
+ * **Vandino** is held as unconfirmed: its own site calls it Italian but names
+ * no company, and the review of 20 October 2026 found the pattern Molini shows
+ * (its entry has the findings). It is not called Italian anywhere, the brand
+ * index included, until its company is confirmed; then it becomes a
+ * `Company:` entry, or stays out.
  *
  * Checked on 16 October 2026 for the three brands the sync added that day, and
  * entered below: **Moreno** (`cafe-moreno`, reached from its stored slug
@@ -73,6 +78,11 @@ export interface BrandFacts {
   readonly cyrillic?: string;
   /** Why we say the brand is Italian. Absent: we do not say it. */
   readonly italian?: string;
+  /**
+   * Why a brand that calls itself Italian is not called Italian yet: what was
+   * found, and where. Never set beside `italian`.
+   */
+  readonly italianUnconfirmed?: string;
   /**
    * Formats this brand has a page of its own for (`docs/seo.md` §8). Those
    * pages own „<brand> капсули“ and „<brand> на зърна“, so the brand page's
@@ -126,8 +136,8 @@ export const brandFacts: Readonly<Record<string, BrandFacts>> = {
       "Company: ristora.it: a brand of Prontofoods S.p.A., Montichiari (Brescia); the Bulgarian label names it as the maker, in Italy.",
   },
   vandino: {
-    italian:
-      "Own words: vandinocaffe.com calls it an Italian coffee brand; that it is produced and packed in Italy, as the site also says, would not count on its own.",
+    italianUnconfirmed:
+      "Its own site, vandinocaffe.com (the home page and the Espresso Bar page), calls it „италианска марка кафе“, but names no company (no imprint), has no Italian-language version (Bulgarian, English, Greek, Russian and Serbian only) and was made by a Bulgarian web studio; a Bulgarian distributor sells it (a zagatto.com listing). That is the Molini pattern. Found by the integrated review of 20 October 2026 and not re-checked here; Italian once its company is confirmed.",
   },
   vergnano: {
     italian: "Company: caffevergnano.com: Caffè Vergnano, an Italian roaster since 1882.",
@@ -145,4 +155,14 @@ const NO_FACTS: BrandFacts = {};
 export function brandFactsFor(brand: { readonly slug: string }): BrandFacts {
   const key = brandKeyBySlug[brand.slug] ?? brand.slug;
   return FACTS.get(lookupKey(key)) ?? NO_FACTS;
+}
+
+/**
+ * Whether the shop calls a brand Italian: recorded as Italian with its
+ * evidence, and not held as unconfirmed. The one question the brand index's
+ * sentence and the beans listing's Italian section both ask.
+ */
+export function isItalianBrand(brand: { readonly slug: string }): boolean {
+  const facts = brandFactsFor(brand);
+  return facts.italian !== undefined && facts.italianUnconfirmed === undefined;
 }

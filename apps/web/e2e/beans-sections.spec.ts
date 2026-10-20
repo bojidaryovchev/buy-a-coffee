@@ -77,6 +77,8 @@ test.describe("the beans listing's sections by use", () => {
     expect(firstWords).toEqual(
       [...firstWords].sort((a, b) => a.localeCompare(b, "bg", { sensitivity: "base" })),
     );
+    // Held as unconfirmed in brand-facts.ts until its company is known (20 October 2026).
+    expect(firstWords).not.toContain("Vandino");
   });
 
   test("list no products for the automatic machine, and send vending to its page", async ({

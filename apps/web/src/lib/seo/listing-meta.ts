@@ -1,4 +1,4 @@
-import { brandFactsFor } from "../../../content/brand-facts";
+import { brandFactsFor, isItalianBrand } from "../../../content/brand-facts";
 import { categoryCopyFor } from "../../../content/category-copy";
 import { CALLBACK_SENTENCE } from "../../../content/order-callback";
 import { fill } from "@/i18n/fill";
@@ -242,14 +242,15 @@ export function brandMakes(systems: readonly BrewingSystem[], instant = false): 
  * The brand index's introduction, from the brands in stock.
  *
  * Two sentences at most. The count is the number of brands handed in. The
- * Italian ones are those `brand-facts.ts` records as Italian with its evidence,
- * and the sentence says „сред тях са“, so a brand whose country nobody has
- * checked is simply not named rather than implied to be something else.
+ * Italian ones are those `brand-facts.ts` records as Italian with its evidence
+ * and does not hold as unconfirmed (`isItalianBrand`), and the sentence says
+ * „сред тях са“, so a brand whose country nobody has checked, or has not yet
+ * confirmed, is simply not named rather than implied to be something else.
  */
 export function brandsIndexIntro(brands: readonly BrandNaming[]): string | null {
   if (brands.length === 0) return null;
   const count = `${brands.length} ${brands.length === 1 ? "марка" : "марки"} кафе`;
-  const italian = brands.filter((brand) => brandFactsFor(brand).italian).map((b) => b.name);
+  const italian = brands.filter(isItalianBrand).map((b) => b.name);
   const first =
     italian.length === 0
       ? `В момента предлагаме ${count}.`
