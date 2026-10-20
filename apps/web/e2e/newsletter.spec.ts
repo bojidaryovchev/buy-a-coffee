@@ -1,9 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { asDistinctVisitor, waitForHydration } from "./support/hydration";
+import { waitForHydration } from "./support/hydration";
 import { BG } from "./support/paths";
 import {
   ENHANCEMENT_MARKER,
   LIBRARY_MARKERS,
+  asNewVisitor,
   holdTheCheck,
   newsletterBand,
 } from "./support/newsletter";
@@ -18,13 +19,16 @@ import {
  * (`components/forms/newsletter-form.tsx`). What these prove, with the
  * network as the evidence rather than a clock:
  *
- *   - the home page's own scripts carry neither library, and the takeover's
- *     script is asked for only once the band is scrolled near;
+ *   - the home page, left alone for three seconds after its load, fetches no
+ *     script with either library in it, its own or a prefetched page's, and
+ *     the takeover's script is asked for only once the band is scrolled near;
  *   - what is typed before the check arrives is still there after it, in the
  *     same field, with the focus and the caret where they were, nothing on
  *     the page moves, and it is sent;
- *   - a press before the check arrives is answered by the server, and that
- *     answer is still the one on the screen after the takeover.
+ *   - a press before the check arrives is refused by the plain form if the
+ *     field is empty, without a request, and otherwise answered by the
+ *     server; that answer is still the one on the screen after the takeover,
+ *     and goes as the field is put right.
  *
  * Without JavaScript the form is unchanged: `frame.spec.ts` subscribes and
  * `forms.spec.ts` is refused, both with scripts off. The browser's check once
@@ -98,7 +102,14 @@ async function watchShifts(page: Page): Promise<() => Promise<number>> {
 }
 
 test.describe("the newsletter band's check", () => {
-  test("is not in the home page's scripts, and is fetched only as the band nears the screen", async ({
+  /* A script asked for as a test ends (a prefetch of a link that has come into
+     view) can still be in `holdTheCheck`'s handler when the page closes;
+     letting it go quietly keeps a finished test from failing on it. */
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  });
+
+  test("is not loaded by the home page, idle, at all; only as the band nears the screen", async ({
     page,
     request,
   }) => {
@@ -107,10 +118,10 @@ test.describe("the newsletter band's check", () => {
     page.on("request", (sent) => {
       if (sent.resourceType() === "script") scripts.push({ url: sent.url(), scrolled });
     });
-    const response = await page.goto(BG.home);
-    const html = await response!.text();
-    await waitForHydration(page);
-    await page.waitForLoadState("networkidle");
+    await page.goto(BG.home);
+    // Three seconds of a page left alone after its load: no scroll, no input.
+    // Prefetches of the links on the screen happen in this time.
+    await page.waitForTimeout(3000);
     const text = async (url: string) => (await request.get(url)).text();
 
     // Far enough down that only scrolling brings it near: more than the
@@ -119,16 +130,16 @@ test.describe("the newsletter band's check", () => {
     const top = await newsletterBand(page).evaluate((band) => band.getBoundingClientRect().top);
     expect(top).toBeGreaterThan(viewport.height * 2.5);
 
-    // The document's own scripts, which the page waits for: neither library.
-    const own = new Set([...html.matchAll(/\/_next\/static\/[^"'\s\\]+?\.js/g)].map((m) => m[0]));
-    expect(own.size).toBeGreaterThan(0);
-    for (const path of own) {
-      const body = await text(path);
-      expect(body, path).not.toContain(LIBRARY_MARKERS["react-hook-form"]);
-      expect(body, path).not.toContain(LIBRARY_MARKERS.zod);
+    // Every script fetched so far, the document's own and whatever came after:
+    // neither library, and not the takeover.
+    const idle = scripts.filter((script) => !script.scrolled);
+    expect(idle.length).toBeGreaterThan(0);
+    for (const { url } of idle) {
+      const body = await text(url);
+      expect(body, url).not.toContain(LIBRARY_MARKERS["react-hook-form"]);
+      expect(body, url).not.toContain(LIBRARY_MARKERS.zod);
+      expect(body, url).not.toContain(ENHANCEMENT_MARKER);
     }
-    // Nothing has asked for the takeover.
-    for (const { url } of scripts) expect(await text(url), url).not.toContain(ENHANCEMENT_MARKER);
     await expect(enhanced(page)).toHaveCount(0);
 
     scrolled = true;
@@ -138,12 +149,13 @@ test.describe("the newsletter band's check", () => {
       scripts.filter((script) => script.scrolled).map((script) => text(script.url)),
     );
     expect(fetched.some((body) => body.includes(ENHANCEMENT_MARKER))).toBe(true);
+    expect(fetched.some((body) => body.includes(LIBRARY_MARKERS["react-hook-form"]))).toBe(true);
   });
 
   test("keeps what was typed before it arrived — the same field, focus and caret — and sends it", async ({
     page,
   }) => {
-    await asDistinctVisitor(page);
+    await asNewVisitor(page);
     const hold = await holdTheCheck(page);
     await page.goto(BG.delivery);
     await waitForHydration(page);
@@ -182,14 +194,19 @@ test.describe("the newsletter band's check", () => {
   test("answers a press made before it arrived from the server, and leaves that answer as it was", async ({
     page,
   }) => {
-    await asDistinctVisitor(page);
+    await asNewVisitor(page);
     const hold = await holdTheCheck(page);
     await page.goto(BG.delivery);
     await waitForHydration(page);
     const sent = countActions(page);
 
-    await email(page).fill("ivan@example");
+    // An empty field the plain form refuses itself: no request, no try spent.
+    await email(page).press("Enter");
     await hold.requested;
+    await expectError(email(page), EMAIL_MISSING);
+    expect(sent()).toBe(0);
+
+    await email(page).fill("ivan@example");
     await email(page).press("Enter");
     // The plain form sent it, and the server's message is under the field.
     await expectError(email(page), EMAIL_FORMAT);
@@ -207,7 +224,9 @@ test.describe("the newsletter band's check", () => {
     expect(await shifts()).toBe(0);
     await expect(email(page)).toBeFocused();
 
-    // From now on the browser checks first, and sends nothing until it passes.
+    // From now on the browser checks, and the refusal goes as it is put right.
+    await email(page).fill("ivan@example.com");
+    await expect(email(page)).not.toHaveAttribute("aria-invalid", "true");
     await email(page).fill("");
     await email(page).press("Enter");
     await expectError(email(page), EMAIL_MISSING);

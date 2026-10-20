@@ -2,7 +2,13 @@
 import { createElement } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CHECK_EMAIL_MESSAGE, EMAIL_MESSAGES, type FormState } from "@/lib/forms/schemas";
+import {
+  CHECK_EMAIL_MESSAGE,
+  EMAIL_MESSAGES,
+  newsletterSchema,
+  toFieldErrors,
+  type FormState,
+} from "@/lib/forms/schemas";
 
 /*
  * The newsletter band's form, which every page gets without its check: a
@@ -10,8 +16,10 @@ import { CHECK_EMAIL_MESSAGE, EMAIL_MESSAGES, type FormState } from "@/lib/forms
  * (`components/forms/newsletter-form.tsx`). What the takeover must not do —
  * replace the field, lose what was typed, move focus, change what is on the
  * screen, happen while a press is on its way — is checked here, on the
- * elements themselves; `e2e/newsletter.spec.ts` checks the same in a browser,
- * with the network. The check itself, once in, is `form-validation.test.ts`.
+ * elements themselves; `newsletter-form-arrival.test.ts` picks the moment the
+ * check arrives, or makes it never arrive, and `e2e/newsletter.spec.ts`
+ * checks the same in a browser, with the network. The check itself, once in,
+ * is `form-validation.test.ts`.
  */
 
 const actions = vi.hoisted(() => ({ subscribeToNewsletter: vi.fn() }));
@@ -21,7 +29,7 @@ const analytics = vi.hoisted(() => ({ track: vi.fn() }));
 vi.mock("@/lib/analytics", () => analytics);
 
 import { AnalyticsProvider } from "@/components/analytics-provider";
-import { APPROACH_MARGIN, NewsletterForm } from "@/components/forms/newsletter-form";
+import { APPROACH_MARGIN, NewsletterForm, emailProblem } from "@/components/forms/newsletter-form";
 
 /** An IntersectionObserver the test moves: jsdom has none, and nothing scrolls. */
 class FakeObserver {
@@ -60,12 +68,6 @@ const BAD_ADDRESS: FormState = {
   fieldErrors: { email: EMAIL_MESSAGES.format },
   values: { email: "ivan@example" },
 };
-const FORGED_SOURCE: FormState = {
-  status: "error",
-  message: CHECK_EMAIL_MESSAGE,
-  fieldErrors: { source: "Презаредете страницата и опитайте отново." },
-};
-
 /* An answer a test holds back. Settled after every test whatever happened:
    React keeps one async action pending at a time across the whole page, and
    one left hanging would hold every later test's answer too. */
@@ -99,8 +101,6 @@ function drawForm() {
 const field = () => screen.getByLabelText("Имейл адрес") as HTMLInputElement;
 const formOf = (element: Element) => element.closest("form") as HTMLFormElement;
 const enhanced = () => formOf(field()).hasAttribute("data-enhanced");
-/** The form as drawn, without the one attribute that tells the two apart. */
-const drawn = () => formOf(field()).outerHTML.replace(' data-enhanced=""', "");
 
 /** The form's button, by what it is rather than what it says: its label changes while it sends. */
 const button = () =>
@@ -140,9 +140,63 @@ describe("before the check is fetched", () => {
     expect(enhanced()).toBe(false);
   });
 
+  it("refuses an empty or a plainly broken address itself, in the schema's words", async () => {
+    drawForm();
+    await press();
+    expect(actions.subscribeToNewsletter).not.toHaveBeenCalled();
+    expect(field().getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText(EMAIL_MESSAGES.missing).id).toBe(`${field().id}-error`);
+    expect(document.activeElement).toBe(field());
+    expect(enhanced()).toBe(false);
+
+    // It re-checks as the field is corrected, as the check would.
+    fireEvent.change(field(), { target: { value: "ivan" } });
+    expect(screen.getByText(EMAIL_MESSAGES.format)).toBeTruthy();
+    fireEvent.change(field(), { target: { value: "ivan@example.com" } });
+    expect(field().getAttribute("aria-invalid")).toBeNull();
+    expect(screen.queryByText(EMAIL_MESSAGES.format)).toBeNull();
+
+    fireEvent.change(field(), { target: { value: "ivan@" } });
+    await press();
+    expect(screen.getByText(EMAIL_MESSAGES.format)).toBeTruthy();
+    expect(actions.subscribeToNewsletter).not.toHaveBeenCalled();
+  });
+
+  it("says what the schema says of anything it refuses, so the two cannot differ", () => {
+    for (const value of ["", "   ", "ivan", "ivan@", "@example.com", `${"x".repeat(300)}`]) {
+      const parsed = newsletterSchema.safeParse({ email: value });
+      expect(parsed.success, value).toBe(false);
+      expect(emailProblem(value), value).toBe(toFieldErrors(parsed.error!).email);
+    }
+    // What it lets through, the server and the check judge in full.
+    expect(emailProblem("ivan@example")).toBeUndefined();
+  });
+
+  it("clears an old answer from under the field while a press is on its way", async () => {
+    actions.subscribeToNewsletter.mockResolvedValueOnce(BAD_ADDRESS);
+    drawForm();
+    fireEvent.change(field(), { target: { value: "ivan@example" } });
+    await press();
+    await waitFor(() => expect(screen.getByText(EMAIL_MESSAGES.format)).toBeTruthy());
+
+    actions.subscribeToNewsletter.mockImplementation(
+      () => new Promise<FormState>((resolve) => (release = resolve)),
+    );
+    fireEvent.change(field(), { target: { value: "ivan@example.com" } });
+    await press();
+    expect(button().disabled).toBe(true);
+    expect(screen.queryByText(EMAIL_MESSAGES.format)).toBeNull();
+    expect(field().getAttribute("aria-invalid")).toBeNull();
+
+    await act(async () => release(RATE_LIMITED));
+    await waitFor(() => expect(screen.getByText(RATE_LIMITED.message)).toBeTruthy());
+  });
+
   it("is not fetched while the form is far from the screen and untouched", async () => {
     vi.stubGlobal("IntersectionObserver", FakeObserver);
     drawForm();
+    // The page has loaded (jsdom's has); nearness is watched after a pause.
+    await waitFor(() => expect(FakeObserver.made).toHaveLength(1));
     const [observer] = FakeObserver.made;
     expect(observer?.targets).toEqual([formOf(field())]);
     expect(observer?.options?.rootMargin).toBe(APPROACH_MARGIN);
@@ -155,6 +209,37 @@ describe("before the check is fetched", () => {
     await waitFor(() => expect(enhanced()).toBe(true));
     // Asked once: the observer is done with.
     expect(observer?.targets).toEqual([]);
+  });
+
+  it("watches for the band nearing only once the page has loaded, and is fetched on a touch before", async () => {
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const readyState = vi.spyOn(document, "readyState", "get").mockReturnValue("interactive");
+    try {
+      drawForm();
+      await settle();
+      await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+      expect(FakeObserver.made).toHaveLength(0);
+
+      readyState.mockReturnValue("complete");
+      act(() => void window.dispatchEvent(new Event("load")));
+      await waitFor(() => expect(FakeObserver.made).toHaveLength(1));
+      expect(enhanced()).toBe(false);
+    } finally {
+      readyState.mockRestore();
+    }
+    cleanup();
+    FakeObserver.made = [];
+
+    // A touch does not wait for the load.
+    const loading = vi.spyOn(document, "readyState", "get").mockReturnValue("interactive");
+    try {
+      drawForm();
+      fireEvent.focusIn(field());
+      await waitFor(() => expect(enhanced()).toBe(true));
+      expect(FakeObserver.made).toHaveLength(0);
+    } finally {
+      loading.mockRestore();
+    }
   });
 
   it.each([
@@ -218,31 +303,36 @@ describe("the takeover", () => {
     expect(actions.subscribeToNewsletter).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    ["a refused address", BAD_ADDRESS, EMAIL_MESSAGES.format],
-    ["a refusal of the whole request", RATE_LIMITED, RATE_LIMITED.message],
-    ["a refused hidden field", FORGED_SOURCE, CHECK_EMAIL_MESSAGE],
-  ])(
-    "leaves %s on the screen as it was, and the focus where it is",
-    async (_name, answer, line) => {
-      vi.stubGlobal("IntersectionObserver", FakeObserver);
-      actions.subscribeToNewsletter.mockResolvedValue(answer);
-      drawForm();
-      const before = field();
-      fireEvent.change(before, { target: { value: "ivan@example" } });
-      await press();
-      await waitFor(() => expect(screen.getByText(line)).toBeTruthy());
-      const shown = drawn();
-      const outside = screen.getByRole("button", { name: "Навън" });
-      act(() => outside.focus());
+  /* The takeover runs in a timer of its own and commits in it (`flushSync`):
+     without that the swap would be only scheduled, and an Enter in the gap
+     would go to the plain form. Here nothing but the timer runs: no act(),
+     which would render whatever is scheduled, and React told it is not in a
+     test, so it schedules as it does in a browser. */
+  it("commits within its own timer's task, so a press right after it is the check's", async () => {
+    const actEnvironment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    drawForm();
+    // Passes the plain form's check; the schema refuses it.
+    fireEvent.change(field(), { target: { value: "ivan@example" } });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      fireEvent.focusIn(field());
+      await vi.dynamicImportSettled();
+      for (let tick = 0; tick < 100 && vi.getTimerCount() === 0; tick += 1) await Promise.resolve();
+      expect(vi.getTimerCount()).toBe(1);
+      expect(enhanced()).toBe(false);
 
-      FakeObserver.made[0]?.report();
-      await waitFor(() => expect(enhanced()).toBe(true));
-      expect(drawn()).toBe(shown);
-      expect(field()).toBe(before);
-      expect(document.activeElement).toBe(outside);
-    },
-  );
+      vi.runOnlyPendingTimers();
+      expect(enhanced()).toBe(true);
+      fireEvent.submit(formOf(field()));
+    } finally {
+      vi.useRealTimers();
+      actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    }
+    await waitFor(() => expect(field().getAttribute("aria-invalid")).toBe("true"));
+    expect(screen.getByText(EMAIL_MESSAGES.format)).toBeTruthy();
+    expect(actions.subscribeToNewsletter).not.toHaveBeenCalled();
+  });
 
   it("does not happen after a success: there is no form left to take over", async () => {
     vi.stubGlobal("IntersectionObserver", FakeObserver);
@@ -255,7 +345,8 @@ describe("the takeover", () => {
     await press();
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Благодарим"));
 
-    FakeObserver.made[0]?.report();
+    await waitFor(() => expect(FakeObserver.made).toHaveLength(1));
+    FakeObserver.made[0]!.report();
     await settle();
     expect(screen.queryByRole("form")).toBeNull();
     expect(screen.queryByLabelText("Имейл адрес")).toBeNull();

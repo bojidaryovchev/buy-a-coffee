@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   useTransition,
+  type ChangeEvent,
   type ComponentType,
   type FormEvent,
   type RefObject,
@@ -16,7 +17,7 @@ import { useAnalytics } from "@/components/analytics-provider";
 import type { NewsletterEnhancementProps } from "@/components/forms/newsletter-enhancement";
 import { NewsletterView, type NewsletterBehaviour } from "@/components/forms/newsletter-view";
 import { subscribeToNewsletter } from "@/lib/forms/actions";
-import { IDLE_FORM_STATE, type FormState } from "@/lib/forms/form-state";
+import { EMAIL_MESSAGES, IDLE_FORM_STATE, type FormState } from "@/lib/forms/form-state";
 
 /**
  * Newsletter signup.
@@ -37,15 +38,18 @@ import { IDLE_FORM_STATE, type FormState } from "@/lib/forms/form-state";
  * script, which a phone downloads before it can paint. So the page gets this
  * module, which knows no zod, and the check comes later, in two steps:
  *
- *   - Until then the form is the plain one, driven from here: a press sends
- *     the form to the action as the browser would have posted it, and the
- *     server's answer is drawn where the browser's would be. Nothing is lost
- *     by pressing early; the server checks every address anyway.
- *   - The check is fetched when the band comes within a screen and a half of
- *     the viewport, or the form is first touched — focus, a pointer, a key —
- *     whichever is first (`useEnhancement`), and then takes the form over
+ *   - Until then the form is the plain one, driven from here. A press with
+ *     the field empty or plainly not an address is refused here, in the
+ *     schema's words (`emailProblem`); any other is sent to the action as the
+ *     browser would have posted it, and the server's answer is drawn where
+ *     the browser's would be. The server checks every address anyway.
+ *   - The check is fetched when, the page loaded, the band comes within a
+ *     screen and a half of the viewport, or the form is first touched —
+ *     focus, a pointer, a key — whichever is first (`useEnhancement`), and
+ *     then takes the form over
  *     (`newsletter-enhancement.tsx`) between two things the person does,
- *     never while a press is on its way.
+ *     never while a press is on its way. If it cannot be fetched, the plain
+ *     form stays.
  *
  * The takeover redraws nothing. Both forms draw through one view
  * (`newsletter-view.tsx`), rendered here, at the same place in the tree; the
@@ -55,7 +59,9 @@ import { IDLE_FORM_STATE, type FormState } from "@/lib/forms/form-state";
  * put back if it were lost — and nothing on the page moves. The answer state
  * is this component's, so an answer already on the screen is still the one
  * shown after, and `newsletter_submitted` fires from here, whichever form
- * reached the server.
+ * reached the server. A refusal on the screen at the takeover clears, from
+ * then on, the moment the field is put right, as one would after a press of
+ * the enhanced form.
  */
 export function NewsletterForm({ source }: { source: string }) {
   const [state, formAction, sending] = useActionState(subscribeToNewsletter, IDLE_FORM_STATE);
@@ -80,6 +86,18 @@ export function NewsletterForm({ source }: { source: string }) {
   const [enhanced, setEnhanced] = useState<NewsletterBehaviour | null>(null);
   const plain = enhanced === null;
 
+  /* The plain form's own refusal of its last press, and the answer that press
+     put out of date: from then on the server's last answer is not what is on
+     the screen, and it must not come back when the refusal is put right. A
+     new answer replaces both. */
+  const [refusal, setRefusal] = useState<{
+    message: string | undefined;
+    over: FormState;
+  } | null>(null);
+  const ownRefusal = refusal !== null && refusal.over === state ? refusal : null;
+  /** The answer on the screen. */
+  const shown = ownRefusal ? IDLE_FORM_STATE : state;
+
   // The answer is in: the next press may send, and a held takeover may go.
   useEffect(() => {
     if (pending) return;
@@ -92,26 +110,45 @@ export function NewsletterForm({ source }: { source: string }) {
      page drawn from a refusal posted before the script ran. */
   useEffect(() => {
     if (!plain || state.status !== "error" || !state.fieldErrors?.email) return;
-    const field = form.current?.elements.namedItem("email");
-    if (field instanceof HTMLInputElement) field.focus();
+    emailFieldOf(form.current)?.focus();
   }, [state, plain]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (inFlight.current || pending) return;
+    const element = event.currentTarget;
+    const field = emailFieldOf(element);
+    const problem = emailProblem(field?.value ?? "");
+    if (problem) {
+      setRefusal({ message: problem, over: state });
+      field?.focus();
+      return;
+    }
+    setRefusal(null);
     inFlight.current = true;
     // What the browser would have posted, honeypot and hidden fields included.
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(element);
     startTransition(() => formAction(formData));
+  };
+
+  // After its own refusal, the field re-checks as it is corrected.
+  const recheck = (event: ChangeEvent<HTMLInputElement>) => {
+    const message = emailProblem(event.currentTarget.value);
+    setRefusal((current) => current && { ...current, message });
   };
 
   const behaviour: NewsletterBehaviour = enhanced ?? {
     enhanced: false,
     onSubmit,
-    emailField: { name: "email" },
+    emailField: ownRefusal ? { name: "email", onChange: recheck } : { name: "email" },
     sourceField: { name: "source" },
     pending,
-    ...answerLines(state),
+    // Nothing old under the field while a press is on its way.
+    ...(pending
+      ? { emailError: undefined, formMessage: undefined }
+      : ownRefusal
+        ? { emailError: ownRefusal.message, formMessage: undefined }
+        : answerLines(state)),
   };
 
   /* The `<form>` is this component's, for the triggers, and after the
@@ -136,15 +173,39 @@ export function NewsletterForm({ source }: { source: string }) {
       />
       {Enhancement ? (
         <Enhancement
-          state={state}
+          state={shown}
           formAction={formAction}
           sending={sending}
           source={source}
+          pressed={ownRefusal !== null || state.status === "error"}
+          refused={ownRefusal?.message}
           onBehaviour={setEnhanced}
         />
       ) : null}
     </>
   );
+}
+
+const emailFieldOf = (form: HTMLFormElement | null) => {
+  const field = form?.elements.namedItem("email");
+  return field instanceof HTMLInputElement ? field : null;
+};
+
+/**
+ * The plain form's own check, without zod: an address is there, not too long,
+ * and has something on each side of an „@“. That spares an empty or plainly
+ * broken address a trip to the server, and one of the few tries an hour the
+ * server allows. Each refusal is the one `newsletterSchema` makes of the same
+ * value, in its words (`EMAIL_MESSAGES`, which the schema uses too); what this
+ * lets through, the server checks in full, as the enhanced form does.
+ */
+export function emailProblem(value: string): string | undefined {
+  const address = value.trim();
+  if (address === "") return EMAIL_MESSAGES.missing;
+  if (address.length > 254) return EMAIL_MESSAGES.long;
+  const at = address.indexOf("@");
+  if (at < 1 || at === address.length - 1) return EMAIL_MESSAGES.format;
+  return undefined;
 }
 
 /**
@@ -175,22 +236,60 @@ type Enhancement = ComponentType<NewsletterEnhancementProps>;
  */
 export const APPROACH_MARGIN = "150% 0px";
 
+/**
+ * Fetches of the enhancement a page load makes at most. After that many
+ * failures the plain form stays in charge, which it can be for good.
+ */
+export const MAX_ATTEMPTS = 3;
+/** The wait before the second fetch; the third waits twice as long. */
+export const RETRY_AFTER_MS = 2_000;
+
 let enhancement: Promise<Enhancement> | undefined;
+let attempts = 0;
 
 /**
  * The enhancement's module, fetched once per page load whichever trigger
- * asks first. A failed fetch is forgotten, so a later touch asks again; the
- * plain form works meanwhile.
+ * asks first. A failed fetch is forgotten, so a later one may ask again, up
+ * to `MAX_ATTEMPTS` in all.
  */
 function loadEnhancement(): Promise<Enhancement> {
-  enhancement ??= import("@/components/forms/newsletter-enhancement").then(
-    (module) => module.NewsletterEnhancement,
-    (error: unknown) => {
-      enhancement = undefined;
-      throw error;
-    },
-  );
+  if (!enhancement) {
+    attempts += 1;
+    enhancement = import("@/components/forms/newsletter-enhancement").then(
+      (module) => module.NewsletterEnhancement,
+      (error: unknown) => {
+        enhancement = undefined;
+        throw error;
+      },
+    );
+  }
   return enhancement;
+}
+
+const FIRST_TOUCH = ["focusin", "pointerdown", "keydown"] as const;
+
+/**
+ * Run `then` once the page has loaded and the main thread has had an idle
+ * moment, as the scroll-driven motion waits (`motion-gate.tsx`, DESIGN.md,
+ * "The Quiet Load Rule"). Returns what calls it off.
+ */
+function afterQuietLoad(then: () => void): () => void {
+  let idle: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const schedule = () => {
+    if (typeof window.requestIdleCallback === "function") {
+      idle = window.requestIdleCallback(then, { timeout: 2000 });
+    } else {
+      timer = setTimeout(then, 200);
+    }
+  };
+  if (document.readyState === "complete") schedule();
+  else window.addEventListener("load", schedule, { once: true });
+  return () => {
+    window.removeEventListener("load", schedule);
+    if (idle !== undefined) window.cancelIdleCallback(idle);
+    clearTimeout(timer);
+  };
 }
 
 /**
@@ -199,8 +298,14 @@ function loadEnhancement(): Promise<Enhancement> {
  *
  * Needed: the form comes within `APPROACH_MARGIN` of the viewport, or it gets
  * focus, a pointer or a key — and if focus got there before the page's script
- * did, at once. A band hidden on its page (`NewsletterBandOff`) never comes
- * near, and is never touched, so there it is never fetched.
+ * did, at once. Nearness is watched only once the page has loaded and had an
+ * idle moment (`afterQuietLoad`): on a short page the band is near from the
+ * start, and its check must not be fetched while the page itself still is. A
+ * touch does not wait. A band hidden on its page (`NewsletterBandOff`) never
+ * comes near, and is never touched, so there it is never fetched. A failed fetch is
+ * asked again only by focus coming to the form, after `RETRY_AFTER_MS` (then
+ * twice that), and not after `MAX_ATTEMPTS`: offline, a person typing would
+ * otherwise ask with every key.
  *
  * Safe: in a task of its own, never inside the event that asked for it — an
  * Enter that is about to submit the form finishes first — and not while a
@@ -221,6 +326,7 @@ function useEnhancement(
     let live = true;
     let loaded: Enhancement | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let backoff: ReturnType<typeof setTimeout> | undefined;
     let disarm = () => {};
 
     const takeOver = () => {
@@ -242,38 +348,44 @@ function useEnhancement(
           loaded = component;
           retryRef.current();
         },
-        // Not the viewport again: offline, that would ask on every frame.
-        () => live && arm(false),
+        () => {
+          if (!live || attempts >= MAX_ATTEMPTS) return;
+          backoff = setTimeout(() => arm(["focusin"], false), RETRY_AFTER_MS * 2 ** (attempts - 1));
+        },
       );
     };
 
-    const arm = (nearing: boolean) => {
-      const events = new AbortController();
-      for (const type of ["focusin", "pointerdown", "keydown"] as const) {
-        element.addEventListener(type, load, { signal: events.signal });
-      }
-      const observer =
-        nearing && typeof IntersectionObserver === "function"
-          ? new IntersectionObserver(
-              (entries) => {
-                if (entries.some((entry) => entry.isIntersecting)) load();
-              },
-              { rootMargin: APPROACH_MARGIN },
-            )
-          : undefined;
-      observer?.observe(element);
+    const arm = (events: readonly string[], nearing: boolean) => {
+      const listening = new AbortController();
+      for (const type of events) element.addEventListener(type, load, { signal: listening.signal });
+      let observer: IntersectionObserver | undefined;
+      const watchNearing = () => {
+        if (typeof IntersectionObserver !== "function") return;
+        observer = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) load();
+          },
+          { rootMargin: APPROACH_MARGIN },
+        );
+        observer.observe(element);
+      };
+      const stopWaiting = nearing ? afterQuietLoad(watchNearing) : () => {};
       disarm = () => {
-        events.abort();
+        listening.abort();
+        stopWaiting();
         observer?.disconnect();
       };
     };
 
-    if (element.contains(document.activeElement)) load();
-    else arm(true);
+    // A page load that has given up on it leaves the plain form in charge.
+    const givenUp = attempts >= MAX_ATTEMPTS && !enhancement;
+    if (!givenUp && element.contains(document.activeElement)) load();
+    else if (!givenUp) arm(FIRST_TOUCH, true);
 
     return () => {
       live = false;
       clearTimeout(timer);
+      clearTimeout(backoff);
       disarm();
       retryRef.current = () => {};
     };

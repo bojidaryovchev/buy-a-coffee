@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useLayoutEffect, useMemo } from "react";
+import { memo, useLayoutEffect, useMemo, useState } from "react";
 import type { NewsletterBehaviour } from "@/components/forms/newsletter-view";
 import { useSchemaForm } from "@/components/forms/use-schema-form";
 import { CHECK_EMAIL_MESSAGE, newsletterSchema, type FormState } from "@/lib/forms/schemas";
@@ -27,11 +27,22 @@ import { CHECK_EMAIL_MESSAGE, newsletterSchema, type FormState } from "@/lib/for
  */
 
 export interface NewsletterEnhancementProps {
+  /**
+   * The answer on the screen: the server's last, unless a press of the plain
+   * form has put it out of date since (`refused`).
+   */
   state: FormState;
   formAction: (formData: FormData) => void;
   /** `useActionState`'s pending flag. */
   sending: boolean;
   source: string;
+  /**
+   * The plain form was pressed and refused, by its own check or the server's,
+   * before this took over. Read once, when it does.
+   */
+  pressed: boolean;
+  /** The plain form's own refusal, under the field when this took over. Read once. */
+  refused: string | undefined;
   /** Called after every render with the behaviour for the view. */
   onBehaviour: (behaviour: NewsletterBehaviour) => void;
 }
@@ -44,13 +55,24 @@ export const NewsletterEnhancement = memo(function NewsletterEnhancement({
   formAction,
   sending,
   source,
+  pressed,
+  refused,
   onBehaviour,
 }: NewsletterEnhancementProps) {
-  // One object per answer, which `useSchemaForm` reads as "the server spoke".
-  const serverErrors = useMemo(
-    () => (state.status === "error" ? state.fieldErrors : undefined),
-    [state],
-  );
+  // What the plain form left on the screen, as it was at the takeover.
+  const [left] = useState({ pressed, refused });
+  /* One object per answer, which `useSchemaForm` reads as "the server spoke".
+     Before any, the plain form's own refusal is drawn the same way, so that
+     react-hook-form clears it when it is put right, as it would its own. */
+  const serverErrors = useMemo(() => {
+    if (state.status === "error") return state.fieldErrors;
+    return left.refused ? { email: left.refused } : undefined;
+  }, [state, left]);
+  /* `useSchemaForm` moves focus to the errors it is drawn with, but not to
+     these: its focus effect runs before the view has handed it the `<form>`
+     (its ref reaches the element in the render this component's layout
+     effect causes), so an answer already on the screen leaves focus where the
+     person put it. `newsletter-form.test.ts` holds that. */
   const {
     form: { register },
     formProps,
@@ -66,8 +88,8 @@ export const NewsletterEnhancement = memo(function NewsletterEnhancement({
        typed, and react-hook-form, given none, takes the field's value as it
        finds it instead of writing one over it. */
     defaultValues: { source },
-    // An answer the plain form already showed does not move focus again.
-    takesOver: true,
+    // A refused press of the plain form counts as one here.
+    pressedBefore: left.pressed,
   });
 
   const behaviour: NewsletterBehaviour = {

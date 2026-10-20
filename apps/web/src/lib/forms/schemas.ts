@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_CART_LINES, MAX_QUANTITY, MIN_QUANTITY, isProductId } from "@/lib/cart/cart";
+import { EMAIL_MESSAGES } from "./form-state";
 import { isPlausibleToken } from "./unsubscribe-token";
 
 /**
@@ -81,11 +82,8 @@ export const optionalPhoneSchema = z
   .transform((value) => (value === "" ? "" : normalizePhone(value)))
   .optional();
 
-export const EMAIL_MESSAGES = {
-  missing: "Въведете имейл адреса си.",
-  format: "Въведете целия имейл адрес, например ivan@example.com.",
-  long: "Въведете имейл адрес до 254 знака.",
-} as const;
+// In `form-state.ts`, which the newsletter band's plain form checks with too.
+export { EMAIL_MESSAGES };
 
 export const emailSchema = z
   .string()

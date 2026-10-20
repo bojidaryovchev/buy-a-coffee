@@ -4,9 +4,9 @@
  * `schemas.ts` builds its schemas as it loads, so whatever imports anything
  * from it carries zod into the browser. The newsletter band is on almost every
  * page and, until it is used, needs only the shape of an answer and the
- * newsletter's one sentence (`components/forms/newsletter-form.tsx`): they
- * live here so that importing them costs a page nothing. `schemas.ts`
- * re-exports them, so every other import is unchanged.
+ * newsletter's sentences (`components/forms/newsletter-form.tsx`): they live
+ * here so that importing them costs a page nothing. `schemas.ts` re-exports
+ * them, so every other import is unchanged.
  */
 
 /**
@@ -17,6 +17,17 @@ export const CHECK_FIELDS_MESSAGE = "Поправете отбелязаните
 
 /** The newsletter has one field, so its line names it. */
 export const CHECK_EMAIL_MESSAGE = "Поправете имейл адреса и опитайте отново.";
+
+/**
+ * What an email field is told. Here rather than beside `emailSchema`, which
+ * uses them, because the newsletter band's plain form makes the first two
+ * checks itself, without zod, and must say exactly what the schema says.
+ */
+export const EMAIL_MESSAGES = {
+  missing: "Въведете имейл адреса си.",
+  format: "Въведете целия имейл адрес, например ivan@example.com.",
+  long: "Въведете имейл адрес до 254 знака.",
+} as const;
 
 /** Uniform result shape for every form action. */
 export type FormState =

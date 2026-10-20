@@ -22,10 +22,26 @@ export const LIBRARY_MARKERS = {
  * What only the script of the takeover itself says: the bundler registers a
  * module's exports by name, quoted, where the module is; the form that loads
  * it reads the name as a property, unquoted. The libraries under it can come
- * by another way too (a link's prefetch of the cart page, whose order form
- * uses them), so it is this script that says when the check was asked for.
+ * by another way too (the cart page's order form uses them, and a pointer on
+ * the header's cart fetches that page ahead), so it is this script that says
+ * when the check was asked for.
  */
 export const ENHANCEMENT_MARKER = '"NewsletterEnhancement"';
+
+/**
+ * A visitor no other test has been, as the newsletter's rate limit tells them
+ * apart: by forwarded address and browser (`clientFingerprint`), three signups
+ * an hour each, counted in the database across runs. `asDistinctVisitor` draws
+ * from about five hundred addresses, which repeated runs of these specs use
+ * up; an address from IPv6's documentation range with 96 random bits does
+ * not come round again.
+ */
+export async function asNewVisitor(page: Page): Promise<void> {
+  const groups = Array.from(crypto.getRandomValues(new Uint16Array(6)), (group) =>
+    group.toString(16),
+  );
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": `2001:db8:${groups.join(":")}` });
+}
 
 /** Bring the band into view, which fetches its check, and wait until it has taken over. */
 export async function newsletterChecked(page: Page): Promise<void> {
