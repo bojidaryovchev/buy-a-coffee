@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PromotionActions } from "@/components/admin/promotion-actions";
 import { PromotionForm, type CategoryOption } from "@/components/admin/promotion-form";
+import { chosenProductText } from "@/lib/promotions/picker";
 import { toPriceView } from "@/lib/catalog/format";
-import { listProductCardsByIds } from "@/lib/catalog/queries";
+import { listProductsForOrder } from "@/lib/catalog/queries";
 import {
   daysFromPeriod,
   formatDay,
@@ -13,7 +14,6 @@ import {
   todayInSofia,
 } from "@/lib/promotions/days";
 import { loadEditorChoices } from "@/lib/promotions/editor-data";
-import { describeProduct } from "@/lib/promotions/picker";
 import {
   PROMOTION_NOTICES,
   PROMOTION_REFUSALS,
@@ -133,9 +133,10 @@ export default async function AdminPromotionPage({
   }
 
   /* -- over: the record ------------------------------------------------------ */
-  const [choices, cards] = await Promise.all([
+  const [choices, found] = await Promise.all([
     loadEditorChoices(promotion.targets),
-    listProductCardsByIds(current.slice(0, RECORD_ROWS).map((member) => member.productId)),
+    // Whatever their status now: the record names what was in it.
+    listProductsForOrder(current.slice(0, RECORD_ROWS).map((member) => member.productId)),
   ]);
   const brandNames = choices.brands
     .filter((brand) => promotion.targets.brandIds.includes(brand.id))
@@ -148,7 +149,7 @@ export default async function AdminPromotionPage({
   const named = (ids: readonly string[]) =>
     ids.map((productId) => {
       const product = choices.chosenProducts[productId];
-      return product ? describeProduct(product) : "продукт, който вече не се продава";
+      return chosenProductText(product);
     });
   const ended = effectiveEnd(promotion);
 
@@ -203,16 +204,20 @@ export default async function AdminPromotionPage({
               </thead>
               <tbody>
                 {current.slice(0, RECORD_ROWS).map((member) => {
-                  const card = cards.get(member.productId);
+                  const entry = found.get(member.productId);
+                  const card = entry?.card;
                   return (
                     <tr key={member.productId} className="border-b border-line last:border-0">
                       <td className="px-4 py-3 text-ink-900">
-                        {card
-                          ? describeProduct({
-                              title: card.title ?? card.name,
-                              detail: card.detail ?? null,
-                            })
-                          : "Продукт, който вече не се продава"}
+                        {chosenProductText(
+                          entry && card
+                            ? {
+                                title: card.title ?? card.name,
+                                detail: card.detail ?? null,
+                                ...(entry.status === "active" ? {} : { status: entry.status }),
+                              }
+                            : undefined,
+                        )}
                       </td>
                       <td className="px-4 py-3 text-ink-700 tabular-nums">
                         {toPriceView(member.referencePrice, card?.price?.currency ?? "EUR")

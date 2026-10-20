@@ -111,7 +111,17 @@ export interface PromotionPreview {
 /** Enough to check by eye; the count says the rest. */
 export const PREVIEW_ROWS = 60;
 
-/** Does `other` win over this promotion for a product both have, as the price layer orders them? */
+/**
+ * Does `other` win over this promotion for a product both have, as the price
+ * layer orders them: `percent_off desc, starts_at asc, id asc`
+ * (`lib/catalog/price-sql.ts`)?
+ *
+ * A full tie — the same percentage from the same instant — is settled by the
+ * ids. An unsaved promotion has none yet, and the one it will get is random,
+ * so the shop could go either way once it is saved; the preview takes the
+ * side that claims less for this one and has it lose every full tie, and the
+ * row's note says so (`isFullTie`).
+ */
 function beats(
   other: OverlappingMembership,
   self: { id: string | null; percentOff: number; startsAt: Date },
@@ -120,8 +130,17 @@ function beats(
   const a = other.startsAt.getTime();
   const b = self.startsAt.getTime();
   if (a !== b) return a < b;
-  // An unsaved promotion has no id yet; the one that exists keeps the tie.
   return self.id === null || other.id < self.id;
+}
+
+/** The same percentage from the same instant: only the ids tell them apart. */
+function isFullTie(
+  other: OverlappingMembership,
+  self: { percentOff: number; startsAt: Date },
+): boolean {
+  return (
+    other.percentOff === self.percentOff && other.startsAt.getTime() === self.startsAt.getTime()
+  );
 }
 
 const NO_HISTORY_TEXT: Record<Exclude<ReferenceOutcome["reason"], "ok">, PreviewNote> = {
@@ -309,7 +328,11 @@ export async function previewPromotion(
           text:
             pricedBy.percentOff > percent
               ? `Също в промоция „${pricedBy.name}“ (−${pricedBy.percentOff}%), която по това време е с по-голяма отстъпка: магазинът показва нейната цена и значка, не тази.`
-              : `Също в промоция „${pricedBy.name}“ (−${pricedBy.percentOff}%), със същата отстъпка и започнала по-рано: докато тече, магазинът показва нейната цена и значка, не тази.`,
+              : !isFullTie(pricedBy, self)
+                ? `Също в промоция „${pricedBy.name}“ (−${pricedBy.percentOff}%), със същата отстъпка и започнала по-рано: докато тече, магазинът показва нейната цена и значка, не тази.`
+                : promotionId === null
+                  ? `Също в промоция „${pricedBy.name}“ (−${pricedBy.percentOff}%), със същата отстъпка и от същия ден. При такова пълно равенство магазинът избира една от двете и коя, се разбира едва след запазването; прегледът приема, че важи тя, и показва нейната цена и значка. За да важи тази, изберете друга отстъпка или друг първи ден.`
+                  : `Също в промоция „${pricedBy.name}“ (−${pricedBy.percentOff}%), със същата отстъпка и от същия ден: при такова пълно равенство магазинът показва нейната цена и значка, не тази.`,
         });
       } else {
         reduced += 1;

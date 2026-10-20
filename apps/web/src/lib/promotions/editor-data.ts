@@ -3,7 +3,7 @@ import { inArray } from "drizzle-orm";
 import { brands, categories, type PromotionTargets } from "@catalog/db/schema";
 import type { BrandOption, CategoryOption, ChosenProduct } from "@/components/admin/promotion-form";
 import { brandDisplayName } from "@/lib/catalog/brand-display";
-import { getCategoryTree, listBrands, listProductCardsByIds } from "@/lib/catalog/queries";
+import { getCategoryTree, listBrands, listProductsForOrder } from "@/lib/catalog/queries";
 import type { CategoryView } from "@/lib/catalog/types";
 import { db } from "@/lib/db";
 
@@ -24,10 +24,12 @@ export async function loadEditorChoices(targets: PromotionTargets): Promise<{
   chosenProducts: Record<string, ChosenProduct>;
 }> {
   const productIds = [...new Set([...targets.productIds, ...targets.excludedProductIds])];
-  const [brandRows, tree, cards] = await Promise.all([
+  const [brandRows, tree, found] = await Promise.all([
     listBrands(),
     getCategoryTree(),
-    listProductCardsByIds(productIds),
+    // Whatever their status: a chosen product the sync is unsure of, or has
+    // removed, is still named, and said to be so.
+    listProductsForOrder(productIds),
   ]);
 
   const chosenBrands = new Set(targets.brandIds);
@@ -53,9 +55,14 @@ export async function loadEditorChoices(targets: PromotionTargets): Promise<{
   ].sort((a, b) => a.name.localeCompare(b.name, "bg"));
 
   const chosenCategories = new Set(targets.categoryIds);
+  /* A chosen category stays however empty, and so does every category above
+     it: a subcategory with nothing on sale under a parent with nothing on
+     sale would otherwise vanish with its parent, and could not be unticked. */
+  const holdsChoice = (node: CategoryView): boolean =>
+    chosenCategories.has(node.id) || node.children.some(holdsChoice);
   const keep = (nodes: readonly CategoryView[]): CategoryOption[] =>
     nodes
-      .filter((node) => node.productCount > 0 || chosenCategories.has(node.id))
+      .filter((node) => node.productCount > 0 || holdsChoice(node))
       .map((node) => ({
         id: node.id,
         name: node.name,
@@ -75,8 +82,12 @@ export async function loadEditorChoices(targets: PromotionTargets): Promise<{
           .where(inArray(categories.id, unlistedCategoryIds));
 
   const chosenProducts: Record<string, ChosenProduct> = {};
-  for (const [id, card] of cards) {
-    chosenProducts[id] = { title: card.title ?? card.name, detail: card.detail ?? null };
+  for (const [id, { card, status }] of found) {
+    chosenProducts[id] = {
+      title: card.title ?? card.name,
+      detail: card.detail ?? null,
+      ...(status === "active" ? {} : { status }),
+    };
   }
 
   return {

@@ -165,7 +165,16 @@ export async function updatePromotion(
   values: PromotionValues,
   now: Date,
 ): Promise<UpdateOutcome> {
-  const [current] = await tx.select().from(promotions).where(eq(promotions.id, id)).for("update");
+  /* FOR NO KEY UPDATE, not FOR UPDATE: it keeps two saves of this row apart,
+     but not an order being recorded at this promotion's price, which holds
+     the row FOR KEY SHARE (`lib/orders/record.ts`) only so that it cannot be
+     deleted under it. A save changes no key; that order must not wait for
+     the whole save and refresh. */
+  const [current] = await tx
+    .select()
+    .from(promotions)
+    .where(eq(promotions.id, id))
+    .for("no key update");
   if (!current) return { ok: false, reason: "missing" };
   const held = promotionVersion(current);
   if (held !== version) return { ok: false, reason: "conflict", version: held };
@@ -232,6 +241,10 @@ export async function stopPromotion(tx: Executor, id: string, now: Date): Promis
  * never deleted. Its rows go with it (`on delete cascade`).
  */
 export async function deletePromotion(tx: Executor, id: string, now: Date): Promise<boolean> {
+  /* A DELETE locks the row FOR UPDATE, the one lock that waits for an order
+     holding it FOR KEY SHARE while it records a line naming the promotion:
+     that line's foreign key must be in place before the row can go (and
+     `on delete set null` then clears it). Not to be weakened like the save's. */
   const deleted = await tx
     .delete(promotions)
     .where(and(eq(promotions.id, id), isNull(promotions.stoppedAt), gt(promotions.startsAt, now)))
