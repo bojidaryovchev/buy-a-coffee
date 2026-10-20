@@ -396,3 +396,63 @@ describe("product blocks", () => {
     ).not.toContain("block-empty");
   });
 });
+
+describe("a letter with nothing in it", () => {
+  it("stops the send once every block has answered empty, and not before", () => {
+    const body = "## Промоции\n\n[[промоции]]";
+    const empty = { ...healthy, body, blocks: [report("[[промоции]]", "sale", [])] };
+    expect(note(empty, "letter-empty")).toMatchObject({
+      blocksSend: true,
+      title: "Писмото е празно",
+    });
+    // Waiting for the preview: nothing to say yet.
+    expect(ids({ ...empty, blocks: null })).not.toContain("letter-empty");
+    // A word of text, or a product, is a letter.
+    expect(ids({ ...empty, body: `Здравейте,\n\n${body}` })).not.toContain("letter-empty");
+    expect(
+      ids({ ...empty, blocks: [report("[[промоции]]", "sale", [card("Eurocaf")])] }),
+    ).not.toContain("letter-empty");
+  });
+});
+
+describe("when it goes out", () => {
+  const NOW = new Date("2026-11-20T10:00:00Z");
+
+  it("warns about a letter within a month of the last, with the day it could wait for", () => {
+    const recent = note(
+      { ...healthy, lastLetterAt: "2026-11-02T08:00:00Z", now: NOW },
+      "recent-letter",
+    );
+    expect(recent?.title).toBe("Последното писмо е изпратено преди 18 дни");
+    expect(recent?.detail).toContain("най-много веднъж месечно");
+    expect(recent?.detail).toContain("след 2 декември");
+    expect(recent?.blocksSend).toBeUndefined();
+    expect(
+      note({ ...healthy, lastLetterAt: "2026-11-20T07:00:00Z", now: NOW }, "recent-letter")?.title,
+    ).toBe("Днес вече е изпратено писмо");
+    expect(ids({ ...healthy, lastLetterAt: "2026-10-20T09:00:00Z", now: NOW })).not.toContain(
+      "recent-letter",
+    );
+    expect(ids({ ...healthy, lastLetterAt: null, now: NOW })).not.toContain("recent-letter");
+  });
+
+  it("says when a promotion's letter is early, or late", () => {
+    const days = (startsAt: string, endsAt: string, stoppedAt: string | null = null) =>
+      checkDeliverability({ ...healthy, promotion: { startsAt, endsAt, stoppedAt }, now: NOW });
+    const early = days("2026-11-24T22:00:00Z", "2026-11-30T22:00:00Z");
+    expect(early.find((item) => item.id === "promotion-not-started")?.detail).toMatch(
+      /^Започва на 25 ноември\./,
+    );
+    const ended = days("2026-11-01T22:00:00Z", "2026-11-15T22:00:00Z");
+    expect(ended.find((item) => item.id === "promotion-ended")?.detail).toMatch(
+      /^Последният ѝ ден беше 15 ноември/,
+    );
+    const stopped = days("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z", "2026-11-18T09:00:00Z");
+    expect(stopped.find((item) => item.id === "promotion-ended")?.title).toBe(
+      "Промоцията е спряна",
+    );
+    const running = days("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z");
+    expect(running.map((item) => item.id)).not.toContain("promotion-ended");
+    expect(running.map((item) => item.id)).not.toContain("promotion-not-started");
+  });
+});
