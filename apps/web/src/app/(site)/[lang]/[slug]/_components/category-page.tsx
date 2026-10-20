@@ -141,9 +141,6 @@ export async function CategoryPage({
   const section = businessSectionForCategory(category);
   if (section) permanentRedirect(href(locale, `${section.path}${buildSearchParams(query)}`));
 
-  const result = await listProducts({ query, categorySlug: category.slug });
-  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
-  if (isPastLastPage(result)) notFound();
   /*
    * Only on the first page. Page two of a listing is the same category, and
    * repeating the same three paragraphs under every page of it adds nothing
@@ -159,13 +156,18 @@ export async function CategoryPage({
    * The beans listing's sections by use (research `09`, T2.2): on the first
    * page of the unfiltered, unsorted listing only. A filtered view asks a
    * narrower question than the headings answer and names this page as its
-   * canonical anyway, and page two is the same products continued. Which
-   * products each lists is decided from data (`lib/catalog/beans-sections.ts`).
+   * canonical anyway, and page two is the same products continued. What each
+   * shows is decided from data (`lib/catalog/beans-sections.ts`), read beside
+   * the listing rather than after it.
    */
-  const sections =
+  const [result, sections] = await Promise.all([
+    listProducts({ query, categorySlug: category.slug }),
     intro?.sections && system?.id === "beans" && shouldIndexListing(query)
-      ? await getBeansSections()
-      : [];
+      ? getBeansSections()
+      : null,
+  ]);
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (isPastLastPage(result)) notFound();
 
   const children = stockedChildren(category);
 
@@ -273,7 +275,7 @@ export async function CategoryPage({
 
       {/* Below the products, like the introduction, and before it: two
           narrower answers first, then who the format is for. */}
-      {intro?.sections && (
+      {intro?.sections && sections && (
         <ListingSections locale={locale} copy={intro.sections} sections={sections} />
       )}
 

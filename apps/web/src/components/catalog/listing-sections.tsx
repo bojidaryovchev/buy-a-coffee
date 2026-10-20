@@ -1,14 +1,19 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
-import type { BeansSectionView } from "@/lib/catalog/beans-section-queries";
+import type { BeansSectionEntry, BeansSectionsView } from "@/lib/catalog/beans-section-queries";
 import type { BeansSectionId } from "@/lib/catalog/beans-sections";
 import { productHref, targetHref } from "@/lib/routes";
-import { segmentParagraph, type ListingSectionCopy } from "../../../content/category-copy";
+import {
+  sectionText,
+  segmentParagraph,
+  type ListingSectionCopy,
+} from "../../../content/category-copy";
 
 /**
  * The beans listing's sections by use, drawn: a heading, the sentences that
- * say what is listed and why, and the products, each with its price for a
- * kilogram — the number the list is ordered by, so the order explains itself.
+ * say what is shown and why, and — under the Italian one — a pack per brand,
+ * each with its price for a kilogram, the figure the brand's pack was chosen
+ * by.
  *
  * Text links, not cards. The cards are the listing above; these are a
  * shortlist through it, and a second grid of packshots would push the
@@ -18,8 +23,8 @@ import { segmentParagraph, type ListingSectionCopy } from "../../../content/cate
  * row below `lg`, a target a finger can hit, like the introduction's links.
  *
  * Markup only, so it renders in a test without a database; the page reads the
- * sections (`getBeansSections`) and hands them in. A section is drawn only when
- * it has products, and the whole block not at all when none has.
+ * sections (`getBeansSections`) and hands them in. Nothing is drawn for a
+ * section that is not there, and nothing at all when neither is.
  */
 export function ListingSections({
   locale,
@@ -28,9 +33,18 @@ export function ListingSections({
 }: {
   locale: Locale;
   copy: Readonly<Record<BeansSectionId, ListingSectionCopy>>;
-  sections: readonly BeansSectionView[];
+  sections: BeansSectionsView;
 }) {
-  const drawn = sections.filter((section) => section.products.length > 0);
+  const flavoured = sections.automatic?.flavoured ?? false;
+  const drawn: ReadonlyArray<{
+    readonly id: BeansSectionId;
+    readonly products: readonly BeansSectionEntry[];
+  }> = [
+    ...(sections.italian && sections.italian.length > 0
+      ? [{ id: "italian" as const, products: sections.italian }]
+      : []),
+    ...(sections.automatic ? [{ id: "automatic" as const, products: [] }] : []),
+  ];
   if (drawn.length === 0) return null;
 
   return (
@@ -44,7 +58,7 @@ export function ListingSections({
               {words.heading}
             </h2>
             <p className="mt-4 max-w-prose text-base text-ink-500">
-              {segmentParagraph(words.text, words.links).map((segment) =>
+              {segmentParagraph(sectionText(words, { flavoured }), words.links).map((segment) =>
                 typeof segment === "string" ? (
                   segment
                 ) : (
@@ -58,28 +72,33 @@ export function ListingSections({
                 ),
               )}
             </p>
-            <ul className="mt-5 max-w-prose divide-y divide-line border-y border-line">
-              {section.products.map(({ card, perKilogram }) => (
-                <li
-                  key={card.id}
-                  className="flex flex-wrap items-center justify-between gap-x-4 py-1 lg:py-2"
-                >
-                  <Link
-                    href={productHref(locale, card)}
-                    className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0"
+            {section.products.length > 0 && (
+              <ul className="mt-5 max-w-prose divide-y divide-line border-y border-line">
+                {section.products.map(({ card, perKilogram }) => (
+                  <li
+                    key={card.id}
+                    className="flex flex-wrap items-center justify-between gap-x-4 py-1 lg:py-2"
                   >
-                    {/* Brand and line, and the pack: two sizes of one coffee
-                        are two products, and their links must say which. */}
-                    {card.weight
-                      ? `${card.title ?? card.name}, ${card.weight}`
-                      : (card.title ?? card.name)}
-                  </Link>
-                  {perKilogram && (
-                    <span className="text-sm text-ink-500 tabular-nums">{perKilogram}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    <Link
+                      href={productHref(locale, card)}
+                      className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-2 hover:text-pine-900 lg:min-h-0"
+                    >
+                      {/* Brand and line, and the pack: two sizes of one coffee
+                          are two products, and their links must say which. */}
+                      {card.weight
+                        ? `${card.title ?? card.name}, ${card.weight}`
+                        : (card.title ?? card.name)}
+                    </Link>
+                    {/* DESIGN.md, "Price per cup / per kg". */}
+                    {perKilogram && (
+                      <span className="text-sm font-medium text-pine-700 tabular-nums">
+                        {perKilogram}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         );
       })}

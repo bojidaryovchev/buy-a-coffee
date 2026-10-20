@@ -9,13 +9,14 @@ import { describe, expect, it, vi } from "vitest";
  */
 vi.mock("@/lib/db", () => ({ db: {} }));
 
-import { categoryCopy, segmentParagraph } from "../content/category-copy";
+import { brandFacts, brandFactsFor } from "../content/brand-facts";
+import { categoryCopy, sectionText, segmentParagraph } from "../content/category-copy";
 import { ListingSections } from "@/components/catalog/listing-sections";
-import { withSectionFacts, type BeansSectionView } from "@/lib/catalog/beans-section-queries";
+import { withSectionFacts, type BeansSectionsView } from "@/lib/catalog/beans-section-queries";
 import {
   BEANS_SECTION_IDS,
-  BEANS_SECTION_MAX,
-  BEANS_SECTION_MIN,
+  ITALIAN_SECTION_MAX,
+  ITALIAN_SECTION_MIN,
   selectBeansSections,
   type BeansSectionRow,
 } from "@/lib/catalog/beans-sections";
@@ -29,9 +30,9 @@ import {
 import { KEYWORD_MAP, carries, carriesIgnoringPunctuation } from "./keyword-map";
 
 /**
- * The beans listing's two sections by use (research `09`, T2.2): which
- * products each lists, the words over them, and what the sections must leave
- * alone on a page that is under measurement.
+ * The beans listing's two sections by use (research `09`, T2.2): what each
+ * shows, the words over them, the brand record the Italian one reads, and
+ * what the sections must leave alone on a page that is under measurement.
  */
 
 /* --- Fixtures ------------------------------------------------------------ */
@@ -40,7 +41,7 @@ const BEANS = ["kafe-na-zarna", "kafe-na-zyrna"];
 
 let sequence = 0;
 
-/** A bag of beans on sale: 1 kg at 20,00 €, of no Italian brand, not a machine blend. */
+/** A bag of beans on sale: 1 kg at 20,00 €, of a brand that is not Italian. */
 function row(overrides: Partial<BeansSectionRow> = {}): BeansSectionRow {
   sequence += 1;
   return {
@@ -55,285 +56,263 @@ function row(overrides: Partial<BeansSectionRow> = {}): BeansSectionRow {
     attributes: {},
     categoryKeys: BEANS,
     italianBrand: false,
-    machineBlend: false,
+    brandName: `Brand ${sequence}`,
     ...overrides,
   };
 }
 
-const blend = (price: string, overrides: Partial<BeansSectionRow> = {}) =>
-  row({ price, machineBlend: true, ...overrides });
-
-const italian = (brand: string, price: string, overrides: Partial<BeansSectionRow> = {}) =>
-  row({ price, brandSlug: brand, brandSourceKey: brand, italianBrand: true, ...overrides });
-
-const section = (rows: readonly BeansSectionRow[], id: "italian" | "automatic") =>
-  selectBeansSections(rows).find((entry) => entry.id === id) ?? null;
-
-const ids = (rows: readonly BeansSectionRow[], id: "italian" | "automatic") =>
-  section(rows, id)?.items.map((item) => item.id) ?? null;
-
-/* --- The selection ------------------------------------------------------- */
-
-describe("selectBeansSections", () => {
-  it("lists nothing from an empty catalog", () => {
-    expect(selectBeansSections([])).toEqual([]);
+/** A pack of an Italian brand, named as the page writes it. */
+const italian = (name: string, price: string, overrides: Partial<BeansSectionRow> = {}) =>
+  row({
+    price,
+    brandSlug: name.toLowerCase().replace(/[^a-z]+/g, ""),
+    brandSourceKey: name.toLowerCase().replace(/[^a-z]+/g, ""),
+    brandName: name,
+    italianBrand: true,
+    ...overrides,
   });
 
-  it("lists nothing when no row satisfies either rule", () => {
-    expect(selectBeansSections([row(), row(), row(), row()])).toEqual([]);
+const italianIds = (rows: readonly BeansSectionRow[]) =>
+  selectBeansSections(rows).italian?.map((item) => item.id) ?? null;
+
+/* --- The Italian section ------------------------------------------------- */
+
+describe("the Italian section", () => {
+  it("is absent from an empty catalog, and so is the other", () => {
+    expect(selectBeansSections([])).toEqual({ italian: null, automatic: null });
   });
 
-  it("gives the sections in page order: Italian, then automatic", () => {
+  it("lists one pack per Italian brand: the brand's lowest price per kilogram", () => {
+    const a1 = italian("Alfa", "21.00");
+    const a2 = italian("Alfa", "19.00");
+    const b1 = italian("Beta", "18.00");
+    const c1 = italian("Gamma", "25.00");
+    const c2 = italian("Gamma", "11.00", { weightValue: "500.0000" }); // 22,00 € / kg
+    expect(italianIds([a1, a2, b1, c1, c2])).toEqual([a2.id, b1.id, c2.id]);
+    const perKg = selectBeansSections([a1, a2, b1, c1, c2]).italian?.map((item) =>
+      Number(item.perKg),
+    );
+    expect(perKg).toEqual([19, 18, 22]);
+  });
+
+  it("orders the brands by name, case aside, and not by price", () => {
     const rows = [
-      blend("13.00"),
-      blend("14.00"),
-      blend("15.00"),
-      italian("a", "16.00"),
-      italian("b", "17.00"),
-      italian("c", "18.00"),
+      italian("Vergnano", "10.00"),
+      italian("illy", "39.20"),
+      italian("Biancaffè", "16.90"),
+      italian("Kimbo", "24.60"),
+      italian("Excelsior", "18.50"),
     ];
-    expect(selectBeansSections(rows).map((entry) => entry.id)).toEqual(["italian", "automatic"]);
-    expect(BEANS_SECTION_IDS).toEqual(["italian", "automatic"]);
+    expect(italianIds(rows)).toEqual(
+      ["Biancaffè", "Excelsior", "illy", "Kimbo", "Vergnano"].map(
+        (name) => rows.find((entry) => entry.brandName === name)!.id,
+      ),
+    );
   });
 
-  describe("the automatic-machine section", () => {
-    it("lists the machine blends only, lowest price per kilogram first", () => {
-      const a = blend("15.50");
-      const b = blend("13.45");
-      const c = blend("14.20");
-      const other = row({ price: "10.00" });
-      expect(ids([a, b, c, other], "automatic")).toEqual([b.id, c.id, a.id]);
-    });
-
-    it("orders by price per kilogram, not by the price of the pack", () => {
-      // 500 g at 9,00 € is 18,00 € a kilogram: dearer than a kilogram at 17,00 €.
-      const half = blend("9.00", { weightValue: "500.0000" });
-      const kilo = blend("17.00");
-      const quarter = blend("4.00", { weightValue: "250.0000" }); // 16,00 € / kg
-      expect(ids([half, kilo, quarter], "automatic")).toEqual([quarter.id, kilo.id, half.id]);
-      const perKg = section([half, kilo, quarter], "automatic")?.items.map((item) => item.perKg);
-      expect(perKg?.map(Number)).toEqual([16, 17, 18]);
-    });
-
-    it("stops at the cap, keeping the cheapest per kilogram", () => {
-      const rows = Array.from({ length: BEANS_SECTION_MAX + 3 }, (_, index) =>
-        blend(`${30 - index}.00`),
-      );
-      const listed = ids(rows, "automatic")!;
-      expect(listed).toHaveLength(BEANS_SECTION_MAX);
-      expect(listed).toEqual(
-        rows
-          .slice(-BEANS_SECTION_MAX)
-          .reverse()
-          .map((entry) => entry.id),
-      );
-    });
-
-    it("is absent below the minimum, present at it", () => {
-      expect(BEANS_SECTION_MIN).toBe(3);
-      expect(ids([blend("10.00"), blend("11.00")], "automatic")).toBeNull();
-      expect(ids([blend("10.00"), blend("11.00"), blend("12.00")], "automatic")).toHaveLength(3);
-    });
-
-    it("keeps several blends of one brand: the rule is the blend, not the brand", () => {
-      const rows = [
-        blend("13.45", { brandSlug: "elia" }),
-        blend("14.20", { brandSlug: "elia" }),
-        blend("14.80", { brandSlug: "elia" }),
-      ];
-      expect(ids(rows, "automatic")).toEqual(rows.map((entry) => entry.id));
-    });
+  it("lets a brand's cheapest pack stand for it whatever its name says, Vending included", () => {
+    // Regression: Moreno's vending blend is its cheapest per kilogram, and the
+    // sentence „с най-ниската цена за килограм при нея“ must hold of it.
+    const vending = italian("Moreno", "15.50", { name: "Кафе на зърна Moreno Vending 1кг." });
+    const bar = italian("Moreno", "20.00", { name: "Кафе на зърна Moreno Espresso Bar 1кг." });
+    const rows = [bar, vending, italian("Lollo Caffè", "16.50"), italian("Borbone", "19.00")];
+    expect(italianIds(rows)).toEqual([rows[3]!.id, rows[2]!.id, vending.id]);
   });
 
-  describe("the Italian section", () => {
-    it("lists one pack per Italian brand, the brand's lowest per kilogram", () => {
-      const a1 = italian("a", "21.00");
-      const a2 = italian("a", "19.00");
-      const b1 = italian("b", "18.00");
-      const c1 = italian("c", "25.00");
-      const c2 = italian("c", "11.00", { weightValue: "500.0000" }); // 22,00 € / kg
-      expect(ids([a1, a2, b1, c1, c2], "italian")).toEqual([b1.id, a2.id, c2.id]);
-    });
-
-    it("leaves out every brand that is not recorded as Italian", () => {
-      const rows = [
-        italian("a", "20.00"),
-        italian("b", "21.00"),
-        italian("c", "22.00"),
-        row({ price: "5.00" }),
-        row({ price: "6.00", brandSlug: "rema-caffe" }),
-      ];
-      expect(ids(rows, "italian")).toEqual(rows.slice(0, 3).map((entry) => entry.id));
-    });
-
-    it("stops at the cap, keeping the brands whose lowest price per kilogram is lowest", () => {
-      const rows = Array.from({ length: BEANS_SECTION_MAX + 4 }, (_, index) =>
-        italian(`brand-${index}`, `${15 + index}.00`),
-      );
-      expect(ids(rows, "italian")).toEqual(
-        rows.slice(0, BEANS_SECTION_MAX).map((entry) => entry.id),
-      );
-    });
-
-    it("is absent with fewer than three Italian brands, however many packs they have", () => {
-      const rows = [
-        italian("a", "20.00"),
-        italian("a", "21.00"),
-        italian("b", "22.00"),
-        italian("b", "23.00"),
-      ];
-      expect(ids(rows, "italian")).toBeNull();
-    });
-
-    it("needs a brand to group by: a product with none is no brand's pack", () => {
-      const rows = [
-        italian("a", "20.00"),
-        italian("b", "21.00"),
-        row({ price: "10.00", brandSlug: null, brandSourceKey: null, italianBrand: true }),
-      ];
-      expect(ids(rows, "italian")).toBeNull();
-    });
+  it("lists every Italian brand up to the cap, the first by name", () => {
+    expect(ITALIAN_SECTION_MAX).toBe(12);
+    const names = Array.from(
+      { length: ITALIAN_SECTION_MAX + 3 },
+      (_, index) => `Brand ${String.fromCharCode(79 - index)}`,
+    ); // O, N, M, … — given in reverse order
+    const rows = names.map((name, index) => italian(name, `${15 + index}.00`));
+    const listed = italianIds(rows)!;
+    expect(listed).toHaveLength(ITALIAN_SECTION_MAX);
+    const byName = [...rows].sort((a, b) => a.brandName!.localeCompare(b.brandName!));
+    expect(listed).toEqual(byName.slice(0, ITALIAN_SECTION_MAX).map((entry) => entry.id));
   });
 
-  describe("ties", () => {
-    it("breaks an equal price per kilogram by the supplier's name, then by id", () => {
-      const later = italian("a", "16.90", {
-        id: "p-900",
-        name: "Кафе на зърна Espressia Capri 1кг.",
-      });
-      const earlier = italian("a", "16.90", {
-        id: "p-901",
-        name: "Кафе на зърна Biancaffe Intenso 1кг.",
-      });
-      const rest = [italian("b", "18.00"), italian("c", "19.00")];
-      // One per brand: of the two at 16,90 € the name that sorts first stands for it.
-      expect(ids([later, earlier, ...rest], "italian")).toEqual([
-        earlier.id,
-        ...rest.map((entry) => entry.id),
-      ]);
-
-      const same = { name: "Кафе на зърна Same 1кг." };
-      const x = blend("14.00", { id: "p-b", ...same });
-      const y = blend("14.00", { id: "p-a", ...same });
-      const z = blend("14.00", { id: "p-c", ...same });
-      expect(ids([x, y, z], "automatic")).toEqual(["p-a", "p-b", "p-c"]);
-    });
-
-    it("gives the same answer whatever order the catalog arrives in", () => {
-      const rows = [
-        blend("14.00", { name: "B" }),
-        blend("14.00", { name: "A" }),
-        blend("13.00"),
-        blend("15.00"),
-        italian("a", "20.00"),
-        italian("b", "20.00"),
-        italian("c", "20.00"),
-        italian("a", "19.00"),
-        italian("d", "20.00", { weightValue: "1000" }),
-      ];
-      const expected = selectBeansSections(rows);
-      for (const shuffled of [[...rows].reverse(), [...rows.slice(4), ...rows.slice(0, 4)]]) {
-        expect(selectBeansSections(shuffled)).toEqual(expected);
-      }
-    });
+  it("is absent with fewer than three Italian brands, however many packs they have", () => {
+    expect(ITALIAN_SECTION_MIN).toBe(3);
+    const two = [
+      italian("Alfa", "20.00"),
+      italian("Alfa", "21.00"),
+      italian("Beta", "22.00"),
+      italian("Beta", "23.00"),
+    ];
+    expect(italianIds(two)).toBeNull();
+    expect(italianIds([...two, italian("Gamma", "24.00")])).toHaveLength(3);
   });
 
-  describe("what neither section lists", () => {
-    const listedAnywhere = (rows: readonly BeansSectionRow[]) =>
-      selectBeansSections(rows).flatMap((entry) => entry.items.map((item) => item.id));
-
-    it.each([
-      ["sold out", { availability: "out_of_stock" }],
-      ["without a price", { price: null }],
-      ["without a pack weight", { weightValue: null }],
-      ["sold by the piece", { weightUnit: "pcs" }],
-      ["not coffee beans", { categoryKeys: ["dolce-gusto"] }],
-      ["filed under no category", { categoryKeys: [] }],
-      ["instant coffee filed under beans", { name: "Разтворимо кафе Test Vending 0.500кг." }],
-    ] as const)("a product %s", (_label, overrides) => {
-      const base = [
-        blend("20.00"),
-        blend("21.00"),
-        blend("22.00"),
-        italian("a", "22.00"),
-        italian("b", "23.00"),
-        italian("d", "24.00"),
-      ];
-      // The cheapest of all, so either section would list it first if it could.
-      const odd = [
-        blend("10.00", overrides as Partial<BeansSectionRow>),
-        italian("c", "10.00", overrides as Partial<BeansSectionRow>),
-      ];
-      const listed = listedAnywhere([...base, ...odd]);
-      expect(listed).toEqual(listedAnywhere(base));
-      expect(listed).toHaveLength(base.length);
-      for (const entry of odd) expect(listed).not.toContain(entry.id);
-    });
-
-    it("still lists a pack whose availability is unknown, which can be asked about", () => {
-      const unknown = blend("10.00", { availability: "unknown" });
-      expect(ids([unknown, blend("11.00"), blend("12.00")], "automatic")?.[0]).toBe(unknown.id);
-    });
+  it("leaves out every brand that is not recorded as Italian", () => {
+    const rows = [
+      italian("Alfa", "20.00"),
+      italian("Beta", "21.00"),
+      italian("Gamma", "22.00"),
+      row({ price: "5.00" }),
+      row({ price: "6.00", brandSlug: "molini", brandName: "Molini" }),
+    ];
+    expect(italianIds(rows)).toEqual(rows.slice(0, 3).map((entry) => entry.id));
   });
 
-  describe("one section per product", () => {
-    it("leaves an Italian machine blend to the automatic section; its brand's next pack stands in", () => {
-      const italianBlend = italian("moreno", "15.50", { machineBlend: true });
-      const nextPack = italian("moreno", "20.00");
-      const rows = [
-        italianBlend,
-        nextPack,
-        blend("13.45"),
-        blend("14.20"),
-        italian("lollo", "16.50"),
-        italian("borbone", "19.00"),
-      ];
-      expect(ids(rows, "automatic")).toContain(italianBlend.id);
-      expect(ids(rows, "italian")).toEqual([rows[4]!.id, rows[5]!.id, nextPack.id]);
+  it("needs a brand to group by: a product with none is no brand's pack", () => {
+    const rows = [
+      italian("Alfa", "20.00"),
+      italian("Beta", "21.00"),
+      row({ price: "10.00", brandSlug: null, brandSourceKey: null, italianBrand: true }),
+    ];
+    expect(italianIds(rows)).toBeNull();
+  });
 
-      const sections = selectBeansSections(rows);
-      const all = sections.flatMap((entry) => entry.items.map((item) => item.id));
-      expect(new Set(all).size).toBe(all.length);
-    });
+  it.each([
+    ["sold out", { availability: "out_of_stock" }],
+    ["without a price", { price: null }],
+    ["without a pack weight", { weightValue: null }],
+    ["sold by the piece", { weightUnit: "pcs" }],
+    ["not coffee beans", { categoryKeys: ["dolce-gusto"] }],
+    ["filed under no category", { categoryKeys: [] }],
+    ["instant coffee filed under beans", { name: "Разтворимо кафе Test 0.500кг." }],
+  ] as const)("never lists a pack %s", (_label, overrides) => {
+    const base = [italian("Alfa", "20.00"), italian("Beta", "21.00"), italian("Gamma", "22.00")];
+    // The cheapest pack of a listed brand, and the only pack of another.
+    const odd = [
+      italian("Alfa", "10.00", overrides as Partial<BeansSectionRow>),
+      italian("Delta", "10.00", overrides as Partial<BeansSectionRow>),
+    ];
+    expect(italianIds([...base, ...odd])).toEqual(base.map((entry) => entry.id));
+  });
 
-    it("lets the blend stand for its brand while the automatic section is not shown", () => {
-      const italianBlend = italian("moreno", "15.50", { machineBlend: true });
-      const rows = [
-        italianBlend,
-        italian("moreno", "20.00"),
-        italian("lollo", "16.50"),
-        italian("borbone", "19.00"),
-      ];
-      expect(ids(rows, "automatic")).toBeNull();
-      expect(ids(rows, "italian")?.[0]).toBe(italianBlend.id);
+  it("still lists a pack whose availability is unknown, which can be asked about", () => {
+    const unknown = italian("Alfa", "10.00", { availability: "unknown" });
+    const rows = [
+      unknown,
+      italian("Alfa", "12.00"),
+      italian("Beta", "11.00"),
+      italian("Gamma", "12.00"),
+    ];
+    expect(italianIds(rows)?.[0]).toBe(unknown.id);
+  });
+
+  it("breaks an equal price per kilogram by the supplier's name, then by id", () => {
+    const later = italian("Biancaffè", "16.90", {
+      id: "p-900",
+      name: "Кафе на зърна Espressia Capri 1кг.",
     });
+    const earlier = italian("Biancaffè", "16.90", {
+      id: "p-901",
+      name: "Кафе на зърна Biancaffe Intenso 1кг.",
+    });
+    const rest = [italian("Borbone", "18.00"), italian("Excelsior", "19.00")];
+    expect(italianIds([later, earlier, ...rest])?.[0]).toBe(earlier.id);
+
+    const same = { name: "Кафе на зърна Same 1кг." };
+    const x = italian("Alfa", "14.00", { id: "p-b", ...same });
+    const y = italian("Alfa", "14.00", { id: "p-a", ...same });
+    expect(italianIds([x, y, ...rest])?.[0]).toBe("p-a");
+  });
+
+  it("gives the same answer whatever order the catalog arrives in", () => {
+    const rows = [
+      italian("Alfa", "14.00", { name: "B" }),
+      italian("Alfa", "14.00", { name: "A" }),
+      italian("Beta", "13.00"),
+      italian("Gamma", "20.00"),
+      italian("gamma", "19.00", { brandSlug: "gamma-two", brandSourceKey: "gamma-two" }),
+      row({ attributes: { aromas: "yes" } }),
+    ];
+    const expected = selectBeansSections(rows);
+    for (const shuffled of [[...rows].reverse(), [...rows.slice(3), ...rows.slice(0, 3)]]) {
+      expect(selectBeansSections(shuffled)).toEqual(expected);
+    }
   });
 });
 
-/* --- The two facts ------------------------------------------------------- */
+/* --- The automatic-machine section --------------------------------------- */
 
-describe("withSectionFacts", () => {
-  // The flags start false and are worked out again from the name and the brand.
-  const plain = (name: string, brandSlug: string | null) => row({ name, brandSlug });
-
-  it("reads Italian from the brand record, by the brand's stored slug", () => {
-    for (const slug of ["lavazza", "kimbo", "illy", "borbone", "vergnano", "moreno"]) {
-      expect(withSectionFacts(plain("Кафе на зърна X 1кг.", slug)).italianBrand, slug).toBe(true);
-    }
-    // Bulgarian, Austrian, unestablished, or Italian-sounding and made in Plovdiv.
-    for (const slug of ["elia", "este", "tezzoro", "julius-meinl", "eurocaf", "molini", "amann"]) {
-      expect(withSectionFacts(plain("Кафе на зърна X 1кг.", slug)).italianBrand, slug).toBe(false);
-    }
-    expect(withSectionFacts(plain("Кафе на зърна X 1кг.", null)).italianBrand).toBe(false);
+describe("the automatic-machine section", () => {
+  it("lists no products, and is there while any coffee beans are on sale", () => {
+    expect(selectBeansSections([row()]).automatic).toEqual({ flavoured: false });
+    expect(selectBeansSections([row({ categoryKeys: ["dolce-gusto"] })]).automatic).toBeNull();
+    expect(
+      selectBeansSections([row({ name: "Разтворимо кафе Test 0.200кг." })]).automatic,
+    ).toBeNull();
   });
 
-  it("reads the machine designation from the name, by the vending page's rule", () => {
+  it("knows when a flavoured coffee is among the beans, sold out or not", () => {
+    for (const aromas of ["yes", "YES", " yes "]) {
+      expect(selectBeansSections([row(), row({ attributes: { aromas } })]).automatic).toEqual({
+        flavoured: true,
+      });
+    }
     expect(
-      withSectionFacts(plain("Кафе на зърна Elia Vending Crema 1кг.", "elia")).machineBlend,
+      selectBeansSections([
+        row(),
+        row({ attributes: { aromas: "yes" }, availability: "out_of_stock" }),
+      ]).automatic?.flavoured,
     ).toBe(true);
+    // Not beans: a flavoured capsule says nothing about the beans page.
     expect(
-      withSectionFacts(plain("Кафе на зърна Vandino Espresso Aroma 1кг.", "vandino")).machineBlend,
+      selectBeansSections([
+        row(),
+        row({ attributes: { aromas: "yes" }, categoryKeys: ["nespresso"] }),
+      ]).automatic?.flavoured,
     ).toBe(false);
+    expect(selectBeansSections([row({ attributes: { aromas: "no" } })]).automatic?.flavoured).toBe(
+      false,
+    );
+  });
+});
+
+/* --- The facts handed in -------------------------------------------------- */
+
+describe("withSectionFacts", () => {
+  const plain = (brandSlug: string | null, brandSourceKey: string | null = brandSlug) =>
+    row({ brandSlug, brandSourceKey, italianBrand: false, brandName: null });
+
+  it("reads Italian from the brand record, by the brand's stored slug", () => {
+    for (const slug of ["lavazza", "kimbo", "illy", "borbone", "vergnano", "vandino", "moreno"]) {
+      expect(withSectionFacts(plain(slug)).italianBrand, slug).toBe(true);
+    }
+    for (const slug of ["elia", "este", "tezzoro", "julius-meinl", "eurocaf", "molini", "amann"]) {
+      expect(withSectionFacts(plain(slug)).italianBrand, slug).toBe(false);
+    }
+    expect(withSectionFacts(plain(null)).italianBrand).toBe(false);
+  });
+
+  it("names the brand as the page writes it, from its source key", () => {
+    expect(withSectionFacts(plain("lollocafe")).brandName).toBe("Lollo Caffè");
+    expect(withSectionFacts(plain("biancaffe")).brandName).toBe("Biancaffè");
+    expect(withSectionFacts(plain("illy")).brandName).toBe("illy");
+    expect(withSectionFacts(plain("moreno", "cafe-moreno")).brandName).toBe("Moreno");
+    expect(withSectionFacts(plain(null)).brandName).toBeNull();
+  });
+});
+
+/* --- The brand record ----------------------------------------------------- */
+
+describe("what makes a brand Italian (content/brand-facts.ts)", () => {
+  it("records every Italian brand under one standard, saying which way it qualifies", () => {
+    for (const [key, facts] of Object.entries(brandFacts)) {
+      if (facts.italian === undefined) continue;
+      expect(facts.italian, key).toMatch(/^(Company|Town|Own words|Own site): \S/u);
+    }
+  });
+
+  it("does not call a brand Italian for its name or for where it was roasted", () => {
+    for (const slug of [
+      "molini",
+      "rema-caffe",
+      "eurocaf",
+      "elia",
+      "este",
+      "tezzoro",
+      "3bourbons",
+      "amann",
+      "julius-meinl",
+      "bianchi",
+    ]) {
+      expect(brandFactsFor({ slug }).italian, slug).toBeUndefined();
+    }
   });
 });
 
@@ -343,6 +322,13 @@ const beans = categoryCopy["kafe-na-zyrna"]!;
 const sections = beans.sections!;
 
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+(?=[А-ЯA-Z„])/u).filter(Boolean);
+
+/** Each section in each state the catalog can put it in. */
+const SAID = BEANS_SECTION_IDS.flatMap((id) =>
+  [false, true].map(
+    (flavoured) => [id, flavoured, sectionText(sections[id], { flavoured })] as const,
+  ),
+);
 
 describe("the sections' copy", () => {
   it("heads each section in the words the searches use", () => {
@@ -358,19 +344,46 @@ describe("the sections' copy", () => {
     expect(Object.keys(sections).sort()).toEqual([...BEANS_SECTION_IDS].sort());
   });
 
-  it.each(BEANS_SECTION_IDS)("%s: one to three sentences, trimmed", (id) => {
-    const { text } = sections[id];
+  it.each(SAID)("%s (flavoured: %s): one to three sentences, trimmed", (_id, _flavoured, text) => {
     expect(text).toBe(text.trim());
     expect(sentences(text).length, text).toBeGreaterThanOrEqual(1);
     expect(sentences(text).length, text).toBeLessThanOrEqual(3);
     expect(text.length).toBeLessThan(450);
   });
 
-  it.each(BEANS_SECTION_IDS)(
-    "%s: names no figure, price, count, product or brand that could go stale",
-    (id) => {
-      const { heading, text } = sections[id];
-      for (const words of [heading, text]) {
+  it("says every bean suits an automatic machine only while no flavoured bean is on sale", () => {
+    const every = "Затова всяко кафе на зърна от тази страница става за нея";
+    expect(sectionText(sections.automatic, { flavoured: false })).toContain(every);
+    expect(sectionText(sections.automatic, { flavoured: true })).not.toContain(every);
+    expect(sectionText(sections.automatic, { flavoured: true })).not.toMatch(/всяко/u);
+    // The Italian section says the same in both states.
+    expect(sectionText(sections.italian, { flavoured: true })).toBe(
+      sectionText(sections.italian, { flavoured: false }),
+    );
+  });
+
+  it("makes no claim about vending blends, and none that vending machines grind", () => {
+    for (const [, , text] of SAID) {
+      expect(text).not.toMatch(/vending/iu);
+      expect(text).not.toMatch(/вендинг автомати, които/u);
+    }
+    expect(sectionText(sections.automatic, { flavoured: false })).toContain(
+      "вендинг автоматите на зърна",
+    );
+  });
+
+  it("says what the Italian list is: by brand name, one pack each, the lowest per kilogram", () => {
+    const text = sectionText(sections.italian, { flavoured: false });
+    expect(text).toContain("Марките са подредени по име");
+    expect(text).toContain("с по една опаковка от всяка");
+    expect(text).toContain("с най-ниската цена за килограм при нея");
+    expect(text).toContain("изпечено в Италия");
+  });
+
+  it.each(SAID)(
+    "%s (flavoured: %s): names no figure, price, count, product or brand that could go stale",
+    (id, _flavoured, text) => {
+      for (const words of [sections[id].heading, text]) {
         expect(words).not.toMatch(/\d|€|лв\.|EUR|BGN/u);
         expect(words).not.toMatch(
           /lavazza|kimbo|illy|borbone|vergnano|biancaff|lollo|vandino|moreno|excelsior|elia|este|rema|molini/iu,
@@ -379,11 +392,9 @@ describe("the sections' copy", () => {
     },
   );
 
-  it.each(BEANS_SECTION_IDS)("%s: links each phrase it names, once, where it stands", (id) => {
-    const { text, links = [] } = sections[id];
-    for (const link of links) {
-      expect(text.split(link.phrase).length - 1, link.phrase).toBe(1);
-    }
+  it.each(SAID)("%s (flavoured: %s): links each phrase it names, once", (id, _flavoured, text) => {
+    const links = sections[id].links ?? [];
+    for (const link of links) expect(text.split(link.phrase).length - 1, link.phrase).toBe(1);
     const linked = segmentParagraph(text, links).filter((segment) => typeof segment !== "string");
     expect(linked).toHaveLength(links.length);
   });
@@ -406,8 +417,6 @@ describe("the sections' copy", () => {
       for (const owner of KEYWORD_MAP) {
         if (owner.page === "kafe-na-zarna") continue;
         for (const term of [...owner.head, ...(owner.twins ?? [])]) {
-          // „кафе на зърна“ is ours; the two pages whose terms contain it are
-          // narrowings, and neither of their terms is in these headings.
           expect(carriesIgnoringPunctuation(heading, term), `${heading} / ${term}`).toBe(false);
         }
       }
@@ -428,10 +437,9 @@ describe("the sections' copy", () => {
   });
 
   it("uses no letter the self-hosted faces might not draw: Cyrillic, ASCII and Latin-1 only", () => {
-    for (const id of BEANS_SECTION_IDS) {
-      const { heading, text } = sections[id];
+    for (const [id, , text] of SAID) {
       // Letters only; punctuation such as „ “ — is outside the question.
-      const letters = `${heading} ${text}`.match(/\p{L}/gu) ?? [];
+      const letters = `${sections[id].heading} ${text}`.match(/\p{L}/gu) ?? [];
       const foreign = letters.filter((letter) => {
         const code = letter.codePointAt(0)!;
         return code > 0xff && !(code >= 0x400 && code <= 0x45f);
@@ -502,69 +510,79 @@ function card(
   };
 }
 
-const view = (id: "italian" | "automatic", titles: readonly string[]): BeansSectionView => ({
-  id,
-  products: titles.map((title, index) => ({
-    card: card(`${id}-${index}`, title),
+const italianView = (titles: readonly string[]) =>
+  titles.map((title, index) => ({
+    card: card(`italian-${index}`, title),
     perKilogram: `${16 + index},50 € / кг`,
-  })),
-});
+  }));
 
-const render = (views: readonly BeansSectionView[]) =>
-  renderToStaticMarkup(ListingSections({ locale: "bg", copy: sections, sections: views }) ?? "");
+const render = (view: BeansSectionsView) =>
+  renderToStaticMarkup(ListingSections({ locale: "bg", copy: sections, sections: view }) ?? "");
+
+const headingsOf = (html: string) =>
+  [...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]);
 
 describe("ListingSections", () => {
-  it("draws each section's heading, words and products, in the order given", () => {
-    const html = render([
-      view("italian", ["Vandino Espresso Bar", "Lollo Caffè Nero", "Excelsior Sapphire"]),
-      view("automatic", ["Elia Vending Intenso", "Elia Vending Crema", "Moreno Vending"]),
-    ]);
-    const headings = [...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((match) => match[1]);
-    expect(headings).toEqual([
+  it("draws the Italian brands with their price per kilogram, then the automatic section", () => {
+    const html = render({
+      italian: italianView(["Biancaffè Intenso", "Borbone Intenso", "Excelsior Sapphire"]),
+      automatic: { flavoured: false },
+    });
+    expect(headingsOf(html)).toEqual([
       "Италианско кафе на зърна",
       "Кафе на зърна за автоматична кафемашина",
     ]);
     expect(html).toContain('href="/bg/italian-0-kafe-na-zarna-1-kg"');
-    expect(html).toContain("Vandino Espresso Bar, 1 кг");
-    expect(html).toContain("16,50 € / кг");
+    expect(html).toContain("Biancaffè Intenso, 1 кг");
+    // DESIGN.md, "Price per cup / per kg".
+    expect(html).toMatch(
+      /<span class="[^"]*font-medium[^"]*text-pine-700[^"]*tabular-nums[^"]*">16,50 € \/ кг<\/span>/u,
+    );
     expect(html).toContain('href="/bg/marki"');
     expect(html).toContain('href="/bg/kafe-za-vending-mashini"');
-    expect(html.indexOf("Vandino")).toBeLessThan(html.indexOf("Lollo"));
-    // Each section is labelled by its own heading.
+    expect(html).toContain("Затова всяко кафе на зърна");
+    expect(html.indexOf("Biancaffè")).toBeLessThan(html.indexOf("Borbone"));
     for (const id of ["italian", "automatic"]) {
       expect(html).toContain(`aria-labelledby="listing-section-${id}"`);
       expect(html).toContain(`id="listing-section-${id}"`);
     }
   });
 
-  it("draws only the sections it is given", () => {
-    const html = render([view("automatic", ["A", "B", "C"])]);
-    expect(html).not.toContain("Италианско кафе на зърна");
-    expect(html).toContain("Кафе на зърна за автоматична кафемашина");
+  it("lists no products under the automatic-machine heading", () => {
+    const html = render({ italian: null, automatic: { flavoured: false } });
+    expect(headingsOf(html)).toEqual(["Кафе на зърна за автоматична кафемашина"]);
+    expect(html).not.toContain("<ul");
+    expect(html.match(/<a /g)).toHaveLength(1); // the vending page, and nothing else
   });
 
-  it("draws nothing at all when there is nothing to list", () => {
-    expect(ListingSections({ locale: "bg", copy: sections, sections: [] })).toBeNull();
+  it("drops the sentence about every bean while a flavoured one is on sale", () => {
+    const html = render({ italian: null, automatic: { flavoured: true } });
+    expect(html).not.toContain("всяко кафе на зърна");
+    expect(html).toContain("Автоматичната кафемашина (кафеавтомат) мели зърната сама");
+  });
+
+  it("draws nothing at all when neither section is there", () => {
     expect(
       ListingSections({
         locale: "bg",
         copy: sections,
-        sections: [{ id: "italian", products: [] }],
+        sections: { italian: null, automatic: null },
       }),
+    ).toBeNull();
+    expect(
+      ListingSections({ locale: "bg", copy: sections, sections: { italian: [], automatic: null } }),
     ).toBeNull();
   });
 
   it("names the pack in the link, so two sizes of one coffee read apart", () => {
-    const html = render([
-      {
-        id: "automatic",
-        products: [
-          { card: card("a", "Same Blend", { weight: "500 г" }), perKilogram: null },
-          { card: card("b", "Same Blend"), perKilogram: null },
-          { card: card("c", "Other", { weight: null }), perKilogram: null },
-        ],
-      },
-    ]);
+    const html = render({
+      italian: [
+        { card: card("a", "Same Blend", { weight: "500 г" }), perKilogram: null },
+        { card: card("b", "Same Blend"), perKilogram: null },
+        { card: card("c", "Other", { weight: null }), perKilogram: null },
+      ],
+      automatic: null,
+    });
     expect(html).toContain("Same Blend, 500 г");
     expect(html).toContain("Same Blend, 1 кг");
     expect(html).toContain(">Other</a>");

@@ -1241,9 +1241,14 @@ export async function listNewArrivals(limit = 8): Promise<readonly ProductCardVi
  * made there and the card is made here: one query for the rows and one for
  * their images, whatever the size of the set. Only products on sale come back;
  * an id that has since left the catalog is simply absent.
+ *
+ * `images: false` skips the second query, for a caller that draws no
+ * photograph (the beans listing's sections, a list of text links); the cards
+ * then carry no image.
  */
 export async function listProductCardsByIds(
   ids: readonly string[],
+  options: { readonly images?: boolean } = {},
 ): Promise<ReadonlyMap<string, ProductCardView>> {
   if (ids.length === 0) return new Map();
 
@@ -1253,7 +1258,10 @@ export async function listProductCardsByIds(
     .leftJoin(brands, eq(products.brandId, brands.id))
     .where(and(isVisible, inArray(products.id, [...ids])))) as unknown as ProductRow[];
 
-  const images = await loadPrimaryImages(rows.map((row) => row.id));
+  const images =
+    options.images === false
+      ? new Map<string, StoredImage>()
+      : await loadPrimaryImages(rows.map((row) => row.id));
   return new Map(rows.map((row) => [row.id, toCard(row, images.get(row.id))]));
 }
 

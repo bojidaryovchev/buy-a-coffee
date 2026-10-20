@@ -33,8 +33,8 @@ import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
  *
  * **The sections.** The beans listing also answers two narrower searches under
  * headings of their own, below the products: Italian beans, and beans for an
- * automatic machine (research `09`, T2.2). A few sentences each over a short
- * list of products the catalog chooses; see `ListingSectionCopy`.
+ * automatic machine (research `09`, T2.2). A few sentences each, the first
+ * over one pack per Italian brand; see `ListingSectionCopy`.
  *
  * The rules this copy was written under:
  *
@@ -69,16 +69,16 @@ export interface CopyLink {
 }
 
 /**
- * A short section under the listing, over a few products a rule chooses.
+ * A short section under the listing, with a heading of its own.
  *
  * The beans listing has two (research `09`, T2.2): searches for Italian beans
  * and for beans for an automatic machine are answered on the beans page under
- * headings of their own, before any of them is given an address. Which
- * products each lists is `lib/catalog/beans-sections.ts`, from data; the words
- * here say what the rule is and never name a product, a brand, a count or a
- * price, so nothing in them goes stale when the catalog moves. The page shows
- * a section only on the first page of the unfiltered listing, and only while
- * its rule finds enough to list.
+ * headings of their own, before any of them is given an address. What each
+ * shows is `lib/catalog/beans-sections.ts`, from data: one pack per Italian
+ * brand under the first, no products under the second. The words here say
+ * what is shown and by which rule, and never name a product, a brand, a count
+ * or a price, so nothing in them goes stale when the catalog moves. The page
+ * shows the sections only on the first page of the unfiltered listing.
  */
 export interface ListingSectionCopy {
   /**
@@ -86,9 +86,37 @@ export interface ListingSectionCopy {
    * head term (`test/keyword-map.ts`); the beans page owns „кафе на зърна“.
    */
   readonly heading: string;
-  /** One to three sentences, plain text: what is listed, and by which rule. */
-  readonly text: string;
+  /** One to three sentences, plain text, in reading order; see `sectionText`. */
+  readonly sentences: readonly SectionSentence[];
+  /** Each phrase stands in a sentence that is always said. */
   readonly links?: readonly CopyLink[];
+}
+
+/**
+ * A sentence, or one said only while the catalog bears it out.
+ *
+ * `unlessFlavoured`: only while no flavoured coffee (`aromas: yes`) is among
+ * the beans on sale. „Every bean here suits an automatic machine“ is true of
+ * the beans the shop sells today; of a flavoured one it is not something the
+ * shop knows, so on the day the sync brings one the sentence is not said, and
+ * the sentences around it still read as a whole.
+ */
+export type SectionSentence = string | { readonly text: string; readonly unlessFlavoured: true };
+
+/** The sentences a section says, as one paragraph, given what the catalog holds. */
+export function sectionText(
+  copy: ListingSectionCopy,
+  catalog: { readonly flavoured: boolean },
+): string {
+  return copy.sentences
+    .flatMap((sentence) =>
+      typeof sentence === "string"
+        ? [sentence]
+        : sentence.unlessFlavoured && catalog.flavoured
+          ? []
+          : [sentence.text],
+    )
+    .join(" ");
 }
 
 export interface CategoryCopy {
@@ -159,20 +187,32 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
       "Колебаете се между няколко пакета? Помощникът за избор пита за вкуса ви и за това колко кафе се изпива, и подрежда подходящите зърна по цена на чаша, а не на опаковка.",
     ],
     sections: {
-      /* Italian is what `content/brand-facts.ts` records, with its evidence:
-         Rema Caffè and Molini sound Italian and are made or sold from Plovdiv,
-         so neither is here. The products are one per brand (`beans-sections.ts`). */
+      /* Italian is what `content/brand-facts.ts` records, by the one standard
+         written there: Rema Caffè and Molini are not, and where a coffee is
+         roasted does not make its brand Italian. One pack per brand, the
+         brands by name (`beans-sections.ts`). */
       italian: {
         heading: "Италианско кафе на зърна",
-        text: "Италианско тук е кафето на марките, за които сме проверили, че са италиански: по собствения им сайт или по опаковката. Име, което само звучи италианско, не стига. По-долу е по една опаковка от марка, с най-ниската цена за килограм при нея, а всички такива марки са изредени на страницата марки кафе.",
+        sentences: [
+          "Италианско тук е кафето на марките, за които сме проверили, че са италиански: по собствения им сайт или по опаковката.",
+          "Име, което само звучи италианско, не стига, нито надпис, че кафето е изпечено в Италия.",
+          "Марките са подредени по име, с по една опаковка от всяка — тази с най-ниската цена за килограм при нея, а всички са изредени и на страницата марки кафе.",
+        ],
         links: [{ phrase: "марки кафе", to: routes.brands }],
       },
-      /* Every automatic model in `src/content/machines.ts` takes beans, of any
-         brand, and the choose-beans article says so; the products listed are
-         the blends their maker names „Vending“ (`isVendingBlendName`). */
+      /* No products: every automatic model in `src/content/machines.ts` takes
+         beans, of any brand, and the choose-beans article says the machine's
+         brand does not matter. Vending is the vending page's question. */
       automatic: {
         heading: "Кафе на зърна за автоматична кафемашина",
-        text: "Автоматичната кафемашина (кафеавтомат) мели зърната сама, затова всяко кафе на зърна от тази страница става за нея, каквато и да е марката ѝ. Тези по-долу носят „Vending“ в името си: така производителят ги е предназначил за вендинг автомати, които също мелят зърната за всяка чаша. Ако купувате за вендинг автомат, вижте и кафе за вендинг машини.",
+        sentences: [
+          "Автоматичната кафемашина (кафеавтомат) мели зърната сама, а при зърната няма система, на която кафето да трябва да пасва, както при капсулите.",
+          {
+            text: "Затова всяко кафе на зърна от тази страница става за нея, каквато и да е марката ѝ.",
+            unlessFlavoured: true,
+          },
+          "За вендинг автоматите на зърна вижте кафе за вендинг машини.",
+        ],
         links: [{ phrase: "кафе за вендинг машини", to: routes.vending }],
       },
     },
