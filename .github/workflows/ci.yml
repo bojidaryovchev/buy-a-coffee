@@ -53,7 +53,8 @@ env:
 jobs:
   verify:
     name: Verify
-    runs-on: ubuntu-latest
+    # 16 vCPUs, 64 GB on Ubicloud, as in connecto's CI.
+    runs-on: ubicloud-standard-16
     timeout-minutes: 30
     services:
       postgres:
@@ -120,7 +121,8 @@ jobs:
 
   e2e:
     name: End-to-end (desktop and mobile)
-    runs-on: ubuntu-latest
+    # 8 vCPUs, 32 GB on Ubicloud, as connecto's Playwright job.
+    runs-on: ubicloud-standard-8
     timeout-minutes: 30
     services:
       postgres:
