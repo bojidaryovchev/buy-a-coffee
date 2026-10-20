@@ -43,8 +43,9 @@ export const ITALIAN_SECTION_MIN = 3;
 export interface BeansSectionRow extends LandingRow {
   /**
    * The brand is recorded as Italian, with the evidence beside it, in
-   * `content/brand-facts.ts`. A brand with no entry there is not Italian here,
-   * whatever its name sounds like.
+   * `content/brand-facts.ts`, and not held there as unconfirmed
+   * (`isItalianBrand`). A brand with no entry is not Italian here, whatever
+   * its name sounds like.
    */
   readonly italianBrand: boolean;
   /** The brand's name as the shop writes it („Biancaffè“, „illy“), for the order. */

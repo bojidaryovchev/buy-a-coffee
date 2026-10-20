@@ -17,7 +17,7 @@ vi.mock("@/lib/db", async (importOriginal) =>
   process.env.DATABASE_URL ? await importOriginal() : { db: {} },
 );
 
-import { brandFactsFor } from "../content/brand-facts";
+import { brandFactsFor, isItalianBrand } from "../content/brand-facts";
 import { getBeansSections } from "@/lib/catalog/beans-section-queries";
 import { ITALIAN_SECTION_MAX, ITALIAN_SECTION_MIN } from "@/lib/catalog/beans-sections";
 import { loadLandingRows } from "@/lib/catalog/landing-queries";
@@ -112,7 +112,7 @@ const activeBeans = catalog.filter(
 );
 
 const isItalian = (row: CatalogRow) =>
-  row.brandSlug !== null && brandFactsFor({ slug: row.brandSlug }).italian !== undefined;
+  row.brandSlug !== null && isItalianBrand({ slug: row.brandSlug });
 
 const shownName = (row: CatalogRow) =>
   brandDisplayName({ name: row.brandName ?? "", sourceKey: row.brandSourceKey });
@@ -137,6 +137,14 @@ describe.skipIf(!hasCatalog)("the beans sections, against the catalog", () => {
       expect(isItalian(row!), card.slug).toBe(true);
       expect(card.systemId, card.slug).toBe("beans");
       expect(perKilogram, card.slug).toMatch(/^\d+,\d{2}\s€ \/ кг$/u);
+    }
+  });
+
+  it("lists no brand that brand-facts.ts holds as unconfirmed", async () => {
+    const { italian } = await getBeansSections();
+    for (const { card } of italian ?? []) {
+      const row = byId.get(card.id)!;
+      expect(brandFactsFor({ slug: row.brandSlug! }).italianUnconfirmed, card.slug).toBeUndefined();
     }
   });
 

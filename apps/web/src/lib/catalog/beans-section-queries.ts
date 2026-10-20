@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { brandFactsFor } from "../../../content/brand-facts";
+import { isItalianBrand } from "../../../content/brand-facts";
 import { brandDisplayName } from "./brand-display";
 import {
   ITALIAN_SECTION_MIN,
@@ -24,9 +24,10 @@ import type { ProductCardView } from "./types";
  * which the section does not draw. The facts the rules need are resolved here,
  * each from the one place it is decided:
  *
- *  - Italian: `brandFactsFor`, the record with the evidence for each brand,
- *    looked up by the brand's stored slug exactly as the brand index's
- *    sentence about Italian brands looks it up (`brandsIndexIntro`).
+ *  - Italian: `isItalianBrand`, from the record with the evidence for each
+ *    brand — a brand held as unconfirmed is not Italian — looked up by the
+ *    brand's stored slug, exactly as the brand index's sentence about Italian
+ *    brands asks it (`brandsIndexIntro`).
  *  - the brand's name, for the order: `brandDisplayName`, by the brand's
  *    source key. Every brand recorded as Italian has its spelling in
  *    `brand-names.ts` (`test/listing-meta.test.ts`), so the key is enough.
@@ -50,8 +51,7 @@ export function withSectionFacts(row: LandingRow): BeansSectionRow {
   const key = row.brandSourceKey ?? row.brandSlug;
   return {
     ...row,
-    italianBrand:
-      row.brandSlug !== null && brandFactsFor({ slug: row.brandSlug }).italian !== undefined,
+    italianBrand: row.brandSlug !== null && isItalianBrand({ slug: row.brandSlug }),
     brandName: key === null ? null : brandDisplayName({ name: key, sourceKey: row.brandSourceKey }),
   };
 }

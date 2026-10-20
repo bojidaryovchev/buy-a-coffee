@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
  */
 vi.mock("@/lib/db", () => ({ db: {} }));
 
-import { brandFacts, brandFactsFor } from "../content/brand-facts";
+import { brandFacts, brandFactsFor, isItalianBrand } from "../content/brand-facts";
 import { categoryCopy, sectionText, segmentParagraph } from "../content/category-copy";
 import { ListingSections } from "@/components/catalog/listing-sections";
 import { withSectionFacts, type BeansSectionsView } from "@/lib/catalog/beans-section-queries";
@@ -22,6 +22,7 @@ import {
 } from "@/lib/catalog/beans-sections";
 import type { ProductCardView } from "@/lib/catalog/types";
 import {
+  brandsIndexIntro,
   categoryDescriptionLead,
   categoryHeading,
   categoryTitle,
@@ -270,10 +271,20 @@ describe("withSectionFacts", () => {
     row({ brandSlug, brandSourceKey, italianBrand: false, brandName: null });
 
   it("reads Italian from the brand record, by the brand's stored slug", () => {
-    for (const slug of ["lavazza", "kimbo", "illy", "borbone", "vergnano", "vandino", "moreno"]) {
+    for (const slug of ["lavazza", "kimbo", "illy", "borbone", "vergnano", "moreno", "lollocafe"]) {
       expect(withSectionFacts(plain(slug)).italianBrand, slug).toBe(true);
     }
-    for (const slug of ["elia", "este", "tezzoro", "julius-meinl", "eurocaf", "molini", "amann"]) {
+    // Vandino is held as unconfirmed: it calls itself Italian, its company is not known.
+    for (const slug of [
+      "vandino",
+      "elia",
+      "este",
+      "tezzoro",
+      "julius-meinl",
+      "eurocaf",
+      "molini",
+      "amann",
+    ]) {
       expect(withSectionFacts(plain(slug)).italianBrand, slug).toBe(false);
     }
     expect(withSectionFacts(plain(null)).italianBrand).toBe(false);
@@ -298,6 +309,31 @@ describe("what makes a brand Italian (content/brand-facts.ts)", () => {
     }
   });
 
+  it("holds a brand that calls itself Italian, with no company recorded, as unconfirmed", () => {
+    for (const [key, facts] of Object.entries(brandFacts)) {
+      if (facts.italianUnconfirmed === undefined) continue;
+      // Never both, and never called Italian while held.
+      expect(facts.italian, key).toBeUndefined();
+      expect(isItalianBrand({ slug: key }), key).toBe(false);
+      // What was found, and where.
+      expect(facts.italianUnconfirmed, key).toMatch(/[a-z0-9-]+\.(com|it|bg)\b/u);
+    }
+    const vandino = brandFactsFor({ slug: "vandino" });
+    expect(vandino.italian).toBeUndefined();
+    expect(vandino.italianUnconfirmed).toContain("vandinocaffe.com");
+    expect(vandino.italianUnconfirmed).toContain("zagatto.com");
+    expect(vandino.italianUnconfirmed).toContain("no imprint");
+  });
+
+  it("names the same brands Italian on the brand index as in the beans section", () => {
+    const stocked = Object.keys(brandFacts).map((slug) => ({ slug, name: slug }));
+    const intro = brandsIndexIntro(stocked)!;
+    for (const { slug } of stocked) {
+      expect(intro.includes(slug), slug).toBe(isItalianBrand({ slug }));
+    }
+    expect(intro).not.toContain("vandino");
+  });
+
   it("does not call a brand Italian for its name or for where it was roasted", () => {
     for (const slug of [
       "molini",
@@ -310,8 +346,9 @@ describe("what makes a brand Italian (content/brand-facts.ts)", () => {
       "amann",
       "julius-meinl",
       "bianchi",
+      "vandino",
     ]) {
-      expect(brandFactsFor({ slug }).italian, slug).toBeUndefined();
+      expect(isItalianBrand({ slug }), slug).toBe(false);
     }
   });
 });
