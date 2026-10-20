@@ -249,6 +249,9 @@ const product = (overrides: Partial<CartProductView> & { id: string }): CartProd
   detail: "Капсули, 10 бр.",
   image: null,
   price: { amount: "5.00", currency: "EUR", formatted: "5,00 €" },
+  oldPrice: null,
+  discountPercent: null,
+  promotion: null,
   servingPrice: "0,50 € на чаша",
   availability: "in_stock",
   blocked: null,
@@ -326,6 +329,69 @@ describe("the cart page", () => {
     expect(sum.textContent).toMatch(/39,80\s€/);
     expect(sum.textContent).toContain("(3 бр.)");
     expect(sum.textContent).toContain("Без 1 продукт с цена при запитване");
+  });
+
+  it("draws a reduced line as its card does, and says what the reductions save", async () => {
+    serve([
+      product({
+        id: A,
+        title: "Lavazza",
+        price: { amount: "8.95", currency: "EUR", formatted: "8,95 €" },
+        oldPrice: { amount: "9.95", currency: "EUR", formatted: "9,95 €" },
+        discountPercent: 10,
+        // The end of 15 November in Sofia (EET, UTC+2).
+        promotion: { label: "Есенни дни", endsAt: "2026-11-15T22:00:00.000Z" },
+      }),
+      product({
+        id: B,
+        title: "Kimbo",
+        // The source's own struck price: a reduction, and no promotion of ours.
+        price: { amount: "4.00", currency: "EUR", formatted: "4,00 €" },
+        oldPrice: { amount: "5.00", currency: "EUR", formatted: "5,00 €" },
+        discountPercent: 20,
+      }),
+      product({
+        id: C,
+        title: "Borbone",
+        price: { amount: "3.00", currency: "EUR", formatted: "3,00 €" },
+      }),
+    ]);
+    render(createElement(CartView, { locale: "bg" }));
+    fill([
+      { productId: A, quantity: 2 },
+      { productId: B, quantity: 1 },
+      { productId: C, quantity: 1 },
+    ]);
+    const row = (await screen.findByRole("link", { name: "Lavazza" })).closest("li")!;
+
+    expect(row.textContent).toMatch(/Намалена цена 8,95\s€ за брой/);
+    const struck = within(row).getByText(/^9,95\s€$/);
+    expect(struck.className).toContain("line-through");
+    expect(row.textContent).toContain("Стара цена");
+    expect(within(row).getByText("−10%")).toBeTruthy();
+    expect(row.textContent).toMatch(/Есенни дни · до 15 ноември/);
+    // No timer: a date.
+    expect(row.textContent).not.toMatch(/остава|ч\.|мин/);
+
+    const plain = screen.getByRole("link", { name: "Borbone" }).closest("li")!;
+    expect(plain.textContent).not.toContain("Стара цена");
+    expect(screen.getByRole("link", { name: "Kimbo" }).closest("li")!.textContent).not.toContain(
+      "до ",
+    );
+
+    const sum = screen.getByLabelText("Сума и поръчка");
+    // 2 × 8,95 + 4,00 + 3,00 — the reduced prices are what is charged.
+    expect(sum.textContent).toMatch(/24,90\s€/);
+    // (9,95 − 8,95) × 2 + (5,00 − 4,00).
+    expect(sum.textContent).toMatch(/Спестявате\s*3,00\s€/);
+  });
+
+  it("says nothing of savings when nothing is reduced", async () => {
+    serve([product({ id: A, title: "Lavazza" })]);
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+    expect(screen.getByLabelText("Сума и поръчка").textContent).not.toContain("Спестявате");
   });
 
   it("removes a line, and changes a quantity without asking the server again", async () => {

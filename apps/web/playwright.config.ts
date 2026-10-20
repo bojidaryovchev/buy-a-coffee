@@ -13,6 +13,9 @@ import { defineConfig, devices } from "@playwright/test";
  * collision fails loudly instead.
  */
 const PORT = Number(process.env.E2E_PORT ?? 8765);
+
+/** The specs that write shop-wide state to the database (the "after" project below). */
+const SHOP_WIDE = /(^|[\\/])promotion\.spec\.ts$/;
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -38,10 +41,24 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: SHOP_WIDE },
     // Mobile is a first-class target, not an afterthought: the drawer,
     // filter sheet and layout all differ there.
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: SHOP_WIDE },
+    /*
+     * Specs that change what the whole shop shows run once every other spec
+     * has finished. A running promotion puts a product on the promotions page,
+     * which is rendered per request, while the sitemap was rendered at build:
+     * a spec comparing the two in the middle of it would read a shop that is
+     * half changed. Run alone, they cannot be met by anything else. If a spec
+     * in the projects before them fails, these are reported as not run.
+     */
+    {
+      name: "after",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: SHOP_WIDE,
+      dependencies: ["desktop", "mobile"],
+    },
   ],
 
   webServer: process.env.E2E_BASE_URL

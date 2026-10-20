@@ -71,7 +71,7 @@ export const PROMOTIONS_META = {
   description: "Кафе на промоция: капсули, зърна и дози с намалена цена",
   /** While nothing is reduced there is no range to quote and nothing to list. */
   descriptionWhenEmpty:
-    "В момента няма кафе на промоция. Щом намалим цена, продуктът се появява тук.",
+    "В момента няма кафе на промоция. Когато пуснем промоция, намалените продукти се появяват тук.",
 } as const;
 
 export const CATEGORIES_INDEX_META = {

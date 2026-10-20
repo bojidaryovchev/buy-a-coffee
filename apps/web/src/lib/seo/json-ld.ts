@@ -7,6 +7,7 @@ import {
 } from "@/components/commerce/terms";
 import { availabilitySchemaUrl } from "@/lib/catalog/format";
 import { isPlaceholderImage } from "@/lib/catalog/images";
+import { promotionLastDay } from "@/lib/catalog/promotion-days";
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { brandLogoFor } from "../../../content/brand-logos";
 import { categoryNameFor } from "../../../content/category-copy";
@@ -389,10 +390,20 @@ export function productJsonLd(
   // An Offer without a price is invalid structured data, so it is omitted
   // entirely for the products that genuinely have no price.
   if (product.price) {
+    /*
+     * Under the shop's own promotion the price is the promotion's, and it
+     * holds until the promotion's last day, in Sofia (`promotion-days.ts`).
+     * Said whether or not the page shows a reduction: the price ends then
+     * either way. Shipping below follows the same price, so a promotion that
+     * takes a product under the free-delivery threshold takes the free
+     * shipping rate off its offer with it.
+     */
+    const validUntil = product.promotion ? promotionLastDay(product.promotion.endsAt) : null;
     data.offers = {
       "@type": "Offer",
       price: product.price.amount,
       priceCurrency: product.price.currency,
+      ...(validUntil ? { priceValidUntil: validUntil } : {}),
       availability: offerAvailability(product),
       // Everything the shop sells is new, sealed retail packs.
       itemCondition: "https://schema.org/NewCondition",

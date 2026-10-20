@@ -9,6 +9,7 @@ import { CloseIcon } from "@/components/layout/icons";
 import { Cup } from "@/components/illustrations/drawings";
 import {
   AvailabilityBadge,
+  Badge,
   ButtonLink,
   EmptyState,
   buttonClasses,
@@ -18,7 +19,14 @@ import type { Locale } from "@/i18n/config";
 import type { CartLine } from "@/lib/cart/cart";
 import { cartStore, useCart } from "@/lib/cart/store";
 import type { CartProductView } from "@/lib/cart/view";
-import { lineTotal, orderSum, productCount } from "@/lib/orders/lines";
+import { promotionUntil } from "@/lib/catalog/promotion-days";
+import {
+  lineTotal,
+  orderSavings,
+  orderSum,
+  productCount,
+  type OrderLine,
+} from "@/lib/orders/lines";
 import { href, productHref, routes } from "@/lib/routes";
 import { PackWell } from "@/components/catalog/pack-well";
 
@@ -35,6 +43,12 @@ import { PackWell } from "@/components/catalog/pack-well";
  * A line the shop cannot take any more (withdrawn, gone from the catalog, or
  * out of stock today) stays on the page with the reason, and is left out of
  * the sum and the order, so nothing disappears without a word.
+ *
+ * A reduced line is drawn as its card draws it — the price in clay, the struck
+ * price, the badge — with the shop's promotion and its last day when one is
+ * behind it, and the sum says what the reductions save, from the same struck
+ * prices: nothing the product's page did not already claim. The free-delivery
+ * threshold is measured against the reduced sum, which is what is charged.
  *
  * States, in the order a visit meets them: reading the cart (the server sent
  * none), asking the server, the cart, and after the order the answer. An
@@ -133,18 +147,10 @@ export function CartView({ locale }: { locale: Locale }) {
         : [],
     [lines, products],
   );
-  const sum = useMemo(
-    () =>
-      orderSum(
-        orderable.map((line) => ({
-          name: line.productId,
-          quantity: line.quantity,
-          unitPrice: products?.get(line.productId)?.price ?? null,
-        })),
-        locale,
-      ),
-    [orderable, products, locale],
-  );
+  const { sum, saved } = useMemo(() => {
+    const priced = orderable.map((line) => sumLine(line, products?.get(line.productId) ?? null));
+    return { sum: orderSum(priced, locale), saved: orderSavings(priced, locale) };
+  }, [orderable, products, locale]);
 
   const onPlaced = useCallback(
     (answer: { message: string; reference?: string }) => {
@@ -263,6 +269,12 @@ export function CartView({ locale }: { locale: Locale }) {
                 телефона.
               </p>
             )}
+            {saved && (
+              <p className="mt-2 flex items-baseline justify-between gap-4 text-sm">
+                <span className="text-ink-700">Спестявате</span>
+                <span className="font-semibold text-clay-600 tabular-nums">{saved.formatted}</span>
+              </p>
+            )}
             <p className="mt-2 text-xs text-ink-500">
               Доставката и крайната сума потвърждаваме по телефона. На сайта нищо не се плаща.
             </p>
@@ -378,7 +390,7 @@ function CartLineRow({
             )}
             <p className="mt-1.5 flex flex-wrap items-baseline gap-x-3 text-sm tabular-nums">
               {product.price ? (
-                <span className="text-ink-700">{product.price.formatted} за брой</span>
+                <UnitPrice product={product} />
               ) : (
                 <span className="text-ink-500">Цена при запитване</span>
               )}
@@ -386,6 +398,7 @@ function CartLineRow({
                 <span className="text-xs font-medium text-pine-700">{product.servingPrice}</span>
               )}
             </p>
+            {product.promotion && <PromotionLine promotion={product.promotion} />}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <QuantityStepper
                 value={line.quantity}
@@ -414,6 +427,67 @@ function CartLineRow({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * A cart line as a sum line: the server's price, and its struck price when the
+ * page shows one, so `orderSavings` counts only what the shop claimed.
+ */
+function sumLine(line: CartLine, product: CartProductView | null): OrderLine {
+  const price = product?.price ?? null;
+  return {
+    name: line.productId,
+    quantity: line.quantity,
+    unitPrice: price,
+    ...(price && product?.oldPrice
+      ? {
+          reduction: {
+            reader: "customer",
+            before: product.oldPrice,
+            percent: product.discountPercent,
+          },
+        }
+      : {}),
+  };
+}
+
+/** "5,60 € за брой", or reduced: the price in clay, the struck price, the badge. */
+function UnitPrice({ product }: { product: CartProductView }) {
+  if (!product.price) return null;
+  if (!product.oldPrice) {
+    return <span className="text-ink-700">{product.price.formatted} за брой</span>;
+  }
+  return (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2">
+      <span className="text-ink-700">
+        <span className="sr-only">Намалена цена </span>
+        <span className="font-medium text-clay-600">{product.price.formatted}</span> за брой
+      </span>
+      <span className="sr-only">Стара цена </span>
+      <span className="text-ink-300 line-through">{product.oldPrice.formatted}</span>
+      {product.discountPercent !== null && (
+        // `self-center`: a badge has a box of its own, and would sit on the baseline.
+        <Badge tone="reduction" className="self-center tabular-nums">
+          −{product.discountPercent}%
+        </Badge>
+      )}
+    </span>
+  );
+}
+
+/** "Есенни дни · до 15 ноември": the promotion behind a reduced line. No countdown. */
+function PromotionLine({ promotion }: { promotion: NonNullable<CartProductView["promotion"]> }) {
+  const until = promotionUntil(promotion.endsAt);
+  if (!promotion.label && !until) return null;
+  return (
+    <p className="mt-1 text-xs text-ink-500">
+      {promotion.label && <span className="font-medium text-ink-700">{promotion.label}</span>}
+      {promotion.label && until && <span aria-hidden> · </span>}
+      {until && (
+        <span className="tabular-nums">{promotion.label ? until : `Промоция ${until}`}</span>
+      )}
+    </p>
   );
 }
 

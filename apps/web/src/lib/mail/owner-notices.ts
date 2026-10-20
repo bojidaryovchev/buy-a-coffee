@@ -23,6 +23,15 @@ interface OrderedItem {
   readonly quantity: number;
   readonly unitPrice: string | null;
   readonly currency: string | null;
+  /*
+   * Set when the shop's own promotion priced the line (`itemFor`): the
+   * regular price, the promotion's percentage and the owner's name for it.
+   * The owner's to read — "−10% · Есенна кампания, редовна 9,95 €" — so the
+   * margin a promotion gave away is in the notice. Not a customer's detail.
+   */
+  readonly regularUnitPrice?: string | null;
+  readonly discountPercent?: number | null;
+  readonly promotionName?: string | null;
 }
 
 export interface OrderRecord {

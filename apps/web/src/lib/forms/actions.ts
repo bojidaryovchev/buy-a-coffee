@@ -20,7 +20,7 @@ import {
   type StoredDelivery,
 } from "@/lib/orders/delivery";
 import { productCount } from "@/lib/orders/lines";
-import { itemFor, itemLines, recordInquiry, type OrderItem } from "@/lib/orders/record";
+import { confirmationLines, itemFor, recordInquiry, type OrderItem } from "@/lib/orders/record";
 import {
   clientFingerprint,
   contactLimiter,
@@ -153,8 +153,10 @@ async function requestContext(): Promise<{
  * customer is answered "received" either way, which is the truth.
  *
  * The shop's mail names the products as the owner orders them (the supplier's
- * names) and carries no contact detail; the customer's names them as the shop
- * does and carries the number the shop will ring.
+ * names), with what a promotion took off and which promotion it was, and
+ * carries no contact detail; the customer's names them as the shop does,
+ * reduced only as the page showed them reduced, and carries the number the
+ * shop will ring.
  */
 async function announceOrder(order: {
   id: string;
@@ -176,7 +178,7 @@ async function announceOrder(order: {
       email: order.email,
       customerName,
       phone: order.phone,
-      lines: itemLines(order.items, "displayName"),
+      lines: confirmationLines(order.items),
       callback: order.callback,
       delivery,
     });
@@ -276,7 +278,10 @@ export async function submitCartOrder(
     const units = items.reduce((sum, item) => sum + item.quantity, 0);
 
     // The same customer sending the same cart twice has ordered once. Sorted,
-    // so the order the lines happen to be in does not make a second key.
+    // so the order the lines happen to be in does not make a second key. No
+    // price in it: a second press just after a promotion began or ended is
+    // still the same order, not a second one at the new price — the first
+    // press's prices stand, and the call confirms them either way.
     const key = idempotencyKey([
       "cart",
       input.phone,
@@ -284,7 +289,11 @@ export async function submitCartOrder(
     ]);
     const callback = callbackSentence(new Date(), siteConfig.commerce.openingHours);
 
-    const { id, created } = await recordInquiry(
+    const {
+      id,
+      created,
+      items: stored,
+    } = await recordInquiry(
       {
         // A cart names no single product; its lines are in the items. The
         // quantity is every unit in it, for anything that reads the old shape.
@@ -323,7 +332,8 @@ export async function submitCartOrder(
     await announceOrder({
       id,
       subject: `Нова заявка от количката: ${productCount(items.length)}, ${units} бр.`,
-      items,
+      // As stored: with the names of the promotions that priced them.
+      items: stored,
       phone: input.phone,
       email: input.email || null,
       delivery: deliveryColumns(input),

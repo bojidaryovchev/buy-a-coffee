@@ -39,6 +39,13 @@ export const orderConfirmationFixture: OrderConfirmationContent = {
       unitPrice: eur("2.90"),
     },
     { name: "Kimbo Napoli, кафе дози ESE, 50 бр.", quantity: 1, unitPrice: null },
+    // Reduced by the shop's promotion, as the page showed it: struck, with its badge.
+    {
+      name: "Lavazza Crema e Aroma, кафе на зърна, 1 кг",
+      quantity: 1,
+      unitPrice: eur("17.91"),
+      reduction: { reader: "customer", before: eur("19.90"), percent: 10 },
+    },
   ],
   callback: "Ще ви се обадим утре, в работно време.",
 };
@@ -50,7 +57,7 @@ export const orderConfirmationFixture: OrderConfirmationContent = {
  */
 export const orderRecordFixture = {
   id: "a1b2c3d4-0000-4000-8000-000000000000",
-  subject: "Нова заявка за поръчка: 2 продукта",
+  subject: "Нова заявка за поръчка: 3 продукта",
   phone: "+359 888 765 432",
   email: "maria.petrova@example.bg",
   customerName: "Мария Петрова",
@@ -58,6 +65,16 @@ export const orderRecordFixture = {
   items: [
     { productName: "Super Crema 1кг", quantity: 2, unitPrice: "19.90", currency: "EUR" },
     { productName: "Napoli ESE 50", quantity: 1, unitPrice: null, currency: null },
+    // Priced by a promotion: the owner's own name for it travels to the owner.
+    {
+      productName: "Crema e Aroma 1кг",
+      quantity: 1,
+      unitPrice: "17.91",
+      currency: "EUR",
+      regularUnitPrice: "19.90",
+      discountPercent: 10,
+      promotionName: "Есенна кампания Lavazza",
+    },
   ],
 } as const;
 
@@ -72,18 +89,31 @@ export const contactRecordFixture = {
 
 export const orderNotificationFixture: OwnerNotificationContent = {
   label: "Нова заявка",
-  subject: "Нова заявка за поръчка: 3 продукта",
+  subject: "Нова заявка за поръчка: 4 продукта",
   summary: [
     "2 × Super Crema 1кг — 19,90 € за брой, 39,80 €",
     "3 × Arabica Gold Nespresso 10бр. — 2,90 € за брой, 8,70 €",
     "1 × Napoli ESE 50 — цена при запитване",
+    "1 × Crema e Aroma 1кг — 17,91 € (−10% · Есенна кампания Lavazza, редовна 19,90 €)",
     "",
-    "Сума на продуктите: 48,50 €, без 1 продукт с цена при запитване",
+    "Сума на продуктите: 66,41 €, без 1 продукт с цена при запитване",
+    "Отстъпка по промоции: 1,99 €",
   ].join("\n"),
   lines: [
     { name: "Super Crema 1кг", quantity: 2, unitPrice: eur("19.90") },
     { name: "Arabica Gold Nespresso 10бр.", quantity: 3, unitPrice: eur("2.90") },
     { name: "Napoli ESE 50", quantity: 1, unitPrice: null },
+    {
+      name: "Crema e Aroma 1кг",
+      quantity: 1,
+      unitPrice: eur("17.91"),
+      reduction: {
+        reader: "owner",
+        before: eur("19.90"),
+        percent: 10,
+        promotionName: "Есенна кампания Lavazza",
+      },
+    },
   ],
   link: "https://buy-a-coffee.com/admin/zayavki/a1b2c3d4-0000-4000-8000-000000000000",
   footnote: [

@@ -14,10 +14,16 @@ import { cartLimiter, clientFingerprint } from "@/lib/rate-limit";
  * be shown and left out of the order. An id that names nothing is simply
  * absent from the answer; the page says that product is gone.
  *
+ * A price is today's, with any running promotion already off it, and a line
+ * the shop shows reduced comes with its struck price, its badge and the
+ * promotion's words for customers and last day — exactly what its card and
+ * its page say, so the cart can say „Спестявате“ about the same figures.
+ *
  * A route handler and not a server action for the reason the typeahead gives
  * (`api/search/suggest`): it is called from an effect, and an action would
  * queue behind the router. It reads only what product pages already publish,
- * minus the supplier's name, which `toCartProductView` does not carry.
+ * minus the supplier's name and the owner's name for a promotion, neither of
+ * which `toCartProductView` carries.
  *
  * Never cached: the answer is a price, and this is the page the order is sent
  * from.

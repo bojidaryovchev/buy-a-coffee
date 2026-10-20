@@ -17,6 +17,7 @@ import {
 import { siteConfig, type CommerceConfig } from "@/config/site";
 import type { BrandView, ProductCardView } from "@/lib/catalog/types";
 import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
+import { promotionUntil } from "@/lib/catalog/promotion-days";
 import { JOURNAL_PATH, formatArticleDate, type ArticleSummary } from "@/lib/journal";
 import { STEP_LABELS, STEP_SEQUENCE } from "@/lib/recommend/answers";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
@@ -305,7 +306,7 @@ export function HomePromotions({
   readonly locale: Locale;
 }) {
   /*
-   * A reduction is real or absent. The query already asks for an old price
+   * A reduction is real or absent. The query already asks for a struck price
    * above the current one; the card view carries `discountPercent` only when
    * exact minor units agree, and this band trusts nothing less.
    */
@@ -319,6 +320,7 @@ export function HomePromotions({
       <div className="shell">
         <SectionHeading
           title="Намалени в момента"
+          description={promotionLine(reduced) ?? undefined}
           action={
             <ButtonLink href={href(locale, routes.promotions)} variant="secondary" size="sm">
               Всички промоции
@@ -333,6 +335,24 @@ export function HomePromotions({
       </div>
     </section>
   );
+}
+
+/**
+ * The band's one sentence, when one of the shop's promotions is behind every
+ * product it shows: its words for customers and its last day, "Есенни дни —
+ * до 15 ноември". Products from several promotions, or a reduction that is
+ * not ours, would make any one of them untrue of some card, so then nothing
+ * is said and each card speaks for itself. No countdown: a date.
+ */
+function promotionLine(products: readonly ProductCardView[]): string | null {
+  const [first] = products;
+  const promotion = first?.promotion;
+  if (!promotion || products.some((product) => product.promotion?.id !== promotion.id)) {
+    return null;
+  }
+  const until = promotionUntil(promotion.endsAt);
+  if (!until) return null;
+  return promotion.label ? `${promotion.label} — ${until}.` : `Промоция ${until}.`;
 }
 
 /* --- 6. New arrivals ----------------------------------------------------- */
