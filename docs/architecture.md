@@ -675,22 +675,32 @@ the resolver and zod, some 25 KB with brotli, had been on every page, ahead of
 its first paint. A page gets the plain form
 ([`components/forms/newsletter-form.tsx`](../apps/web/src/components/forms/newsletter-form.tsx)),
 which imports nothing that brings zod (the answer's shape and lines are in
-[`lib/forms/form-state.ts`](../apps/web/src/lib/forms/form-state.ts)): a press
-sends the form to the action as the browser would post it, and the server
-answers in the same place. The check
+[`lib/forms/form-state.ts`](../apps/web/src/lib/forms/form-state.ts), with
+the email messages the schema uses): a press with the field empty or plainly
+not an address is refused there, in the schema's words, and any other is sent
+to the action as the browser would post it, the server answering in the same
+place. The check
 ([`newsletter-enhancement.tsx`](../apps/web/src/components/forms/newsletter-enhancement.tsx))
-is fetched when the band comes within a screen and a half of the viewport or
-the form is touched, and takes the form over between two things the person
-does, never while a press is on its way. It redraws nothing: both forms draw
-through one view
+is fetched when the band comes within a screen and a half of the viewport,
+watched only once the page has loaded and had an idle moment (DESIGN.md, "The
+Quiet Load Rule"), or as soon as the form is touched; it takes the form over
+between two things the person does, never while a press is on its way; a
+fetch that fails is tried twice more at most, each time only when the field
+gets focus. It redraws nothing: both forms draw through one view
 ([`newsletter-view.tsx`](../apps/web/src/components/forms/newsletter-view.tsx))
 rendered in one place, and the check hands it react-hook-form's handlers, so
 the field being typed in keeps its text, its focus and its caret, and nothing
 moves. The answer state and the analytics event stay with the plain form, so
-an answer already on the screen is still the one shown. A component in the
-browser that needs a constant from a module that builds a schema has the same
-problem: `lib/catalog/filter-query.ts` holds what the header's search field and
-the listing's toolbar need of `lib/catalog/filters.ts`, without the schema.
+an answer already on the screen is still the one shown; if the plain form was
+pressed and refused, react-hook-form starts as after a press and clears the
+refusal when the field is put right. A component in the browser that needs a
+constant from a module that builds a schema has the same problem:
+`lib/catalog/filter-query.ts` holds what the header's search field and the
+listing's toolbar need of `lib/catalog/filters.ts`, without the schema. So
+does a link on every page to a page that has a form: the header's cart
+([`cart-link.tsx`](../apps/web/src/components/cart/cart-link.tsx)) prefetches
+the cart page on intent — a pointer, a finger, focus — instead of on sight,
+because that page's order form brings react-hook-form and zod.
 
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
