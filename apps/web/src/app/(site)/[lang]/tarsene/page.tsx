@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Breadcrumbs, ButtonLink, EmptyState } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
-import { Suspense } from "react";
 import { SearchField } from "@/components/catalog/search-field";
-import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
 import { countActiveFilters, parseCatalogQuery, type RawSearchParams } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { siteConfig } from "@/config/site";
@@ -75,9 +73,7 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
           </p>
         )}
         <div className="mt-5">
-          <Suspense fallback={<SearchFieldFallback locale={locale} copy={copy} />}>
-            <SearchField locale={locale} copy={copy} autoFocus={!hasQuery} />
-          </Suspense>
+          <SearchField locale={locale} copy={copy} autoFocus={!hasQuery} />
         </div>
       </header>
 

@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 import { STRENGTH_ORDER } from "./attributes";
+import { MAX_QUERY_LENGTH } from "./query-limits";
+
+export { MAX_QUERY_LENGTH };
 
 /**
  * Listing query parameters.
@@ -34,8 +37,6 @@ export type SortOption = (typeof SORT_OPTIONS)[number]["value"];
 
 export const DEFAULT_PAGE_SIZE = 24;
 export const MAX_PAGE_SIZE = 96;
-/** Bounded so a long query cannot be used to make the database work hard. */
-export const MAX_QUERY_LENGTH = 80;
 const MAX_MULTI_VALUES = 25;
 
 /** Comma-separated multi-value parameter, de-duplicated and sorted. */

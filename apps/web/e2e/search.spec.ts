@@ -6,18 +6,18 @@ import { PRODUCT_LINK, expectProductPage } from "./support/paths";
 /**
  * The header field.
  *
- * Located by name rather than by role on purpose: the server-rendered fallback
- * is a plain `searchbox`, and hydration turns it into a `combobox` once the
- * typeahead is attached. A role-based locator would be racing that swap.
+ * Located by name rather than by role on purpose: the server draws a plain
+ * `searchbox`, which becomes a `combobox` once its typeahead has arrived,
+ * after the page has loaded. A role-based locator would be racing that.
  */
 const searchInput = (page: Page) => page.locator('input[name="q"]').first();
 
 /**
- * The header field once the interactive one has replaced the fallback.
+ * The header field once its typeahead has arrived.
  *
- * The swap replaces the `<input>` element, so text typed into the fallback
- * before it happens is lost (reported as an app defect). A spec that types
- * into the field to test the typeahead waits for the typeahead first.
+ * The same `<input>` throughout; what changes is that it now has a list to
+ * offer. A spec about the typeahead itself waits for it, so that it tests the
+ * dropdown and not the moment it loads (which has a test of its own).
  */
 async function interactiveSearchInput(page: Page) {
   const field = searchInput(page);
@@ -193,6 +193,20 @@ test("a query containing SQL syntax is treated as text", async ({ page }) => {
 });
 
 test.describe("typeahead", () => {
+  test("keeps what was typed before the typeahead arrived, and then suggests", async ({ page }) => {
+    // Typing as soon as the field is in the page: before hydration, before
+    // the typeahead, whichever the browser gets to first.
+    await page.goto("/", { waitUntil: "commit" });
+    const field = searchInput(page);
+    await field.pressSequentially("lavazza", { delay: 30 });
+
+    await expect(field).toHaveAttribute("role", "combobox");
+    await expect(field).toHaveValue("lavazza");
+    await expect(field).toBeFocused();
+    // The text arrived before the list could; the list still comes.
+    await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
+  });
+
   test("suggests products with images as you type", async ({ page }) => {
     await page.goto("/");
     await (await interactiveSearchInput(page)).fill("lavazza");

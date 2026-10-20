@@ -161,12 +161,13 @@ describe("search field", () => {
     expect(input).toContain('type="search"');
   });
 
-  it("keeps the typeahead's combobox semantics", () => {
+  it("is a plain search box until its typeahead arrives, never a combobox with no list", () => {
+    // The combobox semantics come with the typeahead, after the page has
+    // loaded (`test/header-islands.test.ts`); the server's field claims none.
     const input = tags(live, "input")[0] ?? "";
-    expect(input).toContain('role="combobox"');
-    expect(input).toContain('aria-autocomplete="list"');
-    expect(input).toContain('aria-expanded="false"');
-    expect(input).toMatch(/aria-controls="[^"]+"/);
+    expect(input).not.toContain("combobox");
+    expect(input).not.toContain("aria-expanded");
+    expect(input).not.toContain("aria-controls");
     expect(live).toMatch(/<form role="search"[^>]*action="\/bg\/tarsene" method="get"/);
   });
 });

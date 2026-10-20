@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { afterLoadIdle } from "@/lib/after-load";
 
 /**
  * Switches the scroll-driven motion on once the page has loaded and the main
@@ -14,33 +15,17 @@ import { useEffect } from "react";
  * reader is looking at jumps. Without JavaScript the flag never comes, and
  * everything is simply in place — as where `animation-timeline` is not
  * supported. Set once per visit; a client-side navigation keeps it.
+ *
+ * The same moment fetches the header's search suggestions and drawer
+ * (`lib/after-load.ts`).
  */
 export function MotionGate() {
   useEffect(() => {
     const root = document.documentElement;
     if (root.dataset.motion !== undefined) return;
-
-    let idle: number | undefined;
-    let timer: number | undefined;
-    const on = () => {
+    return afterLoadIdle(() => {
       root.dataset.motion = "";
-    };
-    const schedule = () => {
-      if (typeof window.requestIdleCallback === "function") {
-        idle = window.requestIdleCallback(on, { timeout: 2000 });
-      } else {
-        timer = window.setTimeout(on, 200);
-      }
-    };
-
-    if (document.readyState === "complete") schedule();
-    else window.addEventListener("load", schedule, { once: true });
-
-    return () => {
-      window.removeEventListener("load", schedule);
-      if (idle !== undefined) window.cancelIdleCallback(idle);
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
+    });
   }, []);
 
   return null;

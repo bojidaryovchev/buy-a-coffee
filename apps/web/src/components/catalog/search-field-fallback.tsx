@@ -4,7 +4,7 @@ import { href, routes } from "@/lib/routes";
 
 /*
  * The search field's look, shared with the interactive `SearchField` so the
- * server's version and the hydrated one cannot drift. DESIGN.md, "Inputs" at
+ * plain form and the interactive one cannot drift. DESIGN.md, "Inputs" at
  * the `min-h-11` size, with the submit attached to its right edge.
  *
  * The field and its button are one bordered box, so the focus ring belongs to
@@ -28,11 +28,12 @@ export const SEARCH_BUTTON_CLASS =
 export type SearchCopy = Dictionary["search"];
 
 /**
- * Static fallback for the search field.
+ * The search field with no script at all: a real, working `GET` form, in the
+ * same box as the interactive one.
  *
- * Rendered on the server while the interactive field hydrates. It is a real,
- * working `GET` form — not a skeleton — so search is usable immediately and
- * for anyone without JavaScript.
+ * The 404 offers it as its way on. The header and the search page draw
+ * `SearchField` itself on the server, which is the same form until its
+ * typeahead arrives, so they no longer stand this in for it while hydrating.
  */
 export function SearchFieldFallback({ locale, copy }: { locale: Locale; copy: SearchCopy }) {
   return (

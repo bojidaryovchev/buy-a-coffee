@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { siteConfig } from "@/config/site";
 import { SystemIcon } from "@/components/catalog/system-icon";
 import { SearchField } from "@/components/catalog/search-field";
-import { SearchFieldFallback } from "@/components/catalog/search-field-fallback";
 import { CartLink } from "@/components/cart/cart-link";
 import { MachineIcon, PhoneIcon } from "@/components/layout/icons";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -32,7 +30,9 @@ import { href, routes } from "@/lib/routes";
  * category read it already makes, in the page's locale and with that locale's
  * dictionary. The client components are the ones that must be: the drawer, the
  * search field, the language switcher and the rail links, which mark the
- * current section.
+ * current section. The drawer and the search field's typeahead are the bulk of
+ * that code and neither is needed to paint, so each is fetched after the page
+ * has loaded, or the moment the visitor reaches for it (`lib/after-load.ts`).
  */
 export function SiteHeader({
   navigation,
@@ -101,13 +101,11 @@ export function SiteHeader({
 
           <div className="order-last w-full min-w-0 md:order-none md:ml-auto md:w-auto md:max-w-md md:flex-1">
             {/*
-              SearchField reads the URL to stay in sync, which would opt every
-              page out of static rendering. The boundary keeps that cost local
-              to the field itself.
+              Drawn by the server and hydrated where it stands. It follows the
+              URL from a boundary of its own inside, so it does not opt the
+              page out of static rendering.
             */}
-            <Suspense fallback={<SearchFieldFallback locale={locale} copy={dict.search} />}>
-              <SearchField locale={locale} copy={dict.search} />
-            </Suspense>
+            <SearchField locale={locale} copy={dict.search} />
           </div>
 
           {/*

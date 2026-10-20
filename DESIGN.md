@@ -877,7 +877,10 @@ Each rule names what it protects. They hold for every motion on every page.
   budget's phone; switched on after load it costs neither. For the same
   reason a scroll-driven effect is never repeated across a listing: an
   intensity track pours on the product page only, and is simply full on a
-  card.
+  card. The same moment fetches the code of the header controls nobody uses
+  in the first second — the search typeahead and the mobile drawer — unless
+  the visitor reaches for one first (`lib/after-load.ts`). Simulated slow 4G
+  charges the first paint for every byte requested before it.
 - **The Unseen Loop Rule** (INP, battery). The steam pauses when it leaves the
   viewport (an `IntersectionObserver` sets `animation-play-state`) and when the
   tab is hidden. No other loop exists.
@@ -1737,7 +1740,13 @@ page (`routes.search`), typeahead layered on top. Field per "Inputs" at `min-h-1
 40 px well, the name, the system badge (`sm`), the brand's logo at size `chip`
 (`alt` the name; the name in text where the logo cannot be read at that size),
 the pack size, and the price; a brand row shows the brand logo at size
-`suggestion` (`alt=""`), then the name and the count.
+`suggestion` (`alt=""`), then the name and the count. The server draws the
+field itself and it hydrates in place; the typeahead — its requests, its panel
+and everything in a row — is fetched after the page has loaded, or the moment a
+pointer or the focus reaches the field (`search-suggestions.tsx`, "The Quiet
+Load Rule"). Until then the field is a plain search box and is not announced as
+a combobox. Its `<input>` is never replaced, so nothing typed is lost and a
+phone's keyboard stays open while the typeahead arrives.
 
 **Phone.** Row 2 is hidden; the menu button opens the drawer. The sticky header
 is two lines — masthead and search — and must not exceed 116 px.
@@ -1749,7 +1758,8 @@ buttons or icons-in-circles for categories.
 
 ### Mobile drawer
 
-`components/layout/mobile-nav.tsx`. The same structure as the rail, in the same
+`components/layout/mobile-nav.tsx` (the trigger) and `mobile-drawer.tsx` (the
+panel). The same structure as the rail, in the same
 order, with nothing left out, and with the destinations the rail has no room
 for: Консумативи, Доставка и плащане, Блог, Контакти.
 
@@ -1791,7 +1801,10 @@ text-pine-900` with `aria-current="page"`.
 
 **Behaviour.** Focus moves to the close button on open, is trapped inside, and
 returns to the trigger on close. Escape, the scrim and any navigation close it.
-Slides in over 200 ms.
+Slides in over 200 ms. The panel's code (`mobile-drawer.tsx`) is not in the
+page's first download: it is fetched after the page has loaded, where the
+trigger is drawn, and at the latest on the trigger's `pointerdown`, so the
+first tap opens it. Should the fetch fail, the trigger follows its link.
 
 **Never.** A drawer whose order differs from the rail. Systems hidden behind a
 second tap. A full-screen takeover that hides the page entirely. Search inside
@@ -2594,10 +2607,12 @@ whole, so there is little to wait for.
 
 What a visitor sees while something is pending:
 
-- _The search field._ The interactive field sits in a Suspense boundary of
-  its own, inside the header and the search page, never above a page. Its
-  fallback is `SearchFieldFallback`: the same box, at the same size, as a real
-  `GET` form that already works. Not a skeleton.
+- _The search field._ Nothing: the server draws the field itself, a real
+  `GET` form that already works, and the page hydrates it where it stands.
+  Its typeahead arrives after the page has loaded and changes nothing in the
+  box. Only the part that reads the address sits in a Suspense boundary of
+  its own, inside the field, and draws nothing. The 404 offers
+  `SearchFieldFallback`, the same box with no script at all. Not a skeleton.
 - _A submitting form._ The button goes to the pending state: `disabled`,
   `aria-busy`, and a label that says what is happening ("Изпраща се…"). It
   keeps its width. The result arrives in the form's `aria-live` line.
@@ -2809,8 +2824,9 @@ What the specification already does to meet them:
   Web Vitals rules"); the client components there are the header's controls,
   the image wrapper and, on a product page, the gallery and the cart panel.
 - **CLS.** Every image well has an aspect ratio. Optional card rows keep their
-  height. The announcement bar cannot be dismissed. The search field's
-  fallback is the field's own box. Buttons keep their width while pending.
+  height. The announcement bar cannot be dismissed. The search field is the
+  server's own box, and its typeahead adds only the floating panel. Buttons
+  keep their width while pending.
 - **Accessibility.** The contrast table above; one `h1` and ordered headings;
   labelled fields with tied errors; a visible focus ring on every ground;
   targets of at least 44 px below `lg` ("The Touch Target Rule"), and from

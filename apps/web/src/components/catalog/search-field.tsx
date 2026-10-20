@@ -1,79 +1,67 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
-import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
-import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
-import { ProductImage } from "@/components/catalog/product-image";
+import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useAnalytics } from "@/components/analytics-provider";
 import {
   SEARCH_BOX_CLASS,
   SEARCH_INPUT_CLASS,
   SearchSubmit,
   type SearchCopy,
 } from "@/components/catalog/search-field-fallback";
-import { SystemBadge } from "@/components/catalog/system-badge";
-import type { SearchSuggestions } from "@/lib/catalog/types";
-import { useAnalytics } from "@/components/analytics-provider";
 import type { Locale } from "@/i18n/config";
-import { fill, plural } from "@/i18n/fill";
-import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
+import { fill } from "@/i18n/fill";
+import { deferredModule, useDeferredModule } from "@/lib/after-load";
+import { MAX_QUERY_LENGTH } from "@/lib/catalog/query-limits";
+import type { SearchSuggestions } from "@/lib/catalog/types";
+import { href, routes } from "@/lib/routes";
 
 /**
  * Header search with typeahead.
  *
- * The foundation is still a real `<form>` with a `GET` action, so search works
+ * The foundation is a real `<form>` with a `GET` action, so search works
  * before hydration and with JavaScript disabled — the browser submits to the
- * locale's search page (`/bg/tarsene?q=...`) on its own. Everything below is an upgrade layered on top of
- * that, and nothing below is required for search to function.
+ * locale's search page (`/bg/tarsene?q=...`) on its own. Everything else is an
+ * upgrade layered on top of that, and nothing else is required for search to
+ * function.
  *
- * The suggestions come from `/api/search/suggest`, which matches with the same
- * predicate as the results page. A dropdown that offers something the results
- * page cannot then find would be worse than no dropdown at all.
+ * In two parts, so that no page downloads the dropdown before it has painted.
+ * This one is drawn by the server and hydrated where it stands: the form, the
+ * text, the keys, and the live region that announces the list. The typeahead
+ * — the requests, the panel, and the logos, photographs and badges in its
+ * rows (`search-suggestions.tsx`) — is fetched on the first idle moment after
+ * the page has loaded, or the moment the visitor points at or focuses the
+ * field, whichever comes first. Until it is here the field is a plain search
+ * box: it takes text and submits, and announces itself as a combobox only
+ * once it has a list to offer.
  *
- * Requests are debounced and de-duplicated through a small session cache,
- * because backspacing through a word should not re-ask the database questions
- * it has already answered.
+ * The `<input>` is the same element from the server's HTML to the open
+ * dropdown. Nothing replaces it, so nothing typed is lost and the focus — and
+ * a phone's keyboard — stay where they are while the typeahead arrives. (It
+ * used to be: the field swapped out a server-rendered stand-in when the page
+ * hydrated, and anything typed into the stand-in went with it.)
  */
 
-/** Long enough that a fast typist does not fire a request per character. */
-const DEBOUNCE_MS = 180;
 /** Matches the server's floor; below it a term matches half the catalog. */
 const MIN_TERM_LENGTH = 2;
-/** Bounded so a long session cannot grow the cache without limit. */
-const CACHE_LIMIT = 40;
 
 const EMPTY: SearchSuggestions = { term: "", products: [], brands: [], categories: [], total: 0 };
 
-/**
- * What the visitor typed into the server-rendered field before this one
- * replaced it, and whether it had focus.
- *
- * The header renders `SearchFieldFallback` (a real GET form) while this
- * component waits for the URL, then swaps it out. On a slow phone that window
- * is long enough to type in, and without this the swap threw the text away
- * and dropped focus mid-word. Read during the first render, while the fallback
- * is still in the document; null on the server and wherever there was none.
- */
-export function typedBeforeHydration(): {
-  readonly value: string;
-  readonly focused: boolean;
-} | null {
-  if (typeof document === "undefined") return null;
-  const fallback = document.getElementById("search-fallback");
-  if (!(fallback instanceof HTMLInputElement)) return null;
-  return { value: fallback.value, focused: document.activeElement === fallback };
-}
+const TYPEAHEAD = deferredModule(() => import("@/components/catalog/search-suggestions"));
 
-/** Where each kind of row leads, in the locale the field is drawn in. */
-function suggestionLinks(locale: Locale) {
-  return {
-    product: (slug: string) => productHref(locale, { slug }),
-    brand: (brand: SearchSuggestions["brands"][number]) => brandHref(locale, brand),
-    category: (category: SearchSuggestions["categories"][number]) => categoryHref(locale, category),
-    results: (term: string) => href(locale, `${routes.search}?q=${encodeURIComponent(term)}`),
-  };
-}
+/** Ask for the typeahead now: the visitor is reaching for the field. */
+const wake = () => {
+  TYPEAHEAD.load().catch(() => undefined);
+};
 
 export function SearchField({
   locale,
@@ -85,105 +73,59 @@ export function SearchField({
   autoFocus?: boolean;
 }) {
   const router = useRouter();
-  const links = useMemo(() => suggestionLinks(locale), [locale]);
   const searchPath = href(locale, routes.search);
-  const searchParams = useSearchParams();
   const inputId = useId();
   const listboxId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const analytics = useAnalytics();
+  const typeahead = useDeferredModule(TYPEAHEAD);
+  const links = useMemo(() => typeahead?.suggestionLinks(locale), [typeahead, locale]);
 
-  const [carried] = useState(typedBeforeHydration);
-  const [value, setValue] = useState(() => carried?.value || searchParams.get("q") || "");
-
-  useEffect(() => {
-    if (!carried?.focused) return;
-    const input = inputRef.current;
-    if (!input) return;
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-    // Once, on mount: this only hands over what the fallback had.
-  }, [carried]);
+  const [value, setValue] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestions>(EMPTY);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   /*
-   * Suggestions already fetched this session, keyed by term. Held in a ref
-   * rather than state: reading it must never schedule a render.
+   * Whatever was typed before the page hydrated is in the field already:
+   * hydration leaves an input's text alone. The state learns it here, before
+   * the first re-render could write the empty value back over it, and a field
+   * the visitor is already in asks for its typeahead at once.
    */
-  const cache = useRef(new Map<string, SearchSuggestions>());
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const focused = document.activeElement === input;
+    if (focused) wake();
+    if (input.value === "") return;
+    setValue(input.value);
+    if (focused) setOpen(true);
+  }, []);
 
-  // Keep the field in step with the URL (back button, filter chips, etc).
-  useEffect(() => {
-    setValue(searchParams.get("q") ?? "");
+  /*
+   * Keep the field in step with the URL: the back button, filter chips, a
+   * search run from the other field. On arrival the address only fills a
+   * field nobody has typed into.
+   */
+  const followAddress = useCallback((query: string, arriving: boolean) => {
+    if (arriving && inputRef.current?.value) return;
+    setValue(query);
     setOpen(false);
-  }, [searchParams]);
+  }, []);
 
   const term = value.trim();
   const isSearchable = term.length >= MIN_TERM_LENGTH;
 
-  /*
-   * Fetch on a debounce, and abort the in-flight request when the term moves
-   * on. Without the abort, a slow response for "la" can land after a fast one
-   * for "lavazza" and replace it with stale rows.
-   */
   useEffect(() => {
-    if (!open || !isSearchable) return;
+    if (!typeahead || !open || !isSearchable) return;
+    return typeahead.fetchSuggestions(term, setSuggestions);
+  }, [typeahead, term, isSearchable, open]);
 
-    const cached = cache.current.get(term);
-    if (cached) {
-      setSuggestions(cached);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      void (async () => {
-        try {
-          const response = await fetch(`/api/search/suggest?q=${encodeURIComponent(term)}`, {
-            signal: controller.signal,
-            headers: { accept: "application/json" },
-          });
-          if (!response.ok) return;
-          const data = (await response.json()) as SearchSuggestions;
-          // The server echoes the term back; anything else is a stale reply.
-          if (data.term !== term) return;
-
-          if (cache.current.size >= CACHE_LIMIT) {
-            cache.current.delete(cache.current.keys().next().value as string);
-          }
-          cache.current.set(term, data);
-          setSuggestions(data);
-        } catch {
-          // An aborted or failed lookup leaves the form perfectly usable.
-        }
-      })();
-    }, DEBOUNCE_MS);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [term, isSearchable, open]);
-
-  /**
-   * The destination of every row the arrow keys can reach, in the order the
-   * panel draws them. The panel numbers its rows in the same order, which is
-   * what `aria-activedescendant` relies on.
-   */
-  const options = useMemo<string[]>(() => {
-    // Results for a term the visitor has already typed past are not navigable.
-    if (suggestions.term !== term) return [];
-    const rows = [
-      ...suggestions.products.map((product) => links.product(product.slug)),
-      ...suggestions.brands.map((brand) => links.brand(brand)),
-      ...suggestions.categories.map((category) => links.category(category)),
-    ];
-    if (suggestions.total > 0) rows.push(links.results(term));
-    return rows;
-  }, [suggestions, term, links]);
+  const options = useMemo<string[]>(
+    () => (typeahead && links ? typeahead.suggestionOptions(suggestions, term, links) : []),
+    [typeahead, suggestions, term, links],
+  );
 
   // A changed result set invalidates whatever row was highlighted.
   useEffect(() => setActiveIndex(-1), [options]);
@@ -197,9 +139,9 @@ export function SearchField({
   }, []);
 
   const goTo = useCallback(
-    (href: string) => {
+    (target: string) => {
       close();
-      router.push(href);
+      router.push(target);
     },
     [close, router],
   );
@@ -219,7 +161,7 @@ export function SearchField({
      */
     const resultCount = suggestions.term === query ? suggestions.total : -1;
     analytics.track({ name: "search", query, resultCount });
-    router.push(links.results(query));
+    router.push(href(locale, `${routes.search}?q=${encodeURIComponent(query)}`));
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -253,6 +195,8 @@ export function SearchField({
     <div
       ref={containerRef}
       className="relative w-full"
+      // A pointer on its way to the field, a beat before it takes focus.
+      onPointerDown={wake}
       onBlur={(event) => {
         // Closing on blur must not fire when focus moves inside the dropdown.
         if (!containerRef.current?.contains(event.relatedTarget as Node | null)) close();
@@ -270,10 +214,10 @@ export function SearchField({
             type="search"
             inputMode="search"
             enterKeyHint="search"
-            role="combobox"
-            aria-expanded={isExpanded}
-            aria-controls={listboxId}
-            aria-autocomplete="list"
+            role={typeahead ? "combobox" : undefined}
+            aria-expanded={typeahead ? isExpanded : undefined}
+            aria-controls={typeahead ? listboxId : undefined}
+            aria-autocomplete={typeahead ? "list" : undefined}
             aria-activedescendant={activeOptionId}
             autoFocus={autoFocus}
             value={value}
@@ -282,7 +226,10 @@ export function SearchField({
               setValue(event.target.value);
               setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              setOpen(true);
+              wake();
+            }}
             onKeyDown={onKeyDown}
             placeholder={copy.placeholder}
             className={SEARCH_INPUT_CLASS}
@@ -292,260 +239,56 @@ export function SearchField({
         </div>
       </form>
 
-      <SuggestionPanel
-        id={listboxId}
-        expanded={isExpanded}
-        suggestions={suggestions}
-        term={term}
-        activeIndex={activeIndex}
-        onHover={setActiveIndex}
-        onSelect={goTo}
-        links={links}
-        copy={copy}
-      />
+      {/*
+        Announced to screen readers, which cannot see the panel appear. It
+        reports how many rows are actually in the list, not how many products
+        matched — the two differ, and the list is what the arrow keys traverse.
+        Here rather than in the panel: a live region must already be in the
+        page when its words change.
+      */}
+      <p role="status" className="sr-only">
+        {isExpanded ? fill(copy.suggestionCount, { count: options.length, term }) : ""}
+      </p>
+
+      {typeahead && links && (
+        <typeahead.SuggestionPanel
+          id={listboxId}
+          expanded={isExpanded}
+          suggestions={suggestions}
+          term={term}
+          activeIndex={activeIndex}
+          onHover={setActiveIndex}
+          onSelect={goTo}
+          links={links}
+          copy={copy}
+        />
+      )}
+
+      <Suspense fallback={null}>
+        <FollowAddress onChange={followAddress} />
+      </Suspense>
     </div>
   );
 }
 
 /**
- * The dropdown.
+ * Reads the query from the address for the field.
  *
- * `role="option"` is put directly on the anchors rather than on wrapping list
- * items. That trades the link role away in the accessibility tree for two
- * things worth more here: the option's accessible name comes from its own
- * contents, and every row keeps a real `href`, so a product can still be
- * middle-clicked or opened in a new tab. Focus stays on the input throughout;
- * `aria-activedescendant` is what moves.
+ * A component of its own, drawing nothing, in a Suspense boundary of its own:
+ * reading the search parameters opts whatever reads them out of the static
+ * render. Here that is this empty component, so the server still draws the
+ * field itself, and the field never has to be replaced once it is in the page.
  */
-function SuggestionPanel({
-  id,
-  expanded,
-  suggestions,
-  term,
-  activeIndex,
-  onHover,
-  onSelect,
-  links,
-  copy,
-}: {
-  id: string;
-  expanded: boolean;
-  suggestions: SearchSuggestions;
-  term: string;
-  activeIndex: number;
-  onHover: (index: number) => void;
-  onSelect: (href: string) => void;
-  links: ReturnType<typeof suggestionLinks>;
-  copy: SearchCopy;
-}) {
-  let index = -1;
-  const next = () => (index += 1);
+function FollowAddress({ onChange }: { onChange: (query: string, arriving: boolean) => void }) {
+  const searchParams = useSearchParams();
+  const seen = useRef<ReadonlyURLSearchParams | null>(null);
 
-  const rowCount =
-    suggestions.products.length +
-    suggestions.brands.length +
-    suggestions.categories.length +
-    (suggestions.total > 0 ? 1 : 0);
+  useEffect(() => {
+    // A second run for the same address (React's development double effects).
+    if (seen.current === searchParams) return;
+    onChange(searchParams.get("q") ?? "", seen.current === null);
+    seen.current = searchParams;
+  }, [searchParams, onChange]);
 
-  return (
-    <>
-      {/*
-        Announced to screen readers, which cannot see the panel appear. It
-        reports how many rows are actually in the list, not how many products
-        matched — the two differ, and the list is what the arrow keys traverse.
-      */}
-      <p role="status" className="sr-only">
-        {expanded ? fill(copy.suggestionCount, { count: rowCount, term }) : ""}
-      </p>
-
-      {expanded && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-[70vh] overflow-y-auto overscroll-contain rounded-md border border-line bg-paper-raised py-1.5 shadow-float">
-          <ul id={id} role="listbox" aria-label={copy.suggestions}>
-            {suggestions.products.map((product) => (
-              <SuggestionRow
-                key={product.slug}
-                id={id}
-                index={next()}
-                activeIndex={activeIndex}
-                href={links.product(product.slug)}
-                onHover={onHover}
-                onSelect={onSelect}
-              >
-                <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-sm bg-well">
-                  {product.image ? (
-                    <ProductImage
-                      src={product.image.url}
-                      alt=""
-                      fill
-                      sizes="40px"
-                      placeholderLabel={false}
-                      className="object-contain"
-                    />
-                  ) : (
-                    <ImagePlaceholder label={false} />
-                  )}
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-ink-900">{product.title}</span>
-                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                    <SystemBadge systemId={product.systemId} size="sm" />
-                    <BrandAndWeight product={product} />
-                  </span>
-                </span>
-
-                {product.price && (
-                  <span className="shrink-0 text-sm font-semibold text-ink-900 tabular-nums">
-                    {product.price.formatted}
-                  </span>
-                )}
-              </SuggestionRow>
-            ))}
-
-            {suggestions.brands.length > 0 && <GroupLabel>{copy.brands}</GroupLabel>}
-            {suggestions.brands.map((brand) => (
-              <SuggestionRow
-                key={brand.slug}
-                id={id}
-                index={next()}
-                activeIndex={activeIndex}
-                href={links.brand(brand)}
-                onHover={onHover}
-                onSelect={onSelect}
-              >
-                {/* Decorative: the name follows in text. A brand with no logo
-                    keeps the empty box, so the names line up. */}
-                <BrandLogo brand={brand} size="suggestion" decorative fallback="blank" />
-                <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{brand.name}</span>
-                <span className="shrink-0 text-2xs text-ink-300">{brand.productCount}</span>
-              </SuggestionRow>
-            ))}
-
-            {suggestions.categories.length > 0 && <GroupLabel>{copy.categories}</GroupLabel>}
-            {suggestions.categories.map((category) => (
-              <SuggestionRow
-                key={category.slug}
-                id={id}
-                index={next()}
-                activeIndex={activeIndex}
-                href={links.category(category)}
-                onHover={onHover}
-                onSelect={onSelect}
-              >
-                <span className="min-w-0 flex-1 truncate text-sm text-ink-900">
-                  {category.name}
-                </span>
-                <span className="shrink-0 text-2xs text-ink-300">{category.productCount}</span>
-              </SuggestionRow>
-            ))}
-
-            {suggestions.total > 0 && (
-              <SuggestionRow
-                id={id}
-                index={next()}
-                activeIndex={activeIndex}
-                href={links.results(term)}
-                onHover={onHover}
-                onSelect={onSelect}
-              >
-                <span className="flex-1 text-sm font-medium text-pine-700">
-                  {fill(plural(copy.seeAll, suggestions.total), { count: suggestions.total })}
-                </span>
-                <span aria-hidden className="text-pine-700">
-                  →
-                </span>
-              </SuggestionRow>
-            )}
-          </ul>
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * A product row's brand and pack size: the brand's logo, named by its alt,
- * where it can be read at this size; its name in the line otherwise.
- */
-function BrandAndWeight({
-  product,
-}: {
-  product: Pick<SearchSuggestions["products"][number], "brandName" | "brandSlug" | "weight">;
-}) {
-  const { brandName, brandSlug, weight } = product;
-  const logo = brandSlug && brandName && legibleBrandLogo(brandSlug, "chip");
-  const text = [logo ? null : brandName, weight].filter(Boolean).join(" · ");
-  return (
-    <>
-      {logo && <BrandLogo brand={{ slug: brandSlug, name: brandName }} size="chip" inline />}
-      {logo && weight && (
-        <span aria-hidden className="text-2xs text-ink-500">
-          ·
-        </span>
-      )}
-      {text && (
-        <span className="truncate text-2xs tracking-wide text-ink-500 uppercase">{text}</span>
-      )}
-    </>
-  );
-}
-
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <li
-      role="presentation"
-      className="mt-1 border-t border-line px-3 pt-2 pb-1 text-2xs tracking-wide text-ink-500 uppercase"
-    >
-      {children}
-    </li>
-  );
-}
-
-function SuggestionRow({
-  id,
-  index,
-  activeIndex,
-  href,
-  onHover,
-  onSelect,
-  children,
-}: {
-  id: string;
-  index: number;
-  activeIndex: number;
-  href: string;
-  onHover: (index: number) => void;
-  onSelect: (href: string) => void;
-  children: React.ReactNode;
-}) {
-  const isActive = index === activeIndex;
-  return (
-    <li role="presentation">
-      <a
-        id={`${id}-${index}`}
-        role="option"
-        aria-selected={isActive}
-        href={href}
-        tabIndex={-1}
-        onMouseEnter={() => onHover(index)}
-        /*
-         * `mousedown` blurs the input before `click` would land, which would
-         * close the panel out from under the pointer. Suppressing that keeps
-         * the click on the row it was aimed at.
-         */
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={(event) => {
-          // Let the browser handle modified clicks — new tab, new window.
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-          event.preventDefault();
-          onSelect(href);
-        }}
-        className={`flex w-full items-center gap-3 px-3 py-2 text-left ${
-          isActive ? "bg-pine-100" : "hover:bg-paper-sunken"
-        }`}
-      >
-        {children}
-      </a>
-    </li>
-  );
+  return null;
 }
