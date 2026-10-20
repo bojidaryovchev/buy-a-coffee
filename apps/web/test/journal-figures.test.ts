@@ -23,11 +23,18 @@ describe("journal figures: an empty catalog", () => {
       lavazzaBeans: false,
       decaf: false,
       cheapest: false,
+      flavoured: false,
     });
     expect(computeJournalFigures(FIXTURE_ROWS, "EUR").landings).toEqual(
       EMPTY_JOURNAL_FIGURES.landings,
     );
-    const told = { lavazzaCapsules: true, lavazzaBeans: false, decaf: true, cheapest: false };
+    const told = {
+      lavazzaCapsules: true,
+      lavazzaBeans: false,
+      decaf: true,
+      cheapest: false,
+      flavoured: true,
+    };
     expect(computeJournalFigures(FIXTURE_ROWS, "EUR", told).landings).toEqual(told);
     // …and it changes no other figure.
     expect({ ...computeJournalFigures(FIXTURE_ROWS, "EUR", told), landings: null }).toEqual({

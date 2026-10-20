@@ -89,6 +89,32 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
     }
   });
 
+  it("lists as flavoured exactly what the listings' aromas filter finds in each system", async () => {
+    const view = await getLanding("flavoured");
+    for (const system of BREWING_SYSTEMS) {
+      const filtered = await listProducts({
+        query: everything({ aromas: "yes", system: system.id, sort: "price-per-cup" }),
+        includeFacets: false,
+      });
+      const group = view.groups.find((entry) => entry.key === system.id);
+      expect(new Set(group?.products.map((product) => product.slug) ?? []), system.id).toEqual(
+        new Set(filtered.items.map((product) => product.slug)),
+      );
+      // In the order the per-cup sort gives, by the printed figure (a tie may go either way).
+      expect(group?.products.map((product) => product.servingPrice?.formatted) ?? []).toEqual(
+        filtered.items.map((product) => product.servingPrice?.formatted),
+      );
+      for (const product of group?.products ?? []) expect(product.systemId).toBe(system.id);
+    }
+    // Every flagged product on sale that stands in a system is listed: none is lost between the two.
+    const flagged = await listProducts({
+      query: everything({ aromas: "yes" }),
+      includeFacets: false,
+    });
+    const inSystem = flagged.items.filter((product) => product.systemId !== null);
+    expect(view.count).toBe(inSystem.length);
+  });
+
   it("lists Lavazza's capsules and beans as the brand's own listing has them", async () => {
     const slug = availability.lavazzaBrandSlug;
     if (!slug) return;

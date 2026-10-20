@@ -40,7 +40,7 @@ export interface LlmsInput {
   readonly sections: readonly (LlmsLink & { readonly description: string })[];
   /**
    * The landing listings that have products right now (Lavazza capsules and
-   * beans, decaf, cheapest per cup). Absent or empty: no block.
+   * beans, decaf, cheapest per cup, flavoured). Absent or empty: no block.
    */
   readonly landings?: readonly (LlmsLink & { readonly description: string })[];
   /**

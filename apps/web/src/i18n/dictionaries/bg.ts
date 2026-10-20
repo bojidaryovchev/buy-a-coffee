@@ -119,8 +119,9 @@ export const bg = {
     shop: "Магазин",
     help: "Помощ",
     legal: "Правна информация",
-    /** The two listings cut across every system; shown only while they list something. */
+    /** The listings cut across every system; shown only while they list something. */
     decaf: "Безкофеиново кафе",
+    flavoured: "Ароматизирано кафе",
     cheapestPerCup: "Най-евтино на чаша",
     /* The brand × format and machine pages with measured demand, under the
        anchors every other page gives them (`relatedCopy` in landing-copy). */

@@ -12,8 +12,8 @@ import { BG } from "./support/paths";
  *    listing — a category, a landing, a brand, a later page — and not only
  *    from other products' "related" blocks (research 08 §3.1: five products
  *    were linked only from `noindex` later pages);
- *  - the Lavazza and Tchibo landings, which carry measured demand, are linked
- *    from at least twenty indexable pages each;
+ *  - the Lavazza, Tchibo and flavoured landings, which carry measured demand,
+ *    are linked from at least twenty indexable pages each;
  *  - no indexable page links a listing that is not in the sitemap because it
  *    lists nothing (the consumables page, while it is empty).
  */
@@ -131,7 +131,12 @@ test.describe("the internal link graph", () => {
       [],
     );
 
-    for (const landing of [BG.lavazzaCapsules, BG.lavazzaBeans, BG.machineBrand("tchibo")]) {
+    for (const landing of [
+      BG.lavazzaCapsules,
+      BG.lavazzaBeans,
+      BG.machineBrand("tchibo"),
+      BG.flavoured,
+    ]) {
       if (!sitemap.includes(landing)) continue; // A landing exists only while it lists something.
       expect(inbound(landing).length, landing).toBeGreaterThanOrEqual(20);
     }

@@ -92,9 +92,9 @@ function FooterSection({
  * delivery costs, how to reach a person. Every link in the page's locale, every
  * word from its dictionary.
  *
- * After the shelves come the two listings that cut across all of them — decaf
- * and cheapest per cup — each only while it lists something, like the shelves
- * themselves. Which of them exist is the one thing the footer reads for
+ * After the shelves come the listings that cut across all of them — decaf,
+ * flavoured and cheapest per cup — each only while it lists something, like
+ * the shelves themselves. Which of them exist is the one thing the footer reads for
  * itself; `SiteFooter` does the read and `SiteFooterView` is the markup, so
  * the markup renders in a test without a database.
  */
@@ -189,6 +189,11 @@ export function SiteFooterView({
             {beans && <FooterLink href={beans.href}>{beans.listingName}</FooterLink>}
             {landings.counts.decaf > 0 && (
               <FooterLink href={href(locale, LANDING_PATHS.decaf)}>{footer.decaf}</FooterLink>
+            )}
+            {landings.counts.flavoured > 0 && (
+              <FooterLink href={href(locale, LANDING_PATHS.flavoured)}>
+                {footer.flavoured}
+              </FooterLink>
             )}
             {landings.counts.cheapest > 0 && (
               <FooterLink href={href(locale, LANDING_PATHS.cheapest)}>

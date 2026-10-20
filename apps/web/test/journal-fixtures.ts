@@ -139,6 +139,7 @@ export const ALL_LANDINGS: JournalLandings = {
   lavazzaBeans: true,
   decaf: true,
   cheapest: true,
+  flavoured: true,
 };
 
 export const FIXTURE_FIGURES: JournalFigures = computeJournalFigures(

@@ -95,6 +95,7 @@ export const en: Dictionary = {
     help: "Help",
     legal: "Legal",
     decaf: "Decaf coffee",
+    flavoured: "Flavoured coffee",
     cheapestPerCup: "Cheapest per cup",
     lavazzaCapsules: "Lavazza capsules",
     lavazzaBeans: "Lavazza coffee beans",

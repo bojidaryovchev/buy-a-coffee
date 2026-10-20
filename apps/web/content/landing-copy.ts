@@ -4,7 +4,10 @@ import { pluralize, toPriceView } from "@/lib/catalog/format";
 import {
   CHEAPEST_PER_SYSTEM,
   LAVAZZA_OWN_SYSTEMS,
+  NO_FLAVOURS,
   type CupPrice,
+  type Flavour,
+  type LandingFlavours,
   type LandingId,
 } from "@/lib/catalog/landings";
 import { systemCategory } from "@/lib/routes";
@@ -45,6 +48,12 @@ export interface LandingFacts {
   readonly cupRange: { readonly min: CupPrice; readonly max: CupPrice } | null;
   readonly commonPack: string | null;
   readonly currency: string;
+  /**
+   * The searched flavours the listed products are labelled with. Only the
+   * flavoured page reads it, and a page that does not say is taken to list
+   * none of them.
+   */
+  readonly flavours?: LandingFlavours;
 }
 
 /** „A“, „A и B“, „A, B и C“. */
@@ -108,23 +117,60 @@ const METHOD_WORDS: Readonly<Record<BrewMethod, string>> = {
 };
 
 /**
+ * A capsule shelf's name as the shelf names itself (`categoryNameFor`), with
+ * a lower-case first letter, to follow a word in front of it: „капсули за
+ * Nespresso“, not „за Nespresso Original“, and „капсули Caffitaly“, not
+ * „капсули за Caffitaly“.
+ */
+function capsuleShelfName(system: BrewingSystem): string {
+  const name = categoryNameFor({ ...systemCategory(system), name: `Капсули за ${system.name}` });
+  return `${name.charAt(0).toLocaleLowerCase("bg")}${name.slice(1)}`;
+}
+
+/**
  * "Всички капсули за Dolce Gusto", "Всички капсули Caffitaly", "Всички дози
  * ESE", "Цялото кафе на зърна".
  *
- * A capsule shelf is named as it names itself (`categoryNameFor`), with
- * „Всички“ in front: „за Nespresso“, not „за Nespresso Original“, and
- * „капсули Caffitaly“, not „капсули за Caffitaly“ — the same words every
- * other link to that shelf uses (`docs/seo.md` §13.1).
+ * A capsule shelf is named as it names itself, with „Всички“ in front — the
+ * same words every other link to that shelf uses (`docs/seo.md` §13.1).
  */
 export function systemShelfLabel(system: BrewingSystem): string {
-  if (system.method === "capsule") {
-    const name = categoryNameFor({ ...systemCategory(system), name: `Капсули за ${system.name}` });
-    return `Всички ${name.charAt(0).toLocaleLowerCase("bg")}${name.slice(1)}`;
-  }
+  if (system.method === "capsule") return `Всички ${capsuleShelfName(system)}`;
   return system.method === "pod" ? "Всички дози ESE" : "Цялото кафе на зърна";
 }
 
-/* --- The four landings --------------------------------------------------- */
+/* --- Naming a flavour and a format in a sentence ------------------------- */
+
+/** A searched flavour as the flavoured page says it: „с вкус на лешник“. */
+const FLAVOUR_NAMES: Readonly<Record<Flavour, string>> = {
+  hazelnut: "лешник",
+  caramel: "карамел",
+};
+
+/**
+ * How the formats a page lists follow „кафе“: „в капсули и дози ESE“, „в
+ * капсули, дози ESE и на зърна“, „на зърна“. Empty for a page that lists none.
+ */
+function formatPhrase(methods: readonly BrewMethod[]): string {
+  const boxed = methods.flatMap((method) =>
+    method === "capsule" ? ["капсули"] : method === "pod" ? ["дози ESE"] : [],
+  );
+  const beans = methods.includes("beans");
+  if (boxed.length === 0) return beans ? "на зърна" : "";
+  return beans ? `в ${boxed.join(", ")} и на зърна` : `в ${joinList(boxed)}`;
+}
+
+/**
+ * „лешник, карамел и други“: the searched flavours a page lists, and „други“
+ * while it lists a product labelled with neither. Null when it names neither.
+ */
+function flavourList(flavours: LandingFlavours): string | null {
+  const named = flavours.named.map((flavour) => FLAVOUR_NAMES[flavour]);
+  if (named.length === 0) return null;
+  return joinList(flavours.others ? [...named, "други"] : named);
+}
+
+/* --- The five landings --------------------------------------------------- */
 
 export interface LandingCopy {
   /** The page's single `h1`, its breadcrumb and the name of its item list. */
@@ -274,6 +320,70 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
         : "Най-евтино кафе на зърна — цена за кг";
     },
     llms: "Продуктите с най-ниска цена на чаша във всяка система.",
+  },
+
+  /*
+   * „кафе лешник“ 110, „кафе с вкус на лешник“ 90, „кафе карамел“ 70,
+   * „ароматизирано кафе“ 20 (research 09, T2.1). The results those searches
+   * get are mostly flavoured ground coffee and beans, and the flavoured range
+   * here is capsules and pods, so the description and the second paragraph
+   * say which formats the page has — from the facts — and that ground coffee
+   * is not one of them. A flavour is named only while the page lists a
+   * product labelled with it (`flavoursInName`).
+   */
+  flavoured: {
+    h1: "Ароматизирано кафе",
+    title: ({ flavours = NO_FLAVOURS }) => {
+      const list = flavourList(flavours);
+      return list
+        ? `Ароматизирано кафе с вкус на ${list}`
+        : "Ароматизирано кафе по система, с цена на чаша";
+    },
+    description: (facts) => {
+      const formats = formatPhrase(facts.methods);
+      const list = flavourList(facts.flavours ?? NO_FLAVOURS);
+      /* The searched words first, which a result prints in bold; the formats
+         straight after, so someone after ground coffee sees before clicking
+         that this is not it. */
+      return fitDescription(
+        list
+          ? `Кафе с вкус на ${list}${formats ? ` — ${formats}` : ""}.`
+          : sentence(`ароматизирано кафе${formats ? ` ${formats}` : ""}`),
+        ...closing(facts),
+      );
+    },
+    intro: ({ count, methods, flavours = NO_FLAVOURS }) => {
+      const named = flavours.named.map((flavour) => `кафе с вкус на ${FLAVOUR_NAMES[flavour]}`);
+      const formats = formatPhrase(methods);
+      return [
+        // Products, not coffees: the record's flag is on a few drinks too.
+        `Тук е всичко ароматизирано в магазина: ${pluralize(
+          count,
+          "продукт",
+          "продукта",
+        )}, отбелязани в каталога като ароматизирани.${
+          named.length > 0 ? ` Сред тях има ${joinList(named)}.` : ""
+        }`,
+        // The formats, and the ones the searches for these words mostly want.
+        ...(formats
+          ? [
+              `Ароматизираното кафе при нас е ${formats}${
+                methods.includes("beans")
+                  ? "; мляно кафе в пакет в момента нямаме."
+                  : ": на зърна или мляно в пакет в момента нямаме."
+              }`,
+            ]
+          : []),
+        methods.includes("capsule")
+          ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
+          : "Във всеки раздел първа е най-ниската цена на чаша.",
+      ];
+    },
+    groupHeading: (system) => {
+      if (system.method === "capsule") return `Ароматизирани ${capsuleShelfName(system)}`;
+      return system.method === "pod" ? "Ароматизирани дози ESE" : "Ароматизирано кафе на зърна";
+    },
+    llms: "Всички ароматизирани продукти, разделени по система.",
   },
 };
 

@@ -43,6 +43,7 @@ export const bg: LocaleSlugs = {
     "kafe-na-zarna-lavazza": "kafe-na-zarna-lavazza",
     "bezkofeinovo-kafe": "bezkofeinovo-kafe",
     "nay-evtino-na-chasha": "nay-evtino-na-chasha",
+    "aromatizirano-kafe": "aromatizirano-kafe",
     "dostavka-i-plashtane": "dostavka-i-plashtane",
     kontakti: "kontakti",
     poveritelnost: "poveritelnost",

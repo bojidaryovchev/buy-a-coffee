@@ -35,6 +35,7 @@ export const routes = {
   lavazzaBeans: "/kafe-na-zarna-lavazza",
   decaf: "/bezkofeinovo-kafe",
   cheapestPerCup: "/nay-evtino-na-chasha",
+  flavoured: "/aromatizirano-kafe",
   delivery: "/dostavka-i-plashtane",
   contact: "/kontakti",
   privacy: "/poveritelnost",

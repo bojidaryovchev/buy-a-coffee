@@ -809,7 +809,7 @@ outside the study's subject. What was fixed, and where:
 - **Product images.** `absoluteUrl` prefixed the site's origin onto the image
   host's absolute URLs, so every product's `og:image`, `twitter:image` and
   Product `image` was `https://buy-a-coffee.com/https://…blob…` — a 308 to a 404. An absolute URL now passes through (`apps/web/src/config/site.ts`).
-- **Share cards.** Products, categories, brands, the four landings and the
+- **Share cards.** Products, categories, brands, the landings and the
   articles each draw their own 1200 × 630 card beside the page
   (`opengraph-image.tsx`, `apps/web/src/lib/seo/og/`), in the site's faces
   with Cyrillic (`apps/web/assets/og/`), with `og:image` width, height and
@@ -848,6 +848,44 @@ outside the study's subject. What was fixed, and where:
   `BING_SITE_VERIFICATION`, and the web app manifest's **screenshots** and the
   **iOS home-screen tags**. All three env vars are empty until the owner
   supplies them, and nothing is printed or sent while they are.
+
+### The flavoured listing (20 October 2026)
+
+The execution backlog's T2.1 (`research/buy-a-coffee/09-seo-execution-backlog.md`)
+measured one more cluster on 19 October 2026, after this study: „кафе лешник“
+110 a month, „кафе с вкус на лешник“ 90, „кафе карамел“ 70, „ароматизирано
+кафе“ 20, „кафе амарето“ 10. It is built as a fifth landing listing,
+`/bg/aromatizirano-kafe` [`flavoured-coffee`], on the decaf page's pattern, and
+adds one row to the map in §1, held with the rest by
+`apps/web/test/keyword-map.test.ts`:
+
+| Page (`/bg/…`)               | Owns (head term, volume)                                                                     | Also targets                                | Must not compete with |
+| ---------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------- |
+| **new** `aromatizirano-kafe` | `кафе лешник` 110 · `кафе с вкус на лешник` 90 · `кафе карамел` 70 · `ароматизирано кафе` 20 | `кафе амарето` 10, `кафе капсули лешник` 30 | —                     |
+
+- **What it lists** is the record's flag and nothing else: every product on
+  sale with `lower(attributes->>'aromas') = 'yes'`, the very test of the
+  listings' „Ароматизирано“ filter, grouped by system in the shop's order,
+  cheapest per cup first. Twenty products in the reference snapshot: Dolce
+  Gusto 11, ESE 4, Nespresso 3, Caffitaly 2. A flavoured product in no system
+  would be left out, as on the decaf page. The flag is on a few drinks that
+  are not coffee (a matcha, a latte), so the page counts „продукта“.
+- **Title** „Ароматизирано кафе с вкус на лешник, карамел и други“, **H1**
+  „Ароматизирано кафе“. The two flavours are read off the supplier's names of
+  what the page lists (`flavoursInName`, `apps/web/src/lib/catalog/landings.ts`),
+  so each leaves the title the day the last pack labelled with it does; „и
+  други“ stays while something labelled with neither is listed.
+- **The caveat is stated, not hidden.** The results for these searches are won
+  mostly by flavoured ground coffee and beans, and the flavoured range here is
+  capsules and ESE pods. The description reads „Кафе с вкус на лешник, карамел
+  и други — в капсули и дози ESE“ and the introduction says that there is none
+  on beans or ground; both name the formats from the catalog. Expect partial
+  matches.
+- **Links.** The footer, from every page, while it lists something. No
+  cross-link from the system shelves or the other landings: those are for
+  pages that compete for one search (§13.5, §13.7), and this one competes with
+  none. It also keeps the held-back pages of T1.1's staged comparison
+  unchanged but for the footer, which reaches every page alike.
 
 ### Deliberate deviations
 

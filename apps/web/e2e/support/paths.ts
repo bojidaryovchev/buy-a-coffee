@@ -25,6 +25,7 @@ export const BG = {
   lavazzaBeans: "/bg/kafe-na-zarna-lavazza",
   decaf: "/bg/bezkofeinovo-kafe",
   cheapestPerCup: "/bg/nay-evtino-na-chasha",
+  flavoured: "/bg/aromatizirano-kafe",
   brands: "/bg/marki",
   brand: (slug: string) => `/bg/marki/${slug}`,
   search: "/bg/tarsene",

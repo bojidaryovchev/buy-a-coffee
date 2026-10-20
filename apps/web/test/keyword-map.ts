@@ -1,7 +1,8 @@
 /**
  * The keyword map: which page owns which search term.
  *
- * Copied row by row from `docs/seo.md` §1, which is binding: "One page owns
+ * Copied row by row from `docs/seo.md` §1, which is binding, and the one row
+ * its §18 adds since (the flavoured listing, research 09 T2.1): "One page owns
  * each cluster. A page outside the 'owns' column may mention the term but must
  * not carry it in its title or H1." `keyword-map.test.ts` holds every title
  * and heading the storefront builds against this table.
@@ -106,6 +107,14 @@ export const KEYWORD_MAP: readonly KeywordOwner[] = [
     page: "nay-evtino-na-chasha",
     head: ["евтино кафе на зърна"],
     also: ["евтини капсули за кафе", "евтини капсули неспресо", "евтини капсули долче густо"],
+  },
+  {
+    // Research 09, T2.1: one cluster of four measured terms, and none is
+    // another page's. The two flavours stand in the title only while the page
+    // lists a pack labelled with each.
+    page: "aromatizirano-kafe",
+    head: ["кафе лешник", "кафе с вкус на лешник", "кафе карамел", "ароматизирано кафе"],
+    also: ["кафе амарето", "кафе капсули лешник"],
   },
   {
     page: "promotsii",

@@ -22,6 +22,7 @@ export const en: LocaleSlugs = {
     "kafe-na-zarna-lavazza": "lavazza-coffee-beans",
     "bezkofeinovo-kafe": "decaf-coffee",
     "nay-evtino-na-chasha": "cheapest-per-cup",
+    "aromatizirano-kafe": "flavoured-coffee",
     "dostavka-i-plashtane": "delivery-and-payment",
     kontakti: "contact",
     poveritelnost: "privacy",

@@ -4,7 +4,13 @@ import { landingCopy, machineBrandNames, type LandingFacts } from "../content/la
 import { vendingCopy } from "../content/vending";
 import { siteConfig } from "@/config/site";
 import { MACHINE_BRANDS } from "@/content/machines";
-import { LANDING_IDS, LANDING_PATHS, type LandingId } from "@/lib/catalog/landings";
+import {
+  LANDING_IDS,
+  LANDING_PATHS,
+  NO_FLAVOURS,
+  type LandingFlavours,
+  type LandingId,
+} from "@/lib/catalog/landings";
 import { BREWING_SYSTEMS, type BrewMethod, type BrewingSystemId } from "@/lib/recommend/systems";
 import {
   BRANDS_INDEX_META,
@@ -34,8 +40,9 @@ import {
  * The catalog below is a fixture with the shape of the real one — the eight
  * categories by their keys, the twenty brands with the systems each is stocked
  * in — so the test needs no database and still exercises every wording a real
- * page gets. The four landing listings are built in every wording their facts
- * can give them (one system or several, one pack size or mixed), and every
+ * page gets. The five landing listings are built in every wording their facts
+ * can give them (one system or several, one pack size or mixed, each searched
+ * flavour or none), and every
  * machine brand in the machine database has its page here. The product and
  * journal pages are other files' business: an article's title is the question
  * people type (§9), which may contain a listing's term on purpose.
@@ -133,6 +140,7 @@ const [nespresso, dolceGusto, aModoMio, caffitaly, lavazzaBlue] = CAPSULE_SYSTEM
 const landingFacts = (
   systemIds: readonly BrewingSystemId[],
   commonPack: string | null = null,
+  flavours: LandingFlavours = NO_FLAVOURS,
 ): LandingFacts => {
   const listed = systems(...systemIds);
   const methods: readonly BrewMethod[] = ["capsule", "pod", "beans"];
@@ -143,6 +151,7 @@ const landingFacts = (
     cupRange: null,
     commonPack,
     currency: "EUR",
+    flavours,
   };
 };
 
@@ -166,6 +175,21 @@ const LANDING_VARIANTS: Readonly<Record<LandingId, readonly LandingFacts[]>> = {
     landingFacts(["nespresso-original"]),
     landingFacts(["beans"]),
     landingFacts(["ese-pod"]),
+  ],
+  flavoured: [
+    // The reference catalog: twenty packs, hazelnut and caramel among others.
+    landingFacts(["nespresso-original", "dolce-gusto", "caffitaly", "ese-pod"], null, {
+      named: ["hazelnut", "caramel"],
+      others: true,
+    }),
+    landingFacts(["dolce-gusto"], null, { named: ["hazelnut"], others: false }),
+    landingFacts(["ese-pod"], null, { named: ["caramel"], others: true }),
+    landingFacts(["nespresso-original", "beans"], null, {
+      named: ["hazelnut", "caramel"],
+      others: false,
+    }),
+    landingFacts(["nespresso-original", "ese-pod", "beans"], null, { named: [], others: true }),
+    landingFacts([]),
   ],
 };
 
@@ -329,6 +353,7 @@ describe("titles and headings follow the keyword map", () => {
       "kafe-na-zarna-lavazza",
       "bezkofeinovo-kafe",
       "nay-evtino-na-chasha",
+      "aromatizirano-kafe",
       "za-kafemashina/tchibo",
     ]) {
       expect(covered.has(page), page).toBe(true);
@@ -410,6 +435,55 @@ describe("titles and headings follow the keyword map", () => {
         /без\s+кофеин|безкофеин|decaf/u,
       );
     }
+  });
+
+  /*
+   * Research 09, T2.1. The flavoured page's four terms are nobody else's,
+   * straight through the punctuation; and in today's wording its title says
+   * „ароматизирано кафе“ and „кафе с вкус на лешник“ as phrases, and every
+   * word of „кафе лешник“ and „кафе карамел“, without a word of anybody
+   * else's head term.
+   */
+  it("gives the flavoured terms to the flavoured page and to no other page", () => {
+    const owner = landingOwner("flavoured");
+    const terms = ownerOf(owner).head;
+    expect(terms).toEqual([
+      "кафе лешник",
+      "кафе с вкус на лешник",
+      "кафе карамел",
+      "ароматизирано кафе",
+    ]);
+    for (const page of PAGES) {
+      if (page.owner === owner) continue;
+      for (const term of terms) {
+        for (const text of [page.title, page.h1]) {
+          expect(carriesIgnoringPunctuation(text, term), `${page.id}: „${text}“ / ${term}`).toBe(
+            false,
+          );
+        }
+      }
+      expect(`${page.title} ${page.h1}`.toLowerCase(), page.id).not.toMatch(
+        /ароматизиран|лешник|карамел/u,
+      );
+    }
+
+    const today = PAGES.find((page) => page.id === owner) as Page;
+    expect(today.title).toBe("Ароматизирано кафе с вкус на лешник, карамел и други");
+    expect(today.h1).toBe("Ароматизирано кафе");
+    expect(carries(today.title, "ароматизирано кафе")).toBe(true);
+    expect(carries(today.title, "кафе с вкус на лешник")).toBe(true);
+    for (const term of terms) expect(hasEveryWord(today.title, term), term).toBe(true);
+  });
+
+  it("names on the flavoured page only the flavours its facts give it", () => {
+    const wordings = PAGES.filter((page) => page.owner === landingOwner("flavoured"));
+    expect(wordings).toHaveLength(LANDING_VARIANTS.flavoured.length);
+    LANDING_VARIANTS.flavoured.forEach((facts, index) => {
+      const { title } = wordings[index] as Page;
+      const named = facts.flavours?.named ?? [];
+      expect(title.includes("лешник"), title).toBe(named.includes("hazelnut"));
+      expect(title.includes("карамел"), title).toBe(named.includes("caramel"));
+    });
   });
 
   it("leaves „лаваца капсули“ to the Lavazza capsules page", () => {

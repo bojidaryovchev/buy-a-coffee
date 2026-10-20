@@ -31,7 +31,7 @@ import { NOINDEX } from "@/lib/seo/robots";
 import { pageTitle } from "@/lib/seo/title";
 
 /**
- * The four landing listings, at `/<locale>/<their slug>`.
+ * The five landing listings, at `/<locale>/<their slug>`.
  *
  * One body for all of them, because they are one kind of page: a heading, a
  * few sentences, and the products a rule selected, a section per brewing
@@ -58,6 +58,7 @@ const factsOf = (view: LandingView): LandingFacts => ({
   cupRange: view.cupRange,
   commonPack: view.commonPack,
   currency: siteConfig.currency,
+  flavours: view.flavours,
 });
 
 export async function landingMetadata(locale: Locale, id: LandingId): Promise<Metadata> {
