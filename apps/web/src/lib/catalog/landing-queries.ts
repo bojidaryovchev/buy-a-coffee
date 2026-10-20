@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { listProductCardsByIds } from "./queries";
@@ -51,6 +51,17 @@ const loadLandingRows = cache(async (): Promise<readonly LandingRow[]> => {
       weightUnit: products.weightUnit,
       availability: products.availability,
       attributes: products.attributes,
+      slug: products.slug,
+      previousSlugs: products.previousSlugs,
+      /*
+       * Whether a flavoured product holds coffee is read from what its
+       * descriptions say (`no-coffee.ts`), so they are read — for the products
+       * flagged flavoured only, by the flag's own test, and not for the rest
+       * of the catalog on every page that draws the footer.
+       */
+      descriptions: sql<string | null>`case when lower(${products.attributes}->>'aromas') = 'yes'
+        then concat_ws(' ', ${products.descriptionText}, ${products.descriptionTextOverride}, ${products.descriptionHtmlOverride})
+      end`,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -97,6 +108,8 @@ const loadLandingRows = cache(async (): Promise<readonly LandingRow[]> => {
     availability: row.availability,
     attributes: row.attributes ?? {},
     categoryKeys: keysByProduct.get(row.id) ?? [],
+    slugs: [row.slug, ...(row.previousSlugs ?? [])],
+    descriptions: row.descriptions ? [row.descriptions] : [],
   }));
 });
 
