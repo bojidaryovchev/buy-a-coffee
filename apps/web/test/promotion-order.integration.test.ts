@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { asc, eq, sql } from "drizzle-orm";
 import {
+  orderInquiries,
   orderInquiryItems,
   products,
   promotionProducts,
@@ -122,7 +123,7 @@ suite("an order under a promotion (integration)", () => {
     siteId = site!.id;
   });
 
-  const addProduct = async (slug: string, name: string, price: string) => {
+  const addProduct = async (slug: string, name: string, price: string, oldPrice?: string) => {
     const [row] = await db
       .insert(products)
       .values({
@@ -134,6 +135,7 @@ suite("an order under a promotion (integration)", () => {
         slug,
         name,
         currentPrice: price,
+        oldPrice: oldPrice ?? null,
         currency: "EUR",
         status: "active",
         availability: "in_stock",
@@ -143,13 +145,16 @@ suite("an order under a promotion (integration)", () => {
   };
 
   /** A promotion running since yesterday for a week, with each member's 30-day lowest. */
-  const addPromotion = async (members: Array<{ productId: string; reference: string }>) => {
+  const addPromotion = async (
+    members: Array<{ productId: string; reference: string }>,
+    own: { name?: string; percentOff?: number } = {},
+  ) => {
     const [promotion] = await db
       .insert(promotions)
       .values({
-        name: OWNERS_NAME,
+        name: own.name ?? OWNERS_NAME,
         label: LABEL,
-        percentOff: 10,
+        percentOff: own.percentOff ?? 10,
         startsAt: new Date(Date.now() - DAY),
         endsAt: new Date(Date.now() + 7 * DAY),
       })
@@ -408,6 +413,135 @@ suite("an order under a promotion (integration)", () => {
       .from(orderInquiryItems)
       .where(eq(orderInquiryItems.inquiryId, stored.id));
     expect(rows[0]).toMatchObject({ promotionId: null, discountPercent: 10 });
+  });
+
+  it("sends no struck or regular price for a line the promotion prices without a claim", async () => {
+    const { unannounced, promotion } = await scene();
+    const { body, products: views } = await quote([unannounced]);
+    expect(views[0]).toMatchObject({
+      price: { amount: "18.00" },
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      // When the price ends, for the page to ask again then: not a claim.
+      priceEndsAt: promotion.endsAt.toISOString(),
+    });
+    // Neither the regular price nor the 30-day lowest travels, under any name.
+    expect(body).not.toContain("20.00");
+    expect(body).not.toContain("17.00");
+    expect(body).not.toMatch(/regular/i);
+  });
+
+  const orderOf = (lines: Array<{ productId: string; quantity: number; price?: string | null }>) =>
+    actions.submitCartOrder(IDLE, form({ lines: JSON.stringify(lines), ...TO_ADDRESS }));
+
+  it("refuses a price that moved since the cart showed it, then takes the new one", async () => {
+    const { announced, promotion } = await scene();
+    const shown = (await quote([announced])).products[0]!;
+    expect(shown.price?.amount).toBe("8.95");
+
+    // The promotion ends — at midnight, say — between the answer and the press.
+    await db.execute(
+      sql`update promotions set ends_at = now() - interval '1 second' where id = ${promotion.id}`,
+    );
+    const refused = await orderOf([
+      { productId: announced, quantity: 1, price: shown.price!.amount },
+    ]);
+    expect(refused).toMatchObject({
+      status: "error",
+      message: "Цените се промениха — прегледайте количката и изпратете отново.",
+    });
+    // A refusal of the cart, not of a field: the page asks for the prices again.
+    expect(refused.status === "error" && refused.fieldErrors).toBeFalsy();
+    expect(await db.select().from(orderInquiries)).toHaveLength(0);
+    expect(sent).toEqual([]);
+
+    const again = (await quote([announced])).products[0]!;
+    expect(again).toMatchObject({ price: { amount: "9.95" }, oldPrice: null, priceEndsAt: null });
+    const taken = await orderOf([{ productId: announced, quantity: 1, price: "9.95" }]);
+    expect(taken.status).toBe("success");
+    const [line] = await db.select().from(orderInquiryItems);
+    expect(line).toMatchObject({
+      unitPrice: "9.95",
+      regularUnitPrice: null,
+      discountPercent: null,
+      promotionId: null,
+    });
+  });
+
+  it("takes a double press either side of a window's edge as one order, at the first press's price", async () => {
+    const { announced, promotion } = await scene();
+    // The idempotency key is a five-minute window's; Sofia midnight is always an edge.
+    const edge = Math.ceil(Date.now() / 300_000) * 300_000;
+    const clock = vi.spyOn(Date, "now");
+    try {
+      clock.mockReturnValue(edge - 500);
+      const first = await orderOf([{ productId: announced, quantity: 1, price: "8.95" }]);
+      expect(first.status).toBe("success");
+
+      // The promotion ends on the edge, and the second press still says 8,95 €.
+      await db.execute(
+        sql`update promotions set ends_at = now() - interval '1 second' where id = ${promotion.id}`,
+      );
+      clock.mockReturnValue(edge + 500);
+      const second = await orderOf([{ productId: announced, quantity: 1, price: "8.95" }]);
+      expect(second).toMatchObject({
+        status: "success",
+        message: expect.stringMatching(/^Вече получихме заявката ви\./),
+      });
+      expect(second.status === "success" && second.reference).toBe(
+        first.status === "success" && first.reference,
+      );
+    } finally {
+      clock.mockRestore();
+    }
+    expect(await db.select().from(orderInquiries)).toHaveLength(1);
+    const lines = await db.select().from(orderInquiryItems);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ unitPrice: "8.95", discountPercent: 10 });
+    expect(sent).toHaveLength(1);
+  });
+
+  it("stores the winning promotion of two that overlap: its id, its name and its percentage", async () => {
+    const id = await addProduct("d", "Кафе на зърна Lavazza Qualità Oro 1кг", "10.00");
+    await addPromotion([{ productId: id, reference: "10.00" }], {
+      name: "Малката",
+      percentOff: 10,
+    });
+    const larger = await addPromotion([{ productId: id, reference: "10.00" }], {
+      name: "Голямата",
+      percentOff: 25,
+    });
+    const shown = (await quote([id])).products[0]!;
+    expect(shown).toMatchObject({ price: { amount: "7.50" }, discountPercent: 25 });
+
+    await orderOf([{ productId: id, quantity: 2, price: "7.50" }]);
+    const [line] = await db.select().from(orderInquiryItems);
+    expect(line).toMatchObject({
+      unitPrice: "7.50",
+      regularUnitPrice: "10.00",
+      discountPercent: 25,
+      promotionId: larger.id,
+      promotionName: "Голямата",
+    });
+  });
+
+  it("leaves the source's own struck price to the cards: not in the cart, not in the mail", async () => {
+    // The source strikes 5,00 €; no promotion of ours touches the product.
+    const id = await addProduct("e", "Капсули DG Borbone Rossa 16 бр.", "4.00", "5.00");
+    const shown = (await quote([id])).products[0]!;
+    expect(shown).toMatchObject({
+      price: { amount: "4.00" },
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      priceEndsAt: null,
+    });
+
+    await orderOf([{ productId: id, quantity: 1, price: "4.00" }]);
+    expect(confirmations[0]!.lines[0]).not.toHaveProperty("reduction");
+    const [line] = await db.select().from(orderInquiryItems);
+    expect(line).toMatchObject({ unitPrice: "4.00", regularUnitPrice: null, promotionId: null });
   });
 });
 

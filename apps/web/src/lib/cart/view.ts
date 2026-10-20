@@ -34,9 +34,11 @@ export interface CartProductView {
   /** Null for "Цена при запитване". Any running promotion is already off it. */
   readonly price: PriceView | null;
   /**
-   * The struck price, when the card shows the product reduced; null when it
-   * does not. Under the shop's own promotion that is the lowest price of the
-   * 30 days before it, and it is absent when that was no higher than today's.
+   * The struck price, when the shop's own promotion reduces the line: the
+   * lowest price of the 30 days before it. Null when no promotion of ours
+   * does, when that lowest price was no higher than today's, and for the
+   * source's own struck price, which the cards show and the cart does not:
+   * the cart says what the shop's reductions save.
    */
   readonly oldPrice: PriceView | null;
   /** The badge's figure: set with `oldPrice`, and null when it rounds under one percent. */
@@ -51,6 +53,12 @@ export interface CartProductView {
     readonly label: string | null;
     readonly endsAt: string;
   } | null;
+  /**
+   * When this price stops being the price: the end of the promotion that sets
+   * it (ISO), shown or not, so the page asks again then. Null for a price no
+   * promotion sets. Not a claim, and not shown.
+   */
+  readonly priceEndsAt: string | null;
   /** "0,35 € на чаша", or null. */
   readonly servingPrice: string | null;
   readonly availability: Availability;
@@ -78,8 +86,9 @@ export function cartBlock(status: ProductStatus, availability: Availability): Ca
 }
 
 export function toCartProductView(card: ProductCardView, status: ProductStatus): CartProductView {
-  // Reduced exactly when the card is: a struck price beside a price.
-  const reduced = card.price !== null && card.oldPrice !== null;
+  // Reduced when the card is, by a promotion of ours: a struck price beside a price.
+  const promotion = card.price !== null ? (card.promotion ?? null) : null;
+  const reduced = promotion !== null && card.oldPrice !== null;
   return {
     id: card.id,
     slug: card.slug,
@@ -95,12 +104,28 @@ export function toCartProductView(card: ProductCardView, status: ProductStatus):
       reduced && card.discountPercent !== null && card.discountPercent >= 1
         ? card.discountPercent
         : null,
-    promotion:
-      reduced && card.promotion
-        ? { label: card.promotion.label, endsAt: card.promotion.endsAt }
-        : null,
+    promotion: reduced ? { label: promotion.label, endsAt: promotion.endsAt } : null,
+    priceEndsAt: promotion?.endsAt ?? null,
     servingPrice: card.servingPrice?.formatted ?? null,
     availability: card.availability,
     blocked: cartBlock(status, card.availability),
   };
+}
+
+/** A little after a price ends, so the server has seen it end too. */
+const REQUOTE_AFTER_END_MS = 2_000;
+/** When the browser's clock says it ended already and the server still priced it so. */
+const REQUOTE_RETRY_MS = 30_000;
+/** Far below `setTimeout`'s own limit (24.8 days); a later end is asked about again then. */
+const REQUOTE_MAX_MS = 6 * 60 * 60_000;
+
+/**
+ * How long the cart page waits before asking the server again about a price
+ * that ends at `endsAt` (`priceEndsAt`): until just after it ends, at most six
+ * hours, and never in a loop when the browser's clock runs ahead of the
+ * server's.
+ */
+export function requoteDelay(endsAt: number, now: number): number {
+  const until = endsAt - now + REQUOTE_AFTER_END_MS;
+  return until <= 0 ? REQUOTE_RETRY_MS : Math.min(until, REQUOTE_MAX_MS);
 }

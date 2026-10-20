@@ -36,10 +36,11 @@ export interface OrderLine {
 /**
  * What a line's price was reduced from, worded for one of two readers.
  *
- *  - The **customer** is told what the shop showed them: the struck price
- *    beside the price and the badge's percentage — under a promotion, the
- *    lowest price of the 30 days before it, which is the only "before" the
- *    shop may announce. A line the page showed no reduction for carries none.
+ *  - The **customer** is told what the shop's own promotion showed them: the
+ *    struck price beside the price and the badge's percentage — the lowest
+ *    price of the 30 days before it, which is the only "before" the shop may
+ *    announce. A line the page showed no such reduction for carries none, nor
+ *    does one struck only by the source.
  *  - The **owner** is told what the promotion took off: the regular price,
  *    the promotion's own percentage and the name the owner gave it, so the
  *    margin given away can be read off the order. Never sent to a customer.
@@ -121,6 +122,18 @@ function unitMinor(price: OrderLine["unitPrice"]): bigint | null {
   if (!price || price.currency !== siteConfig.currency) return null;
   const money = moneyFromDecimalString(price.amount, price.currency);
   return money && money.minor >= 0n ? money.minor : null;
+}
+
+/**
+ * Whether two unit prices, as exact decimal strings in the shop's currency,
+ * are the same price: "8.9" and "8.90" are; null ("цена при запитване") is
+ * only ever the same as null. Compared in minor units, never as text.
+ */
+export function samePrice(a: string | null, b: string | null): boolean {
+  if (a === null || b === null) return a === b;
+  const left = unitMinor({ amount: a, currency: siteConfig.currency });
+  const right = unitMinor({ amount: b, currency: siteConfig.currency });
+  return left !== null && left === right;
 }
 
 /** What one line costs: the unit price times the quantity. Null without a price. */

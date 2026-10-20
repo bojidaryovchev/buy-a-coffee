@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_CART_LINES } from "@/lib/cart/cart";
-import { cartBlock, toCartProductView } from "@/lib/cart/view";
+import { cartBlock, requoteDelay, toCartProductView } from "@/lib/cart/view";
 import {
   CART_MESSAGES,
   EMAIL_MESSAGES,
@@ -17,6 +17,7 @@ import {
   orderSavings,
   orderSum,
   reductionNote,
+  samePrice,
   savingsSentence,
   storedLine,
   sumSentence,
@@ -111,12 +112,39 @@ describe("cartOrderSchema", () => {
     }
   });
 
-  it("carries no price: whatever else a line says is not read", () => {
+  it("carries no price but the one the page showed, as a hint: whatever else a line says is not read", () => {
     const result = cartOrderSchema.safeParse({
       ...valid,
       lines: JSON.stringify([{ productId: A, quantity: 1, unitPrice: "0.01" }]),
     });
     expect(result.success && result.data.lines).toEqual([{ productId: A, quantity: 1 }]);
+    const hinted = cartOrderSchema.safeParse({
+      ...valid,
+      lines: JSON.stringify([
+        { productId: A, quantity: 1, price: "8.95" },
+        { productId: B, quantity: 1, price: null },
+      ]),
+    });
+    expect(hinted.success && hinted.data.lines).toEqual([
+      { productId: A, quantity: 1, price: "8.95" },
+      { productId: B, quantity: 1, price: null },
+    ]);
+    for (const price of ["8,95", "-1", "8.955", 8.95, "free"]) {
+      const forged = cartOrderSchema.safeParse({
+        ...valid,
+        lines: JSON.stringify([{ productId: A, quantity: 1, price }]),
+      });
+      expect(forged.success, String(price)).toBe(false);
+      if (!forged.success) expect(toFieldErrors(forged.error).lines).toBe(CART_MESSAGES.changed);
+    }
+  });
+
+  it("compares a shown price with the server's in cents, not as text", () => {
+    expect(samePrice("8.9", "8.90")).toBe(true);
+    expect(samePrice("8.95", "8.94")).toBe(false);
+    expect(samePrice(null, null)).toBe(true);
+    expect(samePrice(null, "8.95")).toBe(false);
+    expect(samePrice("8.95", null)).toBe(false);
   });
 
   it("refuses a filled honeypot, and checks the optional email and note when they are given", () => {
@@ -349,6 +377,7 @@ describe("what the cart page is told about a product", () => {
       oldPrice: null,
       discountPercent: null,
       promotion: null,
+      priceEndsAt: null,
       servingPrice: "≈ 0,14 € на чаша",
       availability: "in_stock",
       blocked: null,
@@ -379,9 +408,10 @@ describe("what the cart page is told about a product", () => {
     });
     // Its words and its end, and nothing else: not its id, not its own percentage.
     expect(view.promotion).toEqual({ label: "Есенни дни", endsAt: "2026-11-15T22:00:00.000Z" });
+    expect(view.priceEndsAt).toBe("2026-11-15T22:00:00.000Z");
   });
 
-  it("says nothing of a promotion that has no reduction to announce", () => {
+  it("says nothing of a promotion that has no reduction to announce, but when its price ends", () => {
     // The 30-day lowest was already lower: the promotion's price, and no claim.
     const unannounced: ProductCardView = {
       ...card,
@@ -393,6 +423,8 @@ describe("what the cart page is told about a product", () => {
       oldPrice: null,
       discountPercent: null,
       promotion: null,
+      // Not a claim: when the page should ask again.
+      priceEndsAt: "2026-11-15T22:00:00.000Z",
     });
     // Under one percent: the struck price, and no badge figure.
     const slight: ProductCardView = {
@@ -400,12 +432,39 @@ describe("what the cart page is told about a product", () => {
       price: { amount: "19.85", currency: "EUR", formatted: "19,85 €" },
       oldPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
       discountPercent: 0,
+      promotion: { ...promotion, percentOff: 1 },
     };
     expect(toCartProductView(slight, "active")).toMatchObject({
       oldPrice: slight.oldPrice,
       discountPercent: null,
-      promotion: null,
+      promotion: { label: "Есенни дни" },
     });
+  });
+
+  it("leaves the source's own struck price to the cards", () => {
+    const sourceReduced: ProductCardView = {
+      ...card,
+      price: { amount: "15.90", currency: "EUR", formatted: "15,90 €" },
+      oldPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
+      discountPercent: 20,
+      promotion: null,
+    };
+    expect(toCartProductView(sourceReduced, "active")).toMatchObject({
+      price: sourceReduced.price,
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      priceEndsAt: null,
+    });
+  });
+
+  it("asks again a little after a price ends, never in a loop and never too far ahead", () => {
+    const now = Date.parse("2026-11-15T21:00:00.000Z");
+    expect(requoteDelay(now + 60_000, now)).toBe(62_000);
+    // The browser's clock says it ended; the server may not have yet.
+    expect(requoteDelay(now - 60_000, now)).toBe(30_000);
+    // Weeks away: asked about again within hours, and the timer set again then.
+    expect(requoteDelay(now + 30 * 24 * 3_600_000, now)).toBe(6 * 3_600_000);
   });
 
   it("refuses what the product page refuses: withdrawn, or out of stock today", () => {

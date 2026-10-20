@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createDatabase } from "@catalog/db";
 import { asDistinctVisitor, waitForHydration } from "./support/hydration";
+import { writableDatabaseUrl } from "./support/local-database";
 import { BG } from "./support/paths";
 
 /**
@@ -19,6 +20,9 @@ import { BG } from "./support/paths";
  * The expected figures are worked out here from the regular price, in cents,
  * and the expected date with `Intl` in Sofia, not by the code under test.
  *
+ * It writes only to a local database, or CI's own (`writableDatabaseUrl`),
+ * and refuses before the first write otherwise.
+ *
  * A file filter does not narrow the projects this one depends on, so on its
  * own it runs as `test:e2e --project after --no-deps e2e/promotion.spec.ts`.
  */
@@ -29,7 +33,6 @@ const SLUG_PREFIX = "e2e-promotsiya-";
 const PERCENT = 10;
 const DAY = 24 * 60 * 60 * 1000;
 
-const url = process.env.DATABASE_URL;
 let database: ReturnType<typeof createDatabase>;
 let slug: string;
 let productId: string;
@@ -68,8 +71,8 @@ function lastDay(): { readonly words: string; readonly iso: string } {
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
-  if (!url) throw new Error("DATABASE_URL: the spec writes its promotion to the build's database");
-  database = createDatabase({ url, max: 1 });
+  // Throws, before anything is written, for a database that is not local.
+  database = createDatabase({ url: writableDatabaseUrl(), max: 1 });
   const { sql } = database;
   // Whatever an interrupted run left behind.
   await sql`delete from promotions where name = ${OWNERS_NAME}`;
@@ -147,7 +150,7 @@ test("the product page shows the reduction, the promotion's words, its last day 
 
   const promotion = page.locator("[data-promotion]");
   await expect(promotion).toContainText(LABEL);
-  await expect(promotion).toContainText(`до ${lastDay().words}`);
+  await expect(promotion).toContainText(`${LABEL}. Намалението важи до ${lastDay().words}.`);
   await expect(promotion).toContainText(
     "Зачеркнатата цена е най-ниската ни цена за последните 30 дни преди намалението.",
   );

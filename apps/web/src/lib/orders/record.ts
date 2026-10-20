@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { orderInquiries, orderInquiryItems, promotions } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import type { ProductForOrder } from "@/lib/catalog/queries";
@@ -74,8 +74,13 @@ export function itemFor(product: ProductForOrder, quantity: number): OrderItem {
     discountPercent: promotion?.percentOff ?? null,
     promotionId: promotion?.id ?? null,
     promotionName: null,
+    /*
+     * The shop's own promotion only. The source's own struck price stays on
+     * the cards, as before, and out of the cart and the confirmation: those say
+     * what the shop's reductions save, and that one is not the shop's to state.
+     */
     shownReduction:
-      card.price && card.oldPrice
+      promotion && card.oldPrice
         ? {
             oldUnitPrice: card.oldPrice.amount,
             percent:
@@ -89,8 +94,8 @@ export function itemFor(product: ProductForOrder, quantity: number): OrderItem {
 
 /**
  * The items as the customer's confirmation lists them: under the shop's names,
- * and reduced only where the page showed a reduction, by what it showed. Never
- * a promotion's own name.
+ * and reduced only where the shop's promotion showed a reduction, by what the
+ * page showed. Never a promotion's own name.
  */
 export function confirmationLines(items: readonly OrderItem[]): OrderLine[] {
   return items.map((item) => {
@@ -112,12 +117,27 @@ export function confirmationLines(items: readonly OrderItem[]): OrderLine[] {
 
 export type NewInquiry = Omit<typeof orderInquiries.$inferInsert, "id" | "createdAt" | "updatedAt">;
 
+/** The enquiry already stored under any of these idempotency keys, or null. */
+export async function findInquiry(keys: readonly string[]): Promise<string | null> {
+  if (keys.length === 0) return null;
+  const [existing] = await db
+    .select({ id: orderInquiries.id })
+    .from(orderInquiries)
+    .where(inArray(orderInquiries.idempotencyKey, [...keys]))
+    .limit(1);
+  return existing?.id ?? null;
+}
+
 /**
  * Store an enquiry and its lines.
  *
  * `created` is false when the idempotency key was already taken — the same
  * customer pressing the button twice — and the id is then the first press's
- * enquiry, so the customer is shown the same reference both times.
+ * enquiry, so the customer is shown the same reference both times. A key is a
+ * time window's, so `earlierKeys` names the same order in the window before:
+ * two presses either side of a window's edge are one order too. Orders from
+ * one phone are taken one at a time (an advisory lock for the transaction),
+ * so two presses arriving together cannot both miss each other's key.
  *
  * `items` comes back as stored: with each promotion's name, read here because
  * the card never carries it. The promotions are locked against deletion until
@@ -130,8 +150,16 @@ export type NewInquiry = Omit<typeof orderInquiries.$inferInsert, "id" | "create
 export async function recordInquiry(
   inquiry: NewInquiry & { idempotencyKey: string },
   items: readonly OrderItem[],
+  options: { readonly earlierKeys?: readonly string[] } = {},
 ): Promise<{ id: string; created: boolean; items: readonly OrderItem[] }> {
   return db.transaction(async (tx) => {
+    // Held until the transaction ends: a second press from the same phone
+    // waits here and then finds the first one's enquiry below.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`order_inquiry:${inquiry.phone}`}))`,
+    );
+    const keys = [inquiry.idempotencyKey, ...(options.earlierKeys ?? [])];
+
     const wanted = [
       ...new Set(items.flatMap((item) => (item.promotionId ? [item.promotionId] : []))),
     ];
@@ -156,6 +184,18 @@ export async function recordInquiry(
           },
     );
 
+    const existingOf = async () =>
+      (
+        await tx
+          .select({ id: orderInquiries.id })
+          .from(orderInquiries)
+          .where(inArray(orderInquiries.idempotencyKey, keys))
+          .limit(1)
+      )[0];
+
+    const before = await existingOf();
+    if (before) return { id: before.id, created: false, items: named };
+
     const [row] = await tx
       .insert(orderInquiries)
       .values(inquiry)
@@ -164,11 +204,7 @@ export async function recordInquiry(
       .returning({ id: orderInquiries.id });
 
     if (!row) {
-      const [existing] = await tx
-        .select({ id: orderInquiries.id })
-        .from(orderInquiries)
-        .where(eq(orderInquiries.idempotencyKey, inquiry.idempotencyKey))
-        .limit(1);
+      const existing = await existingOf();
       if (!existing) throw new Error("Idempotency conflict without an existing enquiry");
       return { id: existing.id, created: false, items: named };
     }

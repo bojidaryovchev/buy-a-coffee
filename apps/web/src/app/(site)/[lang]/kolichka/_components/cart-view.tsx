@@ -18,7 +18,7 @@ import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import type { CartLine } from "@/lib/cart/cart";
 import { cartStore, useCart } from "@/lib/cart/store";
-import type { CartProductView } from "@/lib/cart/view";
+import { requoteDelay, type CartProductView } from "@/lib/cart/view";
 import { promotionUntil } from "@/lib/catalog/promotion-days";
 import {
   lineTotal,
@@ -44,10 +44,11 @@ import { PackWell } from "@/components/catalog/pack-well";
  * out of stock today) stays on the page with the reason, and is left out of
  * the sum and the order, so nothing disappears without a word.
  *
- * A reduced line is drawn as its card draws it — the price in clay, the struck
- * price, the badge — with the shop's promotion and its last day when one is
- * behind it, and the sum says what the reductions save, from the same struck
- * prices: nothing the product's page did not already claim. The free-delivery
+ * A line the shop's own promotion reduces is drawn as its card draws it — the
+ * price in clay, the struck price, the badge — with the promotion and its last
+ * day, and the sum says what those reductions save, from the same struck
+ * prices: nothing the product's page did not already claim. The source's own
+ * struck price stays on the cards (`toCartProductView`). The free-delivery
  * threshold is measured against the reduced sum, which is what is charged.
  *
  * States, in the order a visit meets them: reading the cart (the server sent
@@ -166,7 +167,45 @@ export function CartView({ locale }: { locale: Locale }) {
     },
     [orderable, products],
   );
-  const onCartRefused = useCallback(() => setRound((count) => count + 1), []);
+  const requote = useCallback(() => setRound((count) => count + 1), []);
+  const onCartRefused = requote;
+
+  /*
+   * A price can change while the page is open: a promotion ends at midnight,
+   * the sync brings a new price. So the page asks again when it is looked at
+   * again — back to the tab, or back from the history with the page kept —
+   * and at the moment the first promotion in the cart ends, and the price
+   * beside the form is the one the order would be taken at. The action
+   * compares the prices sent with its own and refuses on any difference
+   * anyway (`onCartRefused`); this only spares the customer that refusal.
+   */
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requote();
+    };
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) requote();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, [requote]);
+
+  const nextPriceEnd = useMemo(() => {
+    const ends = lines.flatMap((line) => {
+      const at = Date.parse(products?.get(line.productId)?.priceEndsAt ?? "");
+      return Number.isNaN(at) ? [] : [at];
+    });
+    return ends.length > 0 ? Math.min(...ends) : null;
+  }, [lines, products]);
+  useEffect(() => {
+    if (nextPriceEnd === null) return;
+    const timer = setTimeout(requote, requoteDelay(nextPriceEnd, Date.now()));
+    return () => clearTimeout(timer);
+  }, [nextPriceEnd, requote]);
 
   if (placed) return <PlacedView placed={placed} locale={locale} />;
 
@@ -289,7 +328,12 @@ export function CartView({ locale }: { locale: Locale }) {
 
         {orderable.length > 0 ? (
           <CartOrderForm
-            lines={orderable.map(({ productId, quantity }) => ({ productId, quantity }))}
+            lines={orderable.map(({ productId, quantity }) => ({
+              productId,
+              quantity,
+              // What the line shows, for the action to compare with its own.
+              price: products.get(productId)?.price?.amount ?? null,
+            }))}
             onPlaced={onPlaced}
             onCartRefused={onCartRefused}
           />

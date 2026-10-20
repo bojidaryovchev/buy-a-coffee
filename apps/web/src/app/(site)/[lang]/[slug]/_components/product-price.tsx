@@ -38,6 +38,12 @@ export function ProductPrice({
   const badge = reduced && product.discountPercent !== null && product.discountPercent >= 1;
   const promotion = reduced ? (product.promotion ?? null) : null;
   const until = promotion ? promotionUntil(promotion.endsAt, now) : null;
+  // The owner's words as a sentence of their own: "Есенни дни." — not "дни!.".
+  const label = promotion?.label
+    ? /[.!?…]$/.test(promotion.label)
+      ? promotion.label
+      : `${promotion.label}.`
+    : null;
 
   return (
     <div className="mt-5">
@@ -83,18 +89,15 @@ export function ProductPrice({
 
       {promotion && (
         <div data-promotion className="mt-3 text-sm text-ink-700">
+          {/* The promotion's words, when it has any, then one sentence for the
+              date; the cart and the home band shorten it to a label. */}
           <p>
-            {promotion.label && (
+            {label && (
               <>
-                <span className="font-semibold text-ink-900">{promotion.label}</span>
-                {until && <span aria-hidden> · </span>}
+                <span className="font-semibold text-ink-900">{label}</span>{" "}
               </>
             )}
-            {until && (
-              <span className="tabular-nums">
-                {promotion.label ? until : `Намалението е ${until}.`}
-              </span>
-            )}
+            {until && <span className="tabular-nums">{`Намалението важи ${until}.`}</span>}
           </p>
           <p className="mt-1 text-xs text-ink-500">
             Зачеркнатата цена е най-ниската ни цена за последните 30 дни преди намалението.

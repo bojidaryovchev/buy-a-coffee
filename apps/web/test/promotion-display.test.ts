@@ -82,7 +82,7 @@ describe("the product page's price under a promotion", () => {
     expect(root.querySelector(".line-through")?.textContent).toBe("9,95 €");
     expect(text(root)).toContain("−10%");
     const said = root.querySelector("[data-promotion]");
-    expect(text(said)).toContain("Есенни дни · до 15 ноември");
+    expect(text(said)).toContain("Есенни дни. Намалението важи до 15 ноември.");
     expect(text(said)).toContain(
       "Зачеркнатата цена е най-ниската ни цена за последните 30 дни преди намалението.",
     );
@@ -99,7 +99,20 @@ describe("the product page's price under a promotion", () => {
       }),
     );
     expect(text(root.querySelector("[data-promotion]"))).toMatch(
-      /^Намалението е до 15 ноември\.\s*Зачеркнатата/,
+      /^Намалението важи до 15 ноември\.\s*Зачеркнатата/,
+    );
+  });
+
+  it("keeps the owner's own punctuation at the end of the promotion's words", () => {
+    const root = block(
+      priced({
+        oldPrice: eur("9.95", "9,95 €"),
+        discountPercent: 10,
+        promotion: { ...promotion, label: "Есенни дни!" },
+      }),
+    );
+    expect(text(root.querySelector("[data-promotion]"))).toMatch(
+      /^Есенни дни! Намалението важи до 15 ноември\./,
     );
   });
 

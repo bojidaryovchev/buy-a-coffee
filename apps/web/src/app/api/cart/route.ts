@@ -14,10 +14,13 @@ import { cartLimiter, clientFingerprint } from "@/lib/rate-limit";
  * be shown and left out of the order. An id that names nothing is simply
  * absent from the answer; the page says that product is gone.
  *
- * A price is today's, with any running promotion already off it, and a line
- * the shop shows reduced comes with its struck price, its badge and the
- * promotion's words for customers and last day — exactly what its card and
- * its page say, so the cart can say „Спестявате“ about the same figures.
+ * A price is today's, with any running promotion already off it. A line the
+ * shop's own promotion shows reduced comes with its struck price, its badge
+ * and the promotion's words for customers and last day — exactly what its
+ * page says, so the cart can say „Спестявате“ about the same figures — and
+ * any line a promotion prices says when that price ends, so the page asks
+ * again then. Nothing else of a promotion travels: no regular price, no
+ * 30-day price the page does not strike, no id, no owner's name.
  *
  * A route handler and not a server action for the reason the typeahead gives
  * (`api/search/suggest`): it is called from an effect, and an action would
