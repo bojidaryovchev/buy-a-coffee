@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { panelCounts } from "@/lib/admin-queries";
 import { countAwaitingReply } from "@/lib/mail/store";
+import { formatDay, sofiaDayOf } from "@/lib/promotions/days";
+import { promotionSummary } from "@/lib/promotions/store";
 
 export const dynamic = "force-dynamic";
 
 /**
  * What is waiting.
  *
- * Four numbers and four links. Every one of them counts something *owed* — new
+ * A number and a link per screen. All but two count something *owed* — new
  * enquiries, new messages, threads where the customer wrote last — rather than
  * something accumulated, because "how many orders have we ever taken" is not a
  * question anyone opens this panel to ask at nine in the morning.
@@ -15,9 +17,18 @@ export const dynamic = "force-dynamic";
  * The newsletter tile is the exception and is deliberately a total: nothing is
  * owed to a subscriber, and the only useful fact about that list is how large
  * it is.
+ *
+ * The promotions tile is the other: what is on sale at a reduced price now,
+ * and when the first of it ends — the question before a customer calls.
  */
 export default async function AdminHomePage() {
-  const [counts, waiting] = await Promise.all([panelCounts(), countAwaitingReply()]);
+  const now = new Date();
+  const [counts, waiting, promotions] = await Promise.all([
+    panelCounts(),
+    countAwaitingReply(),
+    promotionSummary(now),
+  ]);
+  const upcomingNote = `Предстоящи: ${promotions.upcoming}.`;
 
   const tiles = [
     {
@@ -43,6 +54,14 @@ export default async function AdminHomePage() {
       label: "Абонати",
       value: counts.subscribers,
       note: "Активни абонати за бюлетина.",
+    },
+    {
+      href: "/admin/promotsii",
+      label: "Текущи промоции",
+      value: promotions.running,
+      note: promotions.nearestEnd
+        ? `Най-скоро свършва на ${formatDay(sofiaDayOf(promotions.nearestEnd.getTime() - 1), { year: false })}. ${upcomingNote}`
+        : upcomingNote,
     },
   ];
 
