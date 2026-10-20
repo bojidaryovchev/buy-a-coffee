@@ -1,3 +1,4 @@
+import type { BeansSectionId } from "@/lib/catalog/beans-sections";
 import { routes, type RouteTarget } from "@/lib/routes";
 import { CHOOSE_BEANS_SLUG } from "./journal/articles/slugs";
 import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
@@ -30,6 +31,11 @@ import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
  * first; Lavazza Blue, A Modo Mio, Caffitaly and the capsule hub follow in a
  * later release and until then keep their heading and the generic sentence.
  *
+ * **The sections.** The beans listing also answers two narrower searches under
+ * headings of their own, below the products: Italian beans, and beans for an
+ * automatic machine (research `09`, T2.2). A few sentences each, the first
+ * over one pack per Italian brand; see `ListingSectionCopy`.
+ *
  * The rules this copy was written under:
  *
  *  - Written from scratch, by us. Nothing here is adapted from anybody else's
@@ -60,6 +66,57 @@ export interface CopyLink {
   /** Exactly as it stands in one of the paragraphs, once. */
   readonly phrase: string;
   readonly to: RouteTarget;
+}
+
+/**
+ * A short section under the listing, with a heading of its own.
+ *
+ * The beans listing has two (research `09`, T2.2): searches for Italian beans
+ * and for beans for an automatic machine are answered on the beans page under
+ * headings of their own, before any of them is given an address. What each
+ * shows is `lib/catalog/beans-sections.ts`, from data: one pack per Italian
+ * brand under the first, no products under the second. The words here say
+ * what is shown and by which rule, and never name a product, a brand, a count
+ * or a price, so nothing in them goes stale when the catalog moves. The page
+ * shows the sections only on the first page of the unfiltered listing.
+ */
+export interface ListingSectionCopy {
+  /**
+   * The section's `h2`, in the words the search uses. Never another page's
+   * head term (`test/keyword-map.ts`); the beans page owns „кафе на зърна“.
+   */
+  readonly heading: string;
+  /** One to three sentences, plain text, in reading order; see `sectionText`. */
+  readonly sentences: readonly SectionSentence[];
+  /** Each phrase stands in a sentence that is always said. */
+  readonly links?: readonly CopyLink[];
+}
+
+/**
+ * A sentence, or one said only while the catalog bears it out.
+ *
+ * `unlessFlavoured`: only while no flavoured coffee (`aromas: yes`) is among
+ * the beans on sale. „Every bean here suits an automatic machine“ is true of
+ * the beans the shop sells today; of a flavoured one it is not something the
+ * shop knows, so on the day the sync brings one the sentence is not said, and
+ * the sentences around it still read as a whole.
+ */
+export type SectionSentence = string | { readonly text: string; readonly unlessFlavoured: true };
+
+/** The sentences a section says, as one paragraph, given what the catalog holds. */
+export function sectionText(
+  copy: ListingSectionCopy,
+  catalog: { readonly flavoured: boolean },
+): string {
+  return copy.sentences
+    .flatMap((sentence) =>
+      typeof sentence === "string"
+        ? [sentence]
+        : sentence.unlessFlavoured && catalog.flavoured
+          ? []
+          : [sentence.text],
+    )
+    .join(" ");
 }
 
 export interface CategoryCopy {
@@ -103,6 +160,11 @@ export interface CategoryCopy {
    * listing links to at most one (`docs/seo.md` §13.4).
    */
   readonly article?: string;
+  /**
+   * Sections by use, between the products and the introduction. Beans only:
+   * the rules that fill them are written for coffee beans.
+   */
+  readonly sections?: Readonly<Record<BeansSectionId, ListingSectionCopy>>;
 }
 
 /** A listing by its keys; `categoryHref` picks the landing slug at render time. */
@@ -124,6 +186,37 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
       "Как да познаете, че това е вашият формат: отгоре на машината има контейнер, в който сипвате зърна, вместо да поставяте капсула или доза. Ако машината ви няма мелачка, ще ви трябва отделна — предварително мляно кафе в пакет не предлагаме.",
       "Колебаете се между няколко пакета? Помощникът за избор пита за вкуса ви и за това колко кафе се изпива, и подрежда подходящите зърна по цена на чаша, а не на опаковка.",
     ],
+    sections: {
+      /* Italian is what `content/brand-facts.ts` records, by the one standard
+         written there: Rema Caffè and Molini are not, and where a coffee is
+         roasted does not make its brand Italian. One pack per brand, the
+         brands by name (`beans-sections.ts`). */
+      italian: {
+        heading: "Италианско кафе на зърна",
+        sentences: [
+          "Тук са марките, за които сме проверили, че са италиански — по собствения им сайт или по опаковката, а не само по името или по надпис „изпечено в Италия“.",
+          // „в списъка“, not „от всяка марка“: true also on the day the cap leaves a brand out.
+          "При всяка марка в списъка е опаковката ѝ с най-ниска цена за килограм, а марките са подредени по име.",
+          "Всички марки кафе са на една страница.",
+        ],
+        links: [{ phrase: "марки кафе", to: routes.brands }],
+      },
+      /* No products: every automatic model in `src/content/machines.ts` takes
+         beans, of any brand, and the choose-beans article says the machine's
+         brand does not matter. Vending is the vending page's question. */
+      automatic: {
+        heading: "Кафе на зърна за автоматична кафемашина",
+        sentences: [
+          "Автоматичната кафемашина (кафеавтомат) мели зърната сама, а при зърната няма система, на която кафето да трябва да пасва, както при капсулите.",
+          {
+            text: "Затова всяко кафе на зърна от тази страница става за нея, каквато и да е марката ѝ.",
+            unlessFlavoured: true,
+          },
+          "За вендинг автоматите на зърна вижте кафе за вендинг машини.",
+        ],
+        links: [{ phrase: "кафе за вендинг машини", to: routes.vending }],
+      },
+    },
   },
   "kafe-kapsuli": {
     name: "Кафе капсули",

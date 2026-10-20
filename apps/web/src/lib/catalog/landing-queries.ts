@@ -35,9 +35,10 @@ import type { ProductCardView } from "./types";
  *
  * Wrapped in `cache`, so one request reads the catalog once however many parts
  * of the page ask: the footer asks on every page which landings exist, and a
- * listing page asks again for its cross-links and for its own products.
+ * listing page asks again for its cross-links and for its own products. The
+ * beans listing's sections choose from the same rows (`beans-section-queries.ts`).
  */
-const loadLandingRows = cache(async (): Promise<readonly LandingRow[]> => {
+export const loadLandingRows = cache(async (): Promise<readonly LandingRow[]> => {
   const rows = await db
     .select({
       id: products.id,
