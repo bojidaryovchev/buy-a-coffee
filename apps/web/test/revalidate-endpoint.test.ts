@@ -33,9 +33,10 @@ let route: typeof RevalidateRoute;
 const { SELF_TIMED_ROUTES, SHOP_PAGE_ROUTES, checkShopPath, isProductSlug } =
   await import("@/lib/revalidate-shop");
 const { REVALIDATE_CALLS, revalidateCallLimit } = await import("@/lib/revalidate-request");
+const { SITEMAP_TAG } = await import("@/lib/seo/sitemap-cache");
 
 /** The sitemap expired at once, by the shop's tag. */
-const SITEMAP_EXPIRED: Array<[string, unknown]> = [["sitemap", { expire: 0 }]];
+const SITEMAP_EXPIRED: Array<[string, unknown]> = [[SITEMAP_TAG, { expire: 0 }]];
 
 function post(
   body: unknown,

@@ -219,8 +219,6 @@ test.describe("the sitemap", () => {
     expect(headers["cdn-cache-control"]).toBe(
       "public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400",
     );
-    // The shop's tag, which its revalidation expires, so it reaches the CDN's copy.
-    expect(headers["vercel-cache-tag"]).toBe("sitemap");
     // Not a prerender: there is no build-time copy for the server to hand out.
     expect(headers["x-nextjs-cache"]).toBeUndefined();
     // A draw, or one at most a minute old; the kept copy only while the database is down.
@@ -235,6 +233,9 @@ test.describe("the sitemap", () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]!);
     expect(new Set(locs).size).toBe(locs.length);
     const origin = new URL(locs[0]!).origin;
+    // The shop's tag, named after the site (tags a Vercel team's projects share),
+    // which its revalidation expires, so it reaches the CDN's copy.
+    expect(headers["vercel-cache-tag"]).toBe(`${new URL(origin).host}:sitemap`);
     for (const [, url] of xml.matchAll(/(?:<loc>|hreflang="[^"]+" href=")([^<"]+)/g)) {
       expect(new URL(url!).origin, url).toBe(origin);
     }

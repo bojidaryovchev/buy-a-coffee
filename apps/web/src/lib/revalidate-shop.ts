@@ -99,7 +99,18 @@ export interface ShopRevalidation {
   readonly files: readonly string[];
 }
 
-/** The sitemap at once: the CDN's copy and the server's "changed since" mark. */
+/**
+ * The sitemap at once: the CDN's copy and the server's "changed since" mark.
+ *
+ * Whether `{ expire: 0 }` deletes the CDN's copy on Vercel, as the
+ * single-argument form does ("Delete, regenerate in the foreground" in
+ * Vercel's purge docs), is checked on the preview (`docs/architecture.md`,
+ * "Checking it on Vercel"). If it does not, the switch is this one line, the
+ * form Next.js 16 deprecates but still runs:
+ *
+ *     // @ts-expect-error: the deprecated single-argument form, which deletes
+ *     revalidateTag(SITEMAP_TAG);
+ */
 function expireSitemap(): void {
   revalidateTag(SITEMAP_TAG, { expire: 0 });
 }

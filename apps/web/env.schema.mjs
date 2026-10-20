@@ -297,7 +297,13 @@ export const vars = [
               level: "error",
               message: "Spaces or line breaks inside: the callers will not send it.",
             }
-          : null,
+          : v.trim() === process.env.CRON_SECRET?.trim()
+            ? {
+                level: "error",
+                message:
+                  "The same value as CRON_SECRET, which must stay on Vercel alone. Give it a value of its own (openssl rand -hex 32).",
+              }
+            : null,
     missing: {
       level: "warning",
       message:

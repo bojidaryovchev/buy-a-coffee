@@ -20,6 +20,7 @@ vi.mock("next/cache", () => ({
 
 const { SELF_TIMED_ROUTES, SHOP_PAGE_ROUTES, revalidateShop } =
   await import("@/lib/promotions/revalidate");
+const { SITEMAP_TAG } = await import("@/lib/seo/sitemap-cache");
 
 const SHOP = path.resolve(import.meta.dirname, "../src/app/(site)/[lang]");
 
@@ -62,7 +63,7 @@ describe("what a saved promotion refreshes", () => {
     expect(revalidated).toContainEqual(["/(site)/[lang]/[slug]", "page"]);
     // `/llms.txt` by its path; the sitemap by the shop's tag, at once (`lib/seo/sitemap-cache.ts`).
     expect(revalidated).toContainEqual(["/llms.txt", undefined]);
-    expect(tags).toEqual([["sitemap", { expire: 0 }]]);
+    expect(tags).toEqual([[SITEMAP_TAG, { expire: 0 }]]);
     expect(revalidated.some(([, type]) => type === "layout")).toBe(false);
     expect(revalidated).toHaveLength(SHOP_PAGE_ROUTES.length + 1);
   });
