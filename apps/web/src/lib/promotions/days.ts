@@ -124,12 +124,38 @@ export function todayInSofia(now: Date = new Date()): Day {
  * only on a day the clocks move, and the second look settles it.
  */
 export function sofiaDayStart(day: Day): Date {
+  return new Date(sofiaWallTime(day, 0));
+}
+
+/**
+ * The instant Sofia's clock reads `day` and `msIntoDay` (the time of day, in
+ * milliseconds past midnight on the clock's face). The offset is read at a
+ * first guess and checked at the result, as for midnight. A time the clocks
+ * skip (03:00 to 04:00 on the last Sunday of March) comes out an hour later;
+ * one they repeat (03:00 to 04:00 on the last Sunday of October), as the
+ * second of the two.
+ */
+function sofiaWallTime(day: Day, msIntoDay: number): number {
   const [year, month, date] = requireParts(day);
-  const wall = Date.UTC(year, month - 1, date);
+  const wall = Date.UTC(year, month - 1, date) + msIntoDay;
   let instant = wall - sofiaOffset(wall);
   const settled = wall - sofiaOffset(instant);
   if (settled !== instant) instant = settled;
-  return new Date(instant);
+  return instant;
+}
+
+/**
+ * The same time on Sofia's clock `days` calendar days before `instant`: 30
+ * days before 10:15 on 10 November is 10:15 on 11 October, although the
+ * clocks went back in between and that is 30 days and an hour. The law's "30
+ * days" are days as the shop and its customers live them, not 720 hours.
+ */
+export function sofiaDaysBefore(instant: Date | number, days: number): Date {
+  const ms = typeof instant === "number" ? instant : instant.getTime();
+  const at = sofiaFields(ms);
+  const intoDay =
+    ((at.hour * 60 + at.minute) * 60 + at.second) * 1000 + (((ms % 1000) + 1000) % 1000);
+  return new Date(sofiaWallTime(addDays(format(at.year, at.month, at.day), -days), intoDay));
 }
 
 /**

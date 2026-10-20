@@ -23,6 +23,7 @@ import type { PromotionPreview } from "@/lib/promotions/preview";
 import {
   PROMOTION_LABEL_MAX,
   PROMOTION_MAX_DAYS,
+  PROMOTION_MAX_LEAD_DAYS,
   PROMOTION_MAX_PERCENT,
   PROMOTION_NAME_MAX,
   PROMOTION_PRESETS,
@@ -66,6 +67,8 @@ export interface BrandOption {
   readonly id: string;
   readonly name: string;
   readonly count: number;
+  /** No longer in the supplier's catalog; shown only because it is chosen. */
+  readonly inactive?: boolean;
 }
 
 export interface CategoryOption {
@@ -74,6 +77,14 @@ export interface CategoryOption {
   /** Products on sale in it and every category below it. */
   readonly count: number;
   readonly children: readonly CategoryOption[];
+  /** No longer in the supplier's catalog; shown only because it is chosen. */
+  readonly inactive?: boolean;
+}
+
+/** " — неактивна", for a brand or category the supplier no longer lists. */
+function InactiveMark({ inactive }: { inactive?: boolean }) {
+  if (!inactive) return null;
+  return <span className="text-xs font-semibold text-caution"> — неактивна</span>;
 }
 
 export interface ChosenProduct {
@@ -140,6 +151,7 @@ function CategoryTree({
                   {node.count}
                   <span className="sr-only"> {productsWord(node.count)}</span>
                 </span>
+                <InactiveMark inactive={node.inactive} />
                 {covered !== null && (
                   <span className="text-xs text-ink-500"> — влиза с „{covered}“</span>
                 )}
@@ -232,9 +244,11 @@ function PreviewPanel({
           <p className="text-lg font-semibold text-ink-900">
             {preview.percentOff === null
               ? `${preview.total} ${productsWord(preview.total)} — изберете отстъпка, за да видите цените`
-              : preview.reduced === 0
-                ? "Няма продукти с цена, които да се намалят."
-                : `Ще бъдат намалени ${preview.reduced} ${productsWord(preview.reduced)}`}
+              : preview.reduced > 0
+                ? `Ще бъдат намалени ${preview.reduced} ${productsWord(preview.reduced)}`
+                : preview.elsewhere > 0
+                  ? "Тази промоция няма да определя цената на нито един продукт: другата важи вместо нея."
+                  : "Няма продукти с цена, които да се намалят."}
           </p>
           {preview.percentOff !== null &&
             preview.reduced > 0 &&
@@ -244,6 +258,17 @@ function PreviewPanel({
                 пада, но без значка — бележката под всеки казва защо.
               </p>
             )}
+          {preview.percentOff !== null && preview.elsewhere > 0 && (
+            <p className="mt-1 text-sm text-ink-700">
+              В друга промоция, която по това време важи вместо тази: {preview.elsewhere}.
+            </p>
+          )}
+          {preview.absent > 0 && (
+            <p className="mt-1 text-sm text-ink-700">
+              Временно липсващи в каталога на доставчика: {preview.absent}. Остават в промоцията, но
+              не се продават, докато не се върнат в него.
+            </p>
+          )}
 
           {preview.rows.length > 0 && (
             <div className="mt-3 overflow-x-auto rounded-md border border-line bg-paper-raised">
@@ -445,6 +470,9 @@ export function PromotionForm({
   /* -- after a save ---------------------------------------------------------- */
   useEffect(() => {
     if (state.version) setValue("version", state.version);
+    /* Someone saved first: keep what was typed here, and take their version,
+       so the next press writes over it — knowingly, after the banner. */
+    if (state.conflictVersion) setValue("version", state.conflictVersion);
     if (!state.savedAt) return;
     reset(getValues());
   }, [state, reset, getValues, setValue]);
@@ -501,14 +529,16 @@ export function PromotionForm({
     };
   }, [covers, initial.id, percentText, startDay, endDay, targetsJson]);
 
-  const answer = state.error
-    ? { message: state.error }
-    : state.fieldErrors
-      ? {
-          message: "Поправете отбелязаните полета и запазете отново.",
-          fieldErrors: state.fieldErrors,
-        }
-      : undefined;
+  /* A conflict is not a refusal of what was typed: it has a banner of its own. */
+  const answer =
+    state.error && !state.conflictVersion
+      ? { message: state.error }
+      : state.fieldErrors
+        ? {
+            message: "Поправете отбелязаните полета и запазете отново.",
+            fieldErrors: state.fieldErrors,
+          }
+        : undefined;
   const line = lineFor(answer, "Поправете отбелязаните полета и запазете отново.");
 
   return (
@@ -680,6 +710,7 @@ export function PromotionForm({
                     id="startDay"
                     type="date"
                     min={today}
+                    max={addDays(today, PROMOTION_MAX_LEAD_DAYS)}
                     {...register("startDay")}
                     {...ariaFor("startDay", "startDay", "period-help")}
                     className={INPUT_CLASS}
@@ -757,6 +788,7 @@ export function PromotionForm({
                       {brand.count}
                       <span className="sr-only"> {productsWord(brand.count)}</span>
                     </span>
+                    <InactiveMark inactive={brand.inactive} />
                   </span>
                 </label>
               </li>
@@ -840,7 +872,19 @@ export function PromotionForm({
               {pending ? "Запазва се…" : mode === "new" ? "Запази промоцията" : "Запази промените"}
             </button>
           </div>
+          {locked && preview && preview.leaving > 0 && (
+            <p className="rounded-sm bg-caution-100 px-3 py-2 text-sm text-ink-900">
+              Със запазването {preview.leaving} {productsWord(preview.leaving)} излизат от
+              промоцията. Ако по-късно ги върнете, ще са с намалената цена, но без значка до края ѝ:
+              цената им в тази промоция вече е част от последните им 30 дни.
+            </p>
+          )}
           <div aria-live="polite" className="text-sm">
+            {state.conflictVersion && state.error && (
+              <p role="alert" className="rounded-sm bg-caution-100 px-3 py-2 text-ink-900">
+                {state.error}
+              </p>
+            )}
             {line && (
               <p role="alert" className="font-medium text-critical">
                 {line}

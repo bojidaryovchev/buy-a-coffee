@@ -28,6 +28,7 @@ const previewModule = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/promotions/preview", () => previewModule);
 
+const { addDays, todayInSofia } = await import("@/lib/promotions/days");
 const products = await import("@/app/api/admin/promotions/products/route");
 const preview = await import("@/app/api/admin/promotions/preview/route");
 
@@ -40,11 +41,13 @@ const previewRequest = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
+/* The preview takes only days the form could save, counted from today. */
+const today = todayInSofia();
 const question = {
   promotionId: null,
   percent: "10",
-  startDay: "2026-11-01",
-  endDay: "2026-11-15",
+  startDay: addDays(today, 1),
+  endDay: addDays(today, 15),
   targets: { brandIds: [BRAND] },
 };
 
@@ -113,12 +116,18 @@ describe("signed in", () => {
   it("asks the preview only a question it can read", async () => {
     expect((await preview.POST(previewRequest({ ...question, startDay: "" }))).status).toBe(422);
     expect((await preview.POST(previewRequest({ ...question, targets: "x" }))).status).toBe(422);
+    // An absurd year is a message, never a crash.
+    const absurd = await preview.POST(
+      previewRequest({ ...question, startDay: "9999-12-30", endDay: "9999-12-31" }),
+    );
+    expect(absurd.status).toBe(422);
+    expect(((await absurd.json()) as { error: string }).error).toMatch(/Изберете дни/);
     expect(previewModule.previewPromotion).not.toHaveBeenCalled();
 
     const response = await preview.POST(previewRequest(question));
     expect(response.status).toBe(200);
     expect(previewModule.previewPromotion).toHaveBeenCalledWith(
-      expect.objectContaining({ percent: 10, startDay: "2026-11-01" }),
+      expect.objectContaining({ percent: 10, startDay: question.startDay }),
     );
   });
 

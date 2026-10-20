@@ -53,12 +53,14 @@ interface Candidate {
   id: string;
   slug: string;
   price: string;
+  /** As stored, to put back afterwards. */
+  first_seen_at: string;
 }
 
 async function chooseProduct(): Promise<Candidate> {
   const rows = await withDatabase(
     (sql) => sql<Candidate[]>`
-      select p.id, p.slug, p.current_price::text as price
+      select p.id, p.slug, p.current_price::text as price, p.first_seen_at::text
       from products p
       join brands b on b.id = p.brand_id
       join product_categories pc on pc.product_id = p.id
@@ -80,6 +82,19 @@ async function chooseProduct(): Promise<Candidate> {
   return candidate;
 }
 
+/**
+ * A product the shop has had for months. A development catalog seeded today
+ * has had every product for minutes, and a product in the shop for less than
+ * 30 days rightly gets the reduced price with no badge (no 30-day price to
+ * compare with); the spec is about the badge, so it gives its product a past.
+ */
+async function establish(product: Candidate): Promise<void> {
+  await withDatabase(
+    (sql) =>
+      sql`update products set first_seen_at = least(first_seen_at, now() - interval '90 days') where id = ${product.id}`,
+  );
+}
+
 async function signIn(page: Page): Promise<void> {
   await asDistinctVisitor(page);
   await page.goto("/admin/vhod");
@@ -95,10 +110,18 @@ const landingCard = (page: Page, slug: string) =>
 /** The name this run's promotion was given, for the clean-up. */
 let created: string | null = null;
 
+/** The product this run gave a past, as it was, to put back. */
+let established: Candidate | null = null;
+
 test.afterAll(async () => {
-  if (!created) return;
   const name = created;
-  await withDatabase((sql) => sql`delete from promotions where name = ${name}`);
+  const product = established;
+  await withDatabase(async (sql) => {
+    if (name) await sql`delete from promotions where name = ${name}`;
+    if (product) {
+      await sql`update products set first_seen_at = ${product.first_seen_at}::timestamptz where id = ${product.id}`;
+    }
+  });
 });
 
 test("a promotion the owner saves is the shop's price at once, and stopping it brings the price back", async ({
@@ -107,6 +130,8 @@ test("a promotion the owner saves is the shop's price at once, and stopping it b
   test.skip(testInfo.project.name !== "desktop", "one promotion at a time: see above");
   test.setTimeout(120_000);
   const product = await chooseProduct();
+  await establish(product);
+  established = product;
   const regular = priceText(product.price);
   const reduced = priceText(tenPercentOff(product.price));
 

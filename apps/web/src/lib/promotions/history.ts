@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, gt, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, gt, inArray, lte, or, sql } from "drizzle-orm";
 import { products, syncChanges } from "@catalog/db/schema";
 import type { Database } from "@catalog/db";
 import type { PriceChange, PromotionInterval } from "./reference";
@@ -20,6 +20,8 @@ export type Executor = Database | Parameters<Parameters<Database["transaction"]>
 export interface ProductPrices {
   readonly currentPrice: string | null;
   readonly override: string | null;
+  /** Epoch milliseconds. */
+  readonly firstSeenAt: number | null;
 }
 
 /** A promotion's time on one product, with which promotion it was. */
@@ -41,10 +43,16 @@ export const uuidArray = (ids: readonly string[]) => sql`${sql.param([...ids])}:
 /** Epoch milliseconds of a timestamp column, as a number. */
 const epochMs = (column: unknown) => sql<number>`(extract(epoch from ${column}) * 1000)::float8`;
 
+/** Does this side of a change carry the price at all (`{ name, … }` alone does not)? */
+const carries = (side: unknown) => sql<boolean>`coalesce(${side} ? 'currentPrice', false)`;
+
 /**
  * The history of `productIds` that any window starting at or after
- * `windowStart` can need: every price change after it, and the last change at
- * or before it (the price in effect when such a window opens).
+ * `windowStart` can need: every change after it that carries the price on
+ * either side, and the last change at or before it that carries one after
+ * (the price in effect when such a window opens). A change that carries no
+ * price — `catalog:link` moving a product writes its name and address only —
+ * is never read, so it cannot stand for "no price".
  */
 export async function loadPriceHistory(
   executor: Executor,
@@ -57,7 +65,9 @@ export async function loadPriceHistory(
   const changeColumns = {
     productId: syncChanges.productId,
     at: epochMs(syncChanges.createdAt),
+    hasBefore: carries(syncChanges.before),
     before: sql<string | null>`${syncChanges.before} ->> 'currentPrice'`,
+    hasAfter: carries(syncChanges.after),
     after: sql<string | null>`${syncChanges.after} ->> 'currentPrice'`,
   };
 
@@ -67,18 +77,31 @@ export async function loadPriceHistory(
         id: products.id,
         currentPrice: products.currentPrice,
         override: products.retailPriceOverride,
+        firstSeenAt: epochMs(products.firstSeenAt),
       })
       .from(products)
       .where(inArray(products.id, ids)),
     executor
       .select(changeColumns)
       .from(syncChanges)
-      .where(and(inArray(syncChanges.productId, ids), gt(syncChanges.createdAt, windowStart)))
+      .where(
+        and(
+          inArray(syncChanges.productId, ids),
+          gt(syncChanges.createdAt, windowStart),
+          or(carries(syncChanges.before), carries(syncChanges.after)),
+        ),
+      )
       .orderBy(asc(syncChanges.createdAt), asc(syncChanges.id)),
     executor
       .selectDistinctOn([syncChanges.productId], changeColumns)
       .from(syncChanges)
-      .where(and(inArray(syncChanges.productId, ids), lte(syncChanges.createdAt, windowStart)))
+      .where(
+        and(
+          inArray(syncChanges.productId, ids),
+          lte(syncChanges.createdAt, windowStart),
+          carries(syncChanges.after),
+        ),
+      )
       .orderBy(asc(syncChanges.productId), desc(syncChanges.createdAt), desc(syncChanges.id)),
     executor.execute(sql`
       select
@@ -98,7 +121,14 @@ export async function loadPriceHistory(
   ]);
 
   const prices = new Map<string, ProductPrices>(
-    priceRows.map((row) => [row.id, { currentPrice: row.currentPrice, override: row.override }]),
+    priceRows.map((row) => [
+      row.id,
+      {
+        currentPrice: row.currentPrice,
+        override: row.override,
+        firstSeenAt: row.firstSeenAt === null ? null : Number(row.firstSeenAt),
+      },
+    ]),
   );
 
   const changes = new Map<string, PriceChange[]>();
@@ -106,7 +136,11 @@ export async function loadPriceHistory(
   for (const row of [...opening, ...recent]) {
     if (!row.productId) continue;
     const list = changes.get(row.productId) ?? [];
-    list.push({ at: Number(row.at), before: row.before, after: row.after });
+    list.push({
+      at: Number(row.at),
+      ...(row.hasBefore ? { before: row.before } : {}),
+      ...(row.hasAfter ? { after: row.after } : {}),
+    });
     changes.set(row.productId, list);
   }
 

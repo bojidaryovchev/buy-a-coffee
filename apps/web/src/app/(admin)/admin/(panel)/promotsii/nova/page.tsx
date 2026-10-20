@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EMPTY_PROMOTION_TARGETS } from "@catalog/db/schema";
-import { PromotionForm } from "@/components/admin/promotion-form";
+import { PromotionForm, type PromotionFormValues } from "@/components/admin/promotion-form";
+import { copyOfPromotion } from "@/lib/promotions/copy";
 import { addDays, todayInSofia } from "@/lib/promotions/days";
 import { loadEditorChoices } from "@/lib/promotions/editor-data";
+import { getPromotion } from "@/lib/promotions/store";
 
 export const metadata: Metadata = { title: "Нова промоция" };
 export const dynamic = "force-dynamic";
@@ -13,10 +15,37 @@ export const dynamic = "force-dynamic";
  * otherwise: the commonest case is one press of the dates away, and the
  * preview shows what the default would do before anything is saved.
  * "Запази" writes it and opens it in its own editor.
+ *
+ * `?ot=<id>` is "Дублирай": the same form filled in from that promotion,
+ * starting tomorrow (`lib/promotions/copy.ts`). Nothing is written until
+ * "Запази"; a percentage above 20% is asked about again, as for any new one.
  */
-export default async function NewPromotionPage() {
+
+type Params = { ot?: string | string[] };
+
+export default async function NewPromotionPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
   const today = todayInSofia();
-  const choices = await loadEditorChoices(EMPTY_PROMOTION_TARGETS);
+  const { ot } = await searchParams;
+  const source = typeof ot === "string" ? await getPromotion(ot) : null;
+
+  const initial: PromotionFormValues = source
+    ? { id: "", version: "", ...copyOfPromotion(source, today) }
+    : {
+        id: "",
+        version: "",
+        name: "",
+        label: "",
+        percent: "10",
+        startDay: today,
+        endDay: addDays(today, 6),
+        targets: EMPTY_PROMOTION_TARGETS,
+      };
+  const choices = await loadEditorChoices(initial.targets);
+
   return (
     <>
       <Link
@@ -26,21 +55,13 @@ export default async function NewPromotionPage() {
         ← Промоции
       </Link>
       <h1 className="mt-2 font-display text-3xl font-semibold text-ink-900">Нова промоция</h1>
-      <PromotionForm
-        mode="new"
-        today={today}
-        initial={{
-          id: "",
-          version: "",
-          name: "",
-          label: "",
-          percent: "10",
-          startDay: today,
-          endDay: addDays(today, 6),
-          targets: EMPTY_PROMOTION_TARGETS,
-        }}
-        {...choices}
-      />
+      {source && (
+        <p role="status" className="mt-4 rounded-sm bg-pine-100 px-3 py-2 text-sm text-ink-900">
+          Копие на „{source.name}“: същите продукти и отстъпка, за същия брой дни, от утре.
+          Проверете ги и натиснете „Запази промоцията“ — дотогава нищо не е създадено.
+        </p>
+      )}
+      <PromotionForm mode="new" today={today} initial={initial} {...choices} />
     </>
   );
 }

@@ -499,6 +499,177 @@ suite("promotions (integration)", () => {
       expect(row.referencePrice).toBe("23.00");
     });
 
+    it("is not erased by a change that does not carry the price (a move)", async () => {
+      const now = new Date();
+      await priceChange(product.lavazzaBeans, new Date(now.getTime() - 40 * DAY), "22.00", "19.00");
+      /* `catalog:link` moved it: its change carries the name and address, no price. */
+      await db.insert(syncChanges).values({
+        syncRunId: runId,
+        productId: product.lavazzaBeans,
+        sourceKey: "/lavazza-beans/",
+        changeType: "moved",
+        changedFields: ["sourceKey"],
+        before: { name: "Old", sourceKey: "/old/" },
+        after: { name: "New", sourceKey: "/lavazza-beans/" },
+        createdAt: new Date(now.getTime() - 35 * DAY),
+      });
+      await priceChange(product.lavazzaBeans, new Date(now.getTime() - 5 * DAY), "19.00", "20.00");
+      const id = await addPromotion({
+        percentOff: 10,
+        startsAt: new Date(now.getTime() - HOUR),
+        endsAt: new Date(now.getTime() + 7 * DAY),
+        targets: { productIds: [product.lavazzaBeans] },
+      });
+      await refresh.refreshPromotions(now);
+      expect((await rowsOf(id)).get(product.lavazzaBeans)!.referencePrice).toBe("19.00");
+
+      // The history read never hands the move over as the price before the window.
+      const { loadPriceHistory } = await import("@/lib/promotions/history");
+      const history = await loadPriceHistory(
+        db,
+        [product.lavazzaBeans],
+        new Date(now.getTime() - 31 * DAY),
+      );
+      expect(history.changes.get(product.lavazzaBeans)!.map((change) => change.after)).toEqual([
+        "19.00",
+        "20.00",
+      ]);
+    });
+
+    it("claims nothing for a product the shop has had for less than 30 days", async () => {
+      await db
+        .update(products)
+        .set({ firstSeenAt: new Date(Date.now() - 10 * DAY) })
+        .where(eq(products.id, product.lavazzaBeans));
+      const now = new Date();
+      const id = await addPromotion({
+        percentOff: 10,
+        startsAt: new Date(now.getTime() - HOUR),
+        endsAt: new Date(now.getTime() + 7 * DAY),
+        targets: { productIds: [product.lavazzaBeans] },
+      });
+      await refresh.refreshPromotions(now);
+      const row = (await rowsOf(id)).get(product.lavazzaBeans)!;
+      expect(row).toMatchObject({ referencePrice: null, referenceFinal: true });
+      const card = await cardOf(product.lavazzaBeans);
+      expect(card.price?.amount).toBe("18.00");
+      expect(card.oldPrice).toBeNull();
+      expect(card.discountPercent).toBeNull();
+      expect(card.promotion?.id).toBe(id);
+    });
+
+    /*
+     * The reviewer's case: 30% from day −20, the product taken out on day −10;
+     * 10% since day −5 on other products; then the product returns to both at
+     * once, and the 30% one is stopped. The return overwrites its stint in the
+     * 30% one, and the 10% one's reference must still see it.
+     */
+    it("keeps a returning product's earlier stint for every promotion it returns to at once", async () => {
+      const now = new Date();
+      const thirty = await addPromotion({
+        percentOff: 30,
+        startsAt: new Date(now.getTime() - 20 * DAY),
+        endsAt: new Date(now.getTime() + 10 * DAY),
+        targets: { productIds: [product.lavazzaCapsules] },
+        members: [
+          { productId: product.lavazzaCapsules },
+          { productId: product.lavazzaBeans, removedAt: new Date(now.getTime() - 10 * DAY) },
+        ],
+      });
+      const ten = await addPromotion({
+        percentOff: 10,
+        startsAt: new Date(now.getTime() - 5 * DAY),
+        endsAt: new Date(now.getTime() + 10 * DAY),
+        targets: { productIds: [product.vergnanoBeans] },
+        members: [{ productId: product.vergnanoBeans }],
+      });
+      await refresh.refreshPromotions(new Date(now.getTime() - HOUR));
+
+      // The product returns to both.
+      await db
+        .update(promotions)
+        .set({
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.lavazzaCapsules, product.lavazzaBeans] }),
+          ) as PromotionTargets,
+        })
+        .where(eq(promotions.id, thirty));
+      await db
+        .update(promotions)
+        .set({
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.vergnanoBeans, product.lavazzaBeans] }),
+          ) as PromotionTargets,
+        })
+        .where(eq(promotions.id, ten));
+      const report = await refresh.refreshPromotions(now);
+      expect(report.rejoined).toBe(1);
+      expect((await rowsOf(thirty)).get(product.lavazzaBeans)!.referencePrice).toBe("14.00");
+      // In the 10% one too: its 30% stint, days −20 to −10, is in the window.
+      expect((await rowsOf(ten)).get(product.lavazzaBeans)!.referencePrice).toBe("14.00");
+      expect((await cardOf(product.lavazzaBeans)).discountPercent).toBeNull();
+
+      // The 30% one stops: 10% off, and still no claim against the price before both.
+      await db
+        .update(promotions)
+        .set({ stoppedAt: new Date(now.getTime() + HOUR) })
+        .where(eq(promotions.id, thirty));
+      await refresh.refreshPromotions(new Date(now.getTime() + 2 * HOUR));
+      const card = await cardOf(product.lavazzaBeans);
+      expect(card.promotion?.id).toBe(ten);
+      expect(card.price?.amount).toBe("18.00");
+      expect(card.oldPrice).toBeNull();
+      expect(card.discountPercent).toBeNull();
+    });
+
+    it("brings a settled reference down to what a deeper promotion charged since, and never up", async () => {
+      const now = new Date();
+      const ten = await addPromotion({
+        percentOff: 10,
+        startsAt: new Date(now.getTime() - 5 * DAY),
+        endsAt: new Date(now.getTime() + 10 * DAY),
+        targets: { productIds: [product.lavazzaBeans] },
+        members: [{ productId: product.lavazzaBeans }],
+      });
+      await refresh.refreshPromotions(new Date(now.getTime() - HOUR));
+      expect((await rowsOf(ten)).get(product.lavazzaBeans)!.referencePrice).toBe("20.00");
+
+      // A 30% promotion takes the product over.
+      const thirty = await addPromotion({
+        percentOff: 30,
+        startsAt: new Date(now.getTime() - DAY),
+        endsAt: new Date(now.getTime() + 10 * DAY),
+        targets: { productIds: [product.lavazzaBeans] },
+      });
+      await refresh.refreshPromotions(now);
+      expect((await cardOf(product.lavazzaBeans)).promotion?.id).toBe(thirty);
+
+      // An hour of it charged 14.00: the 10% one's 20.00 falls to that.
+      const report = await refresh.refreshPromotions(new Date(now.getTime() + HOUR));
+      expect(report.lowered).toBe(1);
+      expect(report.shopChanged).toBe(true);
+      expect((await rowsOf(ten)).get(product.lavazzaBeans)!.referencePrice).toBe("14.00");
+
+      // Stopped, the 10% one prices it again, against 14.00: no claim.
+      await db
+        .update(promotions)
+        .set({ stoppedAt: new Date(now.getTime() + 2 * HOUR) })
+        .where(eq(promotions.id, thirty));
+      await refresh.refreshPromotions(new Date(now.getTime() + 3 * HOUR));
+      const card = await cardOf(product.lavazzaBeans);
+      expect(card.promotion?.id).toBe(ten);
+      expect(card.oldPrice).toBeNull();
+
+      // A later rise of the regular price never lifts it again.
+      await priceChange(product.lavazzaBeans, new Date(now.getTime() + 4 * HOUR), "20.00", "30.00");
+      await db
+        .update(products)
+        .set({ currentPrice: "30.00" })
+        .where(eq(products.id, product.lavazzaBeans));
+      await refresh.refreshPromotions(new Date(now.getTime() + 5 * HOUR));
+      expect((await rowsOf(ten)).get(product.lavazzaBeans)!.referencePrice).toBe("14.00");
+    });
+
     it("settles what an ended promotion priced, once, and then leaves it alone", async () => {
       const now = new Date();
       const id = await addPromotion({
@@ -698,9 +869,81 @@ suite("promotions (integration)", () => {
       expect(rows.get(product.lavazzaBeans)!.removedAt).toBeNull();
       expect((await cardOf(product.lavazzaCapsules)).promotion).toBeNull();
 
-      // A second save over the old version is refused.
-      const stale = await actions.savePromotion({}, formOf(fields({ id, version })));
+      // A second save over the old version is refused, and hands the tab the
+      // version it now holds: what was typed stays, and the next press writes.
+      const stale = await actions.savePromotion(
+        {},
+        formOf(fields({ id, version, name: "Моето име" })),
+      );
       expect(stale.error).toMatch(/в друг раздел/);
+      expect(stale.conflictVersion).toBe(await versionOf(id));
+      const [unchanged] = await db.select().from(promotions).where(eq(promotions.id, id));
+      expect(unchanged!.name).toBe("Есен — само зърна");
+      const again = await actions.savePromotion(
+        {},
+        formOf(
+          fields({
+            id,
+            version: stale.conflictVersion!,
+            name: "Моето име",
+            endDay: addDays(today(), 13),
+          }),
+        ),
+      );
+      expect(again.error).toBeUndefined();
+      const [mine] = await db.select().from(promotions).where(eq(promotions.id, id));
+      expect(mine!.name).toBe("Моето име");
+    });
+
+    it("answers an absurd year with a message, not a crash", async () => {
+      const answer = await actions.savePromotion(
+        {},
+        formOf(fields({ startDay: "9999-12-30", endDay: "9999-12-31" })),
+      );
+      expect(answer.fieldErrors).toEqual({ startDay: PROMOTION_MESSAGES.startFar });
+      expect(await db.select().from(promotions)).toHaveLength(0);
+    });
+
+    it("writes nothing, and refreshes no page, when the refresh after the write fails", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const running = await create();
+      harness.revalidated = [];
+      /* The refresh's last write is `refreshed_at`; refuse it. */
+      await db.execute(sql`
+        create or replace function promotions_test_refuse() returns trigger
+        language plpgsql as $$ begin raise exception 'refused for the test'; end $$
+      `);
+      await db.execute(sql`
+        create trigger promotions_test_refuse before update on promotions for each row
+        when (new.refreshed_at is distinct from old.refreshed_at)
+        execute function promotions_test_refuse()
+      `);
+      try {
+        const created = await actions.savePromotion({}, formOf(fields({ name: "Не се записва" })));
+        expect(created.error).toMatch(/Нищо не е записано/);
+        expect(
+          await db.select().from(promotions).where(eq(promotions.name, "Не се записва")),
+        ).toHaveLength(0);
+
+        const version = await versionOf(running);
+        const saved = await actions.savePromotion(
+          {},
+          formOf(fields({ id: running, version, name: "Ново име" })),
+        );
+        expect(saved.error).toMatch(/Нищо не е записано/);
+        expect(await versionOf(running)).toBe(version);
+
+        expect(await redirected(actions.stopPromotion(formOf({ id: running })))).toBe(
+          `/admin/promotsii/${running}?otkaz=greshka`,
+        );
+        const [row] = await db.select().from(promotions).where(eq(promotions.id, running));
+        expect(row).toMatchObject({ stoppedAt: null, name: "Есен — Lavazza" });
+        expect((await cardOf(product.lavazzaBeans)).promotion?.id).toBe(running);
+        expect(harness.revalidated).toEqual([]);
+      } finally {
+        await db.execute(sql`drop trigger if exists promotions_test_refuse on promotions`);
+        await db.execute(sql`drop function if exists promotions_test_refuse()`);
+      }
     });
 
     it("may not end a running promotion before today", async () => {
@@ -765,30 +1008,6 @@ suite("promotions (integration)", () => {
       ).toHaveLength(0);
     });
 
-    it("duplicates into a copy that starts tomorrow, for as many days", async () => {
-      const source = await create({
-        endDay: addDays(today(), 9),
-        percent: "25",
-        confirmHigh: "25",
-      });
-      const to = await redirected(actions.duplicatePromotion(formOf({ id: source })));
-      const match = /^\/admin\/promotsii\/([0-9a-f-]{36})\?izvestie=kopie$/.exec(to);
-      expect(match).not.toBeNull();
-      const [copy] = await db.select().from(promotions).where(eq(promotions.id, match![1]!));
-      expect(copy).toMatchObject({
-        name: "Есен — Lavazza (копие)",
-        label: "Есенни дни",
-        percentOff: 25,
-        stoppedAt: null,
-      });
-      const { daysFromPeriod } = await import("@/lib/promotions/days");
-      expect(daysFromPeriod(copy!)).toEqual({
-        startDay: addDays(today(), 1),
-        endDay: addDays(today(), 10),
-      });
-      expect(copy!.targets).toEqual(JSON.parse(targetsOf({ brandIds: [brand.lavazza] })));
-    });
-
     it("moves the products' start to the save when an upcoming promotion is brought forward to today", async () => {
       const id = await create({ startDay: addDays(today(), 2), endDay: addDays(today(), 4) });
       const before = (await rowsOf(id)).get(product.lavazzaBeans)!;
@@ -836,8 +1055,10 @@ suite("promotions (integration)", () => {
         },
         now,
       );
-      expect(answer.total).toBe(3);
-      expect(answer.reduced).toBe(3);
+      // The product missing from the supplier's catalog for now is counted, and said so.
+      expect(answer.total).toBe(4);
+      expect(answer.reduced).toBe(4);
+      expect(answer.absent).toBe(1);
       const row = (id: string) => answer.rows.find((entry) => entry.id === id)!;
 
       expect(row(product.lavazzaBeans)).toMatchObject({ badge: null, struck: null });
@@ -849,8 +1070,156 @@ suite("promotions (integration)", () => {
       const overlapping = row(product.vergnanoBeans);
       expect(overlapping.badge).toBe(10);
       expect(overlapping.notes).toEqual([
-        expect.objectContaining({ kind: "overlap", text: expect.stringMatching(/важи тя/) }),
+        expect.objectContaining({
+          kind: "overlap",
+          text: expect.stringMatching(/показва нейната цена/),
+        }),
       ]);
+      expect(row(product.missing).notes.map((note) => note.kind)).toContain("absent");
+    });
+
+    it("shows the price and badge of another promotion that wins, and does not count it", async () => {
+      const now = new Date();
+      const deeper = await addPromotion({
+        percentOff: 30,
+        startsAt: new Date(now.getTime() - DAY),
+        endsAt: new Date(now.getTime() + 20 * DAY),
+        targets: { productIds: [product.vergnanoCapsules] },
+      });
+      await refresh.refreshPromotions(now);
+      expect((await rowsOf(deeper)).get(product.vergnanoCapsules)!.referencePrice).toBe("8.00");
+      const answer = await preview.previewPromotion(
+        {
+          promotionId: null,
+          percent: 10,
+          startDay: todayInSofia(now),
+          endDay: addDays(todayInSofia(now), 6),
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.vergnanoCapsules, product.vergnanoBeans] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      expect(answer).toMatchObject({ total: 2, reduced: 1, withBadge: 1, elsewhere: 1 });
+      const capsules = answer.rows.find((row) => row.id === product.vergnanoCapsules)!;
+      // What the shop will show: the 30% promotion's price, struck price and badge.
+      expect(capsules).toMatchObject({ otherWins: true, badge: 30 });
+      expect(capsules.price).toMatch(/5,60/);
+      expect(capsules.struck).toMatch(/8,00/);
+      expect(capsules.notes.map((note) => note.kind)).toContain("otherWins");
+    });
+
+    it("never shows a badge under 1%, as the card does not", async () => {
+      const now = new Date();
+      await priceChange(
+        product.lavazzaCapsules,
+        new Date(now.getTime() - 40 * DAY),
+        "9.00",
+        "9.95",
+      );
+      await priceChange(
+        product.lavazzaCapsules,
+        new Date(now.getTime() - 10 * DAY),
+        "9.95",
+        "10.00",
+      );
+      const answer = await preview.previewPromotion(
+        {
+          promotionId: null,
+          percent: 1,
+          startDay: todayInSofia(now),
+          endDay: addDays(todayInSofia(now), 6),
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.lavazzaCapsules] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      // 9.90 against a 30-day lowest of 9.95: struck, as the card strikes it, but 0.5% is no badge.
+      const [row] = answer.rows;
+      expect(row!.price).toMatch(/9,90/);
+      expect(row!.struck).toMatch(/9,95/);
+      expect(row!.badge).toBeNull();
+      expect(answer.withBadge).toBe(0);
+    });
+
+    it("says that a product new to the shop gets the price but no badge", async () => {
+      await db
+        .update(products)
+        .set({ firstSeenAt: new Date(Date.now() - 10 * DAY) })
+        .where(eq(products.id, product.lavazzaBeans));
+      const now = new Date();
+      const answer = await preview.previewPromotion(
+        {
+          promotionId: null,
+          percent: 10,
+          startDay: todayInSofia(now),
+          endDay: addDays(todayInSofia(now), 6),
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.lavazzaBeans] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      const [row] = answer.rows;
+      expect(row).toMatchObject({ badge: null, struck: null });
+      expect(row!.price).toMatch(/18,00/);
+      expect(row!.notes.map((note) => note.kind)).toEqual(["new"]);
+      expect(row!.notes[0]!.text).toMatch(/по-малко от 30 дни/);
+    });
+
+    it("counts the products a running promotion would lose", async () => {
+      const now = new Date();
+      const id = await addPromotion({
+        percentOff: 10,
+        startsAt: new Date(now.getTime() - DAY),
+        endsAt: new Date(now.getTime() + DAY),
+        targets: { brandIds: [brand.lavazza] },
+      });
+      await refresh.refreshPromotions(now);
+      const answer = await preview.previewPromotion(
+        {
+          promotionId: id,
+          percent: 10,
+          startDay: todayInSofia(new Date(now.getTime() - DAY)),
+          endDay: todayInSofia(now),
+          targets: JSON.parse(
+            targetsOf({ brandIds: [brand.lavazza], excludedProductIds: [product.lavazzaBeans] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      expect(answer.leaving).toBe(1);
+    });
+  });
+
+  /* -- what the editor offers ---------------------------------------------- */
+
+  describe("the editor's choices", () => {
+    it("keeps a chosen brand or category the supplier no longer lists, marked inactive", async () => {
+      await db.update(brands).set({ status: "removed" }).where(eq(brands.id, brand.vergnano));
+      await db
+        .update(categories)
+        .set({ status: "removed" })
+        .where(eq(categories.id, category.beans));
+      const { loadEditorChoices } = await import("@/lib/promotions/editor-data");
+      const choices = await loadEditorChoices(
+        JSON.parse(
+          targetsOf({ brandIds: [brand.vergnano], categoryIds: [category.beans] }),
+        ) as PromotionTargets,
+      );
+      expect(choices.brands.find((option) => option.id === brand.vergnano)).toMatchObject({
+        inactive: true,
+      });
+      expect(
+        choices.brands.find((option) => option.id === brand.lavazza)?.inactive,
+      ).toBeUndefined();
+      expect(choices.categories.find((option) => option.id === category.beans)).toMatchObject({
+        inactive: true,
+      });
+      // One nobody chose and the supplier dropped is not offered at all.
+      const none = await loadEditorChoices(JSON.parse(targetsOf({})) as PromotionTargets);
+      expect(none.brands.some((option) => option.id === brand.vergnano)).toBe(false);
     });
   });
 

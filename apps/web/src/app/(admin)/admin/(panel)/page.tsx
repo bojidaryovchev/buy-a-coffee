@@ -60,7 +60,7 @@ export default async function AdminHomePage() {
       label: "Текущи промоции",
       value: promotions.running,
       note: promotions.nearestEnd
-        ? `Последен ден на първата: ${formatDay(sofiaDayOf(promotions.nearestEnd.getTime() - 1), { year: false })}. ${upcomingNote}`
+        ? `Най-скоро свършва на ${formatDay(sofiaDayOf(promotions.nearestEnd.getTime() - 1), { year: false })}. ${upcomingNote}`
         : upcomingNote,
     },
   ];

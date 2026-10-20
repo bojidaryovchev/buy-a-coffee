@@ -11,6 +11,7 @@ import {
   periodLength,
   sofiaDayOf,
   sofiaDayStart,
+  sofiaDaysBefore,
   todayInSofia,
 } from "@/lib/promotions/days";
 
@@ -112,6 +113,32 @@ describe("a period, both ways", () => {
   it("ends at the start of the day after across the October change", () => {
     const period = periodFromDays("2026-10-20", "2026-10-25");
     expect(iso(period.endsAt)).toBe("2026-10-25T22:00:00.000Z");
+  });
+});
+
+describe("the same time, days earlier, on Sofia's clock", () => {
+  it("keeps the wall-clock time across the October change: 30 days and an hour", () => {
+    // 10:15 on 10 November (EET) → 10:15 on 11 October (EEST).
+    const from = new Date("2026-11-10T08:15:30.250Z");
+    expect(iso(sofiaDaysBefore(from, 30))).toBe("2026-10-11T07:15:30.250Z");
+  });
+
+  it("and across the March change: 30 days less an hour", () => {
+    // 12:00 on 15 April (EEST) → 12:00 on 16 March (EET).
+    expect(iso(sofiaDaysBefore(new Date("2026-04-15T09:00:00Z"), 30))).toBe(
+      "2026-03-16T10:00:00.000Z",
+    );
+  });
+
+  it("is plain 30 × 24 hours when no change lies between", () => {
+    const from = new Date("2027-01-31T10:00:00Z");
+    expect(from.getTime() - sofiaDaysBefore(from, 30).getTime()).toBe(30 * 24 * 3600 * 1000);
+  });
+
+  it("lands on midnight from midnight", () => {
+    expect(iso(sofiaDaysBefore(sofiaDayStart("2026-11-01"), 30))).toBe(
+      iso(sofiaDayStart("2026-10-02")),
+    );
   });
 });
 

@@ -139,12 +139,12 @@ export default async function AdminPromotionPage({
   ]);
   const brandNames = choices.brands
     .filter((brand) => promotion.targets.brandIds.includes(brand.id))
-    .map((brand) => brand.name);
+    .map((brand) => (brand.inactive ? `${brand.name} (неактивна)` : brand.name));
   const flatCategories = (nodes: readonly CategoryOption[]): CategoryOption[] =>
     nodes.flatMap((node) => [node, ...flatCategories(node.children)]);
   const categoryNames = flatCategories(choices.categories)
     .filter((category) => promotion.targets.categoryIds.includes(category.id))
-    .map((category) => category.name);
+    .map((category) => (category.inactive ? `${category.name} (неактивна)` : category.name));
   const named = (ids: readonly string[]) =>
     ids.map((productId) => {
       const product = choices.chosenProducts[productId];

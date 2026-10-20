@@ -10,6 +10,7 @@ import {
   promotionPreviewSchema,
   type PromotionFormInput,
 } from "@/lib/promotions/schemas";
+import { addDays, todayInSofia } from "@/lib/promotions/days";
 
 /**
  * The promotion editor's schema (`lib/promotions/schemas.ts`), which the form
@@ -114,6 +115,26 @@ describe("a new promotion", () => {
     });
   });
 
+  it("starts at most a year ahead, and answers an absurd year with a message, not a crash", () => {
+    expect(errorsOf(valid({ startDay: "2027-10-20", endDay: "2027-10-26" }))).toEqual({});
+    expect(errorsOf(valid({ startDay: "2027-10-21", endDay: "2027-10-27" }))).toEqual({
+      startDay: PROMOTION_MESSAGES.startFar,
+    });
+    expect(errorsOf(valid({ startDay: "9999-12-30", endDay: "9999-12-31" }))).toEqual({
+      startDay: PROMOTION_MESSAGES.startFar,
+    });
+    expect(errorsOf(valid({ startDay: "0001-01-01", endDay: "0001-01-02" }))).toEqual({
+      startDay: PROMOTION_MESSAGES.startDay,
+      endDay: PROMOTION_MESSAGES.endDay,
+    });
+    expect(errorsOf(valid({ endDay: "9999-12-31" }))).toEqual({
+      endDay: PROMOTION_MESSAGES.tooLong,
+    });
+    expect(errorsOf(valid({ startDay: "0999-01-01", endDay: "0999-01-02" }))).toMatchObject({
+      startDay: PROMOTION_MESSAGES.startPast,
+    });
+  });
+
   it("needs a brand, a category or a product; exclusions alone are not a promotion", () => {
     expect(errorsOf(valid({ targets: targets({}) }))).toEqual({
       targets: PROMOTION_MESSAGES.targets,
@@ -168,16 +189,28 @@ describe("a saved promotion", () => {
 });
 
 describe("the preview's question", () => {
+  // The preview asks the clock, so its days are today's, whenever this runs.
+  const today = todayInSofia();
+  const base = {
+    startDay: today,
+    endDay: addDays(today, 6),
+    targets: { brandIds: [BRAND] },
+  };
+
   it("reads a percentage it can, and leaves one it cannot as none", () => {
-    const base = {
-      startDay: TODAY,
-      endDay: "2026-10-26",
-      targets: { brandIds: [BRAND] },
-    };
     expect(promotionPreviewSchema.parse({ ...base, percent: "15" }).percent).toBe(15);
     expect(promotionPreviewSchema.parse({ ...base, percent: "" }).percent).toBeNull();
-    expect(promotionPreviewSchema.safeParse({ ...base, startDay: "", percent: "15" }).success).toBe(
-      false,
-    );
+  });
+
+  it("is not worked on for days the form could not save", () => {
+    const days = (startDay: string, endDay: string) =>
+      promotionPreviewSchema.safeParse({ ...base, startDay, endDay, percent: "15" }).success;
+    expect(days("", addDays(today, 6))).toBe(false);
+    expect(days("9999-12-30", "9999-12-31")).toBe(false);
+    expect(days(today, "9999-12-31")).toBe(false);
+    expect(days(addDays(today, 6), today)).toBe(false);
+    expect(days(addDays(today, 400), addDays(today, 401))).toBe(false);
+    // A running promotion's first day, weeks back, is one it could save.
+    expect(days(addDays(today, -20), addDays(today, 5))).toBe(true);
   });
 });

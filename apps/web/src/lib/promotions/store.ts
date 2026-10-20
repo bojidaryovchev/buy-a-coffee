@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, gt, isNull, lte, sql } from "drizzle-orm";
 import { promotionProducts, promotions, type PromotionTargets } from "@catalog/db/schema";
 import { db } from "@/lib/db";
+import type { Executor } from "./history";
 import { periodFromDays, type Day } from "./days";
 import { promotionTargetsSchema } from "./schemas";
 import { effectiveEnd, promotionStatus, type PromotionStatus } from "./status";
@@ -113,9 +114,18 @@ export interface PromotionValues {
   readonly targets: PromotionTargets;
 }
 
-export async function insertPromotion(values: PromotionValues, now: Date): Promise<string> {
+/*
+ * The writes take the transaction they run in: the panel's actions write and
+ * refresh in one (`actions.ts`), so a failed refresh takes the write with it.
+ */
+
+export async function insertPromotion(
+  tx: Executor,
+  values: PromotionValues,
+  now: Date,
+): Promise<string> {
   const { startsAt, endsAt } = periodFromDays(values.startDay, values.endDay);
-  const [row] = await db
+  const [row] = await tx
     .insert(promotions)
     .values({
       name: values.name,
@@ -132,7 +142,10 @@ export async function insertPromotion(values: PromotionValues, now: Date): Promi
 }
 
 export type UpdateOutcome =
-  { ok: true; version: string } | { ok: false; reason: "missing" | "conflict" | "over" | "locked" };
+  | { ok: true; version: string }
+  | { ok: false; reason: "missing" | "over" | "locked" }
+  /** Changed since the tab was drawn; `version` is the one it holds now. */
+  | { ok: false; reason: "conflict"; version: string };
 
 /**
  * Save the editor over the promotion this tab was showing, and only that
@@ -146,60 +159,59 @@ export type UpdateOutcome =
  * price is taken from here (`reference.ts`).
  */
 export async function updatePromotion(
+  tx: Executor,
   id: string,
   version: string,
   values: PromotionValues,
   now: Date,
 ): Promise<UpdateOutcome> {
-  return db.transaction(async (tx) => {
-    const [current] = await tx.select().from(promotions).where(eq(promotions.id, id)).for("update");
-    if (!current) return { ok: false, reason: "missing" };
-    if (String(current.updatedAt.getTime()) !== version) return { ok: false, reason: "conflict" };
+  const [current] = await tx.select().from(promotions).where(eq(promotions.id, id)).for("update");
+  if (!current) return { ok: false, reason: "missing" };
+  const held = promotionVersion(current);
+  if (held !== version) return { ok: false, reason: "conflict", version: held };
 
-    const status = promotionStatus(current, now);
-    if (status === "ended" || status === "stopped") return { ok: false, reason: "over" };
+  const status = promotionStatus(current, now);
+  if (status === "ended" || status === "stopped") return { ok: false, reason: "over" };
 
-    const { startsAt, endsAt } = periodFromDays(values.startDay, values.endDay);
-    if (
-      status === "running" &&
-      (values.percentOff !== current.percentOff ||
-        startsAt.getTime() !== current.startsAt.getTime())
-    ) {
-      return { ok: false, reason: "locked" };
-    }
+  const { startsAt, endsAt } = periodFromDays(values.startDay, values.endDay);
+  if (
+    status === "running" &&
+    (values.percentOff !== current.percentOff || startsAt.getTime() !== current.startsAt.getTime())
+  ) {
+    return { ok: false, reason: "locked" };
+  }
 
+  await tx
+    .update(promotions)
+    .set({
+      name: values.name,
+      label: values.label,
+      percentOff: values.percentOff,
+      startsAt,
+      endsAt,
+      targets: values.targets,
+      updatedAt: now,
+    })
+    .where(eq(promotions.id, id));
+
+  if (status === "upcoming" && startsAt.getTime() <= now.getTime()) {
     await tx
-      .update(promotions)
-      .set({
-        name: values.name,
-        label: values.label,
-        percentOff: values.percentOff,
-        startsAt,
-        endsAt,
-        targets: values.targets,
-        updatedAt: now,
-      })
-      .where(eq(promotions.id, id));
-
-    if (status === "upcoming" && startsAt.getTime() <= now.getTime()) {
-      await tx
-        .update(promotionProducts)
-        .set({ addedAt: now })
-        .where(
-          and(
-            eq(promotionProducts.promotionId, id),
-            isNull(promotionProducts.removedAt),
-            eq(promotionProducts.referenceFinal, false),
-          ),
-        );
-    }
-    return { ok: true, version: String(now.getTime()) };
-  });
+      .update(promotionProducts)
+      .set({ addedAt: now })
+      .where(
+        and(
+          eq(promotionProducts.promotionId, id),
+          isNull(promotionProducts.removedAt),
+          eq(promotionProducts.referenceFinal, false),
+        ),
+      );
+  }
+  return { ok: true, version: String(now.getTime()) };
 }
 
 /** "Спри сега": only a running promotion, and only once. */
-export async function stopPromotion(id: string, now: Date): Promise<boolean> {
-  const stopped = await db
+export async function stopPromotion(tx: Executor, id: string, now: Date): Promise<boolean> {
+  const stopped = await tx
     .update(promotions)
     .set({ stoppedAt: now, updatedAt: now })
     .where(
@@ -219,8 +231,8 @@ export async function stopPromotion(id: string, now: Date): Promise<boolean> {
  * something, and that is part of the next reduction's 30-day history; it is
  * never deleted. Its rows go with it (`on delete cascade`).
  */
-export async function deletePromotion(id: string, now: Date): Promise<boolean> {
-  const deleted = await db
+export async function deletePromotion(tx: Executor, id: string, now: Date): Promise<boolean> {
+  const deleted = await tx
     .delete(promotions)
     .where(and(eq(promotions.id, id), isNull(promotions.stoppedAt), gt(promotions.startsAt, now)))
     .returning({ id: promotions.id });
@@ -256,16 +268,28 @@ export async function promotionSummary(now: Date): Promise<{
   return { running, nearestEnd, upcoming };
 }
 
+/** Another promotion a product is in at the same time, as the preview weighs it. */
+export interface OverlappingMembership {
+  readonly id: string;
+  readonly name: string;
+  readonly percentOff: number;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  /** Its reference for the product: what the shop strikes while it wins. */
+  readonly referencePrice: string | null;
+}
+
 /**
  * Other promotions that put the same product on sale during `period`:
- * for the preview's "also in" note. Stopped ones are not on sale; one that is
- * over cannot overlap a period that has not ended.
+ * for the preview, which shows what the shop will show where one of them
+ * wins. Stopped ones are not on sale; one that is over cannot overlap a
+ * period that has not ended.
  */
 export async function overlappingMemberships(
   productIds: readonly string[],
   period: { startsAt: Date; endsAt: Date },
   excludeId: string | null,
-): Promise<Map<string, { id: string; name: string; percentOff: number }[]>> {
+): Promise<Map<string, OverlappingMembership[]>> {
   if (productIds.length === 0) return new Map();
   const rows = await db
     .select({
@@ -273,6 +297,9 @@ export async function overlappingMemberships(
       id: promotions.id,
       name: promotions.name,
       percentOff: promotions.percentOff,
+      startsAt: promotions.startsAt,
+      endsAt: promotions.endsAt,
+      referencePrice: promotionProducts.referencePrice,
     })
     .from(promotionProducts)
     .innerJoin(promotions, eq(promotions.id, promotionProducts.promotionId))
@@ -286,11 +313,11 @@ export async function overlappingMemberships(
         excludeId ? sql`${promotions.id} <> ${excludeId}::uuid` : undefined,
       ),
     );
-  const byProduct = new Map<string, { id: string; name: string; percentOff: number }[]>();
-  for (const row of rows) {
-    const list = byProduct.get(row.productId) ?? [];
-    list.push({ id: row.id, name: row.name, percentOff: row.percentOff });
-    byProduct.set(row.productId, list);
+  const byProduct = new Map<string, OverlappingMembership[]>();
+  for (const { productId, ...membership } of rows) {
+    const list = byProduct.get(productId) ?? [];
+    list.push(membership);
+    byProduct.set(productId, list);
   }
   return byProduct;
 }

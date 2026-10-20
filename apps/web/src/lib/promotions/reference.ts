@@ -1,4 +1,5 @@
 import { moneyFromDecimalString } from "@catalog/shared";
+import { sofiaDaysBefore } from "./days";
 
 /**
  * The price a reduction is announced against: the lowest price the shop
@@ -9,7 +10,10 @@ import { moneyFromDecimalString } from "@catalog/shared";
  * 2022) says an announced reduction must show "the prior price": the lowest
  * price applied during at least 30 days before the reduction. A struck price
  * above that is a false claim, so wherever the history is uncertain this
- * module errs low: a smaller badge, or none, never a larger one.
+ * module errs low — a smaller badge, or none — and where there is no history
+ * to vouch for a price, it claims nothing at all (`null`: the shop then sells
+ * at the promotion's price with no struck price and no badge,
+ * `lib/catalog/price-sql.ts`).
  *
  * Pure: the history goes in (`lib/promotions/history.ts` reads it), a decimal
  * string comes out. Money stays exact — minor units in a BigInt, as
@@ -21,29 +25,47 @@ import { moneyFromDecimalString } from "@catalog/shared";
  *    whatever the source does, so it is the regular price throughout (the
  *    override's own history is not kept; it is taken as constant).
  *    Otherwise it is the source's price, which the sync records in
- *    `sync_changes`: the price at an instant is the `after` of the last change
- *    at or before it, or — before the first change we have — the `before` of
- *    the first one after it, or, for a product never changed, its current
- *    price. The prices in effect during the window are the one at its start
- *    and every price a change set within it.
+ *    `sync_changes` — but only in the changes that carry it: a change
+ *    recorded for something else (`catalog:link` moving a product writes
+ *    `{ name, sourceKey, … }` and no price) says nothing about the price and
+ *    is passed over. The price at an instant is the `after` of the last
+ *    change at or before it that carries one, or — before the first such —
+ *    the `before` of the first change after it that carries one, or, for a
+ *    product never priced by a change, its current price. The prices in
+ *    effect during the window are the one at its start and every price a
+ *    change set within it.
  *  - Any other promotion that priced the product during the window. Its own
  *    history of prices is not reconstructed: the window's lowest regular price
  *    less that promotion's percentage is added as if it had been charged,
  *    which can only be lower than what was.
+ *
+ * And no claim without the whole window: a product the shop has had for less
+ * than 30 days, or one that had no price when the window opened, has no
+ * 30-day lowest price, so its reference is null.
+ *
+ * The window is 30 calendar days on Sofia's clock (`sofiaDaysBefore`), not
+ * 720 hours: across the October change it is an hour longer.
  */
 
-/** The look-back the law sets. */
+/** The look-back the law sets, in days. */
 export const REFERENCE_WINDOW_DAYS = 30;
-export const REFERENCE_WINDOW_MS = REFERENCE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
-/** One change to the source's price, as `sync_changes` recorded it. */
+/** When the window ending at `referenceAt` opens: the same Sofia time, 30 days earlier. */
+export function referenceWindowStart(referenceAt: number): number {
+  return sofiaDaysBefore(referenceAt, REFERENCE_WINDOW_DAYS).getTime();
+}
+
+/** One change the sync recorded, as far as the price goes. */
 export interface PriceChange {
   /** When the sync wrote it, in epoch milliseconds. */
   readonly at: number;
-  /** `before.currentPrice`: null when the product had no price, or did not exist yet. */
-  readonly before: string | null;
-  /** `after.currentPrice`: null when the product has no price. */
-  readonly after: string | null;
+  /**
+   * `before.currentPrice`: a price, null for "no price", or absent
+   * (`undefined`) when that side of the change does not carry the price.
+   */
+  readonly before?: string | null;
+  /** `after.currentPrice`, likewise. */
+  readonly after?: string | null;
 }
 
 /** A stretch of time during which a promotion priced the product. */
@@ -58,15 +80,25 @@ export interface PromotionInterval {
 export interface ReferenceInput {
   /** T: when the reduction began for the product, epoch milliseconds. */
   readonly referenceAt: number;
-  /** The product's price changes, in the order they were made. */
+  /** The product's changes, in the order they were made. */
   readonly changes: readonly PriceChange[];
-  /** `products.current_price`, for a product the sync never changed. */
+  /** `products.current_price`, for a product no change ever priced. */
   readonly currentPrice: string | null;
   /** `products.retail_price_override`. */
   readonly override: string | null;
+  /** `products.first_seen_at`, epoch milliseconds: when the shop first had it. */
+  readonly firstSeenAt: number | null;
   /** Every other promotion's time on the product; those outside the window are ignored. */
   readonly earlier: readonly PromotionInterval[];
 }
+
+/** Why a reference is what it is. */
+export type ReferenceOutcome =
+  | { readonly price: string; readonly reason: "ok" }
+  /** The shop has had the product for less than the window. */
+  | { readonly price: null; readonly reason: "new" }
+  /** It had no price when the window opened, or none at all. */
+  | { readonly price: null; readonly reason: "noPrice" };
 
 /** Exact cents, or null for an absent or unreadable price. */
 export function toCents(amount: string | null | undefined): bigint | null {
@@ -97,72 +129,113 @@ export function promotionPrice(regular: string | null, percentOff: number): stri
 }
 
 /**
- * The regular prices in effect at some moment of the window `[start, end]`,
- * in cents. Changes must be in the order they were made.
+ * The regular prices of `[start, end]`, in cents: the one in effect at
+ * `start` (null when there was none, or nothing says what it was), and every
+ * price set after it, up to `end`. Changes must be in the order they were
+ * made; those that do not carry the price are passed over.
  */
 export function regularPricesInWindow(
   input: Pick<ReferenceInput, "changes" | "currentPrice" | "override">,
   start: number,
   end: number,
-): bigint[] {
+): { readonly atStart: bigint | null; readonly within: readonly bigint[] } {
   const override = toCents(input.override);
-  if (override !== null) return [override];
+  if (override !== null) return { atStart: override, within: [] };
 
-  const prices: bigint[] = [];
-  const keep = (amount: string | null) => {
-    const cents = toCents(amount);
-    if (cents !== null) prices.push(cents);
-  };
-
-  if (input.changes.length === 0) {
-    keep(input.currentPrice);
-    return prices;
-  }
-
-  // The price at the window's start.
-  let lastBefore: PriceChange | undefined;
+  let opening: PriceChange | undefined;
   let firstAfter: PriceChange | undefined;
   for (const change of input.changes) {
-    if (change.at <= start) lastBefore = change;
-    else {
+    if (change.at <= start) {
+      if (change.after !== undefined) opening = change;
+    } else if (change.before !== undefined) {
       firstAfter = change;
       break;
     }
   }
-  if (lastBefore) keep(lastBefore.after);
-  else if (firstAfter) keep(firstAfter.before);
+  const atStart = opening
+    ? toCents(opening.after)
+    : firstAfter
+      ? toCents(firstAfter.before)
+      : toCents(input.currentPrice);
 
-  // And every price set within it.
+  const within: bigint[] = [];
   for (const change of input.changes) {
-    if (change.at > start && change.at <= end) keep(change.after);
+    if (change.at > start && change.at <= end && change.after !== undefined) {
+      const cents = toCents(change.after);
+      if (cents !== null) within.push(cents);
+    }
   }
-  return prices;
+  return { atStart, within };
 }
 
-/** Does `[from, to)` share any time with the window `[start, end]`? */
+/** Does `[from, to)` share any time with `[start, end]`, up to but not at `end`? */
 function overlaps(interval: PromotionInterval, start: number, end: number): boolean {
   return interval.from < interval.to && interval.from < end && interval.to > start;
 }
 
-/**
- * The 30-day lowest price for one product: a decimal string with two places,
- * or null when the product had no price at all in the window (there is then
- * nothing a reduction could be announced against).
- */
-export function referencePrice(input: ReferenceInput): string | null {
-  const end = input.referenceAt;
-  const start = end - REFERENCE_WINDOW_MS;
-  const regular = regularPricesInWindow(input, start, end);
-  if (regular.length === 0) return null;
+const lowestOf = (values: readonly bigint[]): bigint =>
+  values.reduce((low, cents) => (cents < low ? cents : low));
 
-  let lowest = regular.reduce((low, cents) => (cents < low ? cents : low));
-  const lowestRegular = lowest;
+/** The 30-day lowest price for one product, and why it is that, or why there is none. */
+export function referenceOutcome(input: ReferenceInput): ReferenceOutcome {
+  const end = input.referenceAt;
+  const start = referenceWindowStart(end);
+  if (input.firstSeenAt !== null && input.firstSeenAt > start)
+    return { price: null, reason: "new" };
+
+  const { atStart, within } = regularPricesInWindow(input, start, end);
+  if (atStart === null) return { price: null, reason: "noPrice" };
+
+  const lowestRegular = lowestOf([atStart, ...within]);
+  let lowest = lowestRegular;
   for (const interval of input.earlier) {
     if (!overlaps(interval, start, end)) continue;
     const charged = reducedCents(lowestRegular, interval.percentOff);
     if (charged < lowest) lowest = charged;
   }
-  return fromCents(lowest);
+  return { price: fromCents(lowest), reason: "ok" };
+}
+
+/** The 30-day lowest price for one product, or null when nothing vouches for one. */
+export function referencePrice(input: ReferenceInput): string | null {
+  return referenceOutcome(input).price;
+}
+
+/**
+ * How low a settled reference must come, once its promotion has run a while:
+ * the lowest price the shop charged for the product under another promotion
+ * since T, or null when there was none.
+ *
+ * A settled reference never rises, but the shop's own later prices can make
+ * it untrue. A product in this promotion at 10% that a 30% promotion took
+ * over for a week was sold at the deeper price; when the 30% one ends and
+ * this one prices it again, "10% off" against the price before both would be
+ * a claim against a price that is no longer the lowest of the last 30 days.
+ *
+ * Only a promotion with a larger percentage counts: while this one ran, the
+ * shop charged the larger reduction, so a smaller or equal one never set a
+ * price below this one's. As for earlier promotions, its price is taken as
+ * the lowest regular price since T less its percentage.
+ */
+export function settledReferenceFloor(input: {
+  readonly referenceAt: number;
+  readonly now: number;
+  readonly percentOff: number;
+  readonly changes: readonly PriceChange[];
+  readonly currentPrice: string | null;
+  readonly override: string | null;
+  readonly others: readonly PromotionInterval[];
+}): bigint | null {
+  const deeper = input.others.filter(
+    (interval) =>
+      interval.percentOff > input.percentOff && overlaps(interval, input.referenceAt, input.now),
+  );
+  if (deeper.length === 0) return null;
+  const { atStart, within } = regularPricesInWindow(input, input.referenceAt, input.now);
+  const prices = [...(atStart === null ? [] : [atStart]), ...within];
+  if (prices.length === 0) return null;
+  const lowestRegular = lowestOf(prices);
+  return lowestOf(deeper.map((interval) => reducedCents(lowestRegular, interval.percentOff)));
 }
 
 /** T: the promotion's start, or the moment the product joined a running one. */

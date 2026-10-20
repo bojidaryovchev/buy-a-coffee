@@ -39,6 +39,13 @@ export const PROMOTION_CONFIRM_ABOVE = 20;
  */
 export const PROMOTION_MAX_DAYS = 60;
 
+/**
+ * How far ahead a promotion may be set to start. Further than a year is a
+ * typo in the year far more often than a plan, and it would sit in the list
+ * as "upcoming" for longer than anyone remembers why.
+ */
+export const PROMOTION_MAX_LEAD_DAYS = 365;
+
 export const PROMOTION_NAME_MAX = 80;
 export const PROMOTION_LABEL_MAX = 40;
 
@@ -54,6 +61,7 @@ export const PROMOTION_MESSAGES = {
     `Отбележете „Да, ${percent}% е правилно“: отстъпка над ${PROMOTION_CONFIRM_ABOVE}% е голяма и излиза от вашата печалба.`,
   startDay: "Изберете от кой ден започва.",
   startPast: "Началото не може да е в миналото. Изберете днес или по-късен ден.",
+  startFar: `Изберете първи ден до година напред: до ${PROMOTION_MAX_LEAD_DAYS} дни от днес.`,
   endDay: "Изберете до кой ден трае.",
   endBeforeStart: "Последният ден не може да е преди първия.",
   endPast: "Последният ден не може да е в миналото. Изберете днес или по-късен ден.",
@@ -208,6 +216,12 @@ export function promotionFormSchema(mode: PromotionFormMode, today: Day = todayI
           path: ["startDay"],
           message: PROMOTION_MESSAGES.startPast,
         });
+      } else if (mode !== "running" && daysBetween(today, start) > PROMOTION_MAX_LEAD_DAYS) {
+        context.addIssue({
+          code: "custom",
+          path: ["startDay"],
+          message: PROMOTION_MESSAGES.startFar,
+        });
       }
       if (!end) {
         context.addIssue({ code: "custom", path: ["endDay"], message: PROMOTION_MESSAGES.endDay });
@@ -254,12 +268,27 @@ export type PromotionDraft = z.output<PromotionFormSchema>;
  * valid or not yet. The preview answers for what it can read and says what
  * it cannot.
  */
-export const promotionPreviewSchema = z.object({
-  promotionId: z.string().uuid().nullish(),
-  percent: z.union([z.string(), z.number()]).transform(parsePercent),
-  startDay: z.string().refine(isDay),
-  endDay: z.string().refine(isDay),
-  targets: promotionTargetsSchema,
-});
+export const promotionPreviewSchema = z
+  .object({
+    promotionId: z.string().uuid().nullish(),
+    percent: z.union([z.string(), z.number()]).transform(parsePercent),
+    startDay: z.string().refine(isDay),
+    endDay: z.string().refine(isDay),
+    targets: promotionTargetsSchema,
+  })
+  /* Days the form could save (a running promotion's first day may be up to
+     its length in the past), so the preview never works on a year 9999. */
+  .refine((value) => {
+    // Zod runs this even when a day above was refused; it must not throw then.
+    if (!isDay(value.startDay) || !isDay(value.endDay)) return false;
+    const lead = daysBetween(todayInSofia(), value.startDay);
+    const length = daysBetween(value.startDay, value.endDay);
+    return (
+      lead >= -PROMOTION_MAX_DAYS &&
+      lead <= PROMOTION_MAX_LEAD_DAYS &&
+      length >= 0 &&
+      length < PROMOTION_MAX_DAYS
+    );
+  });
 
 export type PromotionPreviewRequest = z.output<typeof promotionPreviewSchema>;

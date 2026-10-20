@@ -1,6 +1,6 @@
-import { buttonClasses } from "@/components/ui/primitives";
+import { ButtonLink, buttonClasses } from "@/components/ui/primitives";
 import { createNewsletterFromTemplate } from "@/lib/newsletter/template-actions";
-import { deletePromotion, duplicatePromotion, stopPromotion } from "@/lib/promotions/actions";
+import { deletePromotion, stopPromotion } from "@/lib/promotions/actions";
 import type { PromotionStatus } from "@/lib/promotions/status";
 
 /**
@@ -10,8 +10,10 @@ import type { PromotionStatus } from "@/lib/promotions/status";
  *   - "Обяви в бюлетина" — a newsletter draft announcing it, which the owner
  *     then reads and sends (`createNewsletterFromTemplate`). While it is
  *     running or upcoming.
- *   - "Дублирай" — the same choice as a new promotion starting tomorrow.
- *     Always; for one that is over, the only thing there is to do.
+ *   - "Дублирай" — a link to the new-promotion editor filled in with the same
+ *     choice, starting tomorrow (`lib/promotions/copy.ts`). Nothing exists
+ *     until it is saved there. Always; for one that is over, the only thing
+ *     there is to do.
  *   - "Спри сега" — while it runs, behind a second step that says what it
  *     does: prices go back at once, and it cannot be undone.
  *   - "Изтрий" — only before it starts, behind a second step. A promotion
@@ -48,12 +50,9 @@ export function PromotionActions({
           </form>
         )}
 
-        <form action={duplicatePromotion}>
-          <input type="hidden" name="id" value={promotionId} />
-          <button type="submit" className={buttonClasses({ variant: "secondary" })}>
-            Дублирай
-          </button>
-        </form>
+        <ButtonLink variant="secondary" href={`/admin/promotsii/nova?ot=${promotionId}`}>
+          Дублирай
+        </ButtonLink>
 
         {status === "running" && (
           <details className="group">
