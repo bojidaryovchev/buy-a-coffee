@@ -4,6 +4,7 @@ import {
   allocateProductSlug,
   parseWeight,
   productName,
+  slugify,
 } from "@catalog/shared";
 
 /**
@@ -28,10 +29,15 @@ import {
  * Pack size is part of the SKU for coffee, and normalising it means `1 кг.`
  * and `1000 г` cannot fork one product into two.
  *
- * The one accepted trade-off: two records that share a URL *and* a pack size
- * collapse into one. That is the correct outcome for the observed case — the
- * duplicated `/eurocaf-piacere-oro/` entry is the same product typed twice
- * into the source CMS.
+ * Two records that share a URL *and* a pack size collapse into one when they
+ * are the same product: the duplicated `/eurocaf-piacere-oro/` entry was the
+ * same product typed twice into the source CMS. When they are not — the
+ * source lists Moreno Espresso Bar and Moreno Super Bar, both 1 kg, at
+ * `/moreno-super-bar-1/` — collapsing them dropped one product and let the
+ * other take its name and price whenever the source swapped the two. So such
+ * records are told apart by their product code, else their name, and the
+ * second product gets a key of its own (`splitSourceKey`, `collisions.ts`).
+ * Records nothing tells apart still collapse, and the run says so.
  *
  * The product code is deliberately NOT an identity. The source began printing
  * one on its product pages ("Код: 00072") long after every row here had a
@@ -40,10 +46,72 @@ import {
  * page happened to be read. The code is stored on the row and used by move
  * detection as evidence that two keys are one product (see `moves.ts`). It
  * cannot be passed to `resolveProductIdentity` at all: the input type refuses
- * it.
+ * it. The one place a code may shape a key is the tie-break above, between
+ * products that already share one, and only when the listing itself states a
+ * code for every one of them — which today it never does.
  */
 
 export const SOURCE_KEY_SEPARATOR = "#";
+
+/**
+ * Marks the part of a key that tells apart two products the source lists at
+ * one address and one pack size:
+ *
+ *     /moreno-super-bar-1/#1000g~name:kafe-na-zarna-moreno-super-bar-1kg
+ *
+ * It sits inside the variant, after the pack size, so everything that reads a
+ * key as `path#variant` — move detection's path stem, `catalog:link` — still
+ * reads the right path. A key with no pack size gets an empty one first
+ * (`/x/#~name:…`) for the same reason. No canonical pack size contains `~`.
+ */
+export const SOURCE_KEY_SPLIT = "~";
+
+/** What told two products at one key apart. */
+export type KeyTiebreaker = "code" | "name";
+
+export interface SplitSourceKey {
+  /** The key both products would have had: path and pack size. */
+  readonly plainKey: string;
+  readonly tiebreaker: KeyTiebreaker;
+  /** `code:<code>` or `name:<name>`, as `splitDiscriminator` builds it. */
+  readonly discriminator: string;
+}
+
+/**
+ * The readable token that tells one product from the others at its key.
+ *
+ * Slugified, so a key stays printable and `catalog:link` accepts it, and so a
+ * change of case or punctuation in the source's name does not move the
+ * product. Generous on length, because two names cut short to the same prefix
+ * would read as one product.
+ */
+export function splitDiscriminator(tiebreaker: KeyTiebreaker, value: string): string {
+  return `${tiebreaker}:${slugify(value, { maxLength: 200 })}`;
+}
+
+export function splitSourceKey(plainKey: string, discriminator: string): string {
+  const withVariant = plainKey.includes(SOURCE_KEY_SEPARATOR)
+    ? plainKey
+    : `${plainKey}${SOURCE_KEY_SEPARATOR}`;
+  return `${withVariant}${SOURCE_KEY_SPLIT}${discriminator}`;
+}
+
+/** The parts of a split key, or null for any other key. */
+export function parseSplitSourceKey(sourceKey: string): SplitSourceKey | null {
+  const variantStart = sourceKey.indexOf(SOURCE_KEY_SEPARATOR);
+  if (variantStart === -1) return null;
+  const splitAt = sourceKey.indexOf(SOURCE_KEY_SPLIT, variantStart);
+  if (splitAt === -1) return null;
+
+  const discriminator = sourceKey.slice(splitAt + SOURCE_KEY_SPLIT.length);
+  const tiebreaker = discriminator.slice(0, discriminator.indexOf(":"));
+  if (tiebreaker !== "code" && tiebreaker !== "name") return null;
+
+  const head = sourceKey.slice(0, splitAt);
+  // `/x/#~name:…` is `/x/` split; `/x/#1000g~name:…` is `/x/#1000g` split.
+  const plainKey = head.endsWith(SOURCE_KEY_SEPARATOR) ? head.slice(0, -1) : head;
+  return { plainKey, tiebreaker, discriminator };
+}
 
 export interface ProductIdentityInput {
   /** Decoded, canonical source path, e.g. `/borbone-crema-classica/`. */

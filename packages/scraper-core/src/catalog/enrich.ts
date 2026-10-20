@@ -4,6 +4,7 @@ import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { type ProductCharacteristic, parseProductPage } from "../parsers/productPage.ts";
 import type { ExistingProduct } from "./diff.ts";
+import { parseSplitSourceKey } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 import {
   type EnrichmentTarget,
@@ -11,6 +12,7 @@ import {
   ensureSourceSite,
   loadProductsWithoutCode,
   loadSharedProductCodes,
+  markEnrichmentAttempted,
   markEnrichmentDue,
   markEnrichmentFailed,
   recordScrapeError,
@@ -421,9 +423,22 @@ export async function enrichProducts(input: {
   let enriched = 0;
   let failed = 0;
   const deferred: string[] = [];
+  const unattributable: string[] = [];
   const skuChanges: EnrichmentSummary["skuChanges"] = [];
 
   for (const target of input.targets) {
+    if (parseSplitSourceKey(target.sourceKey) !== null) {
+      /*
+       * Split from another product the source lists at the same address and
+       * size (`collisions.ts`). The page there belongs to the product that
+       * held the address first; nothing on it is known to describe this one —
+       * not its blend, not its roast. So nothing is read or stored, and the
+       * product waits a day, as one whose page failed does, rather than
+       * heading the backlog on every run.
+       */
+      unattributable.push(target.productId);
+      continue;
+    }
     const read = await reader.read(target.sourceUrl);
     if (read === null) {
       deferred.push(target.productId);
@@ -455,6 +470,10 @@ export async function enrichProducts(input: {
   }
 
   await markEnrichmentDue(db, deferred);
+  if (unattributable.length > 0) {
+    await markEnrichmentAttempted(db, unattributable);
+    logger.info("enrich.shared_page_skipped", { count: unattributable.length });
+  }
   return { enriched, failed, deferred: deferred.length, skuChanges };
 }
 

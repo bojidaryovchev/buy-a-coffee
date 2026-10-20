@@ -99,6 +99,28 @@ collapsed an accidental duplicate in the August catalog, taking 111 raw records
 to 110 products. (Since the October rename no URL serves two products, and the
 rule is unchanged: it costs nothing and the source has done it before.)
 
+**Two products at one address and size are told apart, not collapsed.** In
+October the source listed Moreno Espresso Bar (€20) and Moreno Super Bar (€25),
+both 1 kg, at `/moreno-super-bar-1/`. Collapsing them dropped the Super Bar on
+every run, and had the source swapped the two, the Espresso Bar's row, URL and
+order history would have taken the Super Bar's name and price as an ordinary
+update (research 08 §1.4). Records that share path and pack size are now told
+apart by the product code when the listing states a different one for each,
+else by name, and each product gets a key of its own
+(`…#1000g~name:kafe-na-zarna-moreno-super-bar-1kg`), a function of the records
+alone, so the source's order changes nothing. The plain key then goes back to
+the product already stored under it, matched by code or name, so the Espresso
+Bar stays the row it was and only the Super Bar is new; a product left alone at
+an address it once shared keeps its own key rather than sliding into its
+neighbour's row. Nothing is guessed: records with one code and one name but
+another price keep the first, as before, and a stored product that matches
+none of the records beside a new one is left to go missing. Both are recorded
+on the run (`metadata.keyCollisions`) and raised by the storefront's sync
+health as `duplicate_key_conflict`; a split it settled raises nothing. The
+shared page belongs to the product that held the address, so the split-off
+product is not enriched from it. Every other key is untouched, byte for byte
+(`collisions.ts`).
+
 `imageUrl` is unique across all 111 records and was **rejected** as identity:
 re-uploading an image would silently recreate the product.
 

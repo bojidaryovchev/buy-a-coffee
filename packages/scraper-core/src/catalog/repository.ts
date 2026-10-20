@@ -808,6 +808,21 @@ export async function markEnrichmentFailed(db: Database, productId: string): Pro
     .where(eq(products.id, productId));
 }
 
+/**
+ * A page left unread because nothing on it would be this product's (see
+ * `enrichProducts`): what is stored stays, and the product waits a day.
+ */
+export async function markEnrichmentAttempted(
+  db: Database,
+  productIds: readonly string[],
+): Promise<void> {
+  if (productIds.length === 0) return;
+  await db
+    .update(products)
+    .set({ enrichAttemptedAt: sql`now()` })
+    .where(inArray(products.id, [...productIds]));
+}
+
 /** Put products at the front of the backlog without touching what they hold. */
 export async function markEnrichmentDue(
   db: Database,

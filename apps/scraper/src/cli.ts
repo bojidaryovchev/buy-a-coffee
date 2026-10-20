@@ -267,6 +267,7 @@ export async function main(argv: readonly string[]): Promise<number> {
             ),
           })),
           unresolvedMoves: result.diff.unresolvedMoves,
+          keyCollisions: result.discovery.keyCollisions,
           taxonomy: result.taxonomy,
           images: result.images,
           enrichedCount: result.enrichment.enriched,
