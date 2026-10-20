@@ -6,6 +6,12 @@ import { childEnvironment, runClaudeBatch } from "@catalog/scraper-core/catalog/
 import { runCatalogCopy } from "@catalog/scraper-core/catalog/copywriter/run";
 import { createSourceCheck } from "@catalog/scraper-core/catalog/copywriter/verify";
 import { submitIndexNow } from "@catalog/shared/indexnow";
+import {
+  requestRevalidation,
+  revalidationSiteUrl,
+  type RevalidateBody,
+} from "@catalog/shared/revalidate";
+import type { SyncResult } from "@catalog/scraper-core";
 import { runCatalogEnrich } from "@catalog/scraper-core/catalog/enrich";
 import {
   applyProductLink,
@@ -322,12 +328,17 @@ async function runCopy(runtime: Runtime, args: readonly string[]): Promise<numbe
   });
 
   const announced = await announceChanges(runtime, result.changed);
+  // A new text or a corrected size shows on the product page and on every
+  // card of it, so the whole catalog, not the product page alone.
+  const storefront =
+    result.changed.length > 0 ? await refreshStorefront(runtime, { scope: "catalog" }) : null;
 
   process.stdout.write(
     `${JSON.stringify(
       {
         command: "catalog:copy",
         indexNow: announced,
+        storefront,
         model,
         ...result,
         planned: result.planned.length,
@@ -377,6 +388,88 @@ export async function announceChanges(
     });
     return { submitted: 0, ok: false, skipped: null };
   }
+}
+
+/** What `refreshStorefront` reports, for the run's printed result and the job summary. */
+export interface StorefrontRefresh {
+  readonly ok: boolean;
+  /** Why nothing was sent, when nothing was: a missing `SITE_URL` or `CRON_SECRET`. */
+  readonly skipped: string | null;
+  readonly status: number | null;
+  readonly routes: number;
+  readonly paths: number;
+  readonly error: string | null;
+}
+
+const SKIPPED_BECAUSE: Record<string, string> = {
+  "no-site-url": "SITE_URL is not set",
+  "bad-site-url": "SITE_URL is not a URL",
+  "insecure-site-url": "SITE_URL is not https",
+  "no-secret": "CRON_SECRET is not set",
+};
+
+/**
+ * Ask the storefront to redraw what a run changed (`POST /api/revalidate`,
+ * through `@catalog/shared/revalidate`): without it the pages show the change
+ * within their five minutes and the sitemap within the CDN's hour.
+ *
+ * Optional: without `SITE_URL` (or `NEXT_PUBLIC_SITE_URL`) and `CRON_SECRET`
+ * nothing is sent, and the log says which is missing. A refusal, a timeout or
+ * a network error is a warning, never fatal - the change is already written.
+ */
+export async function refreshStorefront(
+  runtime: Pick<Runtime, "logger">,
+  body: RevalidateBody,
+): Promise<StorefrontRefresh> {
+  const outcome = await requestRevalidation({
+    siteUrl: revalidationSiteUrl(process.env),
+    secret: process.env.CRON_SECRET,
+    body,
+  });
+  if (outcome.skipped) {
+    runtime.logger.info("storefront.revalidate.skipped", {
+      reason: SKIPPED_BECAUSE[outcome.skipped] ?? outcome.skipped,
+      note: "Pages catch up within 5 minutes, the sitemap within about an hour.",
+    });
+  } else if (outcome.ok) {
+    runtime.logger.info("storefront.revalidated", {
+      routes: outcome.routes,
+      paths: outcome.paths,
+    });
+  } else {
+    runtime.logger.warn("storefront.revalidate.failed", {
+      status: outcome.status,
+      error: outcome.error,
+    });
+  }
+  return {
+    ok: outcome.ok,
+    skipped: outcome.skipped ? (SKIPPED_BECAUSE[outcome.skipped] ?? outcome.skipped) : null,
+    status: outcome.status,
+    routes: outcome.routes,
+    paths: outcome.paths,
+    error: outcome.error,
+  };
+}
+
+/**
+ * Whether a sync run wrote anything the shop shows: a product created,
+ * changed, moved, marked missing, removed or brought back; a brand or a
+ * category created, renamed, hidden or restored; a photograph mirrored; a
+ * product page's facts read in.
+ */
+export function syncChangedShop(
+  result: Pick<SyncResult, "appliedDiff" | "taxonomy" | "images" | "enrichment">,
+): boolean {
+  const productChanged = Object.entries(result.appliedDiff.counts).some(
+    ([change, count]) => change !== "unchanged" && count > 0,
+  );
+  const taxonomy = [result.taxonomy.brands, result.taxonomy.categories].some(
+    (side) =>
+      side.created.length + side.renamed.length + side.markedMissing.length + side.restored.length >
+      0,
+  );
+  return productChanged || taxonomy || result.images.mirrored > 0 || result.enrichment.enriched > 0;
 }
 
 /**

@@ -9,7 +9,13 @@ import {
 } from "./commands.ts";
 import { runImagesCommand } from "./commands-images.ts";
 import { commandCutout } from "./commands-cutout.ts";
-import { CATALOG_HELP, announceSyncChanges, runCatalogCommand } from "./commands-catalog.ts";
+import {
+  CATALOG_HELP,
+  announceSyncChanges,
+  refreshStorefront,
+  runCatalogCommand,
+  syncChangedShop,
+} from "./commands-catalog.ts";
 import { createRuntime } from "./runtime.ts";
 
 /**
@@ -243,14 +249,20 @@ export async function main(argv: readonly string[]): Promise<number> {
         });
         // Changed pages are announced to IndexNow after a live run that
         // completed; nothing is sent without INDEXNOW_KEY and SITE_URL.
-        const indexNow =
-          !result.dryRun && result.syncRunId && result.status === "succeeded"
-            ? await announceSyncChanges(runtime, result.syncRunId)
+        const completedRun =
+          !result.dryRun && result.status === "succeeded" ? result.syncRunId : null;
+        const indexNow = completedRun ? await announceSyncChanges(runtime, completedRun) : null;
+        // And the storefront asked to redraw the catalog, when the run wrote
+        // something it shows; nothing is sent without SITE_URL and CRON_SECRET.
+        const storefront =
+          completedRun && syncChangedShop(result)
+            ? await refreshStorefront(runtime, { scope: "catalog" })
             : null;
         printJson({
           command,
           syncRunId: result.syncRunId,
           indexNow,
+          storefront,
           status: result.status,
           dryRun: result.dryRun,
           catalogSource: result.discovery.source,

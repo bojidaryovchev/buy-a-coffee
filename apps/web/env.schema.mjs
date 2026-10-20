@@ -257,6 +257,11 @@ export const vars = [
     example: "openssl rand -hex 32",
     summary:
       "Authorises the scheduled routes under /api/cron/. Vercel sends it as a bearer token with each cron call; anything without it is refused.",
+    detail: [
+      "Also authorises POST /api/revalidate, which the catalog sync, the copywriter",
+      "and copy:apply call after a change; give GitHub Actions the same value as",
+      "its secret CRON_SECRET.",
+    ],
     validate: (v, { isProductionish } = {}) =>
       v.length < 32
         ? {
