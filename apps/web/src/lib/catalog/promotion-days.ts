@@ -1,4 +1,5 @@
 import { SHOP_TIME_ZONE } from "@/lib/forms/callback-window";
+import { sofiaDayOf } from "@/lib/promotions/days";
 
 /**
  * A promotion's last day, as the shop states it: "до 15 ноември" on the page,
@@ -7,20 +8,15 @@ import { SHOP_TIME_ZONE } from "@/lib/forms/callback-window";
  * A promotion runs for whole days in Sofia, and `ends_at` is the instant its
  * last day ends: 24:00 Sofia, which is 00:00 of the day after. Read at that
  * instant, the date is the day after the promotion. So the last day is the
- * Sofia date of the moment just before it, worked out with `Intl` in the
- * shop's zone, which knows the two daylight-saving changes this file does not.
+ * Sofia date of the moment just before it — `sofiaDayOf` in
+ * `lib/promotions/days.ts`, the one place the shop's days are worked out (the
+ * panel reads a promotion's last day with it too). This file only words it.
  *
  * Client-safe: the cart page says it too.
  */
 
 const ONE_MOMENT_MS = 1;
 
-const dayParts = new Intl.DateTimeFormat("en-GB", {
-  timeZone: SHOP_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 const dayInYear = new Intl.DateTimeFormat("bg-BG", {
   timeZone: SHOP_TIME_ZONE,
   day: "numeric",
@@ -39,18 +35,10 @@ function lastMoment(endsAt: string): Date | null {
   return Number.isNaN(end) ? null : new Date(end - ONE_MOMENT_MS);
 }
 
-/** The Sofia calendar date of an instant, as `YYYY-MM-DD`. */
-function sofiaDate(instant: Date): string {
-  const parts = Object.fromEntries(
-    dayParts.formatToParts(instant).map((part) => [part.type, part.value]),
-  );
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
 /** The last day of a promotion ending at `endsAt`, as `YYYY-MM-DD`, or null. */
 export function promotionLastDay(endsAt: string): string | null {
   const last = lastMoment(endsAt);
-  return last ? sofiaDate(last) : null;
+  return last ? sofiaDayOf(last) : null;
 }
 
 /**
@@ -60,6 +48,6 @@ export function promotionLastDay(endsAt: string): string | null {
 export function promotionUntil(endsAt: string, now: Date = new Date()): string | null {
   const last = lastMoment(endsAt);
   if (!last) return null;
-  const sameYear = sofiaDate(last).slice(0, 4) === sofiaDate(now).slice(0, 4);
+  const sameYear = sofiaDayOf(last).slice(0, 4) === sofiaDayOf(now).slice(0, 4);
   return `до ${(sameYear ? dayInYear : dayWithYear).format(last)}`;
 }
