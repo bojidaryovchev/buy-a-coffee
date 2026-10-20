@@ -1164,6 +1164,26 @@ Decided with the owner on 19 October 2026:
   - _Done when_ every page's median is within budget and no worse than the K0
     baseline beyond run-to-run noise (LCP under 2.5 s, CLS under 0.1, INP
     under 200 ms), and the owner has signed off the preview.
+  - **Found.** A `view()` timeline present while a page loads costs its first
+    paint (home LCP about 500 ms, a listing's FCP 100 to 160 ms; Pixel 7,
+    Fast 4G, 4x CPU). Scroll-driven motion now waits for load ("The Quiet
+    Load Rule"), and the intensity pour is on the product page only. The
+    local A/B against K0 still read home +296 ms, listing +136 ms and product
+    +76 ms of LCP, but `next start` serves HTTP/1.1, where the hero pack
+    queues behind fonts and scripts; traced, the listing does about 25 ms
+    more layout before its first paint. Production, measured just before and
+    after the deploy (nine runs a page, budget profile), LCP: home 1476 ms
+    before; 1544 ms on the new code with no cut-out live yet; 1460 ms with
+    the still-life hero, whose cut-out pack is now the LCP element and paints
+    with the first paint. Listing 1576, 1516, 1500 ms; product 1328, 1424,
+    1348 ms. CLS 0 throughout. INP 80 to 112 ms; the home page's is about
+    24 ms above K0 in both the local and the live measurement.
+    The local e2e suite (854 specs) passed on the reference seed.
+  - **Shipped 20 October 2026,** with the owner's go-ahead for production
+    in place of a preview: migration 0012 first (with a Neon restore point),
+    then the code, then the cut-out workflow by hand (60, then 150 photos).
+    Open: the owner's look at the SVG logo and at the cut-outs waiting in
+    `/admin/snimki`; Speed Insights field data a week on.
 
 ## Order and dependencies
 
