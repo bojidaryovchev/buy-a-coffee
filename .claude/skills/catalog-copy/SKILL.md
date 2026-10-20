@@ -13,6 +13,7 @@ Read the batch file at `$ARGUMENTS` (in the working directory) with the Read too
 
 - `task.writeCopy` true: write `copy` (a summary and body paragraphs). Otherwise return `copy: null`.
 - `task.research` true: research the product on the web and return `research`. `task.researchReasons` says why it was flagged. Otherwise return `research: null`.
+- `previousRejection`, when present: the text you wrote for this product last time was thrown away by the automatic check, and this is the check's reason (in Bulgarian). Write the new text so that the same reason cannot apply; do not reuse the wording it quotes.
 
 Your final answer is the structured output: `{ "products": [ { "id", "copy", "research" } ] }`, with exactly one entry for every product in the file, using the product's `id` exactly as given. Nothing else is read from your answer.
 

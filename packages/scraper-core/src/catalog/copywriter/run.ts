@@ -1,7 +1,9 @@
 import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { and, inArray, isNotNull } from "drizzle-orm";
 import type { Database } from "@catalog/db";
+import { products } from "@catalog/db/schema";
 import { type Logger, normalizeForComparison } from "@catalog/shared";
 import { type SourceCheck, reviewBatch, writeDecisions } from "./apply.ts";
 import { ClaudeRunError } from "./claude.ts";
@@ -125,11 +127,33 @@ export function toBatches(items: readonly CopyWorkItem[], size: number): CopyWor
 }
 
 /** Strip anything shaped like a credential from text bound for a public log. */
-export function scrubForLog(text: string): string {
+export function scrubForLog(text: string, max = 500): string {
   return text
     .replace(/sk-ant-[A-Za-z0-9_-]+/g, "[redacted]")
     .replace(/postgres(?:ql)?:\/\/\S+/gi, "[redacted]")
-    .slice(0, 500);
+    .slice(0, max);
+}
+
+/** How much of a previous rejection the model is shown. */
+const PREVIOUS_REJECTION_MAX = 1000;
+
+/**
+ * Why each product's last text was not published (`copy_last_error`), for the
+ * products about to be written again. Without it a retry is blind: the model
+ * would write the same „машини Dolce Gusto“ three times and the product would
+ * be given up on. The text is our own audit's, scrubbed as for a log.
+ */
+async function previousRejections(
+  db: Database,
+  items: readonly CopyWorkItem[],
+): Promise<Map<string, string>> {
+  const ids = items.filter((item) => item.task.writeCopy).map((item) => item.id);
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: products.id, error: products.copyLastError })
+    .from(products)
+    .where(and(inArray(products.id, ids), isNotNull(products.copyLastError)));
+  return new Map(rows.map((row) => [row.id, scrubForLog(row.error ?? "", PREVIOUS_REJECTION_MAX)]));
 }
 
 /**
@@ -203,7 +227,12 @@ export async function runCatalogCopy(options: CatalogCopyOptions): Promise<Catal
 
   const workspace = await createWorkspace(options.skillFile);
   try {
-    const batches = toBatches(plan.items, options.batchSize);
+    const rejections = await previousRejections(options.db, plan.items);
+    const work = plan.items.map((item) => {
+      const previousRejection = rejections.get(item.id);
+      return previousRejection ? { ...item, previousRejection } : item;
+    });
+    const batches = toBatches(work, options.batchSize);
     for (const [index, items] of batches.entries()) {
       const log = options.logger.child({ batch: index + 1, of: batches.length });
       const batchFile = `batch-${index + 1}.json`;
