@@ -142,6 +142,7 @@ export function useSchemaForm<S extends AnySchema>({
   sending,
   serverErrors,
   defaultValues,
+  pressedBefore = false,
 }: {
   schema: S;
   /** Called in a transition with the form's `FormData`, only when it is valid. */
@@ -153,11 +154,21 @@ export function useSchemaForm<S extends AnySchema>({
   sending?: boolean;
   serverErrors?: ServerFieldErrors;
   defaultValues?: DefaultValues<z.input<S>>;
+  /**
+   * The form takes over from another that was already pressed and refused
+   * (the newsletter band's plain form, `newsletter-form.tsx`). Its fields then
+   * re-check as they are corrected from the start, as they would after a press
+   * here, so a refusal on the screen goes the moment it is put right instead
+   * of waiting for the next press.
+   */
+  pressedBefore?: boolean;
 }): SchemaForm<S> {
   const errors = useMemo(() => asFieldErrors(serverErrors), [serverErrors]);
   const form = useForm<z.input<S>, unknown, z.output<S>>({
     resolver: zodResolver(schema) as unknown as Resolver<z.input<S>, unknown, z.output<S>>,
-    mode: "onSubmit",
+    /* react-hook-form cannot be told it has been submitted; checking on
+       change from the start is what `reValidateMode` does after a press. */
+    mode: pressedBefore ? "onChange" : "onSubmit",
     reValidateMode: "onChange",
     // Ours, below: react-hook-form's cannot open a closed <details>.
     shouldFocusError: false,

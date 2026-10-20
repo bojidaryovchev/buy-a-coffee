@@ -192,10 +192,10 @@ describe("Literata", () => {
     expect(fontsSource).not.toMatch(/\bLiterata\(\{/);
   });
 
-  it.each(SUBSETS)("%s: carries the optical-size axis, at weight 600 only", (subset) => {
+  it.each(SUBSETS)("%s: carries the optical-size axis, 12–72, at weight 600 only", (subset) => {
     const axes = woff2Axes(readFileSync(file(subset)));
     expect(axes.map((axis) => axis.tag)).toEqual(["opsz"]);
-    expect(axes[0]).toMatchObject({ min: 7, max: 72 });
+    expect(axes[0]).toMatchObject({ min: 12, max: 72 });
     expect(calls.get(subset)).toContain('weight: "600"');
   });
 

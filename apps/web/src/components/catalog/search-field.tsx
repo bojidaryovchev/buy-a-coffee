@@ -21,7 +21,8 @@ import {
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { deferredModule, useDeferredModule } from "@/lib/after-load";
-import { MAX_QUERY_LENGTH } from "@/lib/catalog/query-limits";
+// Not `filters.ts`, which carries zod into every page's header (`filter-query.ts`).
+import { MAX_QUERY_LENGTH } from "@/lib/catalog/filter-query";
 import type { SearchSuggestions } from "@/lib/catalog/types";
 import { href, routes } from "@/lib/routes";
 

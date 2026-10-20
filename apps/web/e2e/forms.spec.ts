@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { BG } from "./support/paths";
 import { asDistinctVisitor, waitForHydration } from "./support/hydration";
+import { newsletterChecked } from "./support/newsletter";
 import { fillOrder, openCartWithAProduct, orderField, orderForm } from "./support/order-form";
 
 /**
@@ -318,6 +319,9 @@ test.describe("the newsletter band", () => {
   test("with JavaScript: our message under the field, nothing sent", async ({ page }) => {
     await page.goto(BG.delivery);
     await waitForHydration(page);
+    // The check is fetched as the band nears; before it takes over, a press
+    // goes to the server (`newsletter.spec.ts`).
+    await newsletterChecked(page);
     const sent = countActions(page);
 
     await submit(page).click();

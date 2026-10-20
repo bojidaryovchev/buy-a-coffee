@@ -881,10 +881,12 @@ Each rule names what it protects. They hold for every motion on every page.
   budget's phone; switched on after load it costs neither. For the same
   reason a scroll-driven effect is never repeated across a listing: an
   intensity track pours on the product page only, and is simply full on a
-  card. The same moment fetches the code of the header controls nobody uses
-  in the first second — the search typeahead and the mobile drawer — unless
-  the visitor reaches for one first (`lib/after-load.ts`). Simulated slow 4G
-  charges the first paint for every byte requested before it.
+  card. The newsletter band's check waits the same way before it watches for
+  the band to come near (Newsletter band, "Behaviour"). The same moment
+  fetches the code of the header controls nobody uses in the first second —
+  the search typeahead and the mobile drawer — unless the visitor reaches for
+  one first (`lib/after-load.ts`). Simulated slow 4G charges the first paint
+  for every byte requested before it.
 - **The Unseen Loop Rule** (INP, battery). The steam pauses when it leaves the
   viewport (an `IntersectionObserver` sets `animation-play-state`) and when the
   tab is hidden. No other loop exists.
@@ -1053,8 +1055,10 @@ works the same way
   shows the field's message there), focus moves to the first invalid field in
   page order — opening the order form's disclosure when that is where it is —
   and nothing is sent. After that first press a field re-checks as it is
-  corrected, so a message goes away the moment it is fixed. Nothing is checked
-  while a person is still typing for the first time.
+  corrected, so a message goes away the moment it is fixed — on the newsletter
+  band too when the press was made before its check had arrived (Newsletter
+  band, "Behaviour"). Nothing is checked while a person is still typing for the
+  first time.
 - _The server decides._ A valid form is posted to its server action, which
   validates again. Its field messages land under the same fields, and focus
   moves to them; a refusal of the whole request (the rate limit, a product
@@ -1692,7 +1696,10 @@ rounded-xs` badge over the icon's top-right corner, `aria-hidden`, outside
   the flow; it is drawn only once the browser's cart has been read, so the
   server's HTML has none and nothing moves when it appears. After the search
   field on a wide screen; on a phone it ends the first line, beside "Обадете
-  се" (`-ml-3`: 4 px apart, the icon's own box giving the rest).
+  се" (`-ml-3`: 4 px apart, the icon's own box giving the rest). The cart page
+  is fetched ahead on intent (a pointer over the link, a finger on it, focus),
+  not for the link being on the screen: its order form brings react-hook-form
+  and zod, which a page still loading must not fetch.
 
 **Row 2 — the rail** (`md` and up). `<nav aria-label="Основна навигация">`, one
 `ul`, `flex items-center gap-x-6`. Organised by what the customer owns.
@@ -2490,8 +2497,19 @@ and says „Изпраща се…“ at the width it had. Success replaces the 
 With JavaScript the address is checked with `newsletterSchema` when the button
 is pressed, and nothing is sent until it passes; without, the server's answer
 says the same thing in the same place and keeps the address in the field
-(Inputs, "Validation"). The analytics event `newsletter_submitted` records the
-outcome of what reached the server.
+(Inputs, "Validation"). That check is not in the page's first scripts: it is
+fetched as the band nears the screen, watched only after the page has loaded
+("The Quiet Load Rule"), or as soon as the form is touched, and takes over
+the form already drawn, so nothing on the screen moves or is redrawn, and the
+field keeps what was typed, its focus and its caret. A press before then is
+refused by the form itself only when the field is empty or plainly not an
+address, in the schema's words and without a request; any other goes to the
+server, which answers in the same place, and while it is on its way the line
+under the field is empty. A refusal on the screen when the check takes over
+goes the moment the field is put right, as after a press of the checked form.
+If the check cannot be fetched (three tries a page, the later two only when
+the field gets focus), the plain form stays. The analytics event
+`newsletter_submitted` records the outcome of what reached the server.
 
 **Where it is not.** A page renders `<NewsletterBandOff />` (a hidden
 `data-newsletter-off` marker; `globals.css` hides the band with
