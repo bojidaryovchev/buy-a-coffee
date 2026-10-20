@@ -52,7 +52,9 @@ runs out of answers.
 
 **Easier to choose from. Not cheaper.** The catalog and the prices mirror
 another shop's, so this shop cannot compete on range or on price. It competes
-on the customer leaving with the right box.
+on the customer leaving with the right box. Now and then the owner takes a
+percentage off chosen coffees for a few days, out of the shop's own margin;
+that is a promotion, announced in the monthly letter, not a price war.
 
 Four things carry that, and all four exist in code:
 
@@ -85,7 +87,8 @@ look comparable when they are not.
   any notification is sent, and a customer who gave an email is sent a
   confirmation of it, with the delivery printed back.
 - **Mirrored catalog:** products, prices and availability are synchronised from
-  one source shop, which also fulfils the order. The storefront never names that
+  one source shop, which also fulfils the order. The only price of the shop's
+  own is a running promotion, taken off the synchronised price. The storefront never names that
   shop, never links to it and never loads anything from it. Product copy is
   rewritten; the source's prose is not published. A product's name and address
   are the shop's own too, put together from the brand, the line, the format and
@@ -129,8 +132,10 @@ it has products.
   promises nothing the call has not confirmed.
 - Customer accounts, wishlists and saved comparisons.
 - Reviews, ratings and question-and-answer sections. See below.
-- Prices, discounts or stock that differ from the source's.
-- Loyalty schemes, coupons and countdown promotions.
+- Prices or stock that differ from the source's, other than the shop's own
+  promotions: a percentage off chosen products, brands or categories, for
+  whole days, the same for every customer.
+- Loyalty schemes, coupons, newsletter-only prices and countdowns.
 - Lifestyle, stock and generated photography. The imagery is the product
   packshots, cut out, and our own drawings: capsule shapes, beans, steam, cups
   and crema.
@@ -216,10 +221,14 @@ No "доставка утре", no "безплатна доставка" without
 beside it, no response-time promise.
 
 **No urgency.** No countdowns, no "остават 2 броя", no "само днес". Stock is
-not known to that precision and the reduction dates are not ours.
+not known to that precision. A promotion's last day is ours and is stated
+plainly, "до 15 ноември"; nothing ticks down to it.
 
 **A reduction is real or absent.** A struck-through price is shown only when the
-record holds an old price higher than the current one.
+record holds an old price higher than the current one. Under the shop's own
+promotion the struck price is the lowest price of the 30 days before it began
+(Directive 98/6/EC, Art. 6a), so the badge may claim less than the promotion
+takes off, or nothing at all.
 
 **Price per cup derived from weight is an estimate and is marked as one**, with
 "≈", because how much coffee a shot uses belongs to the machine, not the bag.
