@@ -226,6 +226,23 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  /*
+   * Crawlers get the metadata in `<head>`, never streamed after it.
+   *
+   * Next streams `generateMetadata` into a dynamically rendered page and waits
+   * for it only for user agents on this list. Its default list leaves Googlebot
+   * out, on the grounds that Googlebot runs JavaScript. But a canonical is read
+   * from `<head>` alone, and on a slow `generateMetadata` (some brand pages and
+   * the vending page, 14–15 of 278 URLs per full crawl on 20 October 2026) the
+   * title, robots and canonical arrived after `</head>`. Setting the option
+   * replaces the default list, so this is that list (Next 16.3,
+   * `HTML_LIMITED_BOT_UA_RE`) with Googlebot, Bingbot's other names and the AI
+   * crawlers added. `e2e/seo-audit.spec.ts` fetches every sitemap URL as
+   * Googlebot and checks the three tags sit in `<head>`.
+   */
+  htmlLimitedBots:
+    /Googlebot|Google-[\w-]+|[\w-]+-Google|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|bingbot|BingPreview|msnbot|adidxbot|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|SeznamBot|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Amazonbot|CCBot/i,
+
   experimental: {
     /*
      * `app/global-not-found.tsx` draws the 404 for a URL that matches no route.
