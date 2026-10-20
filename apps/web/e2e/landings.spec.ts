@@ -220,6 +220,10 @@ test.describe("the flavoured listing", () => {
     await expect(header).toContainText("Всички са в капсули и дози ESE.");
     await expect(header).not.toContainText("всичко ароматизирано");
     await expect(header).not.toContainText("напитки без кафе");
+    await expect(
+      page.locator("main h2", { hasText: "Ароматизирани капсули за Dolce Gusto" }),
+    ).toHaveCount(1);
+    await expect(page.locator("main h2", { hasText: "Ароматизирани дози ESE" })).toHaveCount(1);
   });
 
   /* The owner's decision of 20 October 2026: what holds no coffee is not on
@@ -250,10 +254,6 @@ test.describe("the flavoured listing", () => {
     ]) {
       await expect(page.locator(`main a[href="/bg/${slug}"]`).first(), slug).toBeAttached();
     }
-    await expect(
-      page.locator("main h2", { hasText: "Ароматизирани капсули за Dolce Gusto" }),
-    ).toHaveCount(1);
-    await expect(page.locator("main h2", { hasText: "Ароматизирани дози ESE" })).toHaveCount(1);
   });
 
   test("opens every product it lists", async ({ page }) => {
