@@ -191,7 +191,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
        it, and the introduction links there. */
     title: "Капсули Caffitaly (Кафитали) — цена на чаша",
     family: "Caffitaly",
-    description: "Капсули Caffitaly — формат, който приемат и машините Tchibo Cafissimo",
+    description: "Капсули Caffitaly, които стават и за машини Tchibo Cafissimo",
     links: [{ phrase: "машините Tchibo Cafissimo", to: routes.machineBrand("tchibo") }],
     heading: "За кои машини са тези капсули",
     paragraphs: [

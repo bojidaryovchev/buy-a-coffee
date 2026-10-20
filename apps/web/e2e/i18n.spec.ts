@@ -482,10 +482,7 @@ test.describe("the head of every page", () => {
       const firstTitle = await page.title();
       const view = `${listing}?page=2`;
       await page.goto(view);
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-        "content",
-        "index, follow",
-      );
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
       const canonical = new URL((await canonicalOf(page))!);
       expect(canonical.pathname + canonical.search, view).toBe(view);
       expect(await meta(page, 'property="og:url"'), view).toBe(canonical.href);
@@ -495,7 +492,10 @@ test.describe("the head of every page", () => {
   });
 
   test("a filtered or sorted later page stays noindex", async ({ page }) => {
-    for (const view of [`${BG.capsules}?page=2&sort=price-asc`, `${BG.capsules}?page=2&brand=lavazza`]) {
+    for (const view of [
+      `${BG.capsules}?page=2&sort=price-asc`,
+      `${BG.capsules}?page=2&brand=lavazza`,
+    ]) {
       const response = await page.goto(view);
       if (response?.status() === 404) continue; // A filter with one page has no page two.
       await expect(page.locator('meta[name="robots"]'), view).toHaveAttribute("content", /noindex/);
@@ -513,7 +513,9 @@ test.describe("the head of every page", () => {
     ]) {
       const response = await request.get(view, { maxRedirects: 0 });
       expect(response.status(), view).toBe(404);
-      const robots = [...(await response.text()).matchAll(/<meta name="robots" content="([^"]+)"/g)];
+      const robots = [
+        ...(await response.text()).matchAll(/<meta name="robots" content="([^"]+)"/g),
+      ];
       for (const [, content] of robots) expect(content, view).toMatch(/noindex/);
     }
     // Garbage is page one, not a 404.

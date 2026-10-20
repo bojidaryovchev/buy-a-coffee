@@ -88,6 +88,11 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
   // Page two and later name themselves (`lib/seo/pagination.ts`).
   const query = parseCatalogQuery(rawParams);
+  /* Past the last page there is nothing to describe: the 404 alone, with its one
+     `noindex`, not this page's `index, follow` beside it. Read only for page two
+     and later. */
+  if (query.page > 1 && isPastLastPage(await listProducts({ query, brandSlug: brand.slug })))
+    notFound();
   const page = listingPage(query);
   const shown = pagedTitle(title, page);
 
