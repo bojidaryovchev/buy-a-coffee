@@ -104,9 +104,11 @@ describe("the newsletter's pictures and files", () => {
     expect(plain.text).toContain(
       `${PRODUCTION_ORIGIN}/media/newsletter/ceni-oktomvri-QwE789rTy.pdf?download=1`,
     );
+    // Product cards draw small JPEG thumbnails of the store's photographs
+    // (`email-image.ts`), still from the shop's own address.
     expect(products.html).toMatch(
       new RegExp(
-        `src="${PRODUCTION_ORIGIN}/media/catalog/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{64}\\.jpg"`,
+        `height="168" src="${PRODUCTION_ORIGIN}/email-img/224/catalog/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{64}\\.jpg"`,
       ),
     );
   });

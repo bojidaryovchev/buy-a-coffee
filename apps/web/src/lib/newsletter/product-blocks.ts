@@ -7,6 +7,7 @@ import type {
 import { slugify } from "@catalog/shared";
 import { parseMarkdown, type Block, type ProductsBlock } from "@/emails/markdown";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { emailThumbnailUrl } from "@/emails/email-image";
 import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { Availability, ProductCardView } from "@/lib/catalog/types";
 import { productHref } from "@/lib/routes";
@@ -230,13 +231,15 @@ export function toNewsletterProduct(card: ProductCardView): NewsletterProduct {
     perCup: card.servingPrice?.formatted ?? null,
     availability: card.availability as Availability,
     promotionId: card.promotion?.id ?? null,
+    // The cut-out when one is live, as the storefront shows it: the packshot
+    // on white, which is the card's own background. The photograph otherwise.
     image:
       card.image && !isPlaceholderImage(card.image.url)
         ? {
-            url: card.image.url,
+            url: card.image.cutout?.url ?? card.image.url,
             alt: card.image.alt.trim() || card.name,
-            width: size(card.image.width),
-            height: size(card.image.height),
+            width: size(card.image.cutout ? card.image.cutout.width : card.image.width),
+            height: size(card.image.cutout ? card.image.cutout.height : card.image.height),
           }
         : null,
   };
@@ -385,7 +388,11 @@ export async function withImageSizes(
     ...new Set(
       snapshot.blocks.flatMap((block) =>
         block.products.flatMap((product) =>
-          product.image && (!product.image.width || !product.image.height)
+          // A store photograph is drawn through `/email-img` in a fixed frame
+          // and needs no size of its own; only the rest are measured.
+          product.image &&
+          (!product.image.width || !product.image.height) &&
+          emailThumbnailUrl(product.image.url) === null
             ? [product.image.url]
             : [],
         ),
