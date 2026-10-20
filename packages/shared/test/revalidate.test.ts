@@ -103,7 +103,44 @@ describe("requestRevalidation", () => {
       await ask(async () => {
         throw new TypeError("fetch failed");
       }),
-    ).toMatchObject({ ok: false, status: null, error: "fetch failed" });
+    ).toMatchObject({ ok: false, status: null, error: "network_error" });
+    // A code is passed on only when it looks like one of the storefront's.
+    expect(
+      await ask(async () => answer(500, { error: `Bearer ${SECRET} rejected` })),
+    ).toMatchObject({ ok: false, status: 500, error: "http_500" });
+  });
+
+  it("does not send a secret with a line break in it, through the real fetch, and never quotes it", async () => {
+    // Node's fetch refuses such a header with a TypeError that quotes the whole
+    // value, "Bearer <secret>"; the client must not get that far.
+    for (const secret of [
+      `${SECRET}
+X-Injected: 1`,
+      `${SECRET}
+more`,
+      `part one ${SECRET}`,
+    ]) {
+      const result = await requestRevalidation({
+        siteUrl: "http://127.0.0.1:9",
+        secret,
+        body: { scope: "catalog" },
+      });
+      expect(result).toMatchObject({ ok: false, skipped: "bad-secret", status: null, error: null });
+      expect(JSON.stringify(result)).not.toContain(SECRET);
+    }
+  });
+
+  it("answers a refused connection, through the real fetch, with a code and nothing else", async () => {
+    // Port 9 (discard) has nothing listening on this machine.
+    const result = await requestRevalidation({
+      siteUrl: "http://127.0.0.1:9",
+      secret: SECRET,
+      body: { scope: "catalog" },
+      timeoutMs: 5_000,
+    });
+    expect(result).toMatchObject({ ok: false, skipped: null, status: null });
+    expect(["network_error", "timeout"]).toContain(result.error);
+    expect(JSON.stringify(result)).not.toContain(SECRET);
   });
 
   it("never returns the secret, whatever happens", async () => {
@@ -120,6 +157,15 @@ describe("requestRevalidation", () => {
         body: { scope: "catalog" },
         fetch: async () => {
           throw new Error("boom");
+        },
+      }),
+      requestRevalidation({
+        siteUrl: SITE,
+        secret: SECRET,
+        body: { scope: "catalog" },
+        // As Node words a refused header: the request's value, quoted.
+        fetch: async () => {
+          throw new TypeError(`Headers.append: "Bearer ${SECRET}" is an invalid header value.`);
         },
       }),
     ]);
