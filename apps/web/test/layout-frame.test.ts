@@ -870,7 +870,7 @@ describe("llms.txt", () => {
       expect(filled).toContain(`(${absoluteUrl("/bg/promotsii")})`);
       for (const path of LANDING_URLS) expect(filled).toContain(`(${absoluteUrl(path)})`);
       expect(filled).toContain(
-        `- [Ароматизирано кафе](${absoluteUrl("/bg/aromatizirano-kafe")}): Кафе и напитки с добавен аромат, разделени по система.`,
+        `- [Ароматизирано кафе](${absoluteUrl("/bg/aromatizirano-kafe")}): Кафе с добавен аромат, разделено по система.`,
       );
       for (const article of listArticles()) {
         expect(text).toContain(`(${absoluteUrl(bgPath(article.href))})`);

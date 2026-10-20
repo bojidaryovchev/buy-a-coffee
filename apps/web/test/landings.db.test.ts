@@ -22,19 +22,49 @@ import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
-import { FLAVOURED_DRINKS_SENTENCE, landingCopy } from "../content/landing-copy";
+import { isNoCoffee } from "@/lib/catalog/no-coffee";
+import { FLAVOURED_COFFEE, NO_COFFEE } from "../content/no-coffee";
 import { productCopy } from "../content/product-copy";
 
-/**
- * The products `FLAVOURED_DRINKS_SENTENCE` rests on, by the shop's slugs: the
- * flavoured drinks for Dolce Gusto that hold no coffee. No field of the record
- * says that a product is not coffee, so the sentence stands on the page
- * unconditionally and is held to the catalog here instead.
- */
-const FLAVOURED_DRINKS_WITHOUT_COFFEE = [
-  "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
-  "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
-] as const;
+/** Every product on sale flagged flavoured, as the no-coffee rule reads it. */
+interface Flagged {
+  readonly id: string;
+  readonly slug: string;
+  readonly slugs: readonly string[];
+  readonly descriptions: readonly string[];
+}
+
+async function flaggedProducts(): Promise<readonly Flagged[]> {
+  const { sql, close } = createDatabase({ url: databaseUrl!, max: 1, connectTimeoutSeconds: 3 });
+  try {
+    const rows = await sql`
+      select id, slug, previous_slugs, description_text, description_text_override,
+             description_html_override
+      from products
+      where status = 'active' and lower(attributes->>'aromas') = 'yes'`;
+    return rows.map((row) => ({
+      id: row.id as string,
+      slug: row.slug as string,
+      slugs: [row.slug as string, ...((row.previous_slugs as string[] | null) ?? [])],
+      descriptions: [
+        row.description_text,
+        row.description_text_override,
+        row.description_html_override,
+      ].filter((text): text is string => typeof text === "string"),
+    }));
+  } finally {
+    await close();
+  }
+}
+
+/** „0,60 € на чаша“ → 0.6. */
+const cupFigure = (formatted: string | undefined): number =>
+  Number(
+    (formatted ?? "")
+      .match(/(\d+),(\d+)/)
+      ?.slice(1, 3)
+      .join(".") ?? Number.NaN,
+  );
 
 /**
  * The landing listings against a real catalog, read-only.
@@ -102,20 +132,24 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
     }
   });
 
-  it("lists as flavoured exactly what the listings' aromas filter finds in each system", async () => {
+  it("lists as flavoured what the listings' aromas filter finds, less what holds no coffee", async () => {
     const view = await getLanding("flavoured");
+    const noCoffee = new Set(
+      (await flaggedProducts()).filter((product) => isNoCoffee(product)).map((p) => p.slug),
+    );
     for (const system of BREWING_SYSTEMS) {
       const filtered = await listProducts({
         query: everything({ aromas: "yes", system: system.id, sort: "price-per-cup" }),
         includeFacets: false,
       });
+      const coffee = filtered.items.filter((product) => !noCoffee.has(product.slug));
       const group = view.groups.find((entry) => entry.key === system.id);
       expect(new Set(group?.products.map((product) => product.slug) ?? []), system.id).toEqual(
-        new Set(filtered.items.map((product) => product.slug)),
+        new Set(coffee.map((product) => product.slug)),
       );
       // In the order the per-cup sort gives, by the printed figure (a tie may go either way).
       expect(group?.products.map((product) => product.servingPrice?.formatted) ?? []).toEqual(
-        filtered.items.map((product) => product.servingPrice?.formatted),
+        coffee.map((product) => product.servingPrice?.formatted),
       );
       for (const product of group?.products ?? []) expect(product.systemId).toBe(system.id);
     }
@@ -124,31 +158,70 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
       query: everything({ aromas: "yes" }),
       includeFacets: false,
     });
-    const inSystem = flagged.items.filter((product) => product.systemId !== null);
+    const inSystem = flagged.items.filter(
+      (product) => product.systemId !== null && !noCoffee.has(product.slug),
+    );
     expect(view.count).toBe(inSystem.length);
   });
 
-  it("still lists the drinks without coffee that the flavoured page says it has", async () => {
-    // The day either leaves the page, the sentence about them must go or change.
+  /*
+   * The owner's decision of 20 October 2026: what holds no coffee stays off
+   * the page headed „Ароматизирано кафе“, and its flags stay as they are. The
+   * audit behind it is `content/no-coffee.ts`.
+   */
+  it("audits every flagged product, and lists exactly those the audit found to be coffee", async () => {
+    const flagged = await flaggedProducts();
+    const audited = new Set([...NO_COFFEE, ...FLAVOURED_COFFEE].map((entry) => entry.slug));
+    // A flagged product the audit has not read fails here, before anyone relies on the page.
+    expect(flagged.filter((product) => !product.slugs.some((slug) => audited.has(slug)))).toEqual(
+      [],
+    );
+
     const view = await getLanding("flavoured");
     const listed = new Set(view.groups.flatMap((group) => group.products.map((p) => p.slug)));
-    for (const slug of FLAVOURED_DRINKS_WITHOUT_COFFEE) {
-      expect(listed.has(slug), slug).toBe(true);
-      // And the shop's own copy for it says that it is not coffee.
+    const coffee = new Set(FLAVOURED_COFFEE.map((entry) => entry.slug));
+    // Everything listed is coffee by the audit…
+    expect([...listed].filter((slug) => !coffee.has(slug))).toEqual([]);
+    // …and every audited coffee on sale is listed: the guard caught none of them.
+    const onSale = flagged.filter((product) => coffee.has(product.slug));
+    expect(onSale.map((product) => product.slug).filter((slug) => !listed.has(slug))).toEqual([]);
+    expect(view.count).toBe(onSale.length);
+  });
+
+  it("leaves the drinks without coffee off the page, their flags untouched", async () => {
+    const flagged = await flaggedProducts();
+    const view = await getLanding("flavoured");
+    const listed = new Set(view.groups.flatMap((group) => group.products.map((p) => p.slug)));
+    const availability = await getLandingAvailability();
+    for (const { slug } of NO_COFFEE) {
+      const product = flagged.find((candidate) => candidate.slugs.includes(slug));
+      // Still flagged flavoured in the catalog: the page leaves it out, not the record.
+      expect(product, slug).toBeDefined();
+      expect(isNoCoffee(product!), slug).toBe(true);
+      expect(listed.has(product!.slug), slug).toBe(false);
+      // Out of the sitemap's date and the existence check too, which read the same members.
+      expect(availability.members?.flavoured ?? [], slug).not.toContain(product!.id);
+    }
+    // The matcha latte and the Mermaid Latte say so in our own copy as well.
+    for (const slug of [
+      "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
+      "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
+    ]) {
       const copy = productCopy[slug];
       expect(copy, slug).toBeDefined();
       expect([copy!.summary, ...copy!.body].join(" "), slug).toMatch(/без кафе|вместо кафе/);
     }
-    const intro = landingCopy.flavoured.intro({
-      count: view.count,
-      systems: view.groups.map((group) => group.system),
-      methods: view.methods,
-      cupRange: view.cupRange,
-      commonPack: view.commonPack,
-      currency: "EUR",
-      flavours: view.flavours,
-    });
-    expect(intro.join(" ")).toContain(FLAVOURED_DRINKS_SENTENCE);
+  });
+
+  it("prices and counts the page over what is left", async () => {
+    const view = await getLanding("flavoured");
+    const cards = view.groups.flatMap((group) => group.products);
+    const cups = cards.map((card) => cupFigure(card.servingPrice?.formatted));
+    expect(cups.every((cup) => Number.isFinite(cup))).toBe(true);
+    // The range in the description is the range of the cards drawn, and of nothing left out.
+    expect(Number(view.cupRange?.min.amount).toFixed(2)).toBe(Math.min(...cups).toFixed(2));
+    expect(Number(view.cupRange?.max.amount).toFixed(2)).toBe(Math.max(...cups).toFixed(2));
+    expect(view.count).toBe(cards.length);
   });
 
   it("lists Lavazza's capsules and beans as the brand's own listing has them", async () => {

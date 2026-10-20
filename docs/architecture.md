@@ -606,13 +606,13 @@ already be indexed or bookmarked, and a dead end helps nobody. That page is
 Five pages the search study found demand for and the catalog can fill. None is
 a category the source keeps; each is a rule applied to the products on sale.
 
-| Route                       | Lists                                                                                                                            |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `/bg/lavazza-kapsuli`       | Lavazza's capsules, a group per system: the two systems Lavazza makes machines for first, then the ones its capsules only fit    |
-| `/bg/kafe-na-zarna-lavazza` | Lavazza's products filed under coffee beans                                                                                      |
-| `/bg/bezkofeinovo-kafe`     | every product whose record says decaf (`attributes.decaf = 'yes'`), a group per system. A name is never read                     |
-| `/bg/nay-evtino-na-chasha`  | per system, the `CHEAPEST_PER_SYSTEM` products with the lowest price per cup among those that can be ordered and have the figure |
-| `/bg/aromatizirano-kafe`    | every product whose record says flavoured (`lower(attributes->>'aromas') = 'yes'`, the filter's test), a group per system        |
+| Route                       | Lists                                                                                                                                                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/bg/lavazza-kapsuli`       | Lavazza's capsules, a group per system: the two systems Lavazza makes machines for first, then the ones its capsules only fit                                                                                         |
+| `/bg/kafe-na-zarna-lavazza` | Lavazza's products filed under coffee beans                                                                                                                                                                           |
+| `/bg/bezkofeinovo-kafe`     | every product whose record says decaf (`attributes.decaf = 'yes'`), a group per system. A name is never read                                                                                                          |
+| `/bg/nay-evtino-na-chasha`  | per system, the `CHEAPEST_PER_SYSTEM` products with the lowest price per cup among those that can be ordered and have the figure                                                                                      |
+| `/bg/aromatizirano-kafe`    | every product whose record says flavoured (`lower(attributes->>'aromas') = 'yes'`, the filter's test) and that holds coffee (`content/no-coffee.ts`, `lib/catalog/no-coffee.ts`; flags untouched), a group per system |
 
 | Module                                                                               | Responsibility                                                                                |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |

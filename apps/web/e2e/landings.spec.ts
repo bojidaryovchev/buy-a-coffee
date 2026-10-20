@@ -215,15 +215,45 @@ test.describe("the flavoured listing", () => {
     await page.goto(BG.flavoured);
     const header = page.locator("main header");
     await expect(header).toContainText(
-      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
+      "Тук са 17 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
     );
-    await expect(header).toContainText("Някои са напитки без кафе, например мача лате.");
     await expect(header).toContainText("Всички са в капсули и дози ESE.");
     await expect(header).not.toContainText("всичко ароматизирано");
+    await expect(header).not.toContainText("напитки без кафе");
     await expect(
       page.locator("main h2", { hasText: "Ароматизирани капсули за Dolce Gusto" }),
     ).toHaveCount(1);
     await expect(page.locator("main h2", { hasText: "Ароматизирани дози ESE" })).toHaveCount(1);
+  });
+
+  /* The owner's decision of 20 October 2026: what holds no coffee is not on
+     the page headed „Ароматизирано кафе“, though its flags say flavoured
+     (`content/no-coffee.ts`). Not as a card, not in the item list. */
+  test("lists no drink without coffee, as a card or in its item list", async ({ page }) => {
+    await page.goto(BG.flavoured);
+    const list = await itemList(page);
+    for (const slug of [
+      "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
+      "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
+      "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br",
+    ]) {
+      await expect(page.locator(`main a[href="/bg/${slug}"]`), slug).toHaveCount(0);
+      expect(
+        list.urls.map((url) => new URL(url).pathname),
+        slug,
+      ).not.toContain(`/bg/${slug}`);
+      // Still a product of the shop, at its own address.
+      expect((await page.request.get(`/bg/${slug}`)).status(), slug).toBe(200);
+    }
+    expect(list.numberOfItems).toBe(17);
+    // And the decaf page, which lists what has no caffeine, still has the two decaf ones.
+    await page.goto(BG.decaf);
+    for (const slug of [
+      "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
+      "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br",
+    ]) {
+      await expect(page.locator(`main a[href="/bg/${slug}"]`).first(), slug).toBeAttached();
+    }
   });
 
   test("opens every product it lists", async ({ page }) => {

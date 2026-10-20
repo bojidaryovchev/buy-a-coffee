@@ -862,25 +862,31 @@ row is in the map in §1, one of the two rows there measured after the study
 (the ESE-machine guide's, below, is the other), and is held with the rest by
 `apps/web/test/keyword-map.test.ts`.
 
-- **What it lists** is the record's flag and nothing else: every product on
-  sale with `lower(attributes->>'aromas') = 'yes'`, the very test of the
-  listings' „Ароматизирано“ filter, grouped by system in the shop's order,
-  cheapest per cup first. Twenty products in the reference snapshot: Dolce
-  Gusto 11, ESE 4, Nespresso 3, Caffitaly 2. A flavoured product in no system
-  would be left out, as on the decaf page. The flag is not on every pack
-  whose own description speaks of an aroma (Bianchi's hazelnut capsules for
-  Nespresso carry `aromas: no`), so the page says how many products with
-  added aroma it lists („Тук са 20 продукта с добавен аромат“), never
-  "everything flavoured", and says nothing of what the shop lacks. No name
-  overrides the flag.
-- **Drinks without coffee.** The flag is on two drinks that hold no coffee, a
-  matcha latte and a plant-based latte for Dolce Gusto, and the page counts
-  „продукта“ and says „Някои са напитки без кафе, например мача лате.“
-  No field of the record says a product is not coffee — the product kind
-  tells instant from roasted, by name, and the categories name the machine —
-  so the sentence is not computed: it stands while the page lists more than
-  one product, and `apps/web/test/landings.db.test.ts` fails the day either
-  drink leaves the page.
+- **What it lists** is every product on sale with
+  `lower(attributes->>'aromas') = 'yes'`, the very test of the listings'
+  „Ароматизирано“ filter, **that holds coffee**, grouped by system in the
+  shop's order, cheapest per cup first. A flavoured product in no system would
+  be left out, as on the decaf page. The flag is not on every pack whose own
+  description speaks of an aroma (Bianchi's hazelnut capsules for Nespresso
+  carry `aromas: no`), so the page says how many products with added aroma it
+  lists („Тук са 17 продукта с добавен аромат“), never "everything
+  flavoured", and says nothing of what the shop lacks. No name overrides the
+  flag.
+- **Coffee only (the owner's decision, 20 October 2026).** The flag is also on
+  drinks with no coffee in them. They stay off the page, and their flags stay
+  as they are: the filter still finds them, and the decaf page still lists the
+  decaf ones. All twenty products flagged in the reference snapshot were read
+  — the supplier's description, our own copy and the characteristics — and
+  three hold no coffee: the Rema matcha latte, the Foodness Mermaid Latte and
+  the Rema crème brûlée drink, all for Dolce Gusto (the last on indirect
+  evidence; confirm on the pack). The audit, with the words behind every
+  verdict, is `apps/web/content/no-coffee.ts`, keyed by slug and matched on
+  previous slugs too; a product added later is left out as well when its own
+  stored description says it holds no coffee („без кафе“, „не съдържа кафе“,
+  „вместо кафе“), never on „без кофеин“, since decaf is coffee
+  (`apps/web/src/lib/catalog/no-coffee.ts`). Seventeen are listed: Dolce Gusto
+  8, ESE 4, Nespresso 3, Caffitaly 2. `apps/web/test/landings.db.test.ts`
+  fails on a flagged product the audit has not read.
 - **Title** „Ароматизирано кафе с вкус на лешник, карамел и други“, **H1**
   „Ароматизирано кафе“. The two flavours are read off the supplier's names of
   what the page lists (`flavoursInName`, `apps/web/src/lib/catalog/landings.ts`),

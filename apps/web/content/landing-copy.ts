@@ -377,12 +377,9 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
         ];
       }
       return [
-        [
-          `Тук са ${pluralize(count, "продукт", "продукта")} с добавен аромат${
-            words.length > 0 ? ` — сред тях кафе с вкус на ${tasting}` : ""
-          }.`,
-          FLAVOURED_DRINKS_SENTENCE,
-        ].join(" "),
+        `Тук са ${pluralize(count, "продукт", "продукта")} с добавен аромат${
+          words.length > 0 ? ` — сред тях кафе с вкус на ${tasting}` : ""
+        }.`,
         ...(formats ? [`Всички са ${formats}.`] : []),
         capsules
           ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
@@ -393,20 +390,9 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
       if (system.method === "capsule") return `Ароматизирани ${capsuleShelfName(system)}`;
       return system.method === "pod" ? "Ароматизирани дози ESE" : "Ароматизирано кафе на зърна";
     },
-    llms: "Кафе и напитки с добавен аромат, разделени по система.",
+    llms: "Кафе с добавен аромат, разделено по система.",
   },
 };
-
-/**
- * Not everything the record flags as flavoured is coffee: a matcha latte and a
- * plant-based latte for Dolce Gusto carry the flag too. No field of the record
- * says which products are not coffee (the product kind tells instant from
- * roasted, by name, and the categories name only the machine), and the page
- * must not guess from names. So the sentence stands whenever the page lists
- * more than one product, and `landings.db.test.ts` holds it to the catalog: it
- * names the products it rests on and fails the day either leaves the page.
- */
-export const FLAVOURED_DRINKS_SENTENCE = "Някои са напитки без кафе, например мача лате.";
 
 /** A system's name on the cheapest page's headings, where the Cyrillic is typed as often. */
 const CHEAPEST_SYSTEM_NAMES: Partial<Record<string, string>> = {

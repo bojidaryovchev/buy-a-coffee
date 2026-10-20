@@ -24,6 +24,9 @@ import {
 } from "@/lib/catalog/landings";
 import { resolveProductFormat } from "@/lib/catalog/fallback-copy";
 import { withDrawnCards } from "@/lib/catalog/landing-queries";
+import { isNoCoffee, saysNoCoffee } from "@/lib/catalog/no-coffee";
+import { FLAVOURED_COFFEE, NO_COFFEE } from "../content/no-coffee";
+import { productCopy } from "../content/product-copy";
 import type { ProductCardView } from "@/lib/catalog/types";
 import {
   brandFormatLink,
@@ -35,7 +38,6 @@ import { href, isReservedSlug } from "@/lib/routes";
 import { DESCRIPTION_LIMIT } from "@/lib/seo/description";
 import {
   CALLBACK_SENTENCE,
-  FLAVOURED_DRINKS_SENTENCE,
   cheapestGroupNote,
   cupRangeText,
   landingCopy,
@@ -66,6 +68,8 @@ function row(overrides: Partial<LandingRow> & { categoryKeys: readonly string[] 
     weightUnit: "pc",
     availability: "in_stock",
     attributes: {},
+    slugs: [`product-${serial}`],
+    descriptions: [],
     ...overrides,
   };
 }
@@ -376,10 +380,52 @@ const FLAVOURED_CATALOG: readonly LandingRow[] = [
     attributes: { aromas: "yes" },
   }),
   row({
-    // Decaf and flavoured both: it stands on both pages.
+    // Decaf and flavoured both, and no coffee in it (the audit): it stands on
+    // the decaf page and not on the flavoured one, its flags untouched.
     name: "Капсули DG Mermaid Latte 10 бр.",
+    slugs: ["foodness-mermaid-latte-kapsuli-dolce-gusto-10-br"],
     categoryKeys: ["dolce-gusto"],
     price: "6.65",
+    attributes: { decaf: "yes", aromas: "yes" },
+  }),
+  row({
+    // No coffee (the audit), and nothing in its description here to say so.
+    name: "Капсули DG Rema Caffe Matcha 16 бр.",
+    slugs: ["rema-caffe-matcha-kapsuli-dolce-gusto-16-br"],
+    categoryKeys: ["dolce-gusto"],
+    price: "5.90",
+    weightValue: "16",
+    attributes: { decaf: "no", aromas: "yes" },
+  }),
+  row({
+    // Audited under the slug it had before a reslug: still known.
+    name: "Капсули DG Rema Caffè Creme Brulee 16 бр.",
+    slugs: [
+      "rema-caffe-krem-bryule-kapsuli-dolce-gusto-16-br",
+      "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br",
+    ],
+    categoryKeys: ["dolce-gusto"],
+    price: "5.90",
+    weightValue: "16",
+    attributes: { decaf: "yes", aromas: "yes" },
+  }),
+  row({
+    // Not audited yet, but its own description says it holds no coffee.
+    name: "Капсули DG Chai Latte 16 бр.",
+    slugs: ["new-chai-latte-kapsuli-dolce-gusto-16-br"],
+    descriptions: ["<p>Чай лате с канела — без кафе, с мляко.</p>"],
+    categoryKeys: ["dolce-gusto"],
+    price: "5.00",
+    weightValue: "16",
+    attributes: { aromas: "yes" },
+  }),
+  row({
+    // Decaf is coffee: „без кофеин“ keeps it on the page.
+    name: "Капсули DG Decaf Vanilla 16 бр.",
+    descriptions: ["Безкофеиново кафе с аромат на ванилия: кафе без кофеин."],
+    categoryKeys: ["dolce-gusto"],
+    price: "5.60",
+    weightValue: "16",
     attributes: { decaf: "yes", aromas: "yes" },
   }),
   row({
@@ -482,10 +528,11 @@ describe("flavoured", () => {
     );
   });
 
-  it("lists exactly the products flagged flavoured that stand in a system", () => {
+  it("lists exactly the products flagged flavoured that hold coffee and stand in a system", () => {
     const expected = FLAVOURED_CATALOG.filter(
       (entry) =>
         entry.attributes.aromas?.toLowerCase() === "yes" &&
+        !isNoCoffee(entry) &&
         resolveProductFormat(entry.categoryKeys, entry.name).system !== null,
     ).map((entry) => entry.name);
     expect(new Set(listed)).toEqual(new Set(expected));
@@ -505,7 +552,98 @@ describe("flavoured", () => {
 
   it("keeps a sold-out pack, and a decaf one, as the decaf page keeps its own", () => {
     expect(listed).toContain("Капсули Caffitaly Espresso Panettone 10 бр.");
-    expect(listed).toContain("Капсули DG Mermaid Latte 10 бр.");
+    expect(listed).toContain("Капсули DG Decaf Vanilla 16 бр.");
+  });
+
+  it("leaves out what holds no coffee, by the audit or by its own words, and touches no flag", () => {
+    for (const name of [
+      "Капсули DG Mermaid Latte 10 бр.",
+      "Капсули DG Rema Caffe Matcha 16 бр.",
+      "Капсули DG Rema Caffè Creme Brulee 16 бр.",
+      "Капсули DG Chai Latte 16 бр.",
+    ]) {
+      expect(listed, name).not.toContain(name);
+      const entry = FLAVOURED_CATALOG.find((candidate) => candidate.name === name)!;
+      // Still flavoured to the filter, and still decaf where it was.
+      expect(isFlavoured(entry), name).toBe(true);
+    }
+    const decaf = flavouredNames(
+      selectLanding("decaf", FLAVOURED_CATALOG).groups.flatMap((group) =>
+        group.items.map((item) => item.id),
+      ),
+    );
+    expect(decaf).toContain("Капсули DG Mermaid Latte 10 бр.");
+    expect(decaf).toContain("Капсули DG Rema Caffè Creme Brulee 16 бр.");
+  });
+
+  it("counts and prices only what is left: the range ends at the dearest coffee", () => {
+    // The Mermaid Latte (6,65 € for 10) would have been the dearest cup.
+    expect(selected.cupRange).toEqual({
+      min: { amount: "0.3500", estimated: false },
+      max: { amount: "0.6000", estimated: false },
+    });
+    const unaudited = FLAVOURED_CATALOG.map((entry) => ({
+      ...entry,
+      slugs: [`unaudited-${entry.id}`],
+      descriptions: [],
+    }));
+    const all = selectLanding("flavoured", unaudited);
+    expect(all.count).toBe(selected.count + 4);
+    expect(all.cupRange?.max.amount).toBe("0.6650");
+  });
+
+  it("hears „без кафе“ and its kin, never „без кофеин“: decaf is coffee", () => {
+    for (const text of [
+      "Капсули без кафе и без кофеин.",
+      "<p>Съставът не включва кафе.</p>",
+      "Не съдържа кафе.",
+      "Зелен чай с млечна пяна вместо кафе.",
+      "БЕЗ КАФЕ",
+    ]) {
+      expect(saysNoCoffee(text), text).toBe(true);
+    }
+    for (const text of [
+      "Безкофеиново кафе с аромат на лешник.",
+      "Кафе без кофеин, за вечерта.",
+      "Без кофеин.",
+      "Удобно там, където няма кафемашина.",
+      "Мек вкус без кафеена горчивина.",
+      "Ароматизирано кафе в капсули.",
+      "",
+    ]) {
+      expect(saysNoCoffee(text), text).toBe(false);
+    }
+    expect(isNoCoffee({ slugs: ["any"], descriptions: ["Безкофеиново кафе."] })).toBe(false);
+  });
+
+  it("lists every product our own copy says holds no coffee, applied or not", () => {
+    // Our copy reaches the page through the override columns once applied; the
+    // list must not wait for that.
+    const said = Object.entries(productCopy)
+      .filter(([, copy]) => saysNoCoffee([copy.summary, ...copy.body].join(" ")))
+      .map(([slug]) => slug);
+    expect(said.length).toBeGreaterThan(0);
+    const listedNoCoffee = new Set(NO_COFFEE.map((entry) => entry.slug));
+    expect(said.filter((slug) => !listedNoCoffee.has(slug))).toEqual([]);
+  });
+
+  it("audits every product once, with evidence, by a slug that is ours", () => {
+    const slugs = [...NO_COFFEE, ...FLAVOURED_COFFEE].map((entry) => entry.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(slugs).toHaveLength(20);
+    expect(NO_COFFEE.map((entry) => entry.slug)).toEqual([
+      "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
+      "foodness-mermaid-latte-kapsuli-dolce-gusto-10-br",
+      "rema-caffe-creme-brulee-kapsuli-dolce-gusto-16-br",
+    ]);
+    for (const entry of [...NO_COFFEE, ...FLAVOURED_COFFEE]) {
+      expect(entry.slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(entry.evidence.length, entry.slug).toBeGreaterThan(30);
+    }
+    // An audited coffee is never caught by the guard on its own evidence.
+    for (const entry of FLAVOURED_COFFEE) {
+      expect(saysNoCoffee(entry.evidence), entry.slug).toBe(false);
+    }
   });
 
   it("groups by system in the shop's order, each group cheapest per cup first", () => {
@@ -520,9 +658,9 @@ describe("flavoured", () => {
     ).toEqual([
       ["Капсули Nespresso Caramel 10 бр.", "Капсули Nespresso Rema Caffè Hazelnut 10 бр."],
       [
+        "Капсули DG Decaf Vanilla 16 бр.",
         "Капсули DG Irish Cream 16 бр.",
         "Капсули DG Caramel 16 бр.",
-        "Капсули DG Mermaid Latte 10 бр.",
       ],
       ["Капсули Caffitaly Espresso Panettone 10 бр.", "Капсули Caffitaly Espresso Nocciola 10 бр."],
       ["Дозети Rema Caffe Hazelnut лешник 100бр.", "Дозети Lollo caffe Amaretto 18бр."],
@@ -595,6 +733,10 @@ describe("flavoured", () => {
   it("exists only while something is flagged, and says which groups a link may name", () => {
     const available = landingAvailability(FLAVOURED_CATALOG);
     expect(available.counts.flavoured).toBe(9);
+    // Out of the sitemap's members, as out of the count.
+    expect(available.members?.flavoured).not.toContain(
+      FLAVOURED_CATALOG.find((entry) => entry.name === "Капсули DG Mermaid Latte 10 бр.")!.id,
+    );
     expect(available.groups.flavoured).toEqual([
       "nespresso-original",
       "dolce-gusto",
@@ -821,7 +963,7 @@ describe("the copy", () => {
     );
     const [first, formats, order] = landingCopy.flavoured.intro({ ...both, count: 20 });
     expect(first).toBe(
-      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел. Някои са напитки без кафе, например мача лате.",
+      "Тук са 20 продукта с добавен аромат — сред тях кафе с вкус на лешник и на карамел.",
     );
     expect(formats).toBe("Всички са в капсули и дози ESE.");
     expect(order).toContain("капсулата влиза само в машината, за която е направена");
@@ -835,9 +977,10 @@ describe("the copy", () => {
       landingCopy.flavoured.intro(
         facts({ count: 4, flavours: { named: ["caramel"], others: true } }),
       )[0],
-    ).toMatch(/^Тук са 4 продукта с добавен аромат — сред тях кафе с вкус на карамел\. /);
-    expect(landingCopy.flavoured.intro(facts({ count: 4 }))[0]).toMatch(
-      /^Тук са 4 продукта с добавен аромат\. Някои са напитки без кафе/,
+    ).toBe("Тук са 4 продукта с добавен аромат — сред тях кафе с вкус на карамел.");
+    // No flavour named, and no word of drinks: what holds no coffee is not listed.
+    expect(landingCopy.flavoured.intro(facts({ count: 4 }))[0]).toBe(
+      "Тук са 4 продукта с добавен аромат.",
     );
     expect(landingCopy.flavoured.description(withBeans)).toMatch(
       /^Ароматизирано кафе в капсули, дози ESE и на зърна\./,
@@ -855,11 +998,9 @@ describe("the copy", () => {
     // A pack can say hazelnut on its box without the flag; the page lists the flag.
     expect(text).not.toMatch(/всичко ароматизирано|всички ароматизирани/i);
     // Nor does it say what the shop lacks: the group headings show the formats.
-    expect(text).not.toMatch(/нямаме|не предлагаме|няма /);
+    expect(text).not.toMatch(/нямаме|не предлагаме|няма |напитки без кафе/);
     expect(text).toContain("20 продукта с добавен аромат");
-    expect(landingCopy.flavoured.llms).toBe(
-      "Кафе и напитки с добавен аромат, разделени по система.",
-    );
+    expect(landingCopy.flavoured.llms).toBe("Кафе с добавен аромат, разделено по система.");
   });
 
   it("speaks of one flavoured product in the singular", () => {
@@ -869,14 +1010,12 @@ describe("the copy", () => {
     expect(one[0]).toBe("Тук е 1 продукт с добавен аромат — в капсули, с вкус на лешник.");
     const text = one.join(" ");
     expect(text).not.toMatch(/Тук са|сред тях|Някои|Всички|първа е най-ниската/);
-    expect(text).not.toContain(FLAVOURED_DRINKS_SENTENCE);
     expect(one.at(-1)).toBe(
       "Капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ: проверете дали вашата машина е от тази система.",
     );
-    // Several, and the plural comes back with the drinks sentence.
+    // Several, and the plural comes back.
     const two = landingCopy.flavoured.intro(facts({ count: 2 })).join(" ");
     expect(two).toContain("Тук са 2 продукта с добавен аромат.");
-    expect(two).toContain(FLAVOURED_DRINKS_SENTENCE);
   });
 
   it("heads each flavoured group by the shelf's own name", () => {
