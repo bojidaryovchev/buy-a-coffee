@@ -65,6 +65,15 @@ function copyFor(index: number) {
 
 const agree: SourceCheck = async () => null;
 
+/** A text unlike any `copyFor` writes, for a product written a second time. */
+const FRESH_COPY = {
+  summary: "Мека смес за спокойна сутрешна чаша, която не натежава и стои добре с мляко.",
+  body: [
+    "Тялото е умерено, а горчивината остава на заден план до самия край.",
+    "Подходяща е за автоматична кафемашина у дома, както и за кафе с мляко следобед.",
+  ],
+};
+
 describeIntegration("catalog copywriter (integration)", () => {
   let db: Database;
   let closeDb: () => Promise<void>;
@@ -321,6 +330,91 @@ describeIntegration("catalog copywriter (integration)", () => {
       applied: false,
       heldBack: expect.stringMatching(/цитираните сайтове/),
     });
+  });
+
+  it("publishes nothing that promises the wrong machines, and records why", async () => {
+    await sync(catalog());
+    const model = fakeModel();
+    const loose: { id?: string } = {};
+    // The stand-in model, but one product's text says „машини Dolce Gusto“ (NEO included).
+    const generate: CopyGenerator = async (request) => {
+      const answer = await model.generate(request);
+      const batch = model.batches.at(-1) as CopyBatch;
+      const output = answer.output as CopyOutput;
+      return {
+        ...answer,
+        output: {
+          products: output.products.map((product) => {
+            const item = batch.products.find((candidate) => candidate.id === product.id);
+            if (loose.id || !product.copy || item?.task.research !== false) return product;
+            loose.id = product.id;
+            return {
+              ...product,
+              copy: {
+                ...product.copy,
+                body: [
+                  ...product.copy.body,
+                  "Капсулите са съвместими с машини Dolce Gusto на Krups и De'Longhi.",
+                ],
+              },
+            };
+          }),
+        },
+      };
+    };
+
+    const result = await run(generate);
+    expect(result).toMatchObject({ copyWritten: 12, copyRejected: 1, failedBatches: 0 });
+    const [row] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, loose.id ?? ""));
+    expect(row).toMatchObject({
+      descriptionTextOverride: null,
+      descriptionHtmlOverride: null,
+      copyOrigin: null,
+      copyAttempts: 1,
+      copyLastError: expect.stringMatching(
+        /^съвместимост: „машини Dolce Gusto“ включва и машините Dolce Gusto NEO/,
+      ),
+    });
+
+    // The product stays in the plan, to be written again in the corrected words.
+    const planned = await run(fakeModel().generate, { apply: false });
+    expect(planned.planned.map((entry) => entry.slug)).toEqual([row?.slug]);
+
+    // And the retry is told why: the batch file carries the audit's reason.
+    const retried: CopyBatch[] = [];
+    const retry: CopyGenerator = async ({ cwd, batchFile }) => {
+      const batch = JSON.parse(await readFile(path.join(cwd, batchFile), "utf8")) as CopyBatch;
+      retried.push(batch);
+      const output: CopyOutput = {
+        products: batch.products.map((item) => ({ id: item.id, copy: FRESH_COPY, research: null })),
+      };
+      return { output, costUsd: 0, turns: 1, durationMs: 1 };
+    };
+    const again = await run(retry);
+    expect(again).toMatchObject({ copyWritten: 1, copyRejected: 0 });
+    const sent = retried.flatMap((batch) => batch.products);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      id: loose.id,
+      previousRejection: expect.stringMatching(/^съвместимост: „машини Dolce Gusto“/),
+    });
+    const [after] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, loose.id ?? ""));
+    expect(after).toMatchObject({ copyOrigin: "ai", copyAttempts: 0, copyLastError: null });
+  });
+
+  it("tells a first attempt nothing about rejections", async () => {
+    await sync(catalog());
+    const model = fakeModel();
+    await run(model.generate, { limit: 3 });
+    for (const item of model.batches.flatMap((batch) => batch.products)) {
+      expect(item.previousRejection).toBeUndefined();
+    }
   });
 
   it("never replaces a text a person published while the model was writing", async () => {

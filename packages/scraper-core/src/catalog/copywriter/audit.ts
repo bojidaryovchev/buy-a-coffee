@@ -8,6 +8,7 @@ import {
   parseWeight,
   shingles,
 } from "@catalog/shared";
+import { COMPATIBILITY_WORDING, compatibilityProblems } from "@catalog/shared/compatibility-copy";
 import type { CopyWorkItem, GeneratedCopy } from "./contract.ts";
 
 /**
@@ -20,7 +21,9 @@ import type { CopyWorkItem, GeneratedCopy } from "./contract.ts";
  * sentence, or its previous copy) and the failure is recorded against it.
  *
  * The originality measures are the same functions and limits the CI audit of
- * the hand-written file uses (`@catalog/shared/copy-originality`).
+ * the hand-written file uses (`@catalog/shared/copy-originality`), and the
+ * compatibility rules the same ones its test holds the hand-written file to
+ * (`@catalog/shared/compatibility-copy`).
  */
 
 export interface CopyAuditContext {
@@ -145,6 +148,24 @@ function withoutNames(text: string, names: readonly string[], token: string): st
 }
 
 /**
+ * The compatibility wording, which every product that states a fit must use
+ * („Tchibo посочва, че в Cafissimo трябва да се използват само нейните
+ * капсули“), counted as one word. Without this, the second Caffitaly product
+ * written as the skill asks would „repeat“ the first one's caveat and be
+ * thrown away. The same placeholder stands in both texts, so a run of copied
+ * words continues through the fixed phrase rather than stopping at it: a
+ * paragraph copied around the caveat is still a copied paragraph.
+ */
+const FIXED_WORDING = Object.values(COMPATIBILITY_WORDING).map(
+  (wording) =>
+    new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "giu"),
+);
+
+function withoutFixedWording(text: string): string {
+  return FIXED_WORDING.reduce((result, wording) => result.replace(wording, " qqfixed "), text);
+}
+
+/**
  * Check one generated text for one product.
  *
  * `pack` is what the copy may say about the size - the corrected one if the
@@ -189,6 +210,20 @@ export function auditGeneratedCopy(
   if (PRICE_TALK.test(all)) problems.push("текстът споменава цена или валута");
   if (/<[^>]+>/.test(all)) problems.push("текстът съдържа HTML");
 
+  /*
+   * A compatibility promise the machine's maker contradicts — „машини Dolce
+   * Gusto“, which includes NEO; „домашни машини Nespresso“, which includes
+   * Vertuo; Caffitaly in a K-fee; a Cafissimo without Tchibo's word — is the
+   * error the hand-written copy was corrected for, and a supplier's attribute
+   * („Съвместимост: Dolce Gusto“) invites it. One problem per rule: the owner
+   * needs the fix, not every sentence it applies to.
+   */
+  const compatibility = new Map<string, string>();
+  for (const problem of compatibilityProblems([summary, ...body])) {
+    if (!compatibility.has(problem.rule)) compatibility.set(problem.rule, problem.reason);
+  }
+  for (const reason of compatibility.values()) problems.push(`съвместимост: ${reason}`);
+
   const source = item.sourceDescription?.trim() ?? "";
   if (source) {
     const names = [item.title, item.brand ?? ""];
@@ -217,19 +252,22 @@ export function auditGeneratedCopy(
   if (wearer !== undefined && wearer !== item.id) {
     problems.push("краткото описание е същото като на друг продукт");
   }
+  const ownSummary = withoutFixedWording(summary);
   for (const sibling of item.siblingSummaries) {
-    const run = longestSharedRun(sibling, summary);
+    const run = longestSharedRun(withoutFixedWording(sibling), ownSummary);
     if (run > MAX_INTERNAL_RUN_WORDS / 2) {
       problems.push(`краткото описание повтаря ${run} поредни думи от това на сроден продукт`);
       break;
     }
   }
   // Our own paragraphs on two of our URLs are the duplicate problem moved in-house.
+  // The fixed compatibility wording is not counted: every such product must use it.
   paragraphs: for (const [index, paragraph] of body.entries()) {
+    const ours = withoutFixedWording(paragraph);
     for (const [owner, published] of context.bodies) {
       if (owner === item.id) continue;
       for (const other of published) {
-        const run = longestSharedRun(other, paragraph);
+        const run = longestSharedRun(withoutFixedWording(other), ours);
         if (run > MAX_INTERNAL_RUN_WORDS) {
           problems.push(
             `абзац ${index + 1} повтаря ${run} поредни думи от описанието на друг продукт`,

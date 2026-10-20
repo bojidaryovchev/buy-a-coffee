@@ -62,6 +62,12 @@ export interface CopyWorkItem {
   readonly sourceDescription: string | null;
   /** Our published summaries for the same brand's other products, to stay distinct from. */
   readonly siblingSummaries: readonly string[];
+  /**
+   * Why the text written for this product last time was not published, as the
+   * audit recorded it (`copy_last_error`), so a retry is not written blind.
+   * Absent on a first attempt.
+   */
+  readonly previousRejection?: string;
   readonly task: {
     /** Write a summary and body for this product. */
     readonly writeCopy: boolean;
