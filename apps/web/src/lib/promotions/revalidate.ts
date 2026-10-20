@@ -36,6 +36,7 @@ const SHOP_ROOT = "/(site)/[lang]";
 export const SHOP_PAGE_ROUTES = [
   "",
   "/[slug]",
+  "/aromatizirano-kafe",
   "/bezkofeinovo-kafe",
   "/biskvitki",
   "/blog",
