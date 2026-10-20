@@ -1,11 +1,5 @@
-import {
-  type Logger,
-  normalizeHtmlForHash,
-  retry,
-  sha256Hex,
-  silentLogger,
-  sleep,
-} from "@catalog/shared";
+import { type Logger, normalizeHtmlForHash, retry, silentLogger, sleep } from "@catalog/shared";
+import { sha256Hex } from "@catalog/shared/hash";
 import type { ScraperConfig } from "../config.ts";
 import { ALLOW_ALL, type RobotsTxt, isUrlAllowed, parseRobotsTxt } from "./robots.ts";
 

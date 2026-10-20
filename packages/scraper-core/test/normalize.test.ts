@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseWeight, semanticHash } from "@catalog/shared";
+import { parseWeight } from "@catalog/shared";
+import { semanticHash } from "@catalog/shared/hash";
 import {
   type RawProductRecord,
   buildSemanticFields,

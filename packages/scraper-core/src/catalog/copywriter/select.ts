@@ -7,9 +7,9 @@ import {
   pricePerServing,
   productKind,
   productName,
-  semanticHash,
   stripTrailingZeros,
 } from "@catalog/shared";
+import { semanticHash } from "@catalog/shared/hash";
 import type { CopyWorkItem } from "./contract.ts";
 
 /**
