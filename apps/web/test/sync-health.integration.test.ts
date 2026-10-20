@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { sourceSites, syncAlerts, syncRuns } from "@catalog/db/schema";
+import { sourceSites, syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
 import type { Database } from "@catalog/db";
 import type { Notification } from "@/lib/notifications";
 import type { runSyncHealthCheck } from "@/lib/sync-health-check";
@@ -83,6 +83,31 @@ suite("sync-health check (integration)", () => {
 
   const kinds = () => sent.map((n) => n.recordId.split(":")[0]);
 
+  /** A rename, as the sync records an update, in a run of its own that started `h` hours ago. */
+  async function addRename(h: number, before: string, after: string, dryRun = false) {
+    const [{ id: runId }] = (await db
+      .insert(syncRuns)
+      .values({
+        sourceSiteId: siteId,
+        status: "succeeded",
+        startedAt: hoursAgo(h),
+        completedAt: hoursAgo(h - 0.1),
+        catalogSource: "filter_init",
+        parserConfidence: "1.000",
+        dryRun,
+      })
+      .returning({ id: syncRuns.id })) as [{ id: string }];
+    await db.insert(syncChanges).values({
+      syncRunId: runId,
+      sourceKey: "/moreno-super-bar-1/::1kg",
+      changeType: "updated",
+      changedFields: ["currentPrice", "name", "semanticHash"],
+      before: { name: before, currentPrice: "20.00" },
+      after: { name: after, currentPrice: "25.00" },
+      createdAt: hoursAgo(h),
+    });
+  }
+
   const scenarios: Array<[SyncCondition, () => Promise<void>]> = [
     ["no_recent_success", () => addRun(30)],
     [
@@ -135,6 +160,14 @@ suite("sync-health check (integration)", () => {
         await addRun(1, { imagesFailed: 2 });
       },
     ],
+    [
+      "identity_changed",
+      async () => {
+        await healthy();
+        await addRun(1);
+        await addRename(1, "Moreno Espresso Bar 1 кг", "Moreno Super Bar 1 кг");
+      },
+    ],
   ];
 
   it.each(scenarios)(
@@ -176,6 +209,16 @@ suite("sync-health check (integration)", () => {
     await run();
     await run();
     expect(kinds().sort()).toEqual(["breaker_open", "latest_partial"]);
+  });
+
+  it("does not name a rename older than the day the check covers, or one in a dry run", async () => {
+    await healthy();
+    await addRun(1);
+    await addRename(30, "A", "B");
+    await addRename(2, "C", "D", true);
+    const report = await run();
+    expect(report.conditions).toEqual([]);
+    expect(sent).toEqual([]);
   });
 
   it("ignores dry runs", async () => {

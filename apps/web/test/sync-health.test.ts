@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SYNC_HEALTH_THRESHOLDS,
   SYNC_CONDITIONS,
+  evaluateIdentityChanges,
   evaluateSyncHealth,
   type SyncCondition,
   type SyncRunSnapshot,
@@ -184,5 +185,46 @@ describe("evaluateSyncHealth", () => {
   it("ignores columns it does not know about", () => {
     const withExtra = { ...run(1), movedCount: 4, somethingNew: "x" } as SyncRunSnapshot;
     expect(conditions([withExtra])).toEqual([]);
+  });
+});
+
+/* The sync keeps one of two products listed at one source address; if the
+   source swaps them, the kept row takes the other's name and price as an
+   ordinary update (research 08 §1.4). Every rename is named for a person. */
+describe("evaluateIdentityChanges", () => {
+  const change = (
+    before: string | null,
+    after: string | null,
+    prices: [string, string] = ["20.00", "20.00"],
+  ) => ({
+    sourceKey: "/moreno-super-bar-1/::1kg",
+    before: before === null ? null : { name: before, currentPrice: prices[0] },
+    after: after === null ? null : { name: after, currentPrice: prices[1] },
+  });
+
+  it("names a product the sync renamed, with the price when it moved too", () => {
+    const finding = evaluateIdentityChanges([
+      change("Moreno Espresso Bar 1 кг", "Moreno Super Bar 1 кг", ["20.00", "25.00"]),
+    ]);
+    expect(finding?.condition).toBe("identity_changed");
+    expect(finding?.summary).toContain(
+      "„Moreno Espresso Bar 1 кг“ → „Moreno Super Bar 1 кг“ (цена 20.00 → 25.00)",
+    );
+    expect(SYNC_CONDITIONS).toContain("identity_changed");
+  });
+
+  it("is nothing when no name changed, or a side is missing", () => {
+    expect(evaluateIdentityChanges([])).toBeNull();
+    expect(evaluateIdentityChanges([change("A", "A", ["1.00", "2.00"])])).toBeNull();
+    expect(evaluateIdentityChanges([change(null, "A"), change("A", null)])).toBeNull();
+    expect(evaluateIdentityChanges([change(" A ", "A")])).toBeNull();
+  });
+
+  it("names five and counts the rest", () => {
+    const many = Array.from({ length: 7 }, (_, i) => change(`A${i}`, `B${i}`));
+    const summary = evaluateIdentityChanges(many)!.summary;
+    expect(summary).toContain("„A4“ → „B4“");
+    expect(summary).not.toContain("„A5“");
+    expect(summary).toContain("и още 2");
   });
 });

@@ -12,8 +12,9 @@
  * watcher that lives somewhere else.
  *
  * A run is judged by its own record. `sync_runs` rows carry more columns than
- * are read here, and `sync_changes` is not read at all; unknown columns are
- * ignored on purpose, so the sync can grow without this breaking.
+ * are read here; unknown columns are ignored on purpose, so the sync can grow
+ * without this breaking. `sync_changes` is read for one thing only, a
+ * product the sync renamed (`evaluateIdentityChanges`).
  */
 
 export const SYNC_CONDITIONS = [
@@ -24,6 +25,7 @@ export const SYNC_CONDITIONS = [
   "source_fallback",
   "low_confidence",
   "image_failed",
+  "identity_changed",
 ] as const;
 
 export type SyncCondition = (typeof SYNC_CONDITIONS)[number];
@@ -96,6 +98,7 @@ export const SYNC_CONDITION_LABEL: Record<SyncCondition, string> = {
   source_fallback: "каталогът идва от резервния източник",
   low_confidence: "ниска сигурност на разчитането",
   image_failed: "снимки, които не са свалени",
+  identity_changed: "продукт със сменено име",
 };
 
 const isFinished = (run: SyncRunSnapshot): boolean => run.status !== "running";
@@ -196,4 +199,62 @@ export function evaluateSyncHealth(
   }
 
   return findings;
+}
+
+/**
+ * A product the sync renamed: one `sync_changes` row of an update, as read.
+ * `before` and `after` are the sync's own snapshots (`productSnapshot` in
+ * `@catalog/scraper-core`); only `name` and `currentPrice` are read.
+ */
+export interface IdentityChangeSnapshot {
+  readonly sourceKey: string;
+  readonly before: Readonly<Record<string, unknown>> | null;
+  readonly after: Readonly<Record<string, unknown>> | null;
+}
+
+/** How many renamed products the summary names before it only counts. */
+const IDENTITY_NAMED = 5;
+
+const text = (value: unknown): string | null =>
+  typeof value === "string" && value.trim() ? value.trim() : null;
+
+/**
+ * A product the sync renamed, as a finding — or null for none.
+ *
+ * The sync keys a product by its address at the source and pack size. Where
+ * the source lists two products at one address, it keeps the first and drops
+ * the second (research 08 §1.4, until the sync's own fix): if the source ever
+ * lists them the other way round, the existing product takes the other one's
+ * name and price — under its old URL, its old slug, and its own order history.
+ * The sync reports that as an ordinary update. A rename is rare on its own, so
+ * every one is named for a person to check; a product whose identity really
+ * changed is then caught the day it happens instead of by a customer.
+ *
+ * Read-only: it reads what the sync already records, and changes nothing the
+ * sync does.
+ */
+export function evaluateIdentityChanges(
+  changes: readonly IdentityChangeSnapshot[],
+): SyncHealthFinding | null {
+  const renamed = changes.flatMap((change) => {
+    const before = text(change.before?.name);
+    const after = text(change.after?.name);
+    if (!before || !after || before === after) return [];
+    const price = (snapshot: IdentityChangeSnapshot["before"]) => text(snapshot?.currentPrice);
+    const was = price(change.before);
+    const now = price(change.after);
+    return [
+      `„${before}“ → „${after}“${was && now && was !== now ? ` (цена ${was} → ${now})` : ""}`,
+    ];
+  });
+  if (renamed.length === 0) return null;
+
+  const named = renamed.slice(0, IDENTITY_NAMED).join("; ");
+  const more = renamed.length > IDENTITY_NAMED ? ` и още ${renamed.length - IDENTITY_NAMED}` : "";
+  return {
+    condition: "identity_changed",
+    summary:
+      `Синхронизацията смени името на продукт под същия адрес: ${named}${more}. ` +
+      "Проверете, че е същият продукт, а не друг на негово място.",
+  };
 }
