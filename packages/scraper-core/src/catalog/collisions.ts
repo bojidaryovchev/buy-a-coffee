@@ -38,10 +38,12 @@ import type { NormalizedProduct } from "./normalize.ts";
  *      while the source re-spaces its name, swaps the order, adds a product
  *      code, or lists it alone.
  *
- * "The same product" is one test, `identityToken`: one product code when both
- * sides have one, else one name with case, spacing and punctuation set aside —
- * the very normaliser the split key is built with, so a key and a match can
- * never disagree about a name.
+ * "The same product" is one test, `identityToken`: one name with case, spacing
+ * and punctuation set aside — the very normaliser the split key is built with,
+ * so a key and a match can never disagree about a name — and no product code
+ * that says otherwise. A code can veto a pair but never make one on its own:
+ * at a shared address the stored code was read from a page both products
+ * share. Move detection keeps the same limit there (`moves.ts`).
  *
  * What neither step does is guess. Records with one code and one name that
  * differ in what the shop shows keep the first, exactly as before. A product
@@ -267,37 +269,45 @@ export function resolveDuplicateKeys(records: readonly NormalizedProduct[]): Key
 
 /**
  * The same product, as far as a stored row and a listed record can say: the
- * same product code when both have one, else the same name by
- * `identityToken` — the normaliser the split key itself is built with.
- * Nothing weaker: this decides which product a key, a slug and an order
- * history belong to.
+ * same name by `identityToken` — the normaliser the split key itself is built
+ * with — and no product code that says otherwise.
+ *
+ * A code can tell two products apart, but at an address two products share it
+ * cannot, alone, make them one. The code stored on the row there was read from
+ * a page both share, and the listing can give that code to the other product:
+ * the Espresso Bar's row holds the code its page prints, and a listing that
+ * gave the Super Bar that code would, on the code alone, hand it the Espresso
+ * Bar's row. So the name must agree. Nothing weaker: this decides which
+ * product a key, a slug and an order history belong to.
  */
 function sameProduct(stored: ExistingProduct, listed: NormalizedProduct): boolean {
-  const storedCode = text(stored.sku);
-  const listedCode = text(listed.sku);
-  if (storedCode !== null && listedCode !== null) {
-    return identityToken(storedCode) === identityToken(listedCode);
-  }
   const storedName = typeof stored.snapshot.name === "string" ? stored.snapshot.name : "";
   const token = identityToken(storedName);
-  return token !== "" && token === identityToken(listed.name);
+  if (token === "" || token !== identityToken(listed.name)) return false;
+  const storedCode = text(stored.sku);
+  const listedCode = text(listed.sku);
+  return (
+    storedCode === null ||
+    listedCode === null ||
+    identityToken(storedCode) === identityToken(listedCode)
+  );
 }
 
 /**
  * Pair the products listed at one address with the rows stored there.
  *
- * A product and a row match when the row's split key is the product's, or
- * `sameProduct` says so; a row still listed outranks one already removed. A
- * pair is made only when it is the single reading: the product matches that
- * row and no other, and no other product matches the row. Anything else is
- * left unpaired, and an unpaired product never takes a stored row's key.
+ * A product and a row match when `sameProduct` says so — a shared key or a
+ * shared code is not enough on its own — and a row still listed outranks one
+ * already removed. A pair is made only when it is the single reading: the
+ * product matches that row and no other, and no other product matches the
+ * row. Anything else is left unpaired, and an unpaired product never takes a
+ * stored row's key.
  */
 function pairAtAddress(
   listed: readonly NormalizedProduct[],
   rows: readonly ExistingProduct[],
 ): Map<NormalizedProduct, ExistingProduct> {
   const matches = (product: NormalizedProduct, row: ExistingProduct): boolean =>
-    (parseSplitSourceKey(row.sourceKey) !== null && row.sourceKey === product.sourceKey) ||
     sameProduct(row, product);
   const candidates = new Map(
     listed.map((product) => {
@@ -320,13 +330,20 @@ function pairAtAddress(
   return pairs;
 }
 
-/** The split key a product listed alone would have: by its code when the listing states one. */
-function ownKey(plainKey: string, product: NormalizedProduct): string {
+/**
+ * The keys a product paired with no row may take, best first: the split key
+ * discovery gave it, else — listed alone — its own by code when the listing
+ * states one, then by name.
+ */
+function keysFor(plainKey: string, product: NormalizedProduct, split: boolean): string[] {
   const code = text(product.sku);
-  return splitSourceKey(
-    plainKey,
-    code !== null ? splitDiscriminator("code", code) : splitDiscriminator("name", product.name),
-  );
+  return [
+    ...new Set([
+      ...(split ? [product.sourceKey] : []),
+      ...(code !== null ? [splitSourceKey(plainKey, splitDiscriminator("code", code))] : []),
+      splitSourceKey(plainKey, splitDiscriminator("name", product.name)),
+    ]),
+  ];
 }
 
 /**
@@ -393,7 +410,10 @@ export function settleKeyCollisions<
     const keys = listed.map((product) => {
       const row = pairs.get(product);
       if (row) return row.sourceKey;
-      return split ? product.sourceKey : ownKey(plainKey, product);
+      // Never a key a stored row holds: the diff would hand that row to this
+      // product, which is exactly what pairing just declined to do.
+      const options = keysFor(plainKey, product, split);
+      return options.find((key) => !stored.has(key)) ?? (options[0] as string);
     });
 
     if (new Set(keys).size !== keys.length) {

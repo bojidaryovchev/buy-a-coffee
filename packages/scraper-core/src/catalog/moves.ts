@@ -1,5 +1,6 @@
 import { normalizeLabel } from "@catalog/shared";
 import type { ExistingProduct } from "./diff.ts";
+import { identityToken } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 
 /**
@@ -39,6 +40,17 @@ import type { NormalizedProduct } from "./normalize.ts";
  * Within a pass, candidates sharing a key form a group. One old and one new
  * product is a pair. Anything larger is a tie, and is broken — or not — by the
  * ordered signals in `SIGNALS`.
+ *
+ * One limit on the code pass. At an address that is, or once was, shared by
+ * two products (`sharedPaths`: two listed there now, a row flagged as sharing
+ * its page, or a split key under it — `collisions.ts`), an equal code alone
+ * does not move a row: the name must be the same name too, by `identityToken`.
+ * There the stored code was read from a page two products share, and a code
+ * the listing gives one of them can be the other's; moving on it would hand
+ * the Espresso Bar's row, URL and order history to the Super Bar. Refused,
+ * the row goes the ordinary way of a product no longer listed and the record
+ * is created under its own key — a duplicate a person links, never a swap
+ * nobody sees. Everywhere else the code moves rows exactly as before.
  */
 
 export type MoveMatch = "sku" | "fingerprint" | "name_and_pack";
@@ -82,6 +94,11 @@ export interface MovePairingOptions {
    * product pages before the diff. A missing entry means "not known".
    */
   readonly discoveredSkus?: ReadonlyMap<string, string>;
+  /**
+   * Source paths that are, or once were, shared by two products. A code alone
+   * moves no row to or from one of them; see the note above.
+   */
+  readonly sharedPaths?: ReadonlySet<string>;
 }
 
 /** Everything the matcher knows about one side of a possible move. */
@@ -96,6 +113,10 @@ interface Facts {
   readonly price: string | null;
   readonly images: string | null;
   readonly description: string | null;
+  /** The source path, as stored or listed. */
+  readonly path: string | null;
+  /** The name by `identityToken`, the normaliser split keys are built with. */
+  readonly token: string;
 }
 
 interface OldSide {
@@ -149,6 +170,8 @@ function factsOfExisting(existing: ExistingProduct): Facts {
     price: text(snapshot.currentPrice),
     images: imageKey(snapshot.imageUrls),
     description: nameKey(snapshot.descriptionText) || null,
+    path: existing.sourcePath ?? pathFromKey(existing.sourceKey),
+    token: typeof snapshot.name === "string" ? identityToken(snapshot.name) : "",
   };
 }
 
@@ -167,6 +190,8 @@ function factsOfDiscovered(
     price: text(product.currentPrice?.amount),
     images: imageKey(product.sourceImageUrls),
     description: nameKey(product.descriptionText) || null,
+    path: product.sourcePath,
+    token: identityToken(product.name),
   };
 }
 
@@ -257,6 +282,7 @@ function mutualBest(
   score: (old: Facts, next: Facts) => number | null,
   olds: readonly OldSide[],
   news: readonly NewSide[],
+  link: (old: Facts, next: Facts) => boolean,
 ): Map<OldSide, NewSide> {
   const strictBest = <Own, Other>(
     own: Own,
@@ -281,7 +307,7 @@ function mutualBest(
   };
 
   const rateFromOld = (old: OldSide, next: NewSide): number | null =>
-    compatible(old.facts, next.facts) ? score(old.facts, next.facts) : null;
+    link(old.facts, next.facts) ? score(old.facts, next.facts) : null;
   const rateFromNew = (next: NewSide, old: OldSide): number | null => rateFromOld(old, next);
 
   const result = new Map<OldSide, NewSide>();
@@ -305,6 +331,7 @@ function resolveGroup(
   pass: Pass,
   groupOlds: readonly OldSide[],
   news: readonly NewSide[],
+  link: (old: Facts, next: Facts) => boolean,
 ): GroupOutcome {
   /*
    * A product we still list outranks one we already removed: the removed row
@@ -313,7 +340,7 @@ function resolveGroup(
   const live = groupOlds.filter((old) => old.existing.status !== "removed");
   const olds = live.length > 0 ? live : groupOlds;
 
-  const linked = (old: OldSide, next: NewSide): boolean => compatible(old.facts, next.facts);
+  const linked = (old: OldSide, next: NewSide): boolean => link(old.facts, next.facts);
   if (!olds.some((old) => news.some((next) => linked(old, next)))) {
     return { pairs: [], unresolved: null };
   }
@@ -333,7 +360,7 @@ function resolveGroup(
   // case the evidence contradicts itself and nobody is paired on it.
   const votes = SIGNALS.map((signal) => ({
     name: signal.name,
-    pairs: mutualBest(signal.score, olds, news),
+    pairs: mutualBest(signal.score, olds, news, link),
   }));
 
   const pairs: GroupOutcome["pairs"] = [];
@@ -400,6 +427,20 @@ export function pairMoves(
     facts: factsOfDiscovered(product, options.discoveredSkus),
   }));
 
+  const shared = options.sharedPaths ?? new Set<string>();
+  const atSharedAddress = (facts: Facts): boolean => facts.path !== null && shared.has(facts.path);
+  /*
+   * Codes never pair two different codes (`compatible`), and at a shared
+   * address an equal code pairs only the same name.
+   */
+  const linkFor =
+    (pass: Pass) =>
+    (old: Facts, next: Facts): boolean =>
+      compatible(old, next) &&
+      (pass.matchedBy !== "sku" ||
+        !(atSharedAddress(old) || atSharedAddress(next)) ||
+        (old.token !== "" && old.token === next.token));
+
   for (const pass of PASSES) {
     if (olds.length === 0 || news.length === 0) break;
 
@@ -426,7 +467,7 @@ export function pairMoves(
 
     for (const group of groups.values()) {
       if (group.olds.length === 0 || group.news.length === 0) continue;
-      const outcome = resolveGroup(pass, group.olds, group.news);
+      const outcome = resolveGroup(pass, group.olds, group.news, linkFor(pass));
 
       for (const { old, next, decidedBy } of outcome.pairs) {
         pairs.push({
