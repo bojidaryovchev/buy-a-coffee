@@ -141,11 +141,16 @@ describe("category titles and headings", () => {
     expect(categoryTitle(key("dolce-gusto", "Dolce Gusto"))).toBe(
       "Капсули за Dolce Gusto (Долче Густо) — цена на чаша",
     );
-    expect(categoryHeading(key("dolce-gusto", "Dolce Gusto"))).toBe("Капсули за Dolce Gusto");
+    // Milestone 1, stage one: the Cyrillic beside the Latin (`listing-lead.test.ts`).
+    expect(categoryHeading(key("dolce-gusto", "Dolce Gusto"))).toBe(
+      "Капсули за Dolce Gusto (Долче Густо)",
+    );
     expect(categoryTitle(key("nespresso", "Nespresso"))).toBe(
       "Капсули за Nespresso (Неспресо) — цена на чаша",
     );
-    expect(categoryHeading(key("nespresso", "Nespresso"))).toBe("Капсули, съвместими с Nespresso");
+    expect(categoryHeading(key("nespresso", "Nespresso"))).toBe(
+      "Капсули, съвместими с Nespresso (Неспресо)",
+    );
     expect(categoryTitle(key("kafe-na-zyrna", "Кафе на зърна", "kafe-na-zarna"))).toBe(
       "Кафе на зърна — цена за кг и на чаша",
     );

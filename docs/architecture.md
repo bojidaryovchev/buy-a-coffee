@@ -457,9 +457,10 @@ view is shareable and bookmarkable, and the back button behaves. Selected
 filters are repeated as chips with a remove link each. On a phone the filters
 sit in a `<details>` disclosure. Filtered and sorted permutations are
 `noindex`, and their canonical tag points at the clean first page. Page two
-and later of the clean listing are `noindex, follow` too, but canonical to
-themselves and titled „— страница 2“: they are where a crawler finds the
-products page one has no room for (`lib/seo/pagination.ts`).
+and later of the clean listing are `index, follow` (since 20 October 2026;
+`noindex, follow` before), canonical to themselves and titled „— страница 2“:
+they are where a crawler finds the products page one has no room for. A page
+number past the last is a 404 (`lib/seo/pagination.ts`).
 
 ## Product availability and removal
 

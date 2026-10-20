@@ -9,7 +9,7 @@ import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { siteConfig } from "@/config/site";
 import { MACHINE_BRANDS } from "@/content/machines";
 import type { Locale } from "@/i18n/config";
-import { pluralize } from "@/lib/catalog/format";
+import { pluralize, toPriceView } from "@/lib/catalog/format";
 import { getLanding, type LandingGroupView, type LandingView } from "@/lib/catalog/landing-queries";
 import { LANDING_PATHS, type LandingId } from "@/lib/catalog/landings";
 import { getArticle } from "@/lib/journal";
@@ -93,7 +93,14 @@ function machineBrandNames(system: BrewingSystem): readonly string[] {
 
 /** The sentence under a group's heading: what the group is, or how it was chosen. */
 function groupNote(id: LandingId, group: LandingGroupView): string {
-  if (id === "cheapest") return cheapestGroupNote(group.products.length, group.poolSize);
+  if (id === "cheapest") {
+    // The group is cheapest per cup first, so its first card holds the lowest.
+    const perKg = toPriceView(group.lowestPerKg, siteConfig.currency);
+    return cheapestGroupNote(group.products.length, group.poolSize, {
+      perCup: group.products[0]?.servingPrice?.formatted ?? null,
+      perKg: perKg ? `${perKg.formatted} за кг` : null,
+    });
+  }
   if (id === "lavazzaCapsules" && group.system.method === "capsule") {
     const machines = machineBrandsSentence(machineBrandNames(group.system));
     return [group.system.summary, machines].filter(Boolean).join(" ");

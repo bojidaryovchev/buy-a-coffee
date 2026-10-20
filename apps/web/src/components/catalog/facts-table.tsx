@@ -55,7 +55,11 @@ const text = (value: string | null | undefined): string | null => value?.trim() 
  * The rows that have something to say, in the table's order. Exported for the
  * page, which leaves the whole section out when there are none.
  */
-export function factRows(product: FactsTableProduct, locale: Locale): readonly FactRow[] {
+export function factRows(
+  product: FactsTableProduct,
+  locale: Locale,
+  brandFormat: { readonly href: string; readonly label: string } | null = null,
+): readonly FactRow[] {
   const rows: Array<FactRow | null> = [];
   const attributes = product.attributes ?? {};
 
@@ -206,11 +210,38 @@ export function factRows(product: FactsTableProduct, locale: Locale): readonly F
       : null,
   );
 
+  /* The brand × format page the product is listed on, after its categories:
+     „Капсули Lavazza“, „Кафе на зърна Lavazza“ (`brandFormatLink`). */
+  rows.push(
+    brandFormat
+      ? {
+          key: "brand-format",
+          label: "Още от марката",
+          value: (
+            <Link
+              href={brandFormat.href}
+              className="py-3.5 text-pine-700 underline underline-offset-2 hover:no-underline"
+            >
+              {brandFormat.label}
+            </Link>
+          ),
+        }
+      : null,
+  );
+
   return rows.filter((row): row is FactRow => row !== null);
 }
 
-export function FactsTable({ product, locale }: { product: FactsTableProduct; locale: Locale }) {
-  const rows = factRows(product, locale);
+export function FactsTable({
+  product,
+  locale,
+  brandFormat = null,
+}: {
+  product: FactsTableProduct;
+  locale: Locale;
+  brandFormat?: { readonly href: string; readonly label: string } | null;
+}) {
+  const rows = factRows(product, locale, brandFormat);
   if (rows.length === 0) return null;
 
   return (

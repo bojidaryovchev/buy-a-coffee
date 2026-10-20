@@ -833,10 +833,12 @@ outside the study's subject. What was fixed, and where:
   listing's `lastmod` is the newest change among its products, a legal page's
   the day its text changed (`apps/web/src/content/legal-revisions.ts`), and the
   pages nothing dates carry none rather than the time of generation.
-- **Pagination.** Page two and later of a clean listing are `noindex, follow`,
-  canonical to themselves rather than to page one, and titled „— страница 2“;
-  a filtered or sorted view still names the clean first page
-  (`apps/web/src/lib/seo/pagination.ts`).
+- **Pagination.** Page two and later of a clean listing are `index, follow`
+  (they were `noindex, follow` until 20 October 2026, which left five products
+  linked from no indexable page), canonical to themselves rather than to page
+  one, and titled „— страница 2“; a filtered or sorted view is `noindex` and
+  still names the clean first page, and a page number past the last is a 404
+  (`apps/web/src/lib/seo/pagination.ts`, `e2e/link-graph.spec.ts`).
 - **Meta descriptions** of the contact, legal and journal pages, written for a
   result (`apps/web/src/lib/seo/page-meta.ts`); shorter meta descriptions for
   the articles whose lead runs past 160.
@@ -867,8 +869,13 @@ outside the study's subject. What was fixed, and where:
   §2.2 ranks its parts: the word „капсули“ (the system's name implies it), then
   the size, then everything after brand and line (`productTitleWords`). The
   machine pages end „— какво пасва“ instead of „— кой модел какво приема“, and
-  the Tchibo page reads „Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly“:
-  the study's 72-character title would have been cut in every result.
+  the Tchibo page reads „Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly“:
+  the study's 72-character title would have been cut in every result. (It read
+  „— пасват Caffitaly“ until 20 October 2026; Tchibo tells owners to use its own
+  capsules, so the fit is now stated as one of format.) The K-fee page is the
+  one machine page without „— какво пасва“: K-fee is its own capsule system and
+  nothing here fits it, so it reads „Кафемашини K-fee — собствена система
+  капсули, не Caffitaly“.
   `test/metadata-quality.test.ts` and `e2e/seo-audit.spec.ts` hold every
   template and every URL in the sitemap to it.
 - **A description carries the callback only while it fits 160 characters.**

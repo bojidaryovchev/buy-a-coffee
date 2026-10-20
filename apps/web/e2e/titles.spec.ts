@@ -33,13 +33,14 @@ const LISTINGS: ReadonlyArray<{
   {
     path: "/bg/dolce-gusto-kapsuli",
     title: "Капсули за Dolce Gusto (Долче Густо) — цена на чаша",
-    h1: "Капсули за Dolce Gusto",
+    // Milestone 1, stage one: the Cyrillic beside the Latin.
+    h1: "Капсули за Dolce Gusto (Долче Густо)",
     trail: ["Начало", "Кафе капсули", "Капсули за Dolce Gusto"],
   },
   {
     path: BG.nespresso,
     title: "Капсули за Nespresso (Неспресо) — цена на чаша",
-    h1: "Капсули, съвместими с Nespresso",
+    h1: "Капсули, съвместими с Nespresso (Неспресо)",
     trail: ["Начало", "Кафе капсули", "Капсули за Nespresso"],
   },
   {

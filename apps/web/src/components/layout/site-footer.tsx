@@ -10,7 +10,8 @@ import { fill } from "@/i18n/fill";
 import { openingHoursLabel } from "@/i18n/hours";
 import { getLandingAvailability } from "@/lib/catalog/landing-queries";
 import { LANDING_PATHS, NO_LANDINGS, type LandingAvailability } from "@/lib/catalog/landings";
-import { href } from "@/lib/routes";
+import { TCHIBO_PAIR } from "@/lib/catalog/related-landings";
+import { href, routes } from "@/lib/routes";
 
 /*
  * Below `lg` a footer link is a 44 px row, a target a finger can hit; from
@@ -194,15 +195,32 @@ export function SiteFooterView({
                 {footer.cheapestPerCup}
               </FooterLink>
             )}
+            {landings.counts.lavazzaCapsules > 0 && (
+              <FooterLink href={href(locale, LANDING_PATHS.lavazzaCapsules)}>
+                {footer.lavazzaCapsules}
+              </FooterLink>
+            )}
+            {landings.counts.lavazzaBeans > 0 && (
+              <FooterLink href={href(locale, LANDING_PATHS.lavazzaBeans)}>
+                {footer.lavazzaBeans}
+              </FooterLink>
+            )}
+            {/* A machine page, there whatever the catalog holds. */}
+            <FooterLink href={href(locale, routes.machineBrand(TCHIBO_PAIR.machineBrand))}>
+              {footer.tchibo}
+            </FooterLink>
             {navigation.otherCategories.map((category) => (
               <FooterLink key={category.href} href={category.href}>
                 {category.label}
               </FooterLink>
             ))}
             <FooterLink href={navigation.vending.href}>{navigation.vending.label}</FooterLink>
-            <FooterLink href={navigation.consumables.href}>
-              {navigation.consumables.label}
-            </FooterLink>
+            {/* Only while it lists something, as the sitemap lists it. */}
+            {navigation.hasConsumables && (
+              <FooterLink href={navigation.consumables.href}>
+                {navigation.consumables.label}
+              </FooterLink>
+            )}
             <FooterLink href={links.brands.href}>{links.brands.label}</FooterLink>
             {navigation.hasPromotions && (
               <FooterLink href={links.promotions.href}>{links.promotions.label}</FooterLink>

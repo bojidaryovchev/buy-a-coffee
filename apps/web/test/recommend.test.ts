@@ -121,6 +121,21 @@ describe("parseWizardAnswers", () => {
     expect(answers.requirements).toEqual([]);
   });
 
+  it("drops a machine and a system that contradict each other", () => {
+    // A Dolce Gusto NEO takes no classic capsule, whatever the link says.
+    const neo = parseWizardAnswers({
+      machine: "krups-neo",
+      system: "dolce-gusto",
+      brew: "capsule",
+    });
+    expect(neo.machine).toBeNull();
+    expect(neo.system).toBeNull();
+    expect(neo.brew).toBe("capsule");
+    const genio = parseWizardAnswers({ machine: "krups-genio-s", system: "dolce-gusto" });
+    expect(genio.machine).toBe("krups-genio-s");
+    expect(genio.system).toBe("dolce-gusto");
+  });
+
   it("rejects a machine slug that is not slug-shaped", () => {
     expect(parseWizardAnswers({ machine: "../../etc/passwd" }).machine).toBeNull();
     expect(parseWizardAnswers({ machine: "krups-genio-s" }).machine).toBe("krups-genio-s");
@@ -312,6 +327,67 @@ describe("machine database", () => {
     const cafissimo = getMachineModel("tchibo-cafissimo-classic");
     expect(cafissimo?.model.system).toBe("caffitaly");
     expect(cafissimo?.model.crossFormat).toBe(true);
+  });
+
+  /* The makers' own statements (research 08 §1): NEO takes only NEO pods;
+     K-fee takes K-fee and EXPRESSI capsules, and Caffitaly capsules are for
+     Caffitaly System machines only; Vertuo takes only Vertuo; Qbo only Qbo;
+     Lavazza's office systems are separate from Blue. */
+  it("never maps a Dolce Gusto NEO to the classic capsule", () => {
+    const neo = allMachineModels().filter(({ model }) => /\bneo\b/i.test(model.name));
+    expect(neo.map(({ model }) => model.slug).sort()).toEqual([
+      "delonghi-neo",
+      "krups-neo",
+      "krups-neo-latte",
+    ]);
+    for (const { model } of neo) expect(model.system, model.slug).toBe("dolce-gusto-neo");
+    expect(isSupportedSystem("dolce-gusto-neo")).toBe(false);
+  });
+
+  it("never maps K-fee to Caffitaly, and names K-fee's current range", () => {
+    const kfee = MACHINE_BRANDS.find((brand) => brand.slug === "k-fee")!;
+    expect(kfee.models.map((model) => model.name)).toEqual([
+      "ONE",
+      "SQUARE",
+      "TWINS II",
+      "LATTENSIA+",
+    ]);
+    for (const model of kfee.models) {
+      expect(model.system, model.slug).toBe("k-fee");
+      expect(model.crossFormat, model.slug).toBeUndefined();
+    }
+    const caffitaly = allMachineModels().filter(({ model }) => model.system === "caffitaly");
+    expect(new Set(caffitaly.map(({ brand }) => brand.slug))).toEqual(
+      new Set(["caffitaly", "tchibo"]),
+    );
+  });
+
+  it("keeps Vertuo, Qbo and Lavazza's other office systems apart from what we stock", () => {
+    for (const { model } of allMachineModels()) {
+      if (/vertuo/i.test(model.name)) expect(model.system, model.slug).toBe("nespresso-vertuo");
+      if (/qbo/i.test(model.name)) expect(model.system, model.slug).toBe("tchibo-qbo");
+      if (/espresso point/i.test(model.name))
+        expect(model.system, model.slug).toBe("lavazza-espresso-point");
+      if (/firma/i.test(model.name)) expect(model.system, model.slug).toBe("lavazza-firma");
+      if (/^caffitaly-(professional|coffee-for-you)$/.test(model.slug))
+        expect(model.system, model.slug).toBe("caffitaly-professional");
+    }
+    for (const brand of ["krups", "delonghi"]) {
+      const models = MACHINE_BRANDS.find((entry) => entry.slug === brand)!.models;
+      expect(
+        models.some((model) => model.system === "nespresso-vertuo"),
+        brand,
+      ).toBe(true);
+    }
+  });
+
+  it("names no copy of ours K-fee as Caffitaly-format", () => {
+    const caffitaly = getBrewingSystem("caffitaly")!;
+    expect(caffitaly.summary).not.toMatch(/K-fee/);
+    for (const brand of MACHINE_BRANDS) {
+      if (brand.slug !== "k-fee")
+        expect(brand.summary, brand.slug).not.toMatch(/K-fee.*Caffitaly|Caffitaly.*K-fee/);
+    }
   });
 });
 

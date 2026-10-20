@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { joinList } from "@/components/commerce/terms";
 import { ChipLink } from "@/components/ui/primitives";
+import { CROSS_FORMAT_CAVEAT } from "@/content/machines";
 import { compatibleMachines } from "@/lib/catalog/product-facts";
 import type { BrewingSystem } from "@/lib/recommend/systems";
 import type { Locale } from "@/i18n/config";
@@ -55,8 +56,8 @@ export function ProductCompatibility({
       */}
       {machines.crossFormatBrands.length > 0 && (
         <p className="mt-4 max-w-(--container-measure) text-sm text-ink-700">
-          Машините {joinList(machines.crossFormatBrands)} приемат същия формат капсула. Капсулите не
-          са произведени от производителя на машината, а са съвместими по размер и форма.
+          Машините {joinList(machines.crossFormatBrands)} приемат същия формат капсула.{" "}
+          {CROSS_FORMAT_CAVEAT}
         </p>
       )}
 

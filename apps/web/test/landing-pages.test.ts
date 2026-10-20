@@ -105,6 +105,7 @@ const TWO_GROUPS: LandingView = {
       key: "lavazza-blue",
       system: system("lavazza-blue"),
       poolSize: 7,
+      lowestPerKg: null,
       products: [
         product("blue-a", "lavazza-blue", "0,33"),
         product("blue-b", "lavazza-blue", "0,34"),
@@ -114,6 +115,7 @@ const TWO_GROUPS: LandingView = {
       key: "nespresso-original",
       system: system("nespresso-original"),
       poolSize: 36,
+      lowestPerKg: null,
       products: [product("nes-a", "nespresso-original", "0,48")],
     },
   ],
@@ -212,8 +214,15 @@ describe("a landing listing with products", () => {
 
   it("says on the cheapest page how each group was chosen, and links the explanation", async () => {
     const markup = html(await LandingPage({ locale: "bg", id: "cheapest" }));
-    expect(markup).toContain("2 продукта с най-ниска цена на чаша от общо 7 в тази система.");
-    expect(markup).toContain("1 продукт с най-ниска цена на чаша от общо 36 в тази система.");
+    expect(markup).toContain(
+      "Най-ниската цена: 0,33 € на чаша. 2 продукта с най-ниска цена на чаша от общо 7 в тази система.",
+    );
+    expect(markup).toContain(
+      "Най-ниската цена: 0,48 € на чаша. 1 продукт с най-ниска цена на чаша от общо 36 в тази система.",
+    );
+    // Its headings in the searched words, the Cyrillic beside the Latin where it is typed.
+    expect(markup).toMatch(/<h2[^>]*>Най-евтини капсули за Lavazza Blue<\/h2>/);
+    expect(markup).toMatch(/<h2[^>]*>Най-евтини капсули за Nespresso \(Неспресо\)<\/h2>/);
     expect(markup).toContain('href="/bg/blog/');
     // The one article this listing links (§13.4), under the article's own title.
     expect(markup).toMatch(
@@ -229,6 +238,7 @@ describe("a landing listing with products", () => {
           key: "beans",
           system: system("beans"),
           poolSize: 1,
+          lowestPerKg: null,
           products: [product("b", "beans", "0,14")],
         },
       ],
@@ -280,7 +290,7 @@ describe("the machine-brand pages", () => {
     state.systemListing = { ...TWO_GROUPS, groups: [TWO_GROUPS.groups[0]!], count: 2 };
     const tchibo = await machineMetadata(params("tchibo"));
     expect(tchibo.title).toEqual({
-      absolute: "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
+      absolute: "Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly",
     });
     expect(tchibo.description).toMatch(
       /2 вида капсули Caffitaly\. От 0,33\s€ до 0,48\s€ на чаша\./,
@@ -303,6 +313,7 @@ describe("the machine-brand pages", () => {
           key: "caffitaly",
           system: system("caffitaly"),
           poolSize: 2,
+          lowestPerKg: null,
           products: [product("caf-a", "caffitaly", "0,54"), product("caf-b", "caffitaly", "0,60")],
         },
       ],
@@ -312,7 +323,14 @@ describe("the machine-brand pages", () => {
     const markup = html(await MachineBrandPage(params("tchibo")));
 
     expect(markup).toMatch(/<h1[^>]*>Капсули за Tchibo Cafissimo<\/h1>/);
-    expect(markup).toContain("капсулите Caffitaly работят в тях");
+    expect(markup).toContain("капсулите Caffitaly пасват в тях по размер и форма");
+    // With Tchibo's own caveat, in the summary and beside the models.
+    expect(markup).toContain(
+      "Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули",
+    );
+    expect(markup).toContain(
+      "Производителят на машината посочва, че в нея трябва да се използват само неговите капсули",
+    );
     expect(markup).toContain('data-related="{&quot;machineBrand&quot;:&quot;tchibo&quot;}"');
     expect(markup).toContain('href="/bg/caf-a"');
     expect(markup).toContain('href="/bg/caf-b"');
@@ -400,13 +418,13 @@ describe("the consumables page", () => {
     expect(sorted.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi"));
   });
 
-  /* Page two is not indexed, but it is a page of its own: its own canonical,
-     its own title. Naming page one while asking not to be indexed mixed two
-     signals (`lib/seo/pagination.ts`). */
+  /* Page two is a page of its own: its own canonical, its own title, and
+     indexed, since it is the only page linking what page one has no room for
+     (`lib/seo/pagination.ts`). */
   it("names page two as itself, under a title that says which page it is", async () => {
     state.consumablesListed = true;
     const second = await consumablesMetadata(props({ page: "2" }));
-    expect(second.robots).toEqual({ index: false, follow: true });
+    expect(second.robots).toEqual(INDEXABLE);
     expect(second.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi?page=2"));
     expect(second.alternates?.languages).toEqual({
       bg: absoluteUrl("/bg/konsumativi?page=2"),

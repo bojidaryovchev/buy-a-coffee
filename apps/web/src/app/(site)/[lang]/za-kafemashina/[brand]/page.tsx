@@ -8,7 +8,12 @@ import { WizardNotice } from "@/components/wizard/wizard-ui";
 import { CapsuleDiagram } from "@/components/wizard/capsule-diagrams";
 import { JsonLd } from "@/components/seo/json-ld";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
-import { MACHINE_BRANDS, getMachineBrand, type MachineModel } from "@/content/machines";
+import {
+  CROSS_FORMAT_CAVEAT,
+  MACHINE_BRANDS,
+  getMachineBrand,
+  type MachineModel,
+} from "@/content/machines";
 import { getSystemListing, type LandingView } from "@/lib/catalog/landing-queries";
 import { getSystemAvailability } from "@/lib/catalog/queries";
 import { getBrewingSystem, getUnsupportedSystem, isSupportedSystem } from "@/lib/recommend/systems";
@@ -224,8 +229,7 @@ export default async function MachineBrandPage({ params }: PageProps) {
 
               {models.some((model) => model.crossFormat) && (
                 <p className="mb-4 max-w-prose text-sm text-ink-500">
-                  Тези машини приемат същия формат капсула. Капсулите не са произведени от
-                  производителя на машината, а са съвместими по размер и форма.
+                  Тези машини приемат същия формат капсула. {CROSS_FORMAT_CAVEAT}
                 </p>
               )}
 

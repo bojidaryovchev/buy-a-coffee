@@ -19,7 +19,11 @@ import {
   selectSystem,
   type LandingRow,
 } from "@/lib/catalog/landings";
-import { relatedLandingLinks, type RelatedLink } from "@/lib/catalog/related-landings";
+import {
+  brandFormatLink,
+  relatedLandingLinks,
+  type RelatedLink,
+} from "@/lib/catalog/related-landings";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
 import { href, isReservedSlug } from "@/lib/routes";
 import { DESCRIPTION_LIMIT } from "@/lib/seo/description";
@@ -30,6 +34,7 @@ import {
   landingCopy,
   machineBrandCopy,
   machineBrandFeatures,
+  machineOwnSystemCopy,
   relatedCopy,
   type LandingFacts,
 } from "../content/landing-copy";
@@ -589,9 +594,13 @@ describe("the copy", () => {
 
   it("titles the machine pages: Tchibo for Cafissimo, the rest generically", () => {
     expect(machineBrandFeatures.tchibo?.title).toBe(
-      "Капсули за Tchibo Cafissimo (Чибо) — пасват Caffitaly",
+      "Капсули за Tchibo Cafissimo (Чибо) — формат Caffitaly",
     );
     expect(machineBrandFeatures.tchibo?.h1).toBe("Капсули за Tchibo Cafissimo");
+    // K-fee is its own system: nothing here fits it, and the title says so.
+    expect(machineOwnSystemCopy["k-fee"]?.title).toBe(
+      "Кафемашини K-fee — собствена система капсули, не Caffitaly",
+    );
     expect(machineBrandCopy.title("Krups", true)).toBe(
       "Капсули и кафе за кафемашини Krups — какво пасва",
     );
@@ -615,5 +624,34 @@ describe("the copy", () => {
     ]) {
       expect(title).not.toMatch(/без кофеин|безкофеин/i);
     }
+  });
+});
+
+describe("the brand × format link on a product page", () => {
+  const available = landingAvailability(CATALOG);
+  const members = available.members!;
+
+  it("names the Lavazza capsules page for a product it lists, at the product's system", () => {
+    const id = members.lavazzaCapsules[0]!;
+    const system = available.groups.lavazzaCapsules[0]!;
+    const link = brandFormatLink("bg", { id, systemId: system }, available);
+    expect(link?.label).toBe("Капсули Lavazza");
+    expect(link?.href).toBe(`/bg/lavazza-kapsuli#${system}`);
+  });
+
+  it("names the Lavazza beans page for a bag it lists", () => {
+    const id = members.lavazzaBeans[0]!;
+    const link = brandFormatLink("bg", { id, systemId: "beans" }, available);
+    expect(link).toEqual({
+      key: "lavazzaBeans",
+      href: "/bg/kafe-na-zarna-lavazza",
+      label: "Кафе на зърна Lavazza",
+    });
+  });
+
+  it("is nothing for a product neither page lists", () => {
+    expect(
+      brandFormatLink("bg", { id: "not-a-lavazza", systemId: "dolce-gusto" }, available),
+    ).toBeNull();
   });
 });

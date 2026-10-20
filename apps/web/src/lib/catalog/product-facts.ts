@@ -1,5 +1,5 @@
 import { MACHINE_BRANDS } from "@/content/machines";
-import { getBrewingSystem, type BrewingSystem } from "@/lib/recommend/systems";
+import { fitsSentence, getBrewingSystem, type BrewingSystem } from "@/lib/recommend/systems";
 import type { Locale } from "@/i18n/config";
 import { categoryHref, routes, type CategoryKeys } from "@/lib/routes";
 
@@ -105,7 +105,7 @@ export function compatibilityLine(system: BrewingSystem | null | undefined): str
   if (!system || system.method === "beans") return null;
   // "Машини Дози ESE" is not Bulgarian; a pod fits a machine by its filter.
   if (system.method === "pod") return "Става за еспресо машини с цедка за дози ESE.";
-  return `Става за машини ${system.name}.`;
+  return fitsSentence(system);
 }
 
 export interface CompatibleMachine {
@@ -136,7 +136,7 @@ export const COMPATIBLE_MACHINE_LIMIT = 12;
  * A model appears only because the hand-written machine database says it takes
  * this system. The list is capped; which models make the cut is decided by
  * taking one from each brand in turn, in the order the database is written, so
- * a system shared by several brands (Caffitaly, Tchibo, K-fee) shows all of
+ * a system shared by several brands (Caffitaly and Tchibo) shows all of
  * them instead of twelve models of the first.
  */
 export function compatibleMachines(

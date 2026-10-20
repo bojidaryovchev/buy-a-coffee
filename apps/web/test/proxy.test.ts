@@ -30,7 +30,16 @@ vi.mock("@/lib/catalog/slug-exists", () => ({
 
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { NOT_FOUND, catalogLookup, config, isUntouched, proxy } from "@/proxy";
+import {
+  NOT_FOUND,
+  SEGMENTS_WITHOUT_A_PAGE,
+  PRODUCTION_HOST,
+  canonicalHostRedirect,
+  catalogLookup,
+  config,
+  isUntouched,
+  proxy,
+} from "@/proxy";
 
 beforeEach(() => {
   catalog.slugs = new Set([
@@ -62,9 +71,12 @@ const rewrittenTo = (response: Response) => {
 };
 
 describe("the bare /", () => {
-  it("goes to Bulgarian, temporarily, varying on Accept-Language only", async () => {
+  /* Permanent while one locale ships: everyone gets the same answer, and a 307
+     left `/` standing as a second home page. A second locale makes it
+     per-visitor, and temporary again. */
+  it("goes to Bulgarian, permanently while it is the only locale, varying on Accept-Language", async () => {
     const response = await proxy(request("/"));
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(308);
     expect(location(response)).toBe("/bg");
     expect(response.headers.get("vary")).toBe("Accept-Language");
   });
@@ -103,6 +115,129 @@ describe("a path under a locale", () => {
     expect(passesThrough(await proxy(request("/bg/marki", { "accept-language": "en-US" })))).toBe(
       true,
     );
+  });
+
+  /* `/bg/byuletin` only parents the unsubscribe page; left to the route tree it
+     was Next's bare error document, with two contradictory robots tags. */
+  it("is the global 404 where a static segment has no page, only children", async () => {
+    expect(rewrittenTo(await proxy(request("/bg/byuletin")))).toBe(NOT_FOUND);
+    expect(passesThrough(await proxy(request("/bg/byuletin/otpisvane?token=abc")))).toBe(true);
+  });
+
+  it("names exactly the static folders under [lang] that have no page", () => {
+    const lang = path.resolve(import.meta.dirname, "../src/app/(site)/[lang]");
+    const withoutPage = readdirSync(lang, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !/^[_[(@]/.test(entry.name))
+      .filter(
+        (entry) => !readdirSync(path.join(lang, entry.name)).some((n) => /^page.tsx?$/.test(n)),
+      )
+      .map((entry) => entry.name);
+    expect(withoutPage.sort()).toEqual([...SEGMENTS_WITHOUT_A_PAGE].sort());
+  });
+});
+
+describe("a host that is not the canonical one", () => {
+  const SITE = "https://buy-a-coffee.com";
+  const PRODUCTION = { VERCEL_ENV: "production", VERCEL_URL: "web-abc123-team.vercel.app" };
+  const on = (host: string, path = "/bg/kafe-kapsuli?page=2") =>
+    new NextRequest(new URL(path, `https://${host}`), { headers: { host } });
+
+  it("answers 308 to the same path and query on the canonical host, on production", () => {
+    for (const host of ["web-phi-eight-24.vercel.app", "www.buy-a-coffee.com"]) {
+      const response = canonicalHostRedirect(on(host), PRODUCTION, SITE);
+      expect(response?.status, host).toBe(308);
+      expect(response?.headers.get("location"), host).toBe(`${SITE}/bg/kafe-kapsuli?page=2`);
+      // New, so cached for an hour rather than for ever.
+      expect(response?.headers.get("cache-control"), host).toBe("public, max-age=3600");
+    }
+    for (const file of ["/robots.txt", "/sitemap.xml", "/llms.txt"]) {
+      const response = canonicalHostRedirect(
+        on("web-phi-eight-24.vercel.app", file),
+        PRODUCTION,
+        SITE,
+      );
+      expect(response?.headers.get("location"), file).toBe(`${SITE}${file}`);
+    }
+  });
+
+  it("leaves the canonical host alone, and sends a deployment's own URL there too", () => {
+    expect(canonicalHostRedirect(on("buy-a-coffee.com"), PRODUCTION, SITE)).toBeNull();
+    expect(canonicalHostRedirect(on("Buy-A-Coffee.com"), PRODUCTION, SITE)).toBeNull();
+    expect(canonicalHostRedirect(on("web-abc123-team.vercel.app"), PRODUCTION, SITE)?.status).toBe(
+      308,
+    );
+  });
+
+  it("keeps a path that looks like a host a path on the canonical host", () => {
+    const response = canonicalHostRedirect(
+      on("web-phi-eight-24.vercel.app", "//evil.example/x?y=1"),
+      PRODUCTION,
+      SITE,
+    );
+    expect(new URL(response!.headers.get("location")!).host).toBe(PRODUCTION_HOST);
+  });
+
+  it("never redirects a request to the machine itself, production env or not", () => {
+    for (const host of ["localhost:3000", "127.0.0.1:8765", "[::1]:3000"]) {
+      expect(canonicalHostRedirect(on(host), PRODUCTION, SITE), host).toBeNull();
+    }
+  });
+
+  it("is the host env.schema.mjs commits as production's site address", async () => {
+    const { vars } = (await import("../env.schema.mjs")) as {
+      vars: ReadonlyArray<{ name: string; value?: string }>;
+    };
+    const entry = vars.find((variable) => variable.name === "NEXT_PUBLIC_SITE_URL");
+    expect(new URL(entry!.value!).host).toBe(PRODUCTION_HOST);
+    expect(SITE).toBe(`https://${PRODUCTION_HOST}`);
+  });
+
+  it("never redirects outside production: previews, local builds, development", () => {
+    for (const env of [
+      { VERCEL_ENV: "preview", VERCEL_URL: "web-git-x-team.vercel.app" },
+      { VERCEL_ENV: "development" },
+      {},
+    ]) {
+      for (const host of ["web-git-x-team.vercel.app", "127.0.0.1:8765", "localhost:3000"]) {
+        expect(
+          canonicalHostRedirect(on(host), env, SITE),
+          `${host} ${JSON.stringify(env)}`,
+        ).toBeNull();
+      }
+    }
+  });
+
+  /* A wrong address redirects nothing, rather than every visitor somewhere
+     wrong under a cached 308. */
+  it("never sends production anywhere but the production domain", () => {
+    for (const site of [
+      "http://localhost:3000",
+      "http://127.0.0.1:8765",
+      "http://[::1]:3000",
+      "not a url",
+      "https://web-phi-eight-24.vercel.app",
+      "https://www.buy-a-coffee.com",
+      "https://buy-a-cofee.com",
+      "http://buy-a-coffee.com",
+    ]) {
+      expect(
+        canonicalHostRedirect(on("web-phi-eight-24.vercel.app"), PRODUCTION, site),
+        site,
+      ).toBeNull();
+    }
+  });
+
+  it("is a request without a host left alone", () => {
+    const bare = new NextRequest(new URL("/bg", SITE));
+    expect(canonicalHostRedirect(bare, PRODUCTION, SITE)).toBeNull();
+  });
+
+  /* What this process has: no VERCEL_ENV, so the proxy itself never redirects
+     on host — the local build and the e2e run on 127.0.0.1 rely on it. */
+  it("does nothing in the proxy here, where VERCEL_ENV is not production", async () => {
+    expect(process.env.VERCEL_ENV).not.toBe("production");
+    const response = await proxy(on("web-phi-eight-24.vercel.app", "/bg/kafe-kapsuli"));
+    expect(passesThrough(response)).toBe(true);
   });
 });
 
@@ -180,6 +315,8 @@ describe("the pre-locale URLs", () => {
       "/wizard/result?brew=capsule&system=dolce-gusto",
       "/bg/izbor-na-kafe/rezultat?brew=capsule&system=dolce-gusto",
     ],
+    // Without answers the result page would only send it on to the wizard.
+    ["/wizard/result", "/bg/izbor-na-kafe"],
     ["/newsletter/unsubscribe?token=abc", "/bg/byuletin/otpisvane?token=abc"],
   ])("%s answers 308 to %s, query kept", async (from, target) => {
     const response = await proxy(request(from));
@@ -270,14 +407,14 @@ describe("everything else", () => {
 });
 
 describe("what it never touches", () => {
+  /* Matched only so a non-canonical production host can redirect them; passed
+     through untouched everywhere else. */
+  const crawlerFiles = ["/sitemap.xml", "/robots.txt", "/llms.txt"];
   const untouched = [
     "/admin",
     "/admin/zayavki",
     "/api/search/suggest",
     "/media/catalog/a.jpg",
-    "/sitemap.xml",
-    "/robots.txt",
-    "/llms.txt",
     "/opengraph-image",
     "/bg/kafe-kapsuli/opengraph-image-1x2y3z/card-0f3a9c27b1d4",
     "/bg/marki/lavazza/opengraph-image-1x2y3z/card-0f3a9c27b1d4",
@@ -290,7 +427,7 @@ describe("what it never touches", () => {
     "/_not-found",
   ];
 
-  it.each(untouched)("%s", async (path) => {
+  it.each([...untouched, ...crawlerFiles])("%s", async (path) => {
     expect(isUntouched(path)).toBe(true);
     expect(passesThrough(await proxy(request(path)))).toBe(true);
   });
@@ -303,6 +440,7 @@ describe("what it never touches", () => {
     const matches = (url: string) => unstable_doesMiddlewareMatch({ config, url });
     for (const path of untouched) expect(matches(path), path).toBe(false);
     for (const path of [
+      ...crawlerFiles,
       "/",
       "/bg",
       "/bg/marki",

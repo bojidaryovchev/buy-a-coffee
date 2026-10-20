@@ -122,6 +122,62 @@ test.describe("every URL in the sitemap", () => {
   });
 });
 
+/*
+ * Google reads a canonical from `<head>` alone. Next streams the metadata of a
+ * dynamically rendered page after `</head>` unless the user agent is on the
+ * `htmlLimitedBots` list (`next.config.ts`), and it did so for Googlebot on a
+ * slow `generateMetadata`, intermittently — so every URL is fetched as
+ * Googlebot, three times over.
+ */
+const GOOGLEBOT =
+  "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+
+async function metadataOutsideHead(request: APIRequestContext, url: string): Promise<string[]> {
+  const path = new URL(url).pathname;
+  const response = await request.get(path, {
+    maxRedirects: 0,
+    headers: { "user-agent": GOOGLEBOT },
+  });
+  const html = await response.text();
+  const headEnd = html.indexOf("</head>");
+  const problems: string[] = [];
+  for (const [name, pattern] of [
+    ["title", /<title>/],
+    ["canonical", /<link rel="canonical"/],
+    ["robots", /<meta name="robots"/],
+  ] as const) {
+    const at = pattern.exec(html)?.index;
+    if (at === undefined) problems.push(`no ${name}`);
+    else if (headEnd < 0 || at > headEnd) problems.push(`${name} after </head>`);
+  }
+  return problems.map((problem) => `${path}: ${problem}`);
+}
+
+test.describe("the metadata a crawler reads", () => {
+  test("is in <head> on every URL in the sitemap, for Googlebot, every time", async ({
+    request,
+  }) => {
+    test.setTimeout(900_000);
+    const urls = await sitemapUrls(request);
+    expect(urls.length).toBeGreaterThan(100);
+
+    const problems: string[] = [];
+    for (let pass = 1; pass <= 3; pass += 1) {
+      let next = 0;
+      await Promise.all(
+        Array.from({ length: 6 }, async () => {
+          while (next < urls.length) {
+            const url = urls[next++]!;
+            for (const problem of await metadataOutsideHead(request, url))
+              problems.push(`pass ${pass} ${problem}`);
+          }
+        }),
+      );
+    }
+    expect(problems, problems.join("\n")).toEqual([]);
+  });
+});
+
 test.describe("the sitemap", () => {
   test("lists a product's photographs, and a brand's logo where there is one", async ({
     request,

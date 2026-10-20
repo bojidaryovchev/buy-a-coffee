@@ -200,7 +200,11 @@ describe("compatibility", () => {
   it("names the system for every capsule system, and says nothing for beans", () => {
     for (const system of BREWING_SYSTEMS) {
       const line = compatibilityLine(system);
-      if (system.method === "capsule") expect(line).toBe(`Става за машини ${system.name}.`);
+      if (system.method === "capsule")
+        expect(line).toBe(`Става за ${system.fits ?? `машини ${system.name}`}.`);
+      // The Dolce Gusto name is on the NEO machines too, which take none of these.
+      if (system.id === "dolce-gusto")
+        expect(line).toBe("Става за класическите машини Dolce Gusto (не NEO).");
       if (system.method === "pod")
         expect(line).toBe("Става за еспресо машини с цедка за дози ESE.");
       if (system.method === "beans") expect(line).toBeNull();
@@ -235,7 +239,8 @@ describe("compatibility", () => {
     const caffitaly = compatibleMachines("caffitaly");
     expect(caffitaly.shown).toHaveLength(COMPATIBLE_MACHINE_LIMIT);
     expect(caffitaly.total).toBeGreaterThan(COMPATIBLE_MACHINE_LIMIT);
-    expect(caffitaly.crossFormatBrands).toEqual(["Tchibo", "K-fee"]);
+    // K-fee is its own system, not Caffitaly-format (research 08 §1.2).
+    expect(caffitaly.crossFormatBrands).toEqual(["Tchibo"]);
     expect(compatibleMachines("caffitaly", 3).shown).toHaveLength(3);
   });
 
@@ -250,7 +255,11 @@ describe("compatibility", () => {
     expect(markup).toContain("<h2");
     expect(markup).toContain("Става за тези машини");
     expect(markup).toContain(caffitaly.recognise);
-    expect(stripTags(markup)).toContain("Машините Tchibo и K-fee приемат същия формат капсула.");
+    expect(stripTags(markup)).toContain("Машините Tchibo приемат същия формат капсула.");
+    // With the maker's own caveat, not as a plain promise.
+    expect(stripTags(markup)).toContain(
+      "Производителят на машината посочва, че в нея трябва да се използват само неговите капсули",
+    );
     expect(markup).toContain('href="/bg/za-kafemashina"');
     expect(markup).toContain('href="/bg/za-kafemashina/tchibo"');
     expect(stripTags(markup)).toMatch(/Показани са 12 от \d+ модела\./);

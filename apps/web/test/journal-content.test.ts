@@ -657,10 +657,17 @@ describe("journal: typed claims still match the data", () => {
     expect(STRENGTH_ORDER).toHaveLength(3);
   });
 
-  it("Krups makes machines for exactly three systems", () => {
+  // „Dolce Gusto и Dolce Gusto NEO, Nespresso Original и Vertuo, и автоматични машини на зърна“.
+  it("Krups makes machines for exactly the five systems the article names", () => {
     const krups = MACHINE_BRANDS.find((brand) => brand.slug === "krups");
     expect(new Set(krups?.models.map((model) => model.system))).toEqual(
-      new Set(["dolce-gusto", "nespresso-original", "beans"]),
+      new Set([
+        "dolce-gusto",
+        "dolce-gusto-neo",
+        "nespresso-original",
+        "nespresso-vertuo",
+        "beans",
+      ]),
     );
   });
 
