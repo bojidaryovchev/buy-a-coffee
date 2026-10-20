@@ -14,10 +14,15 @@ import { LEGAL_REVISIONS } from "@/content/legal-revisions";
 import { MACHINE_BRANDS } from "@/content/machines";
 import { languageAlternates, type LocalePath } from "@/lib/seo/alternates";
 import { brandHref, categoryHref, href, productHref, routes } from "@/lib/routes";
-import { brandLogoFor } from "../../content/brand-logos";
+import { brandLogoFor } from "../../../content/brand-logos";
 
 /**
- * Sitemap.
+ * Sitemap: what `/sitemap.xml` lists.
+ *
+ * The entries only. `app/sitemap.xml/route.ts` serves them, as Next.js writes
+ * a generated sitemap's XML, and sets how long the CDN may keep the answer.
+ * This used to be `app/sitemap.ts`, the metadata file, and that one was never
+ * refreshed on Vercel: see the route for why.
  *
  * Built from the live catalog, so it can never list a product we no longer
  * sell — the opposite of the reference site, whose sitemap still advertises
@@ -60,7 +65,6 @@ import { brandLogoFor } from "../../content/brand-logos";
  * them are left out here, as they are left out of the menu, so the same shelf
  * is not advertised at two addresses.
  */
-export const revalidate = 3600;
 
 interface Page {
   readonly path: LocalePath;
@@ -99,7 +103,7 @@ function subtreeKeys(category: CategoryView): Set<string> {
 const filedUnder = (products: readonly SitemapProduct[], keys: ReadonlySet<string>) =>
   products.filter((product) => product.categoryKeys.some((key) => keys.has(key)));
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export async function sitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const [pagesOfProducts, categories, brands, consumablesListed, landings, promotionCount, blends] =
     await Promise.all([
       listSitemapProducts(),

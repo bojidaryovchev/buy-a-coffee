@@ -81,7 +81,7 @@ vi.mock("@/components/forms/newsletter-form", () => ({
   NewsletterForm: () => createElement("form", { "data-newsletter": "" }),
 }));
 
-import sitemap from "@/app/sitemap";
+import { sitemapEntries as sitemap } from "@/lib/seo/sitemap";
 import { GET as llmsRoute } from "@/app/llms.txt/route";
 import { deliveryTermLines, llmsText, type LlmsInput } from "@/app/llms.txt/body";
 import { AnnouncementBar, hasAnnouncement } from "@/components/commerce/announcement-bar";

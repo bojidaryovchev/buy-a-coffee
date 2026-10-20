@@ -205,6 +205,36 @@ test.describe("the sitemap", () => {
     // A real date is a past one; "now" would land inside this request.
     for (const date of dates) expect(date).toBeLessThan(before - 60_000);
   });
+
+  test("is drawn on request and kept by the CDN for an hour, ten minutes stale at most", async ({
+    request,
+  }) => {
+    const response = await request.get("/sitemap.xml");
+    expect(response.status()).toBe(200);
+    const headers = response.headers();
+    expect(headers["content-type"]).toBe("application/xml");
+    // What a browser or a crawler is told: ask again every time.
+    expect(headers["cache-control"]).toBe("public, max-age=0, must-revalidate");
+    // What the CDN is told (`lib/seo/sitemap-cache.ts`); `next start` has none to obey it.
+    expect(headers["cdn-cache-control"]).toBe("public, s-maxage=3600, stale-while-revalidate=600");
+    // The tag `revalidatePath("/sitemap.xml")` expires, so a revalidation reaches the CDN's copy.
+    expect(headers["vercel-cache-tag"]).toBe("_N_T_/sitemap.xml");
+    // Not a prerender: there is no build-time copy for the server to hand out.
+    expect(headers["x-nextjs-cache"]).toBeUndefined();
+
+    // The document Next.js writes for a sitemap, every address once and on one origin.
+    const xml = await response.text();
+    expect(xml).toMatch(
+      /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9" xmlns:image="http:\/\/www\.google\.com\/schemas\/sitemap-image\/1\.1" xmlns:xhtml="http:\/\/www\.w3\.org\/1999\/xhtml">\n/,
+    );
+    expect(xml.trimEnd().endsWith("</urlset>")).toBe(true);
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]!);
+    expect(new Set(locs).size).toBe(locs.length);
+    const origin = new URL(locs[0]!).origin;
+    for (const [, url] of xml.matchAll(/(?:<loc>|hreflang="[^"]+" href=")([^<"]+)/g)) {
+      expect(new URL(url!).origin, url).toBe(origin);
+    }
+  });
 });
 
 test.describe("share cards", () => {
