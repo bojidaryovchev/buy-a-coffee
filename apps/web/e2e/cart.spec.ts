@@ -89,6 +89,32 @@ test("a product page adds the chosen quantity, and „Поръчай“ then ope
   await expect(orderForm(page)).toBeVisible();
 });
 
+/*
+ * The header's cart link is on every page from the first paint, and the cart
+ * page's order form brings react-hook-form and zod: fetched for being on the
+ * screen, they came into every page as it loaded. It is fetched on intent
+ * instead (`components/cart/cart-link.tsx`), still ahead of the click.
+ */
+test("the header's cart is fetched ahead when a pointer comes to it, not for being on the screen", async ({
+  page,
+}) => {
+  const prefetched: string[] = [];
+  page.on("request", (request) => {
+    if (request.headers()["next-router-prefetch"]) prefetched.push(new URL(request.url()).pathname);
+  });
+  await page.goto(BG.delivery);
+  await waitForHydration(page);
+  await page.waitForLoadState("networkidle");
+  expect(prefetched).not.toContain(BG.cart);
+
+  const cart = page.locator("header").getByRole("link", { name: "Количка" });
+  await cart.hover();
+  await expect.poll(() => prefetched.includes(BG.cart)).toBe(true);
+  await cart.click();
+  await expect(page).toHaveURL(BG.cart);
+  await expect(page.getByRole("heading", { name: "Количката е празна" })).toBeVisible();
+});
+
 test("an empty cart says so and points back to the shelves", async ({ page }) => {
   await page.goto(BG.cart);
   await expect(page.getByRole("heading", { name: "Количката е празна" })).toBeVisible();
