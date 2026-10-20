@@ -10,8 +10,10 @@ import { BG } from "./support/paths";
  * The sitemap used to be the copy drawn at build: on Vercel it was deployed as
  * a static file and never redrawn (`app/sitemap.xml/route.ts` says why). It is
  * drawn on request now, so a product the sync adds, a change to it and its
- * removal are in the very next answer; `next start` has no CDN in front, and
- * the hour the CDN keeps a copy for is the one part this cannot show (see
+ * removal are in the answer after the sync tells the storefront
+ * (`POST /api/revalidate`), and within a minute without that (a draw is shared
+ * for a minute; `lib/seo/sitemap-copy.ts`). `next start` has no CDN in front,
+ * and the hour the CDN keeps a copy for is the one part this cannot show (see
  * `docs/architecture.md`, "Catalog freshness", for checking it on a preview).
  *
  * The listings are prerendered and kept for five minutes, so a product joining
@@ -30,7 +32,7 @@ import { BG } from "./support/paths";
 
 const SLUG_PREFIX = "e2e-karta-";
 /** As `playwright.config.ts` gives the server; not the secret of anything. */
-const CRON_SECRET = "e2e-only-cron-secret-not-a-real-one-0123456789";
+const REVALIDATE_SECRET = "e2e-only-revalidate-secret-not-a-real-one-0123456789";
 /** Its source's last change, then ours: what its `<lastmod>` should say. */
 const CHANGED = "2026-03-01T10:00:00.000Z";
 const REWRITTEN = "2026-04-02T09:30:00.000Z";
@@ -53,6 +55,15 @@ async function entryFor(request: APIRequestContext, path: string): Promise<strin
 }
 
 const linksTo = (html: string, path: string) => html.includes(`href="${path}"`);
+
+/** What the sync does after a run that changed these products: tell the storefront. */
+async function tellStorefront(request: APIRequestContext, slugs: readonly string[]) {
+  const response = await request.post("/api/revalidate", {
+    headers: { authorization: `Bearer ${REVALIDATE_SECRET}` },
+    data: { slugs },
+  });
+  expect(response.status()).toBe(200);
+}
 
 test.describe.configure({ mode: "serial" });
 
@@ -126,9 +137,10 @@ test.afterAll(async ({ playwright }, testInfo) => {
   }
 });
 
-test("a product added to the catalog is in the next sitemap, dated by its own change", async ({
+test("a product added to the catalog is in the sitemap once the storefront is told, dated by its own change", async ({
   request,
 }) => {
+  await tellStorefront(request, [slug]);
   const entry = await entryFor(request, `/bg/${slug}`);
   expect(entry, "the new product's entry").not.toBeNull();
   expect(entry).toContain(`<lastmod>${CHANGED}</lastmod>`);
@@ -140,9 +152,12 @@ test("a product added to the catalog is in the next sitemap, dated by its own ch
   expect([...entry!.matchAll(/<image:loc>/g)]).toHaveLength(photos);
 });
 
-test("a change to it moves its date in the next sitemap", async ({ request }) => {
+test("a change to it moves its date in the sitemap once the storefront is told", async ({
+  request,
+}) => {
   await database.sql`
     update products set copy_written_at = ${REWRITTEN}::timestamptz where slug = ${slug}`;
+  await tellStorefront(request, [slug]);
   const entry = await entryFor(request, `/bg/${slug}`);
   expect(entry).toContain(`<lastmod>${REWRITTEN}</lastmod>`);
 });
@@ -177,7 +192,7 @@ test("a cached listing it joins shows it only once POST /api/revalidate names th
   expect(linksTo(await (await request.get(LANDING)).text(), `/bg/${slug}`)).toBe(false);
 
   const response = await request.post("/api/revalidate", {
-    headers: { authorization: `Bearer ${CRON_SECRET}` },
+    headers: { authorization: `Bearer ${REVALIDATE_SECRET}` },
     data: { paths: [LANDING], slugs: [slug] },
   });
   expect(response.status()).toBe(200);
@@ -185,7 +200,7 @@ test("a cached listing it joins shows it only once POST /api/revalidate names th
     scope: null,
     routes: [],
     paths: [LANDING, `/bg/${slug}`],
-    sitemap: "/sitemap.xml",
+    files: ["/sitemap.xml"],
   });
 
   await expect(async () => {
@@ -193,19 +208,19 @@ test("a cached listing it joins shows it only once POST /api/revalidate names th
   }).toPass({ timeout: 15_000 });
 });
 
-test("the catalog scope refreshes every page route and the sitemap, and no self-timed one", async ({
+test("the catalog scope refreshes every page route, the sitemap and llms.txt, and no self-timed one", async ({
   request,
 }) => {
   const response = await request.post("/api/revalidate", {
-    headers: { authorization: `Bearer ${CRON_SECRET}` },
+    headers: { authorization: `Bearer ${REVALIDATE_SECRET}` },
     data: { scope: "catalog" },
   });
   expect(response.status()).toBe(200);
-  const body = (await response.json()) as { routes: string[]; sitemap: string };
+  const body = (await response.json()) as { routes: string[]; files: string[] };
   expect(body.routes).toContain("/(site)/[lang]/[slug]");
   expect(body.routes).toContain("/(site)/[lang]/kafe-na-zarna-lavazza");
   expect(body.routes.some((route) => /\/(blog|za-kafemashina)\/\[/.test(route))).toBe(false);
-  expect(body.sitemap).toBe("/sitemap.xml");
+  expect(body.files).toEqual(["/sitemap.xml", "/llms.txt"]);
 
   // And the pages that prebuild their whole list are still pages, not cached 404s.
   for (const path of [BG.machineBrand("krups"), "/bg/blog/vidove-kapsuli-za-kafe"]) {
@@ -213,12 +228,12 @@ test("the catalog scope refreshes every page route and the sitemap, and no self-
   }
 });
 
-test("taken off the site, it leaves the next sitemap and, revalidated, the listing", async ({
+test("taken off the site, it leaves the sitemap and the listing once the storefront is told", async ({
   request,
 }) => {
   await database.sql`update products set status = 'removed' where slug = ${slug}`;
-  expect(await entryFor(request, `/bg/${slug}`)).toBeNull();
   await forgetOnTheLanding(request);
+  expect(await entryFor(request, `/bg/${slug}`)).toBeNull();
 });
 
 /**
@@ -229,7 +244,7 @@ test("taken off the site, it leaves the next sitemap and, revalidated, the listi
  */
 async function forgetOnTheLanding(request: APIRequestContext): Promise<void> {
   const response = await request.post("/api/revalidate", {
-    headers: { authorization: `Bearer ${CRON_SECRET}` },
+    headers: { authorization: `Bearer ${REVALIDATE_SECRET}` },
     data: { paths: [LANDING] },
   });
   expect(response.status()).toBe(200);

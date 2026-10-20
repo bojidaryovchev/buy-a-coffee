@@ -216,11 +216,15 @@ test.describe("the sitemap", () => {
     // What a browser or a crawler is told: ask again every time.
     expect(headers["cache-control"]).toBe("public, max-age=0, must-revalidate");
     // What the CDN is told (`lib/seo/sitemap-cache.ts`); `next start` has none to obey it.
-    expect(headers["cdn-cache-control"]).toBe("public, s-maxage=3600, stale-while-revalidate=600");
-    // The tag `revalidatePath("/sitemap.xml")` expires, so a revalidation reaches the CDN's copy.
-    expect(headers["vercel-cache-tag"]).toBe("_N_T_/sitemap.xml");
+    expect(headers["cdn-cache-control"]).toBe(
+      "public, s-maxage=3600, stale-while-revalidate=600, stale-if-error=86400",
+    );
+    // The shop's tag, which its revalidation expires, so it reaches the CDN's copy.
+    expect(headers["vercel-cache-tag"]).toBe("sitemap");
     // Not a prerender: there is no build-time copy for the server to hand out.
     expect(headers["x-nextjs-cache"]).toBeUndefined();
+    // A draw, or one at most a minute old; the kept copy only while the database is down.
+    expect(["drawn", "recent"]).toContain(headers["x-sitemap-copy"]);
 
     // The document Next.js writes for a sitemap, every address once and on one origin.
     const xml = await response.text();
@@ -233,6 +237,51 @@ test.describe("the sitemap", () => {
     const origin = new URL(locs[0]!).origin;
     for (const [, url] of xml.matchAll(/(?:<loc>|hreflang="[^"]+" href=")([^<"]+)/g)) {
       expect(new URL(url!).origin, url).toBe(origin);
+    }
+  });
+
+  test("is one address: a query string is sent to it, and odd request headers cost no draw", async ({
+    request,
+  }, testInfo) => {
+    // Once: the phone run's own revalidation below would make this one's draws.
+    test.skip(testInfo.project.name !== "desktop", "one draw to share at a time");
+    // Each query string would be a CDN entry, and a draw, of its own.
+    for (const query of ["?x=1", "?utm_source=feed&utm_medium=rss", "?"]) {
+      const response = await request.get(`/sitemap.xml${query}`, { maxRedirects: 0 });
+      if (query === "?") {
+        expect(response.status(), query).toBe(200);
+        continue;
+      }
+      expect(response.status(), query).toBe(308);
+      expect(response.headers()["location"], query).toBe("/sitemap.xml");
+      expect(await response.body(), query).toHaveLength(0);
+    }
+
+    // Next.js lists `rsc` and `next-router-*` in every app route's `Vary`, and a
+    // route cannot take that back, so the CDN keeps a copy per value. Whatever
+    // comes in under them is handed the draw just made, not a new one. Declared
+    // changed first (as `playwright.config.ts` gives the server the secret), so
+    // the plain request draws and the minute starts now.
+    const declared = await request.post("/api/revalidate", {
+      headers: {
+        authorization: "Bearer e2e-only-revalidate-secret-not-a-real-one-0123456789",
+      },
+      data: { paths: ["/bg"] },
+    });
+    expect(declared.status()).toBe(200);
+    const plain = await request.get("/sitemap.xml");
+    // Drawn now, or by the phone run a moment before: either way, after the change.
+    expect(["drawn", "recent"]).toContain(plain.headers()["x-sitemap-copy"]);
+    const xml = await plain.text();
+    for (const headers of [
+      { rsc: "1" },
+      { "next-router-state-tree": encodeURIComponent(JSON.stringify(["", { x: Math.random() }])) },
+      { "next-router-prefetch": "1", "next-router-segment-prefetch": "/_tree" },
+    ]) {
+      const odd = await request.get("/sitemap.xml", { headers });
+      expect(odd.status(), JSON.stringify(headers)).toBe(200);
+      expect(odd.headers()["x-sitemap-copy"], JSON.stringify(headers)).toBe("recent");
+      expect(await odd.text()).toBe(xml);
     }
   });
 });
