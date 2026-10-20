@@ -12,7 +12,10 @@
  * every client module's imports and fails if one reaches Node again.
  *
  * `logger.ts` stays: it imports nothing, and touches `process.stdout` only
- * when a line is written without a `write` of the caller's.
+ * when a line is written without a `write` of the caller's. The package's
+ * `"sideEffects": false` lets a bundle leave it out all the same: without it,
+ * `silentLogger`'s top-level call kept the logger in every page's JavaScript
+ * although no client module uses it.
  */
 export * from "./async.ts";
 export * from "./decimal.ts";
