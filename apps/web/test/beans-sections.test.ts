@@ -374,10 +374,11 @@ describe("the sections' copy", () => {
 
   it("says what the Italian list is: by brand name, one pack each, the lowest per kilogram", () => {
     const text = sectionText(sections.italian, { flavoured: false });
-    expect(text).toContain("Марките са подредени по име");
-    expect(text).toContain("с по една опаковка от всяка");
-    expect(text).toContain("с най-ниската цена за килограм при нея");
-    expect(text).toContain("изпечено в Италия");
+    expect(text).toContain("марките са подредени по име");
+    expect(text).toContain("При всяка марка в списъка е опаковката ѝ с най-ниска цена за килограм");
+    expect(text).toContain("не само по името или по надпис „изпечено в Италия“");
+    // True also when the cap leaves a brand out: it never says every brand is listed.
+    expect(text).not.toMatch(/от всяка марка|всички италиански/u);
   });
 
   it.each(SAID)(
