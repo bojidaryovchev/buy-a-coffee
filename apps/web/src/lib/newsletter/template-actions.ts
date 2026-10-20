@@ -22,7 +22,9 @@ import { monthlyLetter, promotionLetter } from "./templates";
  * (`template`, `promotion_id`) and its plan — when the data was read, which
  * promotions it names, what was left out and why (`letter-plan.ts`) — which
  * the send's checks and the next monthly letter read. A
- * promotion that has ended or been stopped, or an id that names none, is not
+ * promotion that has ended or been stopped, an id that names none, or a
+ * promotion none of whose products can carry its reduction on their own
+ * badge (no 30-day price history yet, cheaper lately, sold out) is not
  * announced: the press lands back on the newsletter page, which says why.
  */
 export async function createNewsletterFromTemplate(formData: FormData): Promise<void> {
@@ -41,6 +43,9 @@ export async function createNewsletterFromTemplate(formData: FormData): Promise<
     const promotionId = formText(formData, "promotionId");
     const plan = await promotionPlan(promotionId);
     if (!plan) redirect("/admin/byuletin?promotsiya=nyama");
+    /* No product whose own badge carries the reduction: a letter that says
+       "−20%" over nothing is not started; the list says why. */
+    if (plan.empty) redirect(`/admin/byuletin?promotsiya=prazna&p=${plan.row.id}`);
     id = await createDraft({
       ...promotionLetter(plan.input),
       template: chosen,

@@ -20,6 +20,9 @@ import type { NewsletterCampaignAttachment, NewsletterRunStop } from "@catalog/d
  *   refusals     the same refusal for address after address: a setting
  *   products     the letter's products could not be drawn
  *   template     the letter itself could not be drawn
+ *   claims       what the letter says of a promotion is no longer true
+ *                (`claims.ts`): it ended, changed, or its products' badges
+ *                no longer carry it — only "Спри изпращането" ends that
  *   exception    the run died on an error of its own
  *   unexplained  it stopped with copies waiting and no reason recorded
  */
@@ -31,6 +34,7 @@ export const RUN_STOP_CAUSES = [
   "refusals",
   "products",
   "template",
+  "claims",
   "exception",
   "unexplained",
 ] as const;

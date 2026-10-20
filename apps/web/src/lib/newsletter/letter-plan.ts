@@ -11,22 +11,39 @@ import type { NewsletterCampaignAttachment, NewsletterLetterPlan } from "@catalo
  *     arrivals (`newArrivalsSince`): a product that arrived between the
  *     preparation and the send was never in this letter, and is new in the
  *     next one.
- *   - `promotionIds` are the shop's promotions the letter names in words
- *     ("**Есенни дни** — намалени цени до 15 ноември"). At the send each must
- *     still be running, or the letter promises what the shop no longer
- *     offers (`claims.ts`).
+ *   - `named` are the shop's promotions the monthly letter names in words,
+ *     each as it was when the letter was written — its days, its name for
+ *     customers — with the exact line written for it ("**Есенни дни** —
+ *     намалени цени до 15 ноември") and the reductions it priced. While the
+ *     body still holds the line or one of those reductions, the promotion
+ *     must still run, and must still be the promotion the line describes
+ *     (`claims.ts`).
+ *   - `announced` is a promotion's letter's own promotion, as written about:
+ *     days, name and reduction. Changed since, the letter is wrong.
  *   - `leftOut` says, in counts, what the template could not put in and why,
  *     for the owner reading the draft.
  *
  * The composer posts only files, and a save keeps this entry as it is
- * (`saveDraft`); a copy of the letter takes it along (`duplicateCampaign`).
+ * (`saveDraft`). A copy of the letter does not take it (`duplicateCampaign`):
+ * the copy was not written from today's data.
  */
+
+const plannedSchema = z.object({
+  id: z.string(),
+  label: z.string().nullable(),
+  percentOff: z.number().int(),
+  startsAt: z.string(),
+  endsAt: z.string(),
+  line: z.string().nullable(),
+  slugs: z.array(z.string()).default([]),
+});
 
 export const letterPlanSchema = z.object({
   kind: z.literal("letter-plan"),
   version: z.literal(1),
   preparedAt: z.string(),
-  promotionIds: z.array(z.string()).default([]),
+  named: z.array(plannedSchema).default([]),
+  announced: plannedSchema.nullable().default(null),
   leftOut: z
     .object({
       /** Members whose badge could not carry the promotion's percentage. */

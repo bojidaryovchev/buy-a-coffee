@@ -164,10 +164,11 @@ export async function wentOutSince(since: Date): Promise<boolean> {
 }
 
 /**
- * Is a monthly letter the owner started still a draft? Then the month has
- * its letter coming, and the job does not prepare a second.
+ * Has the owner started a monthly letter of their own since `since` (the
+ * month's start), still a draft? Then the month has its letter coming, and
+ * the job does not prepare a second.
  */
-export async function hasOwnMonthlyDraft(): Promise<boolean> {
+export async function hasOwnMonthlyDraft(since: Date): Promise<boolean> {
   const [row] = await db
     .select({ id: newsletterCampaigns.id })
     .from(newsletterCampaigns)
@@ -176,6 +177,7 @@ export async function hasOwnMonthlyDraft(): Promise<boolean> {
         eq(newsletterCampaigns.status, "draft"),
         eq(newsletterCampaigns.template, MONTHLY),
         isNull(newsletterCampaigns.autoPeriod),
+        gte(newsletterCampaigns.createdAt, since),
       ),
     )
     .limit(1);
@@ -183,12 +185,13 @@ export async function hasOwnMonthlyDraft(): Promise<boolean> {
 }
 
 /**
- * A new draft with a campaign's letter: subject, preheader, body, its files,
- * what it was started from and its plan — the promotions its words name,
- * which the copy's send must check as the original's did. Not its product
- * snapshot — the copy is a new letter, and draws the catalog as it is now —
- * not why its send stopped, and not its month: the monthly job's claim on a
- * month stays with the draft it made.
+ * A new draft with a campaign's letter: subject, preheader, body, its files
+ * and what it was started from. Not its plan (`letter-plan.ts`): the copy was
+ * not written from today's data, so it names no promotion to answer for and
+ * moves no new-arrivals window — its reductions are still checked, line by
+ * line, as every `[[промоции: адрес, …]]` is. Not its product snapshot — the
+ * copy draws the catalog as it is now — not why its send stopped, and not its
+ * month: the monthly job's claim on a month stays with the draft it made.
  */
 export async function duplicateCampaign(id: string): Promise<string | null> {
   const source = await getCampaign(id);
@@ -197,10 +200,7 @@ export async function duplicateCampaign(id: string): Promise<string | null> {
     subject: source.subject,
     preheader: source.preheader,
     body: source.body,
-    attachments: [
-      ...campaignFiles(source.attachments),
-      ...source.attachments.filter((entry) => entry.kind === "letter-plan"),
-    ],
+    attachments: campaignFiles(source.attachments),
     template: source.template,
     promotionId: source.promotionId,
   });

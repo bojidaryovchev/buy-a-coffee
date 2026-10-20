@@ -1,6 +1,6 @@
 import "server-only";
-import { and, count, desc, eq, gt, inArray, isNotNull, isNull, ne } from "drizzle-orm";
-import { newsletterCampaigns, products, promotionProducts, promotions } from "@catalog/db/schema";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { newsletterCampaigns, promotionProducts, promotions } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import {
   listNewProductCards,
@@ -10,9 +10,15 @@ import {
 import type { ProductCardView } from "@/lib/catalog/types";
 import { NEW_ARRIVAL_DAYS } from "@/lib/catalog/price-sql";
 import { isUuid } from "./campaigns";
-import type { PromotionFacts } from "./claims";
+import { plannedFrom } from "./claims";
+import { promotionFacts, type PromotionRow } from "./claims-data";
 import { letterPlanOf, type LetterPlan } from "./letter-plan";
-import type { MonthlyInput, PromotionInput, TemplatePromotion } from "./templates";
+import {
+  promotionLine,
+  type MonthlyInput,
+  type PromotionInput,
+  type TemplatePromotion,
+} from "./templates";
 import { MAX_BLOCK_PRODUCTS, MAX_LETTER_PRODUCTS } from "./tokens";
 
 /**
@@ -67,28 +73,27 @@ export async function lastLetterStart(): Promise<Date | null> {
 
 /**
  * Where the last monthly letter that went out stopped counting what was new:
- * when its data was read, else (a letter without a plan) when it started.
+ * when its data was read (its plan's `preparedAt`). A monthly letter without
+ * a plan — a copy of one (`duplicateCampaign`) — was not written from the
+ * catalog, and moves nothing.
  */
 export async function lastMonthlyCutoff(): Promise<Date | null> {
-  const [row] = await db
-    .select({
-      startedAt: newsletterCampaigns.startedAt,
-      attachments: newsletterCampaigns.attachments,
-    })
+  const rows = await db
+    .select({ attachments: newsletterCampaigns.attachments })
     .from(newsletterCampaigns)
     .where(
       and(
         eq(newsletterCampaigns.template, "monthly"),
         inArray(newsletterCampaigns.status, [...WENT_OUT]),
         isNotNull(newsletterCampaigns.startedAt),
+        sql`${newsletterCampaigns.attachments} @> '[{"kind":"letter-plan"}]'::jsonb`,
       ),
     )
     .orderBy(desc(newsletterCampaigns.startedAt))
     .limit(1);
-  if (!row) return null;
-  const prepared = letterPlanOf(row.attachments)?.preparedAt;
-  const at = prepared ? new Date(prepared) : row.startedAt;
-  return at && !Number.isNaN(at.getTime()) ? at : row.startedAt;
+  const prepared = rows[0] ? letterPlanOf(rows[0].attachments)?.preparedAt : undefined;
+  const at = prepared ? new Date(prepared) : null;
+  return at && !Number.isNaN(at.getTime()) ? at : null;
 }
 
 export interface MonthlyPlan {
@@ -112,32 +117,52 @@ export async function monthlyPlan(now: Date = new Date()): Promise<MonthlyPlan> 
     listNewProductCards({ since, limit: ARRIVALS_READ }),
     listReducedProductCards({ limit: REDUCED_READ }),
   ]);
-  const arriving = new Set(arrivals.map((card) => card.slug));
   /* The same coffee twice in one letter looks like a mistake: a reduced new
-     arrival is shown once, among the new. */
-  const reduced = rankReductions(reductions.filter((card) => !arriving.has(card.slug))).slice(
-    0,
-    MAX_BLOCK_PRODUCTS,
-  );
-  const room = MAX_LETTER_PRODUCTS - reduced.length;
-  const shownNew = arrivals.slice(0, room);
-  const promotionIds = [
-    ...new Set(reduced.flatMap((card) => (card.promotion ? [card.promotion.id] : []))),
-  ];
-  const newOverflow = arrivals.length - shownNew.length;
+     arrival is shown once — among the new when the letter has room for it
+     there, else among the reductions if they have room. The reductions take
+     a block's worth at most, the new arrivals the rest of the twelve; as the
+     reductions grow the new arrivals' room shrinks, so this settles in a
+     pass or two. */
+  const ranked = rankReductions(reductions);
+  let reduced: ProductCardView[] = [];
+  let shownNew: ProductCardView[] = [];
+  for (let pass = 0; pass < 4; pass += 1) {
+    shownNew = arrivals.slice(0, MAX_LETTER_PRODUCTS - reduced.length);
+    const shown = new Set(shownNew.map((card) => card.slug));
+    const next = ranked.filter((card) => !shown.has(card.slug)).slice(0, MAX_BLOCK_PRODUCTS);
+    const same =
+      next.length === reduced.length && next.every((card, at) => card.slug === reduced[at]!.slug);
+    reduced = next;
+    if (same) break;
+  }
+  shownNew = arrivals.slice(0, MAX_LETTER_PRODUCTS - reduced.length);
+  const inLetter = new Set([...shownNew, ...reduced].map((card) => card.slug));
+  const newOverflow = arrivals.filter((card) => !inLetter.has(card.slug)).length;
+
+  /* Each promotion the letter will name, as it stands, with the line the
+     template writes for it and the reductions it prices there. */
+  const priced = new Map<string, string[]>();
+  for (const card of reduced) {
+    if (card.promotion)
+      priced.set(card.promotion.id, [...(priced.get(card.promotion.id) ?? []), card.slug]);
+  }
+  const rows = await promotionFacts([...priced.keys()]);
   return {
     since,
     sinceLetter,
     plan: {
       preparedAt: now.toISOString(),
-      promotionIds,
+      named: rows.map((row) =>
+        plannedFrom(row, promotionLine(asTemplate(row)), priced.get(row.id) ?? []),
+      ),
+      announced: null,
       leftOut: newOverflow > 0 ? { newOverflow } : {},
     },
     input: {
       now,
       newArrivals: shownNew.map((card) => card.slug),
       reduced: reduced.map((card) => card.slug),
-      promotions: (await promotionFacts(promotionIds)).map(asTemplate),
+      promotions: rows.map(asTemplate),
     },
   };
 }
@@ -158,6 +183,19 @@ function rankReductions(cards: readonly ProductCardView[]): ProductCardView[] {
     .map(({ card }) => card);
 }
 
+const asTemplate = (row: PromotionRow): TemplatePromotion => ({
+  id: row.id,
+  label: row.label?.trim() || null,
+  percentOff: row.percentOff,
+  startsAt: row.startsAt,
+  endsAt: row.endsAt,
+});
+
+/* -- one promotion ---------------------------------------------------------- */
+
+/** A promotion the owner can still announce: not stopped, not ended. */
+const announceable = (now: Date) => and(isNull(promotions.stoppedAt), gt(promotions.endsAt, now));
+
 const promotionColumns = {
   id: promotions.id,
   name: promotions.name,
@@ -168,91 +206,18 @@ const promotionColumns = {
   stoppedAt: promotions.stoppedAt,
 };
 
-type PromotionRow = {
-  id: string;
-  name: string;
-  label: string | null;
-  percentOff: number;
-  startsAt: Date;
-  endsAt: Date;
-  stoppedAt: Date | null;
-};
-
-const asTemplate = (row: PromotionRow): TemplatePromotion => ({
-  id: row.id,
-  label: row.label?.trim() || null,
-  percentOff: row.percentOff,
-  startsAt: row.startsAt,
-  endsAt: row.endsAt,
-});
-
-/** These promotions as they stand, soonest to end first; an id that names none is absent. */
-export async function promotionFacts(ids: readonly (string | null)[]): Promise<PromotionRow[]> {
-  const wanted = [...new Set(ids.filter((id): id is string => Boolean(id) && isUuid(id!)))];
-  if (wanted.length === 0) return [];
-  return db
-    .select(promotionColumns)
-    .from(promotions)
-    .where(inArray(promotions.id, wanted))
-    .orderBy(promotions.endsAt, promotions.id);
-}
-
-/** The facts the claims need (`claims.ts`), from rows. */
-export const asFacts = (row: PromotionRow): PromotionFacts => ({ ...row });
-
-/* -- one promotion ---------------------------------------------------------- */
-
-/** A promotion the owner can still announce: not stopped, not ended. */
-const announceable = (now: Date) => and(isNull(promotions.stoppedAt), gt(promotions.endsAt, now));
-
-export interface PromotionChoice extends PromotionRow {
-  /** Its members on sale that can be ordered now. */
-  readonly products: number;
-}
-
-/** Running and upcoming promotions, soonest first, for "Обява за промоция". */
-export async function promotionChoices(now: Date = new Date()): Promise<PromotionChoice[]> {
-  const rows = await db
-    .select(promotionColumns)
-    .from(promotions)
-    .where(announceable(now))
-    .orderBy(promotions.startsAt, promotions.id);
-  if (rows.length === 0) return [];
-  /* Counted in a grouped query of its own and merged here, not as a
-     correlated subquery beside the columns (docs/architecture.md, "One trap
-     worth knowing about"). */
-  const counts = await db
-    .select({ id: promotionProducts.promotionId, n: count() })
-    .from(promotionProducts)
-    .innerJoin(products, eq(products.id, promotionProducts.productId))
-    .where(
-      and(
-        inArray(
-          promotionProducts.promotionId,
-          rows.map((row) => row.id),
-        ),
-        isNull(promotionProducts.removedAt),
-        eq(products.status, "active"),
-        ne(products.availability, "out_of_stock"),
-      ),
-    )
-    .groupBy(promotionProducts.promotionId);
-  const byId = new Map(counts.map((row) => [row.id, row.n]));
-  return rows.map((row) => ({ ...row, products: byId.get(row.id) ?? 0 }));
-}
-
-export interface PromotionPlan {
-  readonly input: PromotionInput;
-  readonly row: PromotionRow;
-  /** What the draft keeps of it: what was left out, and why. */
-  readonly plan: Omit<LetterPlan, "kind" | "version">;
+/** Why members of a promotion cannot be in its letter, counted. */
+export interface LeftOutMembers {
+  /** Their own badge cannot carry the promotion's percentage. */
+  readonly unbacked: number;
+  readonly soldOut: number;
+  /** A larger promotion prices them. */
+  readonly elsewhere: number;
 }
 
 /**
- * One promotion's letter data, or null when it cannot be announced: it does
- * not exist, was stopped, or has ended.
- *
- * Its products are the members whose own card can carry the letter's "−X%":
+ * A promotion's members whose own card can carry its letter's "−X%" — the
+ * biggest saving first — and how many of the rest were left out, by why:
  *
  *   - running: the card is priced by this promotion (not a larger one), shows
  *     a struck price, and its badge is at least the promotion's percentage —
@@ -263,27 +228,20 @@ export interface PromotionPlan {
  *     at least its regular price now, so the badge will be the whole
  *     percentage. The send checks the real badges again (`claims.ts`).
  *
- * Only what can be ordered, the biggest saving first: the share off is the
- * same for all of them, so the dearest saves the reader most.
+ * Only what can be ordered. The share off is the same for all of them, so
+ * the dearest saves the reader most.
  */
-export async function promotionPlan(
-  id: string,
-  now: Date = new Date(),
-): Promise<PromotionPlan | null> {
-  if (!isUuid(id)) return null;
-  const [row] = await db
-    .select(promotionColumns)
-    .from(promotions)
-    .where(and(eq(promotions.id, id), announceable(now)))
-    .limit(1);
-  if (!row) return null;
+async function honestMembers(
+  row: PromotionRow,
+  now: Date,
+): Promise<{ honest: ProductCardView[]; leftOut: LeftOutMembers }> {
   const members = await db
     .select({
       productId: promotionProducts.productId,
       reference: promotionProducts.referencePrice,
     })
     .from(promotionProducts)
-    .where(and(eq(promotionProducts.promotionId, id), isNull(promotionProducts.removedAt)));
+    .where(and(eq(promotionProducts.promotionId, row.id), isNull(promotionProducts.removedAt)));
   const reference = new Map(members.map((member) => [member.productId, member.reference]));
   const cards = [
     ...(await listProductCardsByIds(members.map((member) => member.productId))).values(),
@@ -305,49 +263,114 @@ export async function promotionPlan(
       (a, b) =>
         regular(b) - regular(a) || a.name.localeCompare(b.name, "bg") || a.id.localeCompare(b.id),
     );
-  const shown = honest.slice(0, MAX_BLOCK_PRODUCTS);
-  const leftOut = {
-    unbacked: ours.length - honest.length,
-    soldOut: cards.length - orderable.length,
-    elsewhere: orderable.length - ours.length,
-    overflow: honest.length - shown.length,
+  return {
+    honest,
+    leftOut: {
+      unbacked: ours.length - honest.length,
+      soldOut: cards.length - orderable.length,
+      elsewhere: orderable.length - ours.length,
+    },
   };
+}
+
+export interface PromotionChoice extends PromotionRow {
+  /** Its members whose own badge can carry its percentage: what its letter can show. */
+  readonly products: number;
+  /** The rest, by why. */
+  readonly leftOut: LeftOutMembers;
+}
+
+/** Running and upcoming promotions, soonest first, for "Обява за промоция". */
+export async function promotionChoices(now: Date = new Date()): Promise<PromotionChoice[]> {
+  const rows = await db
+    .select(promotionColumns)
+    .from(promotions)
+    .where(announceable(now))
+    .orderBy(promotions.startsAt, promotions.id);
+  return Promise.all(
+    rows.map(async (row) => {
+      const members = await honestMembers(row, now);
+      return { ...row, products: members.honest.length, leftOut: members.leftOut };
+    }),
+  );
+}
+
+/**
+ * Why a promotion's letter has nothing to show, in the owner's words: what
+ * its members lack. Its letter would claim "−X%" over no product, so none is
+ * started.
+ */
+export function noMembersReason(
+  promotion: Pick<PromotionRow, "percentOff">,
+  leftOut: LeftOutMembers,
+): string {
+  const reasons = [
+    ...(leftOut.unbacked > 0
+      ? [
+          `${leftOut.unbacked === 1 ? "един продукт няма" : `${leftOut.unbacked} продукта нямат`} 30-дневна история на цената или наскоро ${leftOut.unbacked === 1 ? "е бил по-евтин" : "са били по-евтини"}, затова значката не може да покаже −${promotion.percentOff}%`,
+        ]
+      : []),
+    ...(leftOut.soldOut > 0
+      ? [
+          `${leftOut.soldOut === 1 ? "един продукт е изчерпан" : `${leftOut.soldOut} продукта са изчерпани`}`,
+        ]
+      : []),
+    ...(leftOut.elsewhere > 0
+      ? [
+          `${leftOut.elsewhere === 1 ? "един продукт е" : `${leftOut.elsewhere} продукта са`} в друга промоция с по-голямо намаление`,
+        ]
+      : []),
+  ];
+  return reasons.length > 0
+    ? `Нито един продукт от промоцията не може да бъде в писмото: ${reasons.join("; ")}.`
+    : "Промоцията още няма продукти.";
+}
+
+export interface PromotionPlan {
+  readonly input: PromotionInput;
+  readonly row: PromotionRow;
+  /** What the draft keeps of it: the promotion as written about, what was left out and why. */
+  readonly plan: Omit<LetterPlan, "kind" | "version">;
+  /** Why nothing could be shown, when nothing could: the letter is not started. */
+  readonly empty: string | null;
+}
+
+/**
+ * One promotion's letter data, or null when it cannot be announced: it does
+ * not exist, was stopped, or has ended. Its products are `honestMembers`, a
+ * block's worth; `empty` says why when there are none.
+ */
+export async function promotionPlan(
+  id: string,
+  now: Date = new Date(),
+): Promise<PromotionPlan | null> {
+  if (!isUuid(id)) return null;
+  const [row] = await db
+    .select(promotionColumns)
+    .from(promotions)
+    .where(and(eq(promotions.id, id), announceable(now)))
+    .limit(1);
+  if (!row) return null;
+  const { honest, leftOut } = await honestMembers(row, now);
+  const shown = honest.slice(0, MAX_BLOCK_PRODUCTS);
+  const counts = { ...leftOut, overflow: honest.length - shown.length };
   return {
     row,
+    empty: shown.length === 0 ? noMembersReason(row, leftOut) : null,
     plan: {
       preparedAt: now.toISOString(),
-      promotionIds: [],
-      leftOut: Object.fromEntries(Object.entries(leftOut).filter(([, value]) => value > 0)),
+      named: [],
+      announced: plannedFrom(
+        row,
+        null,
+        shown.map((card) => card.slug),
+      ),
+      leftOut: Object.fromEntries(Object.entries(counts).filter(([, value]) => value > 0)),
     },
     input: {
       now,
       promotion: asTemplate(row),
       members: shown.map((card) => card.slug),
     },
-  };
-}
-
-/* -- what a letter claims, at the send ------------------------------------- */
-
-/**
- * The facts `claimNotes` checks a campaign against: the promotion it
- * announces, and the ones its plan says its words name — as they stand now.
- */
-export async function letterPromotions(campaign: {
-  template: string | null;
-  promotionId: string | null;
-  attachments: Parameters<typeof letterPlanOf>[0];
-}): Promise<{
-  announced: PromotionFacts | null;
-  announcedMissing: boolean;
-  named: PromotionFacts[];
-}> {
-  const namedIds = letterPlanOf(campaign.attachments)?.promotionIds ?? [];
-  const rows = await promotionFacts([campaign.promotionId, ...namedIds]);
-  const announced = rows.find((row) => row.id === campaign.promotionId) ?? null;
-  return {
-    announced: announced ? asFacts(announced) : null,
-    announcedMissing: campaign.template === "promotion" && !announced,
-    named: rows.filter((row) => namedIds.includes(row.id)).map(asFacts),
   };
 }

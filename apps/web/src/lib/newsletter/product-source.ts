@@ -1,5 +1,5 @@
 import "server-only";
-import { inArray } from "drizzle-orm";
+import { asc, inArray, sql } from "drizzle-orm";
 import { products } from "@catalog/db/schema";
 import { storeKey } from "@/emails/media";
 import {
@@ -29,7 +29,36 @@ export const catalogProductSource: ProductSource = {
   newest: ({ since, limit }) => listNewProductCards({ since, limit }),
   reduced: ({ limit }) => listReducedProductCards({ limit }),
   known: (slugs) => knownSlugs(slugs),
+  renamed: (slugs) => renamedSlugs(slugs),
 };
+
+/**
+ * The current slug of each of these that a product used to have
+ * (`products.previous_slugs`, which the site's 308s read through
+ * `getCurrentSlugOfFormer`), in one query for all of them. Of two products
+ * that once had the same slug, the first by slug wins, as for the 308s.
+ */
+async function renamedSlugs(slugs: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const wanted = [...new Set(slugs)].filter((slug) => slug.length > 0 && slug.length <= 200);
+  if (wanted.length === 0) return new Map();
+  const { db } = await import("@/lib/db");
+  const asked = sql.join(
+    wanted.map((slug) => sql`${slug}`),
+    sql`, `,
+  );
+  const rows = await db
+    .select({ slug: products.slug, previous: products.previousSlugs })
+    .from(products)
+    .where(sql`${products.previousSlugs} && array[${asked}]::text[]`)
+    .orderBy(asc(products.slug));
+  const renamed = new Map<string, string>();
+  for (const row of rows) {
+    for (const old of row.previous ?? []) {
+      if (wanted.includes(old) && !renamed.has(old)) renamed.set(old, row.slug);
+    }
+  }
+  return renamed;
+}
 
 /**
  * Which of these slugs are a product's, whatever its state: one that has left

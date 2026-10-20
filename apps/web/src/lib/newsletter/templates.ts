@@ -98,8 +98,12 @@ function untilWords(promotion: TemplatePromotion): string {
   return oneDay(promotion) ? `на ${last}` : `до ${last} включително`;
 }
 
-/** "**Есенни дни** — намалени цени до 15 ноември включително." No figure: each badge says its own. */
-function promotionLine(promotion: TemplatePromotion): string {
+/**
+ * "**Есенни дни** — намалени цени до 15 ноември включително." No figure: each
+ * badge says its own. Kept with the draft word for word (`LetterPlan.named`),
+ * so the send can tell whether the body still says it.
+ */
+export function promotionLine(promotion: TemplatePromotion): string {
   const words = `намалени цени ${untilWords(promotion)}.`;
   return promotion.label ? `**${escapeText(promotion.label)}** — ${words}` : capitalise(words);
 }

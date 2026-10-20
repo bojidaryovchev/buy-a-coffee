@@ -24,6 +24,8 @@ import {
 import { STALE_SENDING_MS, ensureProductSnapshot, getCampaign } from "./campaigns";
 import { blockProblems, campaignFiles, describeBlockProblems } from "./product-blocks";
 import { resolveLetterProducts } from "./product-source";
+import { claimNotes } from "./claims";
+import { letterPromotions } from "./claims-data";
 import { runStopEntry, type RunStopCause } from "./run-stop";
 import { lettersPhrase } from "./status";
 
@@ -170,6 +172,22 @@ export async function runCampaign(campaignId: string, options: RunOptions): Prom
         cause: "products",
       });
       return { status: "stopped", requests: 0, reason: "products" };
+    }
+    /* And what it says of the shop's promotions, against the promotions as
+       they stand now, at the top of every run: a resume a day later must not
+       carry a reduction that ended overnight (`claims.ts`). */
+    const claims = claimNotes({
+      ...(await letterPromotions(campaign)),
+      body: campaign.body,
+      products: products?.blocks.flatMap((block) => block.products) ?? [],
+      now: new Date(now()),
+    }).filter((note) => note.blocksSend);
+    if (claims.length > 0) {
+      await finish(campaignId, {
+        message: `Изпращането спря, без да тръгне нито едно писмо повече: ${claims.map((note) => `${note.title} — ${note.detail}`).join(" ")} Изпращащо се писмо не може да се промени: натиснете „Спри изпращането“, за да не тръгне към останалите.`,
+        cause: "claims",
+      });
+      return { status: "stopped", requests: 0, reason: "claims" };
     }
     template = await composeCampaign({
       subject: campaign.subject,
