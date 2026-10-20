@@ -215,7 +215,7 @@ export function CartView({ locale }: { locale: Locale }) {
   const leftOut = lines.length - orderable.length;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-10">
+    <div className="grid gap-8 lg:grid-cols-[1fr_26rem] xl:grid-cols-[1fr_28rem] lg:items-start lg:gap-10">
       <section aria-labelledby="cart-lines-heading" className="min-w-0">
         <h2 id="cart-lines-heading" className="sr-only">
           Продуктите в количката
@@ -241,7 +241,7 @@ export function CartView({ locale }: { locale: Locale }) {
 
       <aside aria-label="Сума и поръчка" className="grid gap-6 lg:sticky lg:top-44">
         <div className="overflow-hidden rounded-md border border-line bg-paper-raised">
-          <div className="p-4 sm:p-5">
+          <div className="p-5 sm:p-6">
             <p className="flex items-baseline justify-between gap-4">
               <span className="text-sm text-ink-700">
                 Сума на продуктите{" "}
@@ -282,7 +282,7 @@ export function CartView({ locale }: { locale: Locale }) {
             onCartRefused={onCartRefused}
           />
         ) : (
-          <div className="rounded-md border border-line bg-paper-raised p-4 sm:p-5">
+          <div className="rounded-md border border-line bg-paper-raised p-5 sm:p-6">
             <h2 className="font-display text-lg font-semibold text-ink-900">
               Няма какво да изпратим
             </h2>
@@ -423,7 +423,10 @@ function CartLineRow({
  */
 function Skeleton({ count }: { count: number }) {
   return (
-    <div aria-busy="true" className="grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-10">
+    <div
+      aria-busy="true"
+      className="grid gap-8 lg:grid-cols-[1fr_26rem] xl:grid-cols-[1fr_28rem] lg:gap-10"
+    >
       <span className="sr-only" role="status">
         Зарежда се…
       </span>

@@ -386,13 +386,13 @@ Sanctioned uses of a system colour, and no others:
 
 The colours of our own drawings (see "Imagery") and nothing else.
 
-| Token           | Value                   | Hex       | Role                                                  |
-| --------------- | ----------------------- | --------- | ----------------------------------------------------- |
-| `illo-crema`    | `oklch(0.68 0.11 64)`   | `#c7894a` | Crema, the surface of a cup, warm light.              |
-| `illo-bean-300` | `oklch(0.55 0.093 57)`  | `#9a6337` | A bean's highlight.                                   |
-| `illo-bean-500` | `oklch(0.365 0.068 52)` | `#5a331a` | A bean's body; coffee in a cup.                       |
-| `illo-bean-700` | `oklch(0.23 0.04 51)`   | `#2c170a` | A bean's crease, a dark roast, a spill.               |
-| `illo-stain`    | `oklch(0.457 0.082 56)` | `#7a4a26` | A cup ring and grounds on paper, at 14 to 24 % alpha. |
+| Token           | Value                   | Hex       | Role                                     |
+| --------------- | ----------------------- | --------- | ---------------------------------------- |
+| `illo-crema`    | `oklch(0.68 0.11 64)`   | `#c7894a` | Crema, the surface of a cup, warm light. |
+| `illo-bean-300` | `oklch(0.55 0.093 57)`  | `#9a6337` | A bean's highlight.                      |
+| `illo-bean-500` | `oklch(0.365 0.068 52)` | `#5a331a` | A bean's body; coffee in a cup.          |
+| `illo-bean-700` | `oklch(0.23 0.04 51)`   | `#2c170a` | A bean's crease, a dark roast, a spill.  |
+| `illo-stain`    | `oklch(0.457 0.082 56)` | `#7a4a26` | A cup ring on paper, at 4 to 30 % alpha. |
 
 **The Drawing Tone Rule.** A drawing tone is never text, never a control, never
 a border and never a meaning. It has no rows in the contrast table for the same
@@ -685,7 +685,7 @@ Spacing uses the 4 px Tailwind scale. No arbitrary pixel values for spacing.
 
 **Bands.** Sections alternate by tone, not by box: `paper` by default,
 `paper-sunken` for the wizard entry and the footer, `paper-raised` for the
-newsletter band (a faint cup ring behind its heading), `pine-900` for the hero,
+newsletter band, `pine-900` for the hero,
 `espresso-900` for the Vending Zone band, `clay-100` for promotions. Adjacent
 bands of the same tone are separated by a `border-t border-line`. Two dark
 bands never stack.
@@ -833,7 +833,7 @@ steam — and it stops whenever nobody can see it.
 | Feedback   | A bean arcs from „Добави“ to the header cart, which nudges and counts up                                      | Web Animations API, started after the cart has changed                              |
 | Feedback   | The product page's intensity track fills segment by segment, the first time it is seen                        | CSS scroll-driven animation                                                         |
 | Feedback   | The cup fills and steams when an order is sent                                                                | CSS keyframes                                                                       |
-| Progress   | The ordering steps' curl draws itself as the section scrolls past                                             | `stroke-dashoffset`, scroll-driven                                                  |
+| Progress   | The home page's ordering-steps curl draws itself as it crosses the middle of the screen                       | `stroke-dashoffset`, scroll-driven                                                  |
 | Ambient    | Steam over a cup                                                                                              | CSS keyframes, paused off-screen                                                    |
 | Navigation | A card's pack becomes the product page's photograph                                                           | View Transitions API, behind Next's `viewTransition` flag; elsewhere the page swaps |
 
@@ -920,13 +920,12 @@ hundred bytes each.
 
 | Drawing    | Where                                                                      |
 | ---------- | -------------------------------------------------------------------------- |
-| The curl   | Steam over every cup; the line joining the ordering steps; a divider       |
+| The curl   | Steam over every cup; the line joining the home page's ordering steps      |
 | Beans      | Around the hero's packs; into the cart; beside the beans shelf             |
 | A cup      | The hero; „order sent“                                                     |
 | Crema      | The wizard's entry and its result                                          |
-| A cup ring | Behind the newsletter form; the 404 page                                   |
+| A cup ring | The 404 page                                                               |
 | A spill    | Empty states: an empty cart, a search with nothing found, an empty listing |
-| Grounds    | The beans shelf's header; the journal's articles about beans               |
 | Capsules   | Our capsule diagrams and system icons, unchanged (see "System icon")       |
 
 **The curl** is the mark's own: the crease of the bean in the logo rising into
@@ -1920,8 +1919,9 @@ steps, no boxes: each a 56 px `rounded-md bg-paper-raised` square holding its
 `bg-gold-500 text-ink-900 rounded-xs` numeral on the square's corner, and one
 sentence in `text-base text-ink-900` — beside the square on a phone, under it
 from `md` (`md:grid-cols-3`, centred). From `md` the curl from the mark joins
-the three squares (`gold-600`, 2.5 px) and draws itself as the section scrolls
-past (`draw-on-scroll`; see "Motion"). The sentences are „Сложете в
+the three squares (`gold-600`, 2.5 px) and draws itself as it scrolls from
+the middle of the screen to a third of the way down (`draw-on-scroll`; see
+"Motion"), where a reader is looking. The sentences are „Сложете в
 количката кафето, което искате.“, „Оставете име, телефон и къде да
 доставим.“ and „Звъним ви, за да потвърдим и да уговорим доставката.“ Under the grid, in
 `text-sm text-ink-500`: "Без регистрация и без плащане на сайта. Предпочитате
@@ -2184,22 +2184,26 @@ tabular-nums text-pine-700`: the price per cup ("0,35 € на чаша", or
 7. **Order panel,** `mt-6`, `id="order"` (below).
 
 **Order panel.** One `rounded-md border border-line bg-paper-raised` panel
-holding the order form and, beside it, the delivery-and-payment block.
+holding the order controls and, under them, the delivery-and-payment block.
 
-- From `sm` up: `grid grid-cols-[1fr_13rem]`; the form in the first column
-  (`p-5`), the block in the second (`border-l border-line bg-paper-sunken p-5`,
-  right corners rounded).
+- The controls on top (`p-5 sm:p-6`); the block underneath, across the panel
+  (`border-t border-line bg-paper-sunken p-5 sm:p-6`), its rows one under
+  another, two to a row only where the panel is 42rem wide or more. Beside the controls, in a 13rem column, those sentences once
+  wrapped into a tall strip and left the controls' side half empty.
 - _Order_ (`AddToCartPanel`): title "Поръчайте" (`font-display text-base
 font-semibold`); one sentence, `text-sm text-ink-500`; "Количество" and the
   quantity stepper (see "Cart"); the page's one `accent` button, size `lg`,
-  full width, a 20 px cart icon and "Добави в количката"; under it a `primary`
-  button, size `lg`, full width, "Поръчай", which puts the product in the cart
+  a 20 px cart icon and "Добави в количката", and a `primary` button, size
+  `lg`, "Поръчай" — side by side from `sm` (`grid sm:grid-cols-2 gap-3`), one
+  under the other on a phone — which puts the product in the cart
   unless it is there already and opens the cart's order form; under both a line
   that keeps its `min-h-6` whether or not it says "В количката: 2 бр." and links
   "Към количката". Without JavaScript the whole block is `noscript:hidden`
   (`@media (scripting: none)`): a cart in the browser cannot work then, and a
   sentence saying so, with the phone as a `PHONE_LINK`, is the panel.
-- _Delivery-and-payment block:_ a `dl`, `space-y-3 text-sm`. Rows, each with a
+- _Delivery-and-payment block:_ a `dl`, `text-sm leading-relaxed`: in the
+  order panel `grid gap-x-8 gap-y-5 @2xl:grid-cols-2` (`layout="grid"`, a
+  container query on the block), in the cart `space-y-5`. Rows, each with a
   16 px icon in `text-pine-700`, a `dt` in `font-semibold text-ink-900` and a
   `dd` in `text-ink-700`: **Доставка** (fee and free-delivery threshold),
   **Срок**, **Плащане**, **Връщане**. Values come from `siteConfig.commerce`; a
@@ -2300,7 +2304,8 @@ a pop-up is not.
 **Cart page** (`app/(site)/[lang]/kolichka/`, `routes.cart`, `noindex`, not in
 the sitemap). Breadcrumbs, the `h1` "Количка", then:
 
-- From `lg`, `grid lg:grid-cols-[1fr_22rem] lg:gap-10`: the lines on the
+- From `lg`, `grid lg:grid-cols-[1fr_26rem] xl:grid-cols-[1fr_28rem] lg:gap-10`
+  (at 22rem the order form's paired fields were cramped): the lines on the
   left, the sum and the form on the right (`lg:sticky lg:top-44`). On a phone
   the same order, stacked.
 - _Lines:_ one `rounded-md border border-line bg-paper-raised` list, rows
@@ -2384,8 +2389,8 @@ tabular-nums text-ink-500 whitespace-nowrap`, in sentence case — a count,
   label.
 - _Toggle_ (an optional requirement: „Без кофеин“, „Ароматизирано (ванилия,
   лешник и подобни)“): `ToggleOptionList`, a link back to the same step with
-  the requirement added or removed, `aria-pressed`, in a two-column grid from
-  `sm`. `flex min-h-12 items-center gap-3 rounded-md border px-4 py-3
+  the requirement added or removed, `aria-pressed`, one per row (`grid gap-3
+max-w-2xl`): in two columns the longer labels broke onto a second line. `flex min-h-12 items-center gap-3 rounded-md border px-4 py-3
 text-base`: an 18 px check box drawn as the filters draw theirs (checked
   `border-pine-900 bg-pine-900 text-paper` with the mark), the label in
   `text-ink-900` (`font-medium text-pine-900` when on), and its note — the
@@ -2859,6 +2864,7 @@ each entry closes with the milestone named in `IMPLEMENTATION_PLAN.md`.
   logo** is the SVG traced from the PNG.
 - **Done (K2–K5). Drawings and motion** on the home page, the product
   surfaces, the empty states, the 404, „order sent“, the wizard's result, the
-  journal, and the steps on the delivery, Vending and Consumables pages.
+  journal, and gold-numbered steps on the delivery, Vending and Consumables
+  pages (no curl there: in a column of prose it read as broken).
 - **Done (K4). `espresso-900`** grounds the Vending band and the finder tile.
 - **Done (K4). The hover transform** on the brand index's arrow is gone.

@@ -16,7 +16,7 @@ import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 import { pageTitle } from "@/lib/seo/title";
-import { CurlSteps } from "@/components/ui/curl-steps";
+import { StepList } from "@/components/ui/step-list";
 
 /**
  * Delivery and payment.
@@ -92,7 +92,7 @@ export default async function DeliveryPage({ params }: PageProps) {
         <div className="mt-8 space-y-8">
           <section>
             <h2 className="font-display text-xl font-semibold text-ink-900">Как се поръчва</h2>
-            <CurlSteps steps={steps} className="mt-4" />
+            <StepList steps={steps} className="mt-4" />
           </section>
 
           <section>

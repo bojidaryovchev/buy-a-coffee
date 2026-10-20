@@ -1156,6 +1156,12 @@ Decided with the owner on 19 October 2026:
     the delivery, Vending and Consumables pages; blog headers.
   - The 404 has the cup ring rather than the spill: a cup was here and is
     gone.
+  - **Withdrawn after the owner's review (20 October):** the curl in the
+    column steps (half-drawn, it looked broken; plain gold numerals now,
+    `StepList`), the cup ring behind the newsletter, and the grounds drawing
+    (a bean heap for the beans article). The home steps' curl now draws from
+    the middle of the screen. The article page's glass had drawn 700 px tall:
+    the cup's default size competed with the caller's.
 
 - [ ] **K6 · Verify and ship · M**
   - Tests updated and added: reduced motion emulated, the white-well fallback,

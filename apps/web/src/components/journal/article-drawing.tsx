@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { SystemIcon } from "@/components/catalog/system-icon";
-import { Bean, Crema, Cup, Grounds } from "@/components/illustrations/drawings";
+import { Bean, Crema, Cup } from "@/components/illustrations/drawings";
 import { cx } from "@/components/ui/primitives";
 import { CUP_COST_SLUG } from "../../../content/journal/articles/cup-cost";
 import { FORMATS_SLUG } from "../../../content/journal/articles/formats";
@@ -15,8 +15,22 @@ import { WHICH_CAPSULE_SLUG } from "../../../content/journal/articles/which-caps
  * glass of espresso.
  *
  * The capsules are our system drawings in neutral grey: a system's colour is
- * never shown without its name (DESIGN.md, "The Named Colour Rule").
+ * never shown without its name (DESIGN.md, "The Named Colour Rule"). The
+ * widest drawing, the three capsules, is 144 px; a column that holds these
+ * gives them at least that (the journal index's is `w-36`).
  */
+
+/** A small heap of beans, 96 by 80: four on the ground, three on top. */
+const HEAP = [
+  { x: 0, y: 40, turn: -24, dark: false },
+  { x: 22, y: 41, turn: 14, dark: true },
+  { x: 44, y: 40, turn: -8, dark: false },
+  { x: 66, y: 40, turn: 30, dark: true },
+  { x: 11, y: 14, turn: 22, dark: true },
+  { x: 33, y: 10, turn: -18, dark: false },
+  { x: 55, y: 14, turn: 10, dark: true },
+] as const;
+
 export function ArticleDrawing({ slug, className }: { slug: string; className?: string }) {
   const box = cx("flex h-20 items-end gap-3", className);
   switch (slug) {
@@ -34,7 +48,7 @@ export function ArticleDrawing({ slug, className }: { slug: string; className?: 
           style={{ "--system": "var(--color-line-strong)" } as CSSProperties}
         >
           {(["nespresso-original", "dolce-gusto", "a-modo-mio"] as const).map((system) => (
-            <SystemIcon key={system} systemId={system} size="lg" className="h-10 w-12.5" />
+            <SystemIcon key={system} systemId={system} size="lg" />
           ))}
         </div>
       );
@@ -51,7 +65,17 @@ export function ArticleDrawing({ slug, className }: { slug: string; className?: 
     case CHOOSE_BEANS_SLUG:
       return (
         <div aria-hidden className={box}>
-          <Grounds className="h-20 w-auto" seed={11} count={48} />
+          <span className="relative block h-20 w-24 shrink-0">
+            {HEAP.map(({ x, y, turn, dark }, index) => (
+              <span
+                key={index}
+                className="absolute block w-7"
+                style={{ left: x, top: y, transform: `rotate(${turn}deg)` }}
+              >
+                <Bean roast={dark ? "dark" : "medium"} className="block h-auto w-full" />
+              </span>
+            ))}
+          </span>
         </div>
       );
     case ARABICA_ROBUSTA_SLUG:

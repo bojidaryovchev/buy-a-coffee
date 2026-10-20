@@ -95,7 +95,7 @@ export default async function JournalPage({ params }: PageProps) {
             <li key={article.slug}>
               {/* Each article's drawing beside it (DESIGN.md, "Imagery"). */}
               <article className="flex gap-6 py-6">
-                <ArticleDrawing slug={article.slug} className="hidden w-24 shrink-0 sm:flex" />
+                <ArticleDrawing slug={article.slug} className="hidden w-36 shrink-0 sm:flex" />
                 <div className="min-w-0">
                   <p className="text-2xs tracking-wide text-ink-500 uppercase">
                     <time dateTime={article.publishedAt}>

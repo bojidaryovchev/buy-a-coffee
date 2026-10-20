@@ -183,7 +183,7 @@ export function CartOrderForm({
     <form
       {...formProps}
       action={formAction}
-      className="relative rounded-md border border-line bg-paper-raised p-4 sm:p-5"
+      className="relative rounded-md border border-line bg-paper-raised p-5 sm:p-6"
     >
       <input type="hidden" {...register("lines")} value={linesJson} />
       <HoneypotField />
@@ -194,8 +194,8 @@ export function CartOrderForm({
         крайната сума и доставката. Без регистрация и без плащане на сайта.
       </p>
 
-      <div className="mt-4 grid gap-3">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor={firstNameId} className={LABEL_CLASS}>
               Име <Required />

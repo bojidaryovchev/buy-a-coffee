@@ -1,16 +1,7 @@
 import { createElement, Fragment, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  Bean,
-  Crema,
-  Cup,
-  CupRing,
-  Curl,
-  Grounds,
-  Spill,
-  Steam,
-} from "@/components/illustrations/drawings";
+import { Bean, Crema, Cup, CupRing, Curl, Spill, Steam } from "@/components/illustrations/drawings";
 
 /**
  * Our drawings — DESIGN.md, "Imagery" and "The Drawing Tone Rule": decorative,
@@ -30,7 +21,6 @@ const DRAWINGS: Array<[string, ReactElement, number]> = [
   ["crema", createElement(Crema), 1_200],
   ["cup-ring", createElement(CupRing), 1_200],
   ["spill", createElement(Spill), 1_200],
-  ["grounds", createElement(Grounds), 5_000],
 ];
 
 /** A colour class on a drawing may name only these. */
@@ -95,10 +85,9 @@ describe("drawings", () => {
     for (const id of ids) expect(markup).toContain(`clip-path="url(#${id})"`);
   });
 
-  it("scatters the same grounds from the same seed, and different ones from another", () => {
-    const once = render(createElement(Grounds, { seed: 3 }));
-    expect(render(createElement(Grounds, { seed: 3 }))).toBe(once);
-    expect(render(createElement(Grounds, { seed: 4 }))).not.toBe(once);
-    expect(once.match(/<circle/g)).toHaveLength(60);
+  it("lets a caller size a glass, instead of competing with its default size", () => {
+    const sized = render(createElement(Cup, { className: "h-20 w-auto" }));
+    expect(sized).toContain('class="block overflow-visible h-20 w-auto"');
+    expect(render(createElement(Cup))).toContain('class="block overflow-visible h-auto w-full"');
   });
 });

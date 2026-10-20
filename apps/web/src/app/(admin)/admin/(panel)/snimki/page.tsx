@@ -70,10 +70,11 @@ function Shot({
   const surface = { white: "bg-well", cream: "bg-paper", pine: "bg-pine-900" }[ground];
   return (
     <figure className="flex flex-col gap-1">
-      <div
-        className={`grid size-40 place-items-center rounded-sm border border-line p-3 ${surface}`}
-      >
-        <img src={src} alt={label} className="max-h-full max-w-full object-contain" />
+      {/* A fixed box and a picture filling it, contained: a percentage
+          max-height inside an auto-sized grid cell resolves to nothing, and a
+          cut-out 900 px tall then ran out of its box. */}
+      <div className={`size-40 rounded-sm border border-line p-3 ${surface}`}>
+        <img src={src} alt={label} className="size-full object-contain" />
       </div>
       <figcaption className="text-xs text-ink-500">{label}</figcaption>
     </figure>
@@ -127,8 +128,8 @@ function Tile({ row, children }: { row: CutoutRow; children: React.ReactNode }) 
   return (
     <li className="flex flex-col gap-2 rounded-md border border-line bg-paper-raised p-3">
       {row.cutoutUrl && (
-        <div className="grid h-32 place-items-center rounded-sm bg-paper p-2">
-          <img src={row.cutoutUrl} alt="" className="max-h-full max-w-full object-contain" />
+        <div className="h-32 rounded-sm bg-paper p-2">
+          <img src={row.cutoutUrl} alt="" className="size-full object-contain" />
         </div>
       )}
       <p className="text-xs">
