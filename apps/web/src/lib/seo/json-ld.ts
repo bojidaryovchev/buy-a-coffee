@@ -234,6 +234,11 @@ function shippingDetails(
  * when the shop has said who pays for the return and left out — not defaulted
  * — when it has not. A fixed return-shipping fee is not something the config
  * can express, so `ReturnShippingFees` is never emitted.
+ *
+ * `returnMethod` is by mail, always: the shop has no counter or kiosk, and a
+ * return is the customer sending the goods back (`withdrawalSection` in
+ * `content/legal.ts`: "докато не представите доказателство, че сте я
+ * изпратили").
  */
 function merchantReturnPolicy(
   commerce: CommerceConfig,
@@ -254,6 +259,7 @@ function merchantReturnPolicy(
     applicableCountry: "BG",
     returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
     merchantReturnDays: days,
+    returnMethod: "https://schema.org/ReturnByMail",
     ...(fees ? { returnFees: fees } : {}),
     merchantReturnLink: absoluteUrl(href(locale, routes.delivery)),
   };

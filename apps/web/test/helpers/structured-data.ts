@@ -30,6 +30,7 @@ const ENUMERATED = new Set([
   "itemCondition",
   "returnPolicyCategory",
   "returnFees",
+  "returnMethod",
   "dayOfWeek",
 ]);
 const URL_KEYS = new Set(["url", "item", "image", "logo", "sameAs", "urlTemplate"]);
