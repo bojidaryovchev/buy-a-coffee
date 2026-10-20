@@ -21,10 +21,12 @@ import {
   discoverCatalog,
   ensureSourceSite,
   exportReferenceArtifacts,
+  loadExistingProducts,
   loadTakenProductSlugs,
   recordScrapeError,
   runCatalogSync,
   runDiscoveryCrawl,
+  settleKeyCollisions,
   type CatalogDiscoveryResult,
   type DiscoveryCrawlResult,
 } from "@catalog/scraper-core";
@@ -92,7 +94,17 @@ export async function commandDiscovery(
   try {
     await fetcher.calibrateSoft404();
 
-    const catalog = await discoverCatalog({ config, fetcher, logger: runLogger });
+    /*
+     * Settled against the stored catalog, as the sync settles it: two products
+     * at one source address leave discovery under split keys, and the one we
+     * already store under the plain key must be exported under it, with its
+     * slug, or the reference seed finds a product with none.
+     */
+    const catalog = settleKeyCollisions(
+      await discoverCatalog({ config, fetcher, logger: runLogger }),
+      await loadExistingProducts(db, site.id),
+      runLogger,
+    );
 
     const crawl = await runDiscoveryCrawl({
       config,
