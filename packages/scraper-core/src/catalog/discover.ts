@@ -3,6 +3,7 @@ import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { type FilterInit, flattenCategories, parseFilterInit } from "../parsers/filterInit.ts";
 import { parseListingPage } from "../parsers/listing.ts";
+import { type KeyCollision, resolveDuplicateKeys } from "./collisions.ts";
 import { normalizeSourceSlug } from "./identity.ts";
 import {
   type NormalizedProduct,
@@ -59,8 +60,15 @@ export interface CatalogDiscoveryResult {
   readonly categories: DiscoveredCategory[];
   /** Records seen before de-duplication. */
   readonly rawRecordCount: number;
-  /** Source keys that appeared more than once. */
+  /** Source keys that appeared more than once, by path and pack size. */
   readonly duplicateKeys: string[];
+  /**
+   * Keys that more than one distinct record shared, and how each was settled:
+   * the products told apart and kept under keys of their own, the records
+   * dropped because nothing told them apart (`collisions.ts`). Identical
+   * records are not listed; they are the same product typed twice.
+   */
+  readonly keyCollisions: KeyCollision[];
   /** Paths serving more than one distinct product. */
   readonly collidingPaths: string[];
   readonly invalidRecords: Array<{ path: string; issues: string[] }>;
@@ -398,10 +406,8 @@ function finalise(
 ): CatalogDiscoveryResult {
   const { config, logger } = context;
 
-  const byKey = new Map<string, NormalizedProduct>();
-  const duplicateKeys: string[] = [];
+  const valid: NormalizedProduct[] = [];
   const invalidRecords: CatalogDiscoveryResult["invalidRecords"] = [];
-  const pathCounts = new Map<string, Set<string>>();
 
   for (const raw of rawRecords) {
     const product = normalizeProduct(raw, {
@@ -421,29 +427,41 @@ function finalise(
       logger.warn("catalog.invalid_product", { path: raw.path, issues: validation.issues });
       continue;
     }
+    valid.push(product);
+  }
 
+  // Records that share a key: one product typed twice, or two products at one
+  // address. `collisions.ts` tells which, and keeps every product.
+  const { products: keyed, duplicateKeys, keyCollisions } = resolveDuplicateKeys(valid);
+  for (const collision of keyCollisions) {
+    if (collision.tiebreaker !== null) {
+      logger.info("catalog.duplicate_key_split", {
+        sourceKey: collision.sourceKey,
+        tiebreaker: collision.tiebreaker,
+        sourceKeys: collision.products.map((product) => product.sourceKey),
+      });
+    }
+    for (const record of collision.dropped) {
+      // `keptName` and `discardedName` as the event always carried them, so a
+      // search of old logs still finds it.
+      logger.warn("catalog.duplicate_key_conflict", {
+        sourceKey: collision.sourceKey,
+        keptName: collision.products.find((product) => product.sourceKey === record.keptAs)?.name,
+        keptAs: record.keptAs,
+        discardedName: record.name,
+        differsIn: record.differsIn,
+      });
+    }
+  }
+
+  const pathCounts = new Map<string, Set<string>>();
+  for (const product of keyed) {
     let keysForPath = pathCounts.get(product.sourcePath);
     if (!keysForPath) {
       keysForPath = new Set<string>();
       pathCounts.set(product.sourcePath, keysForPath);
     }
     keysForPath.add(product.sourceKey);
-
-    const existing = byKey.get(product.sourceKey);
-    if (existing) {
-      duplicateKeys.push(product.sourceKey);
-      // Identical records collapse silently; differing ones are worth a line
-      // in the log because they mean the source has genuinely ambiguous data.
-      if (existing.semanticHash !== product.semanticHash) {
-        logger.warn("catalog.duplicate_key_conflict", {
-          sourceKey: product.sourceKey,
-          keptName: existing.name,
-          discardedName: product.name,
-        });
-      }
-      continue;
-    }
-    byKey.set(product.sourceKey, product);
   }
 
   const collidingPaths = [...pathCounts.entries()]
@@ -451,7 +469,7 @@ function finalise(
     .map(([path]) => path);
 
   const withCollisionFlag = new Set(collidingPaths);
-  let products: NormalizedProduct[] = [...byKey.values()].map((product) =>
+  let products: NormalizedProduct[] = keyed.map((product) =>
     withCollisionFlag.has(product.sourcePath) ? { ...product, hasUrlCollision: true } : product,
   );
 
@@ -467,6 +485,7 @@ function finalise(
     rawRecords: rawRecords.length,
     products: products.length,
     duplicates: duplicateKeys.length,
+    keyCollisions: keyCollisions.length,
     collidingPaths: collidingPaths.length,
     invalid: invalidRecords.length,
     confidence,
@@ -479,6 +498,7 @@ function finalise(
     categories: [...categories],
     rawRecordCount: rawRecords.length,
     duplicateKeys,
+    keyCollisions,
     collidingPaths,
     invalidRecords,
     confidence,

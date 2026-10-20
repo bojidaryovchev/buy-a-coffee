@@ -1,9 +1,10 @@
 import type { Database } from "@catalog/db";
-import { type Logger, silentLogger } from "@catalog/shared";
+import { type Logger, TRAILING_QUANTITY, normalizeLabel, silentLogger } from "@catalog/shared";
 import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { type ProductCharacteristic, parseProductPage } from "../parsers/productPage.ts";
 import type { ExistingProduct } from "./diff.ts";
+import { identityToken, parseSplitSourceKey } from "./identity.ts";
 import type { NormalizedProduct } from "./normalize.ts";
 import {
   type EnrichmentTarget,
@@ -11,6 +12,7 @@ import {
   ensureSourceSite,
   loadProductsWithoutCode,
   loadSharedProductCodes,
+  markEnrichmentAttempted,
   markEnrichmentDue,
   markEnrichmentFailed,
   recordScrapeError,
@@ -41,6 +43,8 @@ import {
 
 /** What a product page contributes. Absent stays null; nothing is inferred. */
 export interface ProductPageFacts {
+  /** The page's own heading: which product the page is about. */
+  readonly name: string | null;
   /** The product code as printed, e.g. `00072`. */
   readonly sku: string | null;
   readonly characteristics: ProductCharacteristic[];
@@ -80,6 +84,7 @@ export function interpretProductPage(html: string): ProductPageFacts | null {
   if (!looksLikeProduct) return null;
 
   return {
+    name: parsed.name,
     sku: parsed.sku,
     characteristics: parsed.characteristics.map(({ label, value }) => ({ label, value })),
     // The column is a whole number of percent. A fractional figure cannot be
@@ -92,6 +97,20 @@ export function interpretProductPage(html: string): ProductPageFacts | null {
     origin: parsed.origin,
     roast: parsed.roast,
   };
+}
+
+/**
+ * True when a page's heading names the product: the same name by
+ * `identityToken`, once the pack size each states at its end is set aside.
+ * One coffee in two packs is one name — the page for a 1 kg bag describes the
+ * 500 g bag's coffee too — while the Espresso Bar is not the Super Bar.
+ */
+function namesProduct(facts: ProductPageFacts, target: EnrichmentTarget): boolean {
+  if (facts.name === null) return false;
+  const withoutPack = (name: string) =>
+    identityToken(normalizeLabel(name).replace(TRAILING_QUANTITY, ""));
+  const page = withoutPack(facts.name);
+  return page !== "" && page === withoutPack(target.name);
 }
 
 /** Consecutive failed reads after which a reader stops asking. */
@@ -421,6 +440,7 @@ export async function enrichProducts(input: {
   let enriched = 0;
   let failed = 0;
   const deferred: string[] = [];
+  const unattributable: string[] = [];
   const skuChanges: EnrichmentSummary["skuChanges"] = [];
 
   for (const target of input.targets) {
@@ -436,6 +456,22 @@ export async function enrichProducts(input: {
     }
 
     const { facts } = read;
+    const sharesPage = target.hasUrlCollision || parseSplitSourceKey(target.sourceKey) !== null;
+    if (sharesPage && !namesProduct(facts, target)) {
+      /*
+       * A page shared with another product — two the source lists at one
+       * address (`collisions.ts`), or two pack sizes of one coffee — that is
+       * about the other one: its blend, its roast and its code are not this
+       * product's. That holds for the product under the plain key too: the
+       * source can switch the shared page to the Super Bar, and the Espresso
+       * Bar must not take its characteristics. Nothing is stored, and the
+       * product waits a day, as one whose page failed does, rather than
+       * heading the backlog on every run. A page that does name it — its own,
+       * or its coffee's in another pack — is read as any other.
+       */
+      unattributable.push(target.productId);
+      continue;
+    }
     // One page, two pack sizes: its single code identifies neither of them.
     const sku = target.hasUrlCollision ? null : facts.sku;
     if (sku !== null && target.sku !== null && target.sku !== sku) {
@@ -455,6 +491,10 @@ export async function enrichProducts(input: {
   }
 
   await markEnrichmentDue(db, deferred);
+  if (unattributable.length > 0) {
+    await markEnrichmentAttempted(db, unattributable);
+    logger.info("enrich.shared_page_skipped", { count: unattributable.length });
+  }
   return { enriched, failed, deferred: deferred.length, skuChanges };
 }
 

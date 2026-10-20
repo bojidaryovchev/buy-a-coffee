@@ -20,6 +20,7 @@ import {
   evaluateCircuitBreaker,
   suppressRemovals,
 } from "./circuitBreaker.ts";
+import { settleKeyCollisions, unresolvedKeyCollisions } from "./collisions.ts";
 import { type DiffResult, diffCatalog } from "./diff.ts";
 import { type CatalogDiscoveryResult, discoverCatalog } from "./discover.ts";
 import {
@@ -164,14 +165,14 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
   try {
     // 1. Discover -----------------------------------------------------------
     await fetcher.calibrateSoft404();
-    const discovery = await discoverCatalog({
+    const discovered = await discoverCatalog({
       config,
       fetcher,
       logger: runLogger,
       ...(options.productLimit !== undefined ? { productLimit: options.productLimit } : {}),
     });
 
-    for (const error of discovery.errors) {
+    for (const error of discovered.errors) {
       await recordScrapeError(db, {
         sourceSiteId: site.id,
         syncRunId,
@@ -181,7 +182,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         errorMessage: error.message,
       });
     }
-    for (const invalid of discovery.invalidRecords) {
+    for (const invalid of discovered.invalidRecords) {
       await recordScrapeError(db, {
         sourceSiteId: site.id,
         syncRunId,
@@ -196,6 +197,19 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
     const existing = await loadExistingProducts(db, site.id);
     const productsBefore = await countAllProducts(db, site.id);
     const activeBefore = await countActiveProducts(db, site.id);
+
+    /*
+     * Two products the source lists at one address and pack size leave
+     * discovery under keys of their own; the one already stored under the
+     * shared key takes it back here, so it stays the row it always was. Every
+     * step below, and the result, reads the settled catalog.
+     */
+    const discovery = settleKeyCollisions(discovered, existing, runLogger);
+    const unsettled = unresolvedKeyCollisions(discovery.keyCollisions);
+    if (unsettled.length > 0) {
+      // Recorded on the run, where the storefront's sync-health check finds it.
+      runLogger.warn("sync.key_collisions_unresolved", { collisions: unsettled });
+    }
 
     /*
      * The listing carries no product code, so a product that matches no stored
@@ -594,7 +608,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
         circuitBreakerDetail: breaker.detail,
         catalogSource: discovery.source,
         parserConfidence: discovery.confidence.toFixed(3),
-        metadata: sql`${syncRuns.metadata} || ${JSON.stringify({ unresolvedMoves: diff.unresolvedMoves, taxonomy, enrichment })}::jsonb`,
+        metadata: sql`${syncRuns.metadata} || ${JSON.stringify({ unresolvedMoves: diff.unresolvedMoves, keyCollisions: discovery.keyCollisions, taxonomy, enrichment })}::jsonb`,
       })
       .where(eq(syncRuns.id, syncRunId));
 
@@ -604,6 +618,7 @@ export async function runCatalogSync(options: SyncOptions): Promise<SyncResult> 
       discovered: discovery.products.length,
       ...appliedDiff.counts,
       unresolvedMoves: diff.unresolvedMoves.length,
+      keyCollisions: discovery.keyCollisions.length,
       taxonomy,
       images,
       enrichment,

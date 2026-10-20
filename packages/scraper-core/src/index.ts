@@ -9,6 +9,7 @@ export * from "./parsers/filterInit.ts";
 export * from "./parsers/price.ts";
 export * from "./parsers/sitemap.ts";
 export * from "./catalog/identity.ts";
+export * from "./catalog/collisions.ts";
 export * from "./catalog/normalize.ts";
 export * from "./catalog/diff.ts";
 export * from "./catalog/circuitBreaker.ts";

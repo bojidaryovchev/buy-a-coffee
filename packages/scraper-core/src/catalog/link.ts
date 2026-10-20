@@ -2,7 +2,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import type { Database } from "@catalog/db";
 import { orderInquiries, products, sourceSites, syncChanges, syncRuns } from "@catalog/db/schema";
 import { canonicalizeUrl } from "@catalog/shared";
-import { SOURCE_KEY_SEPARATOR } from "./identity.ts";
+import { SOURCE_KEY_SEPARATOR, SOURCE_KEY_SPLIT } from "./identity.ts";
 import { applyProductMove, countAllProducts } from "./repository.ts";
 import { MANUAL_LINK_RUN_KIND } from "./verify.ts";
 
@@ -71,8 +71,9 @@ export interface LinkInput {
 /**
  * Split a path-shaped source key into its parts.
  *
- * Only `path` and `path#size` keys can be linked by hand: the path is what the
- * row's `source_path` and `source_url` are rebuilt from.
+ * Only `path` and `path#size` keys can be linked by hand — `path#size~name:…`
+ * among them, the key of one of two products at one address — because the
+ * path is what the row's `source_path` and `source_url` are rebuilt from.
  */
 export function parsePathSourceKey(
   sourceKey: string,
@@ -91,7 +92,9 @@ export function parsePathSourceKey(
   return {
     sourceKey: variant === null ? sourcePath : `${sourcePath}${SOURCE_KEY_SEPARATOR}${variant}`,
     sourcePath,
-    sourceVariantKey: variant,
+    // The pack size alone, as the sync stores it: a split key's `~…` tells two
+    // products apart and is not part of either one's pack size.
+    sourceVariantKey: variant === null ? null : variant.split(SOURCE_KEY_SPLIT)[0] || null,
   };
 }
 

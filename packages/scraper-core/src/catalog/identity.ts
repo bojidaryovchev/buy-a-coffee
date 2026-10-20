@@ -2,8 +2,10 @@ import {
   type NormalizedWeight,
   type ProductNameInput,
   allocateProductSlug,
+  normalizeLabel,
   parseWeight,
   productName,
+  transliterate,
 } from "@catalog/shared";
 
 /**
@@ -28,10 +30,15 @@ import {
  * Pack size is part of the SKU for coffee, and normalising it means `1 кг.`
  * and `1000 г` cannot fork one product into two.
  *
- * The one accepted trade-off: two records that share a URL *and* a pack size
- * collapse into one. That is the correct outcome for the observed case — the
- * duplicated `/eurocaf-piacere-oro/` entry is the same product typed twice
- * into the source CMS.
+ * Two records that share a URL *and* a pack size collapse into one when they
+ * are the same product: the duplicated `/eurocaf-piacere-oro/` entry was the
+ * same product typed twice into the source CMS. When they are not — the
+ * source lists Moreno Espresso Bar and Moreno Super Bar, both 1 kg, at
+ * `/moreno-super-bar-1/` — collapsing them dropped one product and let the
+ * other take its name and price whenever the source swapped the two. So such
+ * records are told apart by their product code, else their name, and the
+ * second product gets a key of its own (`splitSourceKey`, `collisions.ts`).
+ * Records nothing tells apart still collapse, and the run says so.
  *
  * The product code is deliberately NOT an identity. The source began printing
  * one on its product pages ("Код: 00072") long after every row here had a
@@ -40,10 +47,94 @@ import {
  * page happened to be read. The code is stored on the row and used by move
  * detection as evidence that two keys are one product (see `moves.ts`). It
  * cannot be passed to `resolveProductIdentity` at all: the input type refuses
- * it.
+ * it. The one place a code may shape a key is the tie-break above, between
+ * products that already share one, and only when the listing itself states a
+ * code for every one of them — which today it never does.
  */
 
 export const SOURCE_KEY_SEPARATOR = "#";
+
+/**
+ * Marks the part of a key that tells apart two products the source lists at
+ * one address and one pack size:
+ *
+ *     /moreno-super-bar-1/#1000g~name:kafenazarnamorenosuperbar1kg
+ *
+ * It sits inside the variant, after the pack size, so everything that reads a
+ * key as `path#variant` — move detection's path stem, `catalog:link` — still
+ * reads the right path. A key with no pack size gets an empty one first
+ * (`/x/#~name:…`) for the same reason. No canonical pack size contains `~`.
+ */
+export const SOURCE_KEY_SPLIT = "~";
+
+/** What told two products at one key apart. */
+export type KeyTiebreaker = "code" | "name";
+
+export interface SplitSourceKey {
+  /** The key both products would have had: path and pack size. */
+  readonly plainKey: string;
+  readonly tiebreaker: KeyTiebreaker;
+  /** `code:<code>` or `name:<name>`, as `splitDiscriminator` builds it. */
+  readonly discriminator: string;
+}
+
+/**
+ * A name or a product code reduced to what tells one product from another:
+ * transliterated, lower-cased, every space and mark of punctuation removed
+ * but a mark between two digits.
+ *
+ *     "Кафе на зърна Moreno Super Bar 1кг."   -> kafenazarnamorenosuperbar1kg
+ *     "Кафе на зърна Moreno Super Bar 1 кг"   -> kafenazarnamorenosuperbar1kg
+ *
+ * The one normaliser for split keys. The key is built with it and a stored
+ * product is recognised with it (`collisions.ts`), so the two cannot disagree:
+ * a name the source re-spaces or re-punctuates is the same name to both, and
+ * neither moves the product. Two records it cannot tell apart are, for the
+ * sync, one product.
+ *
+ * Which is why a mark between two digits is kept, as `p`: "7,5" and "7.5" are
+ * `7p5`, "75" is `75`. Those are different numbers — "2,50 г" and "250 г" are
+ * different packs — and dropping the comma would merge two products and drop
+ * one. A space between digits ("1 000") is a thousands separator, and goes
+ * like any other space.
+ */
+export function identityToken(value: string): string {
+  return transliterate(normalizeLabel(value))
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/(\d)\s*[^\p{L}\p{N}\s]+\s*(?=\d)/gu, "$1p")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** `code:<token>` or `name:<token>`: the part of a split key after `~`. */
+export function splitDiscriminator(tiebreaker: KeyTiebreaker, value: string): string {
+  return `${tiebreaker}:${identityToken(value)}`;
+}
+
+export function splitSourceKey(plainKey: string, discriminator: string): string {
+  const withVariant = plainKey.includes(SOURCE_KEY_SEPARATOR)
+    ? plainKey
+    : `${plainKey}${SOURCE_KEY_SEPARATOR}`;
+  return `${withVariant}${SOURCE_KEY_SPLIT}${discriminator}`;
+}
+
+/** The parts of a split key, or null for any other key. */
+export function parseSplitSourceKey(sourceKey: string): SplitSourceKey | null {
+  const variantStart = sourceKey.indexOf(SOURCE_KEY_SEPARATOR);
+  if (variantStart === -1) return null;
+  const splitAt = sourceKey.indexOf(SOURCE_KEY_SPLIT, variantStart);
+  if (splitAt === -1) return null;
+
+  const discriminator = sourceKey.slice(splitAt + SOURCE_KEY_SPLIT.length);
+  const tiebreaker = discriminator.slice(0, discriminator.indexOf(":"));
+  if (tiebreaker !== "code" && tiebreaker !== "name") return null;
+
+  const head = sourceKey.slice(0, splitAt);
+  // `/x/#~name:…` is `/x/` split; `/x/#1000g~name:…` is `/x/#1000g` split.
+  const plainKey = head.endsWith(SOURCE_KEY_SEPARATOR) ? head.slice(0, -1) : head;
+  return { plainKey, tiebreaker, discriminator };
+}
 
 export interface ProductIdentityInput {
   /** Decoded, canonical source path, e.g. `/borbone-crema-classica/`. */

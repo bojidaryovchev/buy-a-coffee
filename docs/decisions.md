@@ -99,6 +99,50 @@ collapsed an accidental duplicate in the August catalog, taking 111 raw records
 to 110 products. (Since the October rename no URL serves two products, and the
 rule is unchanged: it costs nothing and the source has done it before.)
 
+**Two products at one address and size are told apart, not collapsed.** In
+October the source listed Moreno Espresso Bar (€20) and Moreno Super Bar (€25),
+both 1 kg, at `/moreno-super-bar-1/`. Collapsing them dropped the Super Bar on
+every run, and had the source swapped the two, the Espresso Bar's row, URL and
+order history would have taken the Super Bar's name and price as an ordinary
+update (research 08 §1.4). Records that share path and pack size are now told
+apart by the product code when the listing states a different one for each,
+else by name, and each product gets a key of its own
+(`…#1000g~name:kafenazarnamorenosuperbar1kg`), a function of the records alone,
+so the source's order changes nothing.
+
+The name in that key is reduced by one normaliser (`identityToken`):
+transliterated, lower-cased, every space and mark of punctuation removed but
+a mark between two digits, kept as `p` ("7,5" is not "75", "2,50 г" is not
+"250 г"). The same normaliser recognises a stored product, so the key and the
+match cannot disagree: "1кг." and "1 кг" are one name to both, and the same
+product typed twice in two spellings collapses as it always did. Keys are sticky: at an
+address that is or was shared, each product is paired with the row it already
+has there — by code, else by that name — and keeps that row's key, so the
+Espresso Bar stays under the plain key and only the Super Bar is new, and
+neither moves when the source re-spaces a name, lists one of them alone, or
+starts printing codes. A pair is made only when it is the single reading.
+
+Nothing is guessed. Records with one code and one name that differ in what the
+shop shows keep the first, as before (`indistinguishable`). A product that
+matches no stored row at such an address gets a key of its own, never the
+plain key: an unrecognised product must not slide into the row the address
+belonged to, live or removed. When that happens while a stored product there
+disappears, the run records it (`unmatched`); a person links the two by hand
+(`catalog:link … --absorb-twin`) if they are one product. Both are written to
+`metadata.keyCollisions`, and the storefront's sync health reads every run of
+the day — the sync runs four times, the check once — and names each one the
+first time it appears (`duplicate_key_conflict`), so what only the source can
+fix is mailed once, not daily. A split the sync settled raises nothing.
+
+A product that shares its page — either of two products at one address, the
+one under the plain key included — is enriched only from a page whose heading
+names it, pack size aside: the shared page is one product's, and the source can
+switch it, so the other must not take its blend and roast. Two pack sizes of
+one coffee still both read their shared page.
+The reference export settles keys against the stored catalog before it looks up
+slugs, as the sync does. Every key at an address that was never shared is
+untouched, byte for byte (`collisions.ts`).
+
 `imageUrl` is unique across all 111 records and was **rejected** as identity:
 re-uploading an image would silently recreate the product.
 
