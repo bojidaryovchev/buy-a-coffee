@@ -833,10 +833,12 @@ outside the study's subject. What was fixed, and where:
   listing's `lastmod` is the newest change among its products, a legal page's
   the day its text changed (`apps/web/src/content/legal-revisions.ts`), and the
   pages nothing dates carry none rather than the time of generation.
-- **Pagination.** Page two and later of a clean listing are `noindex, follow`,
-  canonical to themselves rather than to page one, and titled „— страница 2“;
-  a filtered or sorted view still names the clean first page
-  (`apps/web/src/lib/seo/pagination.ts`).
+- **Pagination.** Page two and later of a clean listing are `index, follow`
+  (they were `noindex, follow` until 20 October 2026, which left five products
+  linked from no indexable page), canonical to themselves rather than to page
+  one, and titled „— страница 2“; a filtered or sorted view is `noindex` and
+  still names the clean first page, and a page number past the last is a 404
+  (`apps/web/src/lib/seo/pagination.ts`, `e2e/link-graph.spec.ts`).
 - **Meta descriptions** of the contact, legal and journal pages, written for a
   result (`apps/web/src/lib/seo/page-meta.ts`); shorter meta descriptions for
   the articles whose lead runs past 160.

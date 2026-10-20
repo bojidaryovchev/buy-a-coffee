@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
-import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 
 /*
  * A listing's later pages (`lib/seo/pagination.ts`): page two of the clean
@@ -32,5 +34,37 @@ describe("a later page's address and title", () => {
     expect(pageQuery(3)).toBe("?page=3");
     expect(pagedTitle("Кафе капсули", 1)).toBe("Кафе капсули");
     expect(pagedTitle("Кафе капсули", 2)).toBe("Кафе капсули — страница 2");
+  });
+});
+
+/* An indexable listing must not multiply into empty pages: `?page=99` of a
+   two-page listing was a 200, and once clean later pages are indexable it
+   would have been an indexable empty page. The pages call `notFound()`. */
+describe("a page past the last", () => {
+  it("is past the last only beyond the listing's own page count", () => {
+    expect(isPastLastPage({ page: 1, pageCount: 1 })).toBe(false);
+    expect(isPastLastPage({ page: 2, pageCount: 2 })).toBe(false);
+    expect(isPastLastPage({ page: 3, pageCount: 2 })).toBe(true);
+    expect(isPastLastPage({ page: 99, pageCount: 2 })).toBe(true);
+  });
+
+  it("is never page one, even of an empty listing", () => {
+    // `listProducts` counts at least one page.
+    expect(isPastLastPage({ page: 1, pageCount: 1 })).toBe(false);
+  });
+
+  it("is what every paginated listing checks before it renders", () => {
+    const root = path.resolve(import.meta.dirname, "../src/app/(site)/[lang]");
+    for (const file of [
+      "[slug]/_components/category-page.tsx",
+      "marki/[slug]/page.tsx",
+      "promotsii/page.tsx",
+      "kafe-za-vending-mashini/page.tsx",
+      "konsumativi/page.tsx",
+      "tarsene/page.tsx",
+    ]) {
+      const source = readFileSync(path.join(root, file), "utf8");
+      expect(source, file).toMatch(/if \((?:\w+ && )?isPastLastPage\([\w.]+\)\) notFound\(\);/);
+    }
   });
 });

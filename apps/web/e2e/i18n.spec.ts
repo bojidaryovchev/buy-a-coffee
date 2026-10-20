@@ -468,12 +468,13 @@ test.describe("the head of every page", () => {
   });
 
   /*
-   * Page two of a clean listing is not one to rank, but it is the only page
-   * that links what page one has no room for: `noindex, follow`, canonical to
-   * itself (not to page one, which would contradict the noindex), and titled
-   * as page two so it is not a duplicate of page one (`lib/seo/pagination.ts`).
+   * Page two of a clean listing is the only page that links what page one has
+   * no room for, so it is indexed — `noindex` there left products linked from
+   * nowhere a search engine keeps following. It is canonical to itself and
+   * titled as page two, so it is not a duplicate of page one
+   * (`lib/seo/pagination.ts`).
    */
-  test("page two of a listing is noindex, follow, names itself and says which page it is", async ({
+  test("page two of a listing is index, follow, names itself and says which page it is", async ({
     page,
   }) => {
     for (const listing of [BG.capsules, BG.brand("lavazza")]) {
@@ -483,7 +484,7 @@ test.describe("the head of every page", () => {
       await page.goto(view);
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
         "content",
-        "noindex, follow",
+        "index, follow",
       );
       const canonical = new URL((await canonicalOf(page))!);
       expect(canonical.pathname + canonical.search, view).toBe(view);
@@ -491,6 +492,32 @@ test.describe("the head of every page", () => {
       expect(await page.title(), view).toContain("— страница 2");
       expect(await page.title(), view).not.toBe(firstTitle);
     }
+  });
+
+  test("a filtered or sorted later page stays noindex", async ({ page }) => {
+    for (const view of [`${BG.capsules}?page=2&sort=price-asc`, `${BG.capsules}?page=2&brand=lavazza`]) {
+      const response = await page.goto(view);
+      if (response?.status() === 404) continue; // A filter with one page has no page two.
+      await expect(page.locator('meta[name="robots"]'), view).toHaveAttribute("content", /noindex/);
+    }
+  });
+
+  /* Indexable later pages must not multiply into empty ones: a page number
+     past the last is a 404, on every paginated listing. */
+  test("a page past the last one is a 404, never an indexable empty page", async ({ request }) => {
+    for (const view of [
+      `${BG.capsules}?page=99`,
+      `${BG.brand("lavazza")}?page=99`,
+      `${BG.promotions}?page=99`,
+      `${BG.capsules}?page=99&brand=lavazza`,
+    ]) {
+      const response = await request.get(view, { maxRedirects: 0 });
+      expect(response.status(), view).toBe(404);
+      const robots = [...(await response.text()).matchAll(/<meta name="robots" content="([^"]+)"/g)];
+      for (const [, content] of robots) expect(content, view).toMatch(/noindex/);
+    }
+    // Garbage is page one, not a 404.
+    expect((await request.get(`${BG.capsules}?page=abc`)).status()).toBe(200);
   });
 
   test("the consumables page is noindex and out of the sitemap while it lists nothing", async ({

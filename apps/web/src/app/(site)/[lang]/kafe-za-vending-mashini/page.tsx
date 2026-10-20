@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
 import { getListingFacts, type ListingFacts } from "@/lib/catalog/listing-facts";
 import {
@@ -11,7 +12,7 @@ import {
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
-import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { href } from "@/lib/routes";
 import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
 import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
@@ -95,6 +96,8 @@ export default async function VendingPage({ params, searchParams }: PageProps) {
     getSectionListing(section.id, query),
     listVendingBlends(),
   ]);
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (listing && isPastLastPage(listing.result)) notFound();
 
   return (
     <BusinessSectionView

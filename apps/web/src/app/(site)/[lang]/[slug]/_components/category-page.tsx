@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { SystemIcon } from "@/components/catalog/system-icon";
 import { Breadcrumbs, ChipLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
@@ -44,6 +44,7 @@ import { categoryHref, href, productHref, routes, targetHref } from "@/lib/route
 import { BREWING_SYSTEMS, fitsSentence, type BrewingSystem } from "@/lib/recommend/systems";
 import { brewingSystemForCategory, businessSectionForCategory } from "../../_lib/category-scope";
 import { robotsFor } from "@/lib/seo/robots";
+import { isPastLastPage } from "@/lib/seo/pagination";
 
 /**
  * A category listing, at `/<locale>/<landing slug>`.
@@ -139,6 +140,8 @@ export async function CategoryPage({
   if (section) permanentRedirect(href(locale, `${section.path}${buildSearchParams(query)}`));
 
   const result = await listProducts({ query, categorySlug: category.slug });
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (isPastLastPage(result)) notFound();
   /*
    * Only on the first page. Page two of a listing is the same category, and
    * repeating the same three paragraphs under every page of it adds nothing

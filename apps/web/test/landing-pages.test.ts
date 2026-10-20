@@ -414,13 +414,13 @@ describe("the consumables page", () => {
     expect(sorted.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi"));
   });
 
-  /* Page two is not indexed, but it is a page of its own: its own canonical,
-     its own title. Naming page one while asking not to be indexed mixed two
-     signals (`lib/seo/pagination.ts`). */
+  /* Page two is a page of its own: its own canonical, its own title, and
+     indexed, since it is the only page linking what page one has no room for
+     (`lib/seo/pagination.ts`). */
   it("names page two as itself, under a title that says which page it is", async () => {
     state.consumablesListed = true;
     const second = await consumablesMetadata(props({ page: "2" }));
-    expect(second.robots).toEqual({ index: false, follow: true });
+    expect(second.robots).toEqual(INDEXABLE);
     expect(second.alternates?.canonical).toBe(absoluteUrl("/bg/konsumativi?page=2"));
     expect(second.alternates?.languages).toEqual({
       bg: absoluteUrl("/bg/konsumativi?page=2"),
