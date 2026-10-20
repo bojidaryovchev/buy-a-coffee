@@ -1431,7 +1431,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Тази капсула е за напитка с кафе и мляко, а не за чисто еспресо.",
       "Вкусът е на ароматно кафе и мляко, с приятна сладост и кадифена текстура. Интензивността е 6 от 10, а силата — умерена.",
-      "Капсулите са 10 и пасват на машини Caffitaly; същият формат приемат и машините Tchibo Cafissimo.",
+      "Капсулите са 10 и пасват на машини Caffitaly; същия формат приемат и машините Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "caffitaly-espresso-cremoso-kapsuli-caffitaly-10-br": {
@@ -1440,7 +1440,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Cremoso е най-мекото еспресо на Caffitaly при нас: интензивност 5 от 10.",
       "Зърната са само арабика, отгледана в двете Америки — Южна и Централна. Ароматът е богат и пълен, а кремата — мека и кадифена.",
-      "10 капсули, които влизат в машини Caffitaly и Tchibo Cafissimo.",
+      "10 капсули, които влизат в машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "caffitaly-espresso-intenso-kapsuli-caffitaly-10-br": {
@@ -1449,7 +1449,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Пропорцията е като при Morbido — 70 % арабика и 30 % робуста, — но Intenso е 8 от 10 и със силен характер.",
       "Произходът е Южна Америка и Индия. Вкусът е наситен, с шоколадов привкус в края.",
-      "10 капсули, съвместими с машини Caffitaly и Tchibo Cafissimo.",
+      "10 капсули, съвместими с машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "caffitaly-espresso-nocciola-kapsuli-caffitaly-10-br": {
@@ -1458,7 +1458,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Nocciola на италиански означава лешник, и точно той е добавеният аромат.",
       "Основата е изцяло арабика. Вкусът е мек и ароматен, с лешник и шоколад; интензивност 7 от 10, умерена сила.",
-      "10 капсули за Caffitaly и за Tchibo Cafissimo.",
+      "10 капсули за Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "caffitaly-espresso-prezioso-kapsuli-caffitaly-10-br": {
@@ -1467,7 +1467,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Prezioso няма робуста и няма добавен аромат. Арабиката идва от Централна и Южна Америка.",
       "Вкусът е богат и приятен, тялото — добре балансирано. Интензивност 7 от 10 и умерена сила: еспресо за всекидневната чаша.",
-      "Кутия от 10 капсули за машини Caffitaly и Tchibo Cafissimo.",
+      "Кутия от 10 капсули за машини Caffitaly. Същия формат приемат и машините Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "caffitaly-espresso-vigoroso-kapsuli-caffitaly-10-br": {
@@ -1476,7 +1476,7 @@ export const productCopy: Readonly<Record<string, ProductCopy>> = {
     body: [
       "Изцяло робуста, без арабика. Интензивност 10 от 10 и силен характер.",
       "В профила има какао и черен шоколад, с леко димни тонове. Еспресо за началото на деня, когато трябва да се събудите.",
-      "10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo.",
+      "10 капсули за машини Caffitaly; форматът става и за Tchibo Cafissimo. Tchibo посочва, че в Cafissimo трябва да се използват само нейните капсули.",
     ],
   },
   "elia-esclusiva-kafe-dozi-50-br": {
