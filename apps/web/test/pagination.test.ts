@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
-import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import {
+  isPastLastPage,
+  isPastLastPageOf,
+  listingPage,
+  pageQuery,
+  pagedTitle,
+} from "@/lib/seo/pagination";
 
 /*
  * A listing's later pages (`lib/seo/pagination.ts`): page two of the clean
@@ -53,6 +59,16 @@ describe("a page past the last", () => {
     expect(isPastLastPage({ page: 1, pageCount: 1 })).toBe(false);
   });
 
+  /* Found on the Milestone 1 preview: a vending page whose section has no
+     listing of its own answered `?page=99` with an indexable copy of page one. */
+  it("is every later page of a section that has no listing of its own", () => {
+    expect(isPastLastPageOf(1, null)).toBe(false);
+    expect(isPastLastPageOf(2, null)).toBe(true);
+    expect(isPastLastPageOf(99, undefined)).toBe(true);
+    expect(isPastLastPageOf(2, { page: 2, pageCount: 2 })).toBe(false);
+    expect(isPastLastPageOf(3, { page: 3, pageCount: 2 })).toBe(true);
+  });
+
   it("is what every paginated listing checks before it renders", () => {
     const root = path.resolve(import.meta.dirname, "../src/app/(site)/[lang]");
     for (const file of [
@@ -64,7 +80,9 @@ describe("a page past the last", () => {
       "tarsene/page.tsx",
     ]) {
       const source = readFileSync(path.join(root, file), "utf8");
-      expect(source, file).toMatch(/if \((?:\w+ && )?isPastLastPage\([\w.]+\)\) notFound\(\);/);
+      expect(source, file).toMatch(
+        /if \((?:\w+ && )?isPastLastPage(?:Of\(query\.page, )?\(?[\w.?]+\)\) notFound\(\);/,
+      );
     }
   });
 });

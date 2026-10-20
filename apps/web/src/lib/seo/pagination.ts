@@ -39,6 +39,20 @@ export function isPastLastPage(result: {
   return result.page > result.pageCount;
 }
 
+/**
+ * The same for a page whose own listing may not exist: a business section
+ * shows its category's listing only once the catalog files products there,
+ * and the rest of the page (the vending blends, the copy) is the same on any
+ * page number. With no listing, every page after the first is past the last —
+ * otherwise `?page=99` would be an indexable copy of page one.
+ */
+export function isPastLastPageOf(
+  page: number,
+  result: { readonly page: number; readonly pageCount: number } | null | undefined,
+): boolean {
+  return result ? isPastLastPage(result) : page > 1;
+}
+
 /** „Кафе капсули — страница 2“: page one keeps its title as it is. */
 export const pagedTitle = (title: string, page: number): string =>
   page > 1 ? `${title} — страница ${page}` : title;

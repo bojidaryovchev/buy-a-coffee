@@ -514,6 +514,9 @@ test.describe("the head of every page", () => {
       `${BG.brand("lavazza")}?page=99`,
       `${BG.promotions}?page=99`,
       `${BG.capsules}?page=99&brand=lavazza`,
+      // A section page, whether or not its own category lists anything yet.
+      `${BG.vending}?page=99`,
+      `${BG.consumables}?page=99`,
     ]) {
       const response = await request.get(view, { maxRedirects: 0 });
       expect(response.status(), view).toBe(404);

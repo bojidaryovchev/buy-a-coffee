@@ -5,7 +5,7 @@ import { BUSINESS_SECTIONS, getSectionListing, sectionListsProducts } from "@/li
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
-import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPageOf, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { href } from "@/lib/routes";
 import { consumablesCopy } from "../../../../../content/vending";
 import { BusinessSectionView } from "../_components/business-section";
@@ -66,7 +66,7 @@ export default async function ConsumablesPage({ params, searchParams }: PageProp
   const query = parseCatalogQuery(await searchParams);
   const listing = await getSectionListing(section.id, query);
   // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
-  if (listing && isPastLastPage(listing.result)) notFound();
+  if (isPastLastPageOf(query.page, listing?.result)) notFound();
 
   return (
     <BusinessSectionView
