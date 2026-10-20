@@ -237,12 +237,16 @@ suite("price layer (integration)", () => {
     expect(await queries.countPromotions()).toBe(1);
   });
 
-  it("strikes the regular price when no reference was computed yet", async () => {
+  it("claims nothing when there is no 30-day price on record", async () => {
     const id = await addProduct("d", "12.00");
     await addPromotion({ percentOff: 15, members: [{ productId: id, reference: null }] });
     const card = await cardOf(id);
+    // The promotion's price, but no struck price, no badge, not "reduced".
     expect(card.price?.amount).toBe("10.20");
-    expect(card.oldPrice?.amount).toBe("12.00");
+    expect(card.oldPrice).toBeNull();
+    expect(card.discountPercent).toBeNull();
+    expect(card.promotion?.percentOff).toBe(15);
+    expect(await queries.countPromotions()).toBe(0);
   });
 
   it("leaves a product without a price without one", async () => {

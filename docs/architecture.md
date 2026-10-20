@@ -354,7 +354,10 @@ Rules that hold throughout:
 
 - Only `status = 'active'` products are listed. `missing` products are hidden
   while the sync is unsure about them, and `removed` products are gone.
-- The displayed price is `retail_price_override ?? current_price`.
+- The displayed price is `retail_price_override ?? current_price`, less a
+  running promotion, and every reader selects it from
+  [`lib/catalog/price-sql.ts`](../apps/web/src/lib/catalog/price-sql.ts): see
+  [Pricing](#pricing). Nothing else spells a price out.
 - The displayed name is computed, never the stored one: see
   [Product names and slugs](#product-names-and-slugs).
 - The displayed description is **our override, or a sentence generated from our
@@ -410,6 +413,44 @@ use integer minor units — comparing decimal strings would make `"9.00" > "10.0
 true and advertise a saving that does not exist.
 
 Products with no price render "Цена при запитване", never `0,00 €`.
+
+**One price layer.** What a product costs is defined once, as SQL, in
+[`lib/catalog/price-sql.ts`](../apps/web/src/lib/catalog/price-sql.ts), and
+every reader selects it: cards and the product page through `toCard`, the cart
+and the order (`listProductsForOrder`, re-priced on the server), sorting and
+filtering by price, the price per cup, the promotions listing and its count,
+the sitemap, the landings, the journal, the newsletter. So a promotion that
+starts is the price everywhere at once, without a write and without a deploy.
+
+- `regularPrice` is `retail_price_override ?? current_price`.
+- A **promotion** (`promotions`, `promotion_products`; migration 0013) runs for
+  a product while the product is a member and has not left
+  (`removed_at` null), the promotion has started, has not ended and was not
+  stopped. `now()` is the statement's start, so one query sees one answer. A
+  product in two running promotions takes the larger reduction.
+- `retailPrice` takes the reduction off the regular price and rounds **down**
+  to the cent: 9.95 € at 10% is 8.95 €, so the badge never reads 9%.
+- `retailOldPrice`, the struck price, is under a promotion
+  `least(reference_price, regular price now)`: the lowest price of the 30 days
+  before the reduction began (Directive 98/6/EC, Art. 6a), never above today's
+  regular price. Without a promotion it is the source's own struck price.
+  `isReduced` (struck price above the price) is what the badge, the promotions
+  page and its count mean by "reduced", so a product whose 30-day lowest was
+  already lower is sold at the promotion's price with no badge and no claim.
+- `ProductCardView.promotion` carries the running promotion's id, customer
+  label, percentage, end and regular price; never the owner's own name for it.
+
+The subqueries name the outer product as `"products"."id"` outright: see
+[One trap worth knowing about](#one-trap-worth-knowing-about). A select over
+`products` alone renders `${products.id}` bare, and inside a subquery that
+binds to the subquery's own row.
+
+**New arrivals.** `isNewArrival(since)` in the same file: first seen since
+`since`, and created by a sync run that created at most `BULK_IMPORT_SIZE`
+(25) products. The first import and any intake of a new part of the source are
+not arrivals; on production those are the 110 products of 20 August and the 98
+of 18 October 2026. `isRecentArrival` is the last 30 days, the "Ново" badge's
+rule and the monthly letter's.
 
 **Price per cup** is shown on every card and product page. Servings come from
 the piece count where there is one, and from weight at `GRAMS_PER_SERVING`

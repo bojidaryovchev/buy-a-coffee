@@ -20,8 +20,11 @@ import { products, promotionProducts, promotions, syncChanges } from "@catalog/d
  *  - `retailOldPrice` is the struck price. Under a promotion it is the lowest
  *    price of the 30 days before the reduction (`promotion_products`), and
  *    never above the regular price now: a price that fell since only makes the
- *    claim smaller. Without one it is the source's own struck price, as before.
- *    A reader shows it only when it is above `retailPrice`.
+ *    claim smaller. With no such price on record (no reference computed, or
+ *    no price history long enough to vouch for one) there is no struck price:
+ *    the product sells at the promotion's price and claims nothing. Without a
+ *    promotion it is the source's own struck price, as before. A reader shows
+ *    it only when it is above `retailPrice`.
  */
 
 /** The price without any promotion. */
@@ -70,9 +73,15 @@ export const retailPrice = sql<string | null>`coalesce(
   ${regularPrice}
 )`;
 
-/** The struck price, before any check that it is a reduction at all. */
+/*
+ * The struck price, before any check that it is a reduction at all. The null
+ * test is not redundant: `least` ignores a null, and would strike the regular
+ * price — a claim against a price nobody has shown was charged.
+ */
 export const retailOldPrice = sql<string | null>`case
-  when ${promotionPercent} is not null then least(${promotionReference}, ${regularPrice})
+  when ${promotionPercent} is not null then
+    case when ${promotionReference} is null then null
+    else least(${promotionReference}, ${regularPrice}) end
   else coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})
 end`;
 
