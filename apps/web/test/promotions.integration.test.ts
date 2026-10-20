@@ -57,7 +57,14 @@ vi.mock("@/lib/auth", () => ({ isSignedIn: async () => harness.signedIn }));
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const SHOP = "/(site)/[lang] layout";
+/*
+ * The shop is revalidated page by page (`lib/promotions/revalidate.ts`): the
+ * product and category pages stand for the rest, and the layout is never
+ * named, because that turns the prebuilt routes into cached 404s.
+ */
+const SHOP = "/(site)/[lang]/[slug] page";
+const noLayout = (calls: readonly string[]) =>
+  expect(calls.filter((call) => call.endsWith(" layout"))).toEqual([]);
 
 /** Where an action sent the browser, or a failure if it did not. */
 async function redirected(promise: Promise<unknown>): Promise<string> {
@@ -807,6 +814,7 @@ suite("promotions (integration)", () => {
       );
       expect([...rows.values()].every((row) => row.referenceFinal)).toBe(true);
       expect(harness.revalidated).toContain(SHOP);
+      noLayout(harness.revalidated);
 
       const card = await cardOf(product.lavazzaBeans);
       expect(card.price?.amount).toBe("18.00");
@@ -1018,6 +1026,7 @@ suite("promotions (integration)", () => {
       const to = await redirected(actions.stopPromotion(formOf({ id })));
       expect(to).toBe(`/admin/promotsii/${id}?izvestie=spryana`);
       expect(harness.revalidated).toContain(SHOP);
+      noLayout(harness.revalidated);
       const [row] = await db.select().from(promotions).where(eq(promotions.id, id));
       expect(row!.stoppedAt).not.toBeNull();
       const card = await cardOf(product.lavazzaBeans);
@@ -1386,6 +1395,7 @@ suite("promotions (integration)", () => {
       const body = (await response.json()) as Record<string, unknown>;
       expect(body).toMatchObject({ promotions: 1, joined: 2, started: 1, revalidated: true });
       expect(harness.revalidated).toContain(SHOP);
+      noLayout(harness.revalidated);
       expect([...(await rowsOf(id)).values()].every((row) => row.referenceFinal)).toBe(true);
 
       harness.revalidated = [];
