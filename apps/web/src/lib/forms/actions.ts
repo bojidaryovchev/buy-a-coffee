@@ -19,8 +19,14 @@ import {
   fullName,
   type StoredDelivery,
 } from "@/lib/orders/delivery";
-import { productCount } from "@/lib/orders/lines";
-import { itemFor, itemLines, recordInquiry, type OrderItem } from "@/lib/orders/record";
+import { productCount, samePrice } from "@/lib/orders/lines";
+import {
+  confirmationLines,
+  findInquiry,
+  itemFor,
+  recordInquiry,
+  type OrderItem,
+} from "@/lib/orders/record";
 import {
   clientFingerprint,
   contactLimiter,
@@ -32,8 +38,10 @@ import { callbackSentence } from "./callback-window";
 import { FORM_CONSENT_SOURCES, type FormConsentSource } from "./consent";
 import { recordConsent } from "./subscribe";
 import {
+  CART_MESSAGES,
   CHECK_EMAIL_MESSAGE,
   CHECK_FIELDS_MESSAGE,
+  type CartOrderInput,
   type FormState,
   cartOrderSchema,
   contactSchema,
@@ -80,6 +88,9 @@ const CART_FIELDS = [
   "newsletterConsent",
 ];
 const CONTACT_FIELDS = ["name", "email", "phone", "subject", "message", "newsletterConsent"];
+
+/** How long the same cart from the same phone is one order (`idempotencyKey`). */
+const ORDER_WINDOW_MS = 5 * 60_000;
 
 const GENERIC_ERROR = "Нещо се обърка. Моля, опитайте отново или ни се обадете.";
 const RATE_LIMITED = "Твърде много опити. Моля, изчакайте малко и опитайте отново.";
@@ -153,8 +164,10 @@ async function requestContext(): Promise<{
  * customer is answered "received" either way, which is the truth.
  *
  * The shop's mail names the products as the owner orders them (the supplier's
- * names) and carries no contact detail; the customer's names them as the shop
- * does and carries the number the shop will ring.
+ * names), with what a promotion took off and which promotion it was, and
+ * carries no contact detail; the customer's names them as the shop does,
+ * reduced only as the page showed them reduced, and carries the number the
+ * shop will ring.
  */
 async function announceOrder(order: {
   id: string;
@@ -176,7 +189,7 @@ async function announceOrder(order: {
       email: order.email,
       customerName,
       phone: order.phone,
-      lines: itemLines(order.items, "displayName"),
+      lines: confirmationLines(order.items),
       callback: order.callback,
       delivery,
     });
@@ -190,15 +203,55 @@ async function announceOrder(order: {
 const decoyReference = (): string => recordReference(randomUUID());
 
 /**
+ * The idempotency keys of an order from the cart: this five-minute window's,
+ * which it is stored under, and the window before's, which a press is matched
+ * against too.
+ *
+ * The same customer sending the same cart to the same place twice has ordered
+ * once: the phone, the lines (sorted, so the order they happen to be in does
+ * not make a second key) and the delivery as it is stored. The same cart from
+ * the same phone to another address is another order. No price in it: a
+ * second press just after a promotion began or ended is still the same order,
+ * not a second one at the new price — the first press's prices stand, and the
+ * call confirms them either way. Two windows, so two presses a moment apart are
+ * one order even across a window's edge, and promotions begin and end at Sofia
+ * midnight, which is always one: a press is one order for between five and ten
+ * minutes.
+ */
+function orderKeys(
+  input: CartOrderInput,
+  delivery: StoredDelivery,
+  now: number,
+): { readonly key: string; readonly earlierKey: string } {
+  const parts = [
+    "cart",
+    input.phone,
+    delivery.deliveryMethod ?? "",
+    delivery.deliveryCourier ?? "",
+    delivery.deliveryCity ?? "",
+    delivery.deliveryPostcode ?? "",
+    delivery.deliveryAddress ?? "",
+    delivery.deliveryOffice ?? "",
+    ...input.lines.map((line) => `${line.productId}:${line.quantity}`).sort(),
+  ];
+  return {
+    key: idempotencyKey(parts, ORDER_WINDOW_MS, now),
+    earlierKey: idempotencyKey(parts, ORDER_WINDOW_MS, now - ORDER_WINDOW_MS),
+  };
+}
+
+/**
  * An order from the cart: every line in one enquiry, and one phone call.
  *
- * The browser posts product ids and quantities and nothing else it could lie
- * about. Each line is priced and named here, from the database, and stored as
- * a snapshot (`order_inquiry_items`) — what the customer is called back about
- * is what the shop's catalog said at the moment they pressed the button.
+ * The browser posts product ids and quantities, and the price it showed for
+ * each as a hint it is never trusted with. Each line is priced and named
+ * here, from the database, and stored as a snapshot (`order_inquiry_items`) —
+ * what the customer is called back about is what the shop's catalog said at
+ * the moment they pressed the button.
  *
  * A line that cannot be ordered any more — withdrawn, or sold out since the
- * page was drawn — refuses the whole request rather than vanishing from it.
+ * page was drawn — refuses the whole request rather than vanishing from it,
+ * and so does a price that is no longer the one the page showed.
  * The page then reloads the cart, shows the line for what it is, and leaves it
  * out; the customer sends again knowing what they are ordering. Quietly
  * ordering two of three products would be a surprise on the phone.
@@ -251,6 +304,31 @@ export async function submitCartOrder(
   const input = parsed.data;
 
   try {
+    const delivery = deliveryColumns(input);
+    const { key, earlierKey } = orderKeys(input, delivery, Date.now());
+
+    /*
+     * A repeat of an order already taken is answered as that order, before
+     * anything about the cart is checked again: whatever happened since — a
+     * product sold out, a price moved at midnight — the first press's order
+     * stands, and the customer is shown its reference, not a refusal.
+     */
+    const repeat = await findInquiry([key, earlierKey]);
+    if (repeat) {
+      await subscribeFromForm({
+        ticked: input.newsletterConsent,
+        email: input.email || undefined,
+        source: "cart_form",
+        fingerprint,
+        metadata,
+      });
+      return {
+        status: "success",
+        message: orderSuccessMessage("Вече получихме заявката ви."),
+        reference: recordReference(repeat),
+      };
+    }
+
     const found = await listProductsForOrder(input.lines.map((line) => line.productId));
 
     const refused = input.lines.filter((line) => {
@@ -275,23 +353,36 @@ export async function submitCartOrder(
     const items = input.lines.map((line) => itemFor(found.get(line.productId)!, line.quantity));
     const units = items.reduce((sum, item) => sum + item.quantity, 0);
 
-    // The same customer sending the same cart twice has ordered once. Sorted,
-    // so the order the lines happen to be in does not make a second key.
-    const key = idempotencyKey([
-      "cart",
-      input.phone,
-      ...input.lines.map((line) => `${line.productId}:${line.quantity}`).sort(),
-    ]);
+    /*
+     * A price that moved since the page showed it refuses the order, as a
+     * withdrawn product does: the page asks again, shows the new price, and
+     * the customer sends what they have seen. The page's price is a hint and
+     * only compared; what is stored is read here.
+     */
+    const repriced = input.lines.some(
+      (line, index) => line.price !== undefined && !samePrice(line.price, items[index]!.unitPrice),
+    );
+    if (repriced) {
+      return {
+        status: "error",
+        message: CART_MESSAGES.repriced,
+        values: submittedValues(formData, CART_FIELDS),
+      };
+    }
     const callback = callbackSentence(new Date(), siteConfig.commerce.openingHours);
 
-    const { id, created } = await recordInquiry(
+    const {
+      id,
+      created,
+      items: stored,
+    } = await recordInquiry(
       {
         // A cart names no single product; its lines are in the items. The
         // quantity is every unit in it, for anything that reads the old shape.
         productId: null,
         productName: null,
         productSlug: null,
-        ...deliveryColumns(input),
+        ...delivery,
         phone: input.phone,
         email: input.email || null,
         quantity: units,
@@ -302,6 +393,7 @@ export async function submitCartOrder(
         requestMetadata: { ...metadata, fingerprint },
       },
       items,
+      { earlierKeys: [earlierKey] },
     );
 
     await subscribeFromForm({
@@ -323,10 +415,11 @@ export async function submitCartOrder(
     await announceOrder({
       id,
       subject: `Нова заявка от количката: ${productCount(items.length)}, ${units} бр.`,
-      items,
+      // As stored: with the names of the promotions that priced them.
+      items: stored,
       phone: input.phone,
       email: input.email || null,
-      delivery: deliveryColumns(input),
+      delivery,
       callback,
     });
 

@@ -147,7 +147,7 @@ export const bg = {
   /** The signup band above the footer (`components/layout/newsletter-band.tsx`). */
   newsletter: {
     heading: "Новите кафета по имейл",
-    body: "Кратко писмо, когато в магазина се появи ново кафе. Не повече от веднъж месечно.",
+    body: "Не повече от веднъж месечно: новите кафета и текущите промоции.",
   },
 
   notFound: {

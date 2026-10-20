@@ -44,7 +44,7 @@ import { href, routes } from "@/lib/routes";
  * through (`onPlaced`, with the server's answer: the page then shows the
  * reference and empties the cart), and that the server refused the cart itself
  * (`onCartRefused`: a product went out of stock or was withdrawn since the page
- * asked; the page asks again and shows which).
+ * asked, or a price moved; the page asks again and shows which).
  */
 
 const fieldErrorsOf = (state: FormState) =>
@@ -71,6 +71,11 @@ function Required() {
 export interface CartOrderLine {
   readonly productId: string;
   readonly quantity: number;
+  /**
+   * The unit price the page showed (`"8.95"`), null for "цена при запитване".
+   * Posted as a hint: the action refuses the order if its own price differs.
+   */
+  readonly price: string | null;
 }
 
 export function CartOrderForm({
@@ -84,7 +89,7 @@ export function CartOrderForm({
   readonly onCartRefused: () => void;
 }) {
   const linesJson = JSON.stringify(
-    lines.map(({ productId, quantity }) => ({ productId, quantity })),
+    lines.map(({ productId, quantity, price }) => ({ productId, quantity, price })),
   );
   const {
     state,

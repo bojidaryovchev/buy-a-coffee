@@ -28,16 +28,25 @@ import { robotsFor } from "@/lib/seo/robots";
 /**
  * Promotions.
  *
- * The capability is real even when the list is empty — the reference site has
- * a working promotions route with no active offers today. This route therefore
+ * What is reduced today: mostly the shop's own promotions (`promotions`,
+ * chosen by the owner in the panel, for a run of days), and any struck price
+ * the source itself shows. The page is there whether or not anything is, and
  * renders a proper empty state rather than a 404, so the link is never broken
- * and the page is ready the moment a reduced price appears in the catalog.
+ * and the page fills the moment a promotion starts — by itself, at the start
+ * of its first day, with no deploy.
  *
- * "Reduced" is decided in one place, `listProducts({ promotionsOnly })`: the
- * old price must be genuinely higher than the price the customer pays. Both
- * are exact `numeric(12,2)` columns compared as numbers in SQL, which is the
- * same comparison of minor units `discountPercent` makes for the card — so a
- * product is on this page exactly when its card shows a struck-out price.
+ * "Reduced" is decided in one place, `isReduced` in `price-sql.ts`, through
+ * `listProducts({ promotionsOnly })`: the struck price must be genuinely
+ * higher than the price the customer pays. Under a promotion the struck price
+ * is the lowest of the 30 days before it, so a product the promotion prices
+ * without a claim to make (its 30-day lowest was already lower) is not listed
+ * here: this page is a claim. Both are exact `numeric(12,2)` values compared
+ * as numbers in SQL, which is the same comparison of minor units
+ * `discountPercent` makes for the card — so a product is on this page exactly
+ * when its card shows a struck-out price.
+ *
+ * The copy holds no figure and no date: how much and until when belong to
+ * each product, and its card and page say them.
  */
 export const revalidate = 300;
 
@@ -105,7 +114,8 @@ export default async function PromotionsPage({ params, searchParams }: PageProps
         </h1>
         {hasPromotions && (
           <p className="mt-3 max-w-[60ch] text-lg text-ink-700">
-            Всичко тук е с намалена цена. До новата цена стои старата, зачеркната.
+            Всичко тук е с намалена цена. До нея стои зачеркната цената преди намалението, а при
+            наша промоция страницата на продукта казва и докога важи.
           </p>
         )}
       </header>
@@ -116,7 +126,7 @@ export default async function PromotionsPage({ params, searchParams }: PageProps
         query={query}
         result={result}
         emptyTitle="В момента няма активни промоции"
-        emptyDescription="Щом намалим цена, продуктът се появява тук. Дотогава целият асортимент е на редовните си цени."
+        emptyDescription="Когато пуснем промоция, намалените продукти се появяват тук. Дотогава целият асортимент е на редовните си цени."
         emptyAction={
           <ButtonLink href={href(locale, routes.categories)}>Разгледайте асортимента</ButtonLink>
         }

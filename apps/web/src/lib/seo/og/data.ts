@@ -112,7 +112,12 @@ export function productCardFacts(product: ProductDetailView): ProductCardFacts {
     system: system ? { id: system.id, name: system.name } : null,
     price: product.price?.formatted ?? null,
     oldPrice: product.oldPrice?.formatted ?? null,
-    discountPercent: product.discountPercent,
+    // Under one percent rounds to zero: the struck price says it, and a "−0%"
+    // badge would only look like a mistake — the product card's rule.
+    discountPercent:
+      product.discountPercent !== null && product.discountPercent >= 1
+        ? product.discountPercent
+        : null,
     perCup: product.servingPrice?.formatted ?? null,
     notice:
       product.status !== "active"

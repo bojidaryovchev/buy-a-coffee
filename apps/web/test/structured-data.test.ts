@@ -175,6 +175,52 @@ describe("a product", () => {
     });
   });
 
+  describe("under the shop's own promotion", () => {
+    const promotion = {
+      id: "11111111-1111-4111-8111-111111111111",
+      label: "Есенни дни",
+      percentOff: 10,
+      // The end of 15 November in Sofia, 00:00 EET on the 16th.
+      endsAt: "2026-11-15T22:00:00.000Z",
+      regularPrice: { amount: "52.00", currency: "EUR", formatted: "52,00 €" },
+    };
+
+    it("offers the promotion's price until its last day, in Sofia", () => {
+      const offers = productJsonLd(
+        product({
+          price: { amount: "46.80", currency: "EUR", formatted: "46,80 €" },
+          oldPrice: { amount: "52.00", currency: "EUR", formatted: "52,00 €" },
+          discountPercent: 10,
+          promotion,
+        }),
+        "bg",
+      ).offers as Record<string, unknown>;
+      expect(offers).toMatchObject({ price: "46.80", priceValidUntil: "2026-11-15" });
+    });
+
+    it("says when the price ends even where the page announces no reduction", () => {
+      const offers = productJsonLd(product({ promotion }), "bg").offers as Record<string, unknown>;
+      expect(offers.priceValidUntil).toBe("2026-11-15");
+      expect(productJsonLd(product(), "bg").offers).not.toHaveProperty("priceValidUntil");
+    });
+
+    it("prices shipping from the reduced price, and passes the offline check", () => {
+      // 52,00 € is above the free-delivery threshold; the promotion's 46,80 € is not.
+      const regular = productJsonLd(
+        product({ price: { amount: "52.00", currency: "EUR", formatted: "52,00 €" } }),
+        "bg",
+      );
+      const reduced = productJsonLd(
+        product({ price: { amount: "46.80", currency: "EUR", formatted: "46,80 €" }, promotion }),
+        "bg",
+      );
+      expect(siteConfig.commerce.freeDeliveryThreshold).toBe("49.00");
+      expect(regular.offers).toHaveProperty("shippingDetails");
+      expect(reduced.offers).not.toHaveProperty("shippingDetails");
+      expect(checkStructuredData(page(reduced))).toEqual([]);
+    });
+  });
+
   it("passes it with no price, as a product with no offer", () => {
     expect(checkStructuredData(page(productJsonLd(product({ price: null }), "bg")))).toEqual([]);
   });

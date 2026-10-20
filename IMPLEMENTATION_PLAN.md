@@ -206,7 +206,7 @@ None of these blocks code. Each has a default the plan assumes.
 | Q7  | Vending Zone and Consumables                        | Content pages with an enquiry form now; products appear by themselves once the source lists them (E1).                                                                            |
 | Q8  | Brand logos and photography                         | Product packshots carry the imagery. Brand logos are each brand's own file from its own site, checked against the packs (J2). Four brands have none yet; text until then. `owner` |
 | Q9  | Who writes copy for new products                    | Written in the same way and under the same rules as the first 110 (B9). The generated fallback (B7) covers the gap.                                                               |
-| Q10 | Newsletter                                          | Collect and manage consent only. Sending is out of scope.                                                                                                                         |
+| Q10 | Newsletter                                          | First: collect and manage consent only. Since 19 October 2026 the panel sends it; since 20 October it starts from templates and a monthly draft (Phase P).                        |
 | Q11 | Repository visibility                               | Unchanged. Worth a deliberate yes: the repository documents the crawl and is public, and so will be the sync logs.                                                                |
 | Q12 | `infra/terraform`                                   | Keep as the documented alternative until the scheduled sync has run for 30 days, then delete.                                                                                     |
 | Q13 | "Remove competitor-related texts" (workspace TODO)  | Unclear what it targets. The storefront copy contains no comparison with another shop, and `check:originality` already forbids the source's name there. Needs a pointer.          |
@@ -911,7 +911,8 @@ Backlog, in rough order of value:
   without online checkout.
 - A multi-product enquiry ("order list") — only if calls show customers
   routinely ordering several products at once.
-- Sending the newsletter.
+- ~~Sending the newsletter.~~ Built 19 October 2026; templates, the block
+  composer and the monthly draft in Phase P.
 - Deleting `infra/terraform` (Q12).
 
 ## Phase J — Bulgarian URLs, brand logos and search demand
@@ -1190,6 +1191,59 @@ Decided with the owner on 19 October 2026:
     then the code, then the cut-out workflow by hand (60, then 150 photos).
     Open: the owner's look at the SVG logo and at the cut-outs waiting in
     `/admin/snimki`; Speed Insights field data a week on.
+
+## Phase P — The shop's own promotions, and a newsletter that writes itself
+
+Added on 20 October 2026. The owner asked for the newsletter to be as simple as
+possible to run — a ready letter of the month's new products — and for
+promotions: a percentage off chosen items, with the badges and the "−X%" copy
+that go with it. Like K this is code; unlike K the owner approved commit, push
+and deploy for it up front. The plan and its decisions are kept outside the
+repository (`research/buy-a-coffee/13-newsletter-and-promotions.md`).
+
+Decided with the owner on 20 October 2026:
+
+- **Promotions are public and the same for everyone**, on what the owner
+  chooses: brands, categories, single products, minus exclusions. The
+  newsletter announces them; there are no codes and no newsletter-only prices.
+- **Honest reductions.** The price is the regular price less the percentage,
+  rounded down to the cent. The struck price is the lowest price of the 30
+  days before the reduction (Directive 98/6/EC, Art. 6a), and a product without
+  30 days of history sells at the promotion's price with no claim. A letter's
+  "−X%" is true of every product it lists.
+- **Whole Sofia days, at most 60, 1–50 %**, a second confirmation above 20 %:
+  every reduction comes out of the owner's margin.
+- **The letter stays at most monthly.** It is prepared automatically in the
+  first week of the month and never sent without the owner pressing Send.
+- **"Ново"** means first seen in the last 30 days and not with a bulk import
+  (more than 25 products in one sync run).
+
+- [x] **P0 · Foundation · M** — `promotions`, `promotion_products` and the
+      order-line and campaign columns (migration `0013`); one price layer,
+      `lib/catalog/price-sql.ts`, read by every price in the shop; `isNewArrival`.
+- [x] **P1 · The shop, the cart, orders and mail · M** — the "Ново" badge; the
+      product page's promotion line and 30-day note; `priceValidUntil`; the cart's
+      struck lines and "Спестявате", a refusal when a price moved while the cart was
+      open, one order across midnight; order lines that remember the promotion; the
+      owner's and the customer's mails; the panel's order view.
+- [x] **P2 · The promotions panel · L** — `/admin/promotsii`: list, editor with
+      a live preview of what the shop will show, stop, copy, delete before the
+      start; membership; the 30-day price from `sync_changes` and earlier
+      promotions; refresh in the same transaction as each write; the hourly cron
+      and shop-wide revalidation.
+- [x] **P3 · The newsletter · L** — monthly, promotion and blank starting
+      points; the block composer over the one body; send-stopping checks for every
+      claim; test copy to any address; copy; "Спри изпращането"; the daily cron
+      (the month's draft, the owner's notice, a transient stop resumed).
+- [x] **P4 · Review and integration** — a report-only hostile review per stream
+      and one of the fixes and the merge; every finding decided and fixed or
+      written down; one Sofia-day implementation (`lib/promotions/days.ts`) and one
+      e2e database guard across the three.
+
+Known and accepted: the search typeahead's CDN cache can show an old price for
+a few minutes after a change; the history of `retail_price_override` is not
+kept (nothing sets one); a resumed send finishes the letter that was
+confirmed, without checking its promotions again.
 
 ## Order and dependencies
 

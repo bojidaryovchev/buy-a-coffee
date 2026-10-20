@@ -25,8 +25,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * One line for a list row: the first product and its quantity, how many more
- * there are, and what the priced lines add up to. The whole order is one click
- * in.
+ * there are, what the priced lines add up to, and whether a promotion priced
+ * any of them. The whole order is one click in.
  */
 function summary(order: OrderRow): string {
   const [first, ...rest] = order.items;
@@ -34,11 +34,13 @@ function summary(order: OrderRow): string {
   const name = first.productName ?? "(изтрит продукт)";
   const head = first.quantity > 1 ? `${name} · ${first.quantity} бр.` : name;
   const more = rest.length > 0 ? ` и още ${rest.length}` : "";
-  const { subtotal, unpriced } = orderSum(order.items.map((item) => storedLine(item, "")));
+  const lines = order.items.map((item) => storedLine(item, ""));
+  const { subtotal, unpriced } = orderSum(lines);
   const total = subtotal
     ? ` · ${subtotal.formatted}${unpriced > 0 ? " + цена при запитване" : ""}`
     : "";
-  return `${head}${more}${total}`;
+  const promoted = lines.some((line) => line.reduction) ? " · с промоция" : "";
+  return `${head}${more}${total}${promoted}`;
 }
 
 const STATUS_TONE: Record<InquiryStatus, string> = {

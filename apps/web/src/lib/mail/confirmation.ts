@@ -35,7 +35,10 @@ export interface OrderConfirmation {
   readonly customerName: string | null;
   /** The normalised number the shop will call. */
   readonly phone: string;
-  /** Under the shop's names for the products (`displayName`), never the supplier's. */
+  /**
+   * Under the shop's names for the products (`displayName`), never the
+   * supplier's, and reduced as the page showed them (`confirmationLines`).
+   */
   readonly lines: readonly OrderLine[];
   /** When to expect the call (`callbackSentence`), worked out when the order came in. */
   readonly callback: string;

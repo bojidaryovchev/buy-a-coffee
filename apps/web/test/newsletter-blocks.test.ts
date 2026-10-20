@@ -8,7 +8,9 @@ import { composeCampaign } from "@/lib/newsletter/batch";
 import { unsubscribeUrl } from "@/lib/newsletter/links";
 import {
   NEW_PRODUCTS_DAYS,
+  blockIssues,
   blockProblems,
+  blockReports,
   describeBlockProblems,
   planBlocks,
   campaignFiles,
@@ -115,11 +117,29 @@ describe("the block line", () => {
       { kind: "picked", slugs: ["kafe-a", "kafe-b"] },
       { kind: "new", limit: DEFAULT_BLOCK_PRODUCTS },
       { kind: "sale", limit: 6 },
+      { kind: "reduced", slugs: ["kafe-a", "kafe-b"] },
     ] as const) {
       expect(parseProductToken(productTokenLine(spec))!.spec).toEqual(spec);
     }
     expect(productTokenLine({ kind: "new", limit: 4 })).toBe("[[нови-продукти]]");
     expect(productTokenLine({ kind: "sale", limit: 4 })).toBe("[[промоции]]");
+    expect(productTokenLine({ kind: "reduced", slugs: ["a-b", "c"] })).toBe("[[промоции: a-b, c]]");
+  });
+
+  it("reads the reductions as a count when they are given a number, and as a list otherwise", () => {
+    expect(parseProductToken("[[промоции: 3]]")!.spec).toEqual({ kind: "sale", limit: 3 });
+    expect(parseProductToken("[[промоции:  ]]")!.spec).toEqual({ kind: "sale", limit: 4 });
+    expect(
+      parseProductToken("[[промоции: kafe-a, https://buy-a-coffee.com/bg/kafe-b]]")!.spec,
+    ).toEqual({ kind: "reduced", slugs: ["kafe-a", "kafe-b"] });
+    // Two numbers are two addresses, not a count.
+    expect(parseProductToken("[[промоции: 6, 7]]")!.spec).toEqual({
+      kind: "reduced",
+      slugs: ["6", "7"],
+    });
+    const unreadable = parseProductToken("[[промоции: Лаваца]]")!;
+    expect(unreadable.spec).toBeNull();
+    expect(unreadable.invalid).toEqual(["Лаваца"]);
   });
 });
 
@@ -338,13 +358,42 @@ describe("resolving a body against the catalog", () => {
     ]);
   });
 
-  it("keeps a hand-picked product that is sold out: the owner chose it, and the card says so", async () => {
-    const catalog = new FakeCatalog([card("gone", { availability: "out_of_stock" })]);
-    const snapshot = await resolveProductBlocks("[[продукти: gone]]", catalog, {
+  it("leaves out a hand-picked product that has sold out since, and names it", async () => {
+    const catalog = new FakeCatalog([card("gone", { availability: "out_of_stock" }), card("here")]);
+    const snapshot = await resolveProductBlocks("[[продукти: gone, here]]", catalog, {
       subject: "Тема",
       now: NOW,
     });
-    expect(snapshot.blocks[0]!.products[0]!.availability).toBe("out_of_stock");
+    expect(snapshot.blocks[0]!.products.map((product) => product.slug)).toEqual(["here"]);
+    expect(snapshot.blocks[0]!.soldOut).toEqual([{ slug: "gone", title: "Марка gone" }]);
+    expect(snapshot.blocks[0]!.missing).toEqual([]);
+  });
+
+  it("tells a product that left the shop from an address that never named one", async () => {
+    const catalog = new FakeCatalog([card("ima")]);
+    const known = new Set(["ima", "spryan"]);
+    const source: ProductSource = {
+      bySlugs: (slugs) => catalog.bySlugs(slugs),
+      newest: (options) => catalog.newest(options),
+      reduced: (options) => catalog.reduced(options),
+      known: async (slugs) => new Set(slugs.filter((slug) => known.has(slug))),
+    };
+    const snapshot = await resolveProductBlocks("[[продукти: ima, spryan, nyama]]", source, {
+      subject: "Тема",
+      now: NOW,
+    });
+    expect(snapshot.blocks[0]).toMatchObject({
+      products: [expect.objectContaining({ slug: "ima" })],
+      gone: ["spryan"],
+      missing: ["nyama"],
+    });
+    // Without the lookup, every slug not on sale is one that names nothing.
+    const plain = await resolveProductBlocks("[[продукти: ima, spryan]]", catalog, {
+      subject: "Тема",
+      now: NOW,
+    });
+    expect(plain.blocks[0]!.missing).toEqual(["spryan"]);
+    expect(plain.blocks[0]!.gone).toBeUndefined();
   });
 
   it("records an empty block as empty, and leaves out a line it cannot read", async () => {
@@ -378,6 +427,8 @@ describe("resolving a body against the catalog", () => {
       discountPercent: 20,
       perCup: "≈ 0,11 € на чаша",
       availability: "in_stock",
+      // Priced by no promotion of the shop's: nothing for a promotion's letter to claim.
+      promotionId: null,
       image: {
         url: "/media/catalog/eurocaf-crema.jpg",
         alt: "Марка eurocaf-crema",
@@ -598,22 +649,110 @@ describe("a send's snapshot", () => {
       "[[нови-продукти: 6]]",
     ].join("\n\n");
     const snapshot = await resolveProductBlocks(body, catalog, { subject: "Тема", now: NOW });
+    const error = (token: string, reason: string) => ({ token, reason, severity: "error" });
     expect(blockProblems(body, snapshot)).toEqual([
-      { token: "[[промоции]]", reason: "няма продукти за показване" },
-      { token: "[[продукти: ima, nyama]]", reason: "не са сред продаваните: „nyama“" },
-      { token: "[[продукти: ima, Лаваца]]", reason: "не е адрес на продукт: „Лаваца“" },
-      { token: "[[промоций]]", reason: "блокът не е разпознат" },
-      { token: "[[нови-продукти: 6]]", reason: "писмото вече има 12 продукта" },
+      error("[[продукти: ima, nyama]]", "не е адрес на продукт в магазина: „nyama“"),
+      error("[[продукти: ima, Лаваца]]", "не е адрес на продукт: „Лаваца“"),
+      error("[[промоций]]", "блокът не е разпознат"),
+      error("[[нови-продукти: 6]]", "писмото вече има 12 продукта"),
+    ]);
+    // An empty section is the letter going out shorter, not a reason to stop it.
+    expect(blockIssues(body, snapshot).filter((issue) => issue.severity === "warning")).toEqual([
+      { token: "[[промоции]]", reason: "празен е и няма да се покаже", severity: "warning" },
     ]);
     // Without its snapshot every drawn block is a problem; without blocks, nothing is.
     expect(blockProblems("[[продукти: ima]]", null)).toEqual([
-      { token: "[[продукти: ima]]", reason: "продуктите му не могат да бъдат прочетени" },
+      error("[[продукти: ima]]", "продуктите му не могат да бъдат прочетени"),
     ]);
     expect(blockProblems("Само текст.", null)).toEqual([]);
     expect(blockProblems("[[продукти: ima]]", snapshot)).toEqual([]);
     expect(describeBlockProblems(blockProblems(body, snapshot).slice(0, 2))).toBe(
-      "[[промоции]] — няма продукти за показване; [[продукти: ima, nyama]] — не са сред продаваните: „nyama“",
+      "[[продукти: ima, nyama]] — не е адрес на продукт в магазина: „nyama“; [[продукти: ima, Лаваца]] — не е адрес на продукт: „Лаваца“",
     );
+  });
+
+  it("stops a list of reductions with a product no longer reduced, and leaves it out", async () => {
+    const catalog = new FakeCatalog(
+      [
+        reduced("cheaper", "8,00 €", "10,00 €", 20),
+        card("full-price"),
+        reduced("other", "5,00 €", "6,00 €", 16),
+      ],
+      [],
+      [reduced("cheaper", "8,00 €", "10,00 €", 20), reduced("other", "5,00 €", "6,00 €", 16)],
+    );
+    const body = "Здравейте,\n\n[[промоции: cheaper, full-price]]\n\n[[промоции]]";
+    const snapshot = await resolveProductBlocks(body, catalog, { subject: "Тема", now: NOW });
+    expect(snapshot.blocks[0]).toMatchObject({
+      spec: { kind: "reduced", slugs: ["cheaper", "full-price"] },
+      products: [expect.objectContaining({ slug: "cheaper" })],
+      notReduced: [{ slug: "full-price", title: "Марка full-price" }],
+    });
+    // The automatic block below leaves out what the list already shows.
+    expect(snapshot.blocks[1]!.products.map((product) => product.slug)).toEqual(["other"]);
+    expect(blockProblems(body, snapshot)).toEqual([
+      {
+        token: "[[промоции: cheaper, full-price]]",
+        reason: "вече не са намалени: „Марка full-price“",
+        severity: "error",
+      },
+    ]);
+    expect(blockReports(snapshot)[0]!.notReduced).toEqual([
+      { slug: "full-price", title: "Марка full-price" },
+    ]);
+    expect(blockReports(snapshot)[0]!.products[0]!.discountPercent).toBe(20);
+  });
+
+  it("warns about a product sold out or withdrawn since it was picked, and lets the letter go", async () => {
+    const catalog = new FakeCatalog([card("ima"), card("gone", { availability: "out_of_stock" })]);
+    const source: ProductSource = {
+      bySlugs: (slugs) => catalog.bySlugs(slugs),
+      newest: (options) => catalog.newest(options),
+      reduced: (options) => catalog.reduced(options),
+      known: async (slugs) => new Set(slugs.filter((slug) => slug !== "nyama")),
+    };
+    const body = "Здравейте,\n\n[[продукти: ima, gone, spryan]]";
+    const snapshot = await resolveProductBlocks(body, source, { subject: "Тема", now: NOW });
+    expect(blockProblems(body, snapshot)).toEqual([]);
+    expect(blockIssues(body, snapshot)).toEqual([
+      {
+        token: "[[продукти: ima, gone, spryan]]",
+        reason: "изчерпани, пропускат се: „Марка gone“",
+        severity: "warning",
+      },
+      {
+        token: "[[продукти: ima, gone, spryan]]",
+        reason: "вече не се продават, пропускат се: „spryan“",
+        severity: "warning",
+      },
+    ]);
+    // The composer is told the same, by name.
+    expect(blockReports(snapshot)[0]).toMatchObject({
+      soldOut: [{ slug: "gone", title: "Марка gone" }],
+      gone: ["spryan"],
+      products: [expect.objectContaining({ slug: "ima", image: "/media/catalog/ima.jpg" })],
+    });
+  });
+
+  it("will not send a letter that would say nothing: no text, and every block empty", async () => {
+    const catalog = new FakeCatalog([], [], []);
+    const body = "## Промоции\n\n[[промоции]]";
+    const snapshot = await resolveProductBlocks(body, catalog, { subject: "Тема", now: NOW });
+    expect(blockProblems(body, snapshot)).toEqual([
+      {
+        token: "Писмото",
+        reason: "няма нито текст, нито продукти за показване",
+        severity: "error",
+      },
+    ]);
+    // A word of text is a letter.
+    const worded = `Здравейте,\n\n${body}`;
+    expect(
+      blockProblems(
+        worded,
+        await resolveProductBlocks(worded, catalog, { subject: "Т", now: NOW }),
+      ),
+    ).toEqual([]);
   });
 
   it("pairs each line with its own entry, and a line that does not match draws nothing", () => {

@@ -13,15 +13,15 @@ import {
   formatFileSize,
 } from "./components";
 import {
-  pairBlocks,
+  letterBlocks,
   type ProductBlocksSnapshot,
   type ResolvedBlock,
 } from "@/lib/newsletter/product-blocks";
-import { markdownToText, parseMarkdown, type Block, type ProductsBlock } from "./markdown";
+import { markdownToText, type Block, type Inline, type ProductsBlock } from "./markdown";
 import { emailMediaUrl } from "./media";
 import { ProductCards, productTextLines } from "./product-cards";
 import { renderEmail, type ComposedEmail } from "./render";
-import { shop } from "./theme";
+import { PRODUCTION_ORIGIN, mailOrigin, shop } from "./theme";
 
 /**
  * A newsletter, as one subscriber receives it.
@@ -37,7 +37,15 @@ import { shop } from "./theme";
  * from `products`: what the blocks resolved to, which the caller supplies —
  * read from the catalog for a preview or a test, the campaign's snapshot for
  * a send. This file never reads the catalog, so drawing the same snapshot
- * twice draws the same letter. Without it, a block draws nothing.
+ * twice draws the same letter. Without it, a block draws nothing. A block
+ * with nothing to show is left out, and so is a heading over nothing but such
+ * blocks (`lib/newsletter/sections.ts`): the letter reads as if the section
+ * had never been written.
+ *
+ * A link the owner wrote to a page of the shop (`[страницата с промоциите](…)`)
+ * carries the letter's `utm_*`, added here as the cards add theirs and from
+ * the same campaign tag, so one letter is one campaign in the analytics
+ * whatever was clicked (`tagShopLinks`).
  *
  * Every copy carries its reader's own unsubscribe link, in the footer with the
  * reason they are receiving it. The same address, as an RFC 8058 one-click
@@ -92,12 +100,60 @@ function preview(content: NewsletterContent, blocks: readonly Block[]): string {
 
 type Pairs = Map<ProductsBlock, ResolvedBlock | null>;
 
-/** The body's product blocks, each with what it resolved to in this letter. */
-function productPairs(blocks: readonly Block[], content: NewsletterContent): Pairs {
-  return pairBlocks(
-    blocks.filter((block): block is ProductsBlock => block.type === "products"),
-    content.products,
-  );
+/** Is this address a page of the shop: the deployment sending, or the live site? */
+function isShopPage(href: string): URL | null {
+  try {
+    const url = new URL(href);
+    const hosts = [mailOrigin(), PRODUCTION_ORIGIN, siteConfig.url].map(
+      (origin) => new URL(origin).host,
+    );
+    return (url.protocol === "https:" || url.protocol === "http:") && hosts.includes(url.host)
+      ? url
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+const textOf = (nodes: readonly Inline[]): string =>
+  nodes.map((node) => (node.type === "text" ? node.value : "")).join("");
+
+/**
+ * The letter's own links to the shop, with the campaign's `utm_*` — those
+ * with words of their own. A bare address stays as typed: its text is the
+ * address, and the reader should see what they will open. A link that
+ * already says where it came from is left alone.
+ */
+function tagLinks(nodes: readonly Inline[], campaign: string): Inline[] {
+  return nodes.map((node) => {
+    if (node.type === "strong" || node.type === "em") {
+      return { ...node, children: tagLinks(node.children, campaign) };
+    }
+    if (node.type !== "link") return node;
+    const url = isShopPage(node.href);
+    if (!url || textOf(node.children) === node.href || url.searchParams.has("utm_source")) {
+      return node;
+    }
+    url.searchParams.set("utm_source", "newsletter");
+    url.searchParams.set("utm_medium", "email");
+    url.searchParams.set("utm_campaign", campaign);
+    return { ...node, href: url.toString() };
+  });
+}
+
+export function tagShopLinks(blocks: readonly Block[], campaign: string): Block[] {
+  if (!campaign) return [...blocks];
+  return blocks.map((block) => {
+    switch (block.type) {
+      case "heading":
+      case "paragraph":
+        return { ...block, children: tagLinks(block.children, campaign) };
+      case "list":
+        return { ...block, items: block.items.map((item) => tagLinks(item, campaign)) };
+      case "products":
+        return block;
+    }
+  });
 }
 
 function BodyBlocks({
@@ -155,9 +211,10 @@ export function NewsletterEmail({
   content: NewsletterContent;
   recipient: NewsletterRecipient;
 }) {
-  const blocks = parseMarkdown(content.body);
-  const pairs = productPairs(blocks, content);
   const campaign = content.products?.campaign ?? "";
+  const drawn = letterBlocks(content.body, content.products);
+  const blocks = tagShopLinks(drawn.blocks, campaign);
+  const pairs = drawn.pairs;
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
   return (
@@ -189,9 +246,10 @@ export function NewsletterEmail({
 
 /** The plain-text twin: the same message, for a client that shows no HTML. */
 export function newsletterText(content: NewsletterContent, recipient: NewsletterRecipient): string {
-  const blocks = parseMarkdown(content.body);
-  const pairs = productPairs(blocks, content);
   const campaign = content.products?.campaign ?? "";
+  const drawn = letterBlocks(content.body, content.products);
+  const blocks = tagShopLinks(drawn.blocks, campaign);
+  const pairs = drawn.pairs;
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
   const legal = shop.legal;

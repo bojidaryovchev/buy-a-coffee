@@ -15,6 +15,7 @@ export const CAMPAIGN_STATUS_LABEL: Record<NewsletterCampaignStatus, string> = {
   sent: "Изпратен",
   partial: "Частично изпратен",
   failed: "Неуспешен",
+  dismissed: "Отказан",
 };
 
 export const CAMPAIGN_STATUS_TONE: Record<NewsletterCampaignStatus, string> = {
@@ -23,6 +24,7 @@ export const CAMPAIGN_STATUS_TONE: Record<NewsletterCampaignStatus, string> = {
   sent: "bg-pine-100 text-pine-700",
   partial: "bg-caution-100 text-caution",
   failed: "bg-caution-100 text-caution",
+  dismissed: "bg-paper-sunken text-ink-500",
 };
 
 export const DELIVERY_STATUS_LABEL: Record<NewsletterDeliveryStatus, string> = {

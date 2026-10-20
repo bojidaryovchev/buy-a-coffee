@@ -10,6 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { newsletterSubscribers } from "./storefront.ts";
+import { promotions } from "./promotions.ts";
 
 const now = sql`now()`;
 
@@ -41,6 +42,9 @@ const now = sql`now()`;
  *   sent     every recipient has an answer and none of them is a failure
  *   partial  some went, and some failed or are still waiting for a resume
  *   failed   nothing went
+ *   dismissed  a draft the monthly job prepared (`auto_period`) and the owner
+ *            threw away: kept, emptied and out of every list, only so the job
+ *            does not prepare that month again
  */
 export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "draft",
@@ -48,8 +52,18 @@ export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "sent",
   "partial",
   "failed",
+  "dismissed",
 ] as const;
 export type NewsletterCampaignStatus = (typeof NEWSLETTER_CAMPAIGN_STATUSES)[number];
+
+/**
+ * What a draft can be started from (`apps/web/src/lib/newsletter/templates.ts`):
+ *
+ *   monthly    what is new since the last letter, and what is reduced now
+ *   promotion  one promotion, announced
+ */
+export const NEWSLETTER_TEMPLATES = ["monthly", "promotion"] as const;
+export type NewsletterTemplate = (typeof NEWSLETTER_TEMPLATES)[number];
 
 /**
  * Where one recipient's copy is.
@@ -119,8 +133,29 @@ export type NewsletterProductBlocks = {
   [field: string]: unknown;
 };
 
-/** What `newsletter_campaigns.attachments` holds: files, and once sending starts, the products. */
-export type NewsletterCampaignAttachment = NewsletterAttachment | NewsletterProductBlocks;
+/**
+ * What a draft was written from, kept beside its files like the snapshot: when
+ * the monthly letter's data was read, and which promotions its words name.
+ * The storefront's to define (`lib/newsletter/letter-plan.ts`).
+ */
+export type NewsletterLetterPlan = {
+  kind: "letter-plan";
+  [field: string]: unknown;
+};
+
+/**
+ * Why the last run of a send stopped, in a word the daily job can act on
+ * (`lib/newsletter/send.ts`): only a stop that a later run can get past is
+ * picked up without the owner.
+ */
+export type NewsletterRunStop = {
+  kind: "run-stop";
+  [field: string]: unknown;
+};
+
+/** What `newsletter_campaigns.attachments` holds: files, and the facts kept beside them. */
+export type NewsletterCampaignAttachment =
+  NewsletterAttachment | NewsletterProductBlocks | NewsletterLetterPlan | NewsletterRunStop;
 
 export const newsletterCampaigns = pgTable(
   "newsletter_campaigns",
@@ -164,8 +199,24 @@ export const newsletterCampaigns = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     /** When the last recipient got an answer. */
     sentAt: timestamp("sent_at", { withTimezone: true }),
+
+    /** What the draft was started from; null for a blank one. */
+    template: text("template", { enum: NEWSLETTER_TEMPLATES }),
+    /**
+     * The month ("2026-11") a draft was prepared for by the monthly job, so
+     * the job never prepares two for one month. Null for drafts the owner
+     * started.
+     */
+    autoPeriod: text("auto_period"),
+    /** The promotion a promotion letter announces. */
+    promotionId: uuid("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
   },
-  (table) => [index("newsletter_campaigns_created_idx").on(table.createdAt)],
+  (table) => [
+    index("newsletter_campaigns_created_idx").on(table.createdAt),
+    uniqueIndex("newsletter_campaigns_auto_period_idx")
+      .on(table.autoPeriod)
+      .where(sql`${table.autoPeriod} is not null`),
+  ],
 );
 
 export const newsletterDeliveries = pgTable(

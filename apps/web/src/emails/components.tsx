@@ -12,7 +12,14 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import { lineTotal, orderSum, productCount, type OrderLine } from "@/lib/orders/lines";
+import {
+  lineTotal,
+  orderSavings,
+  orderSum,
+  productCount,
+  reductionNote,
+  type OrderLine,
+} from "@/lib/orders/lines";
 import { toPriceView } from "@/lib/catalog/format";
 import type { Inline } from "./markdown";
 import { CONTENT_WIDTH, SHEET_PADDING, SHEET_WIDTH, color, font, logo, shop, type } from "./theme";
@@ -428,9 +435,18 @@ export function KeyValueRows({ rows }: { rows: readonly { label: string; value: 
  *
  * Two columns rather than four: a product name in Cyrillic and Latin runs to
  * three lines on a phone, and four columns would leave it one word wide.
+ *
+ * A reduced line says so under its name, for the reader its lines are worded
+ * for (`LineReduction`): the customer sees the price struck through beside
+ * theirs, as the shop showed it, and the badge's percentage; the owner sees
+ * the promotion's percentage, its name and the regular price. Under the sum,
+ * what the reductions came to. Ink only, no clay: a letter's reduced prices
+ * are in clay in the newsletter's product cards and nowhere else (`theme.ts`).
  */
 export function OrderLines({ lines }: { lines: readonly OrderLine[] }) {
   const sum = orderSum(lines);
+  const saved = orderSavings(lines);
+  const forOwner = lines.some((line) => line.reduction?.reader === "owner");
   const meta: CSSProperties = { ...type.small, ...tabular, color: color.ink500, margin: "2px 0 0" };
   return (
     <table
@@ -460,7 +476,11 @@ export function OrderLines({ lines }: { lines: readonly OrderLine[] }) {
                 </div>
                 <div style={meta}>
                   {`${line.quantity} бр.${total && unit ? ` × ${unit.formatted}` : ""}`}
+                  {total && <CustomerReduction line={line} />}
                 </div>
+                {total && line.reduction?.reader === "owner" && (
+                  <div style={meta}>{reductionNote(line)}</div>
+                )}
               </td>
               <td
                 align="right"
@@ -508,8 +528,49 @@ export function OrderLines({ lines }: { lines: readonly OrderLine[] }) {
             </td>
           </tr>
         )}
+        {saved && (
+          <tr>
+            <td style={{ ...cell, ...type.small, padding: "8px 16px 0 0", color: color.ink700 }}>
+              {forOwner ? "Отстъпка по промоции" : "Спестявате"}
+            </td>
+            <td
+              align="right"
+              style={{
+                ...cell,
+                ...type.small,
+                ...tabular,
+                padding: "8px 0 0",
+                textAlign: "right",
+                whiteSpace: "nowrap",
+                fontWeight: 600,
+                color: color.ink900,
+              }}
+            >
+              {saved.formatted}
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * " (вместо ~~9,95 €~~, −10%)" after a customer's unit price: the struck
+ * price drawn struck, as on the shop's pages, and said in words for a client
+ * that drops the line-through.
+ */
+function CustomerReduction({ line }: { line: OrderLine }) {
+  const reduction = line.reduction;
+  if (reduction?.reader !== "customer") return null;
+  const before = toPriceView(reduction.before.amount, reduction.before.currency);
+  if (!before) return null;
+  return (
+    <>
+      {" (вместо "}
+      <span style={{ textDecoration: "line-through" }}>{before.formatted}</span>
+      {reduction.percent === null ? ")" : `, −${reduction.percent}%)`}
+    </>
   );
 }
 
