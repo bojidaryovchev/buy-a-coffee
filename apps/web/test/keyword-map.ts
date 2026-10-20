@@ -3,8 +3,9 @@
  *
  * Copied row by row from `docs/seo.md` §1, which is binding: "One page owns
  * each cluster. A page outside the 'owns' column may mention the term but must
- * not carry it in its title or H1." (The flavoured listing's row was measured
- * after the study, by research 09 T2.1; §18 says how it was built.) `keyword-map.test.ts` holds every title
+ * not carry it in its title or H1." (Two rows were measured after the study,
+ * by research 09: the flavoured listing's, T2.1, and the ESE-machine guide's,
+ * T2.3; §18 says how each was built.) `keyword-map.test.ts` holds every title
  * and heading the storefront builds against this table.
  *
  * `head` is the "Owns" column. `twins` are the same words in the other order:
@@ -145,6 +146,8 @@ export const KEYWORD_MAP: readonly KeywordOwner[] = [
     also: ["видове капсули за кафе долче густо", "видове капсули долче густо"],
   },
   {
+    // Research 09, T2.3, measured after the study like the flavoured row. The
+    // article ends at `kafe-dozi`, whose „кафе дози“ it must not carry.
     page: "blog/kafemashina-za-dozi-ese",
     head: ["кафемашина за хартиени дози"],
     also: ["кафемашина с хартиени дози", "кафемашина с филтър дози"],

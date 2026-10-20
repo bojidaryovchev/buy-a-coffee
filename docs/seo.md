@@ -858,8 +858,9 @@ measured one more cluster on 19 October 2026, after this study: „кафе ле
 110 a month, „кафе с вкус на лешник“ 90, „кафе карамел“ 70, „ароматизирано
 кафе“ 20, „кафе амарето“ 10. It is built as a fifth landing listing,
 `/bg/aromatizirano-kafe` [`flavoured-coffee`], on the decaf page's pattern. Its
-row is in the map in §1, the one row there measured after the study, and is
-held with the rest by `apps/web/test/keyword-map.test.ts`.
+row is in the map in §1, one of the two rows there measured after the study
+(the ESE-machine guide's, below, is the other), and is held with the rest by
+`apps/web/test/keyword-map.test.ts`.
 
 - **What it lists** is the record's flag and nothing else: every product on
   sale with `lower(attributes->>'aromas') = 'yes'`, the very test of the
