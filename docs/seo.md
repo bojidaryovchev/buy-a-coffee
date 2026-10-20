@@ -71,28 +71,29 @@ How to read the numbers:
 One page owns each cluster. A page outside the "owns" column may mention the
 term but must not carry it in its title or H1.
 
-| Page (`/bg/…`)                  | Owns (head term, volume)                                                      | Also targets                                                                                                                                    | Must not compete with                          |
-| ------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Home `/bg`                      | `магазин за кафе` 1,000 · `онлайн магазин за кафе` 170 (KD 60)                | `кафе` 22,200 (aspirational), `kafe` 1,000                                                                                                      | every category                                 |
-| `kafe-kapsuli`                  | `кафе капсули` 2,400 (KD 21)                                                  | `капсули за кафе` 1,000, `кафе на капсули` 320, `капсули кафе` 260, `капсули за кафемашина` 170                                                 | each system page; the capsule-types article    |
-| `dolce-gusto-kapsuli`           | `капсули долче густо` 3,600                                                   | `dolce gusto капсули` 1,900, `кафе капсули долче густо` 1,000, `съвместими капсули за долче густо` 140, `капсули за кафемашина долче густо` 140 | decaf page (decaf DG terms go there)           |
-| `nespresso-kapsuli`             | `неспресо капсули` 1,900                                                      | `nespresso капсули` 1,600, `капсули неспресо` 1,300, `капсули за неспресо машина` 140                                                           | Lavazza capsules page                          |
-| `lavazza-blue-kapsuli`          | `lavazza blue капсули` 720                                                    | `лаваца блу капсули` 480, `lavazza blue` 480, `капсули лаваца блу` 390                                                                          | Lavazza capsules page, Lavazza brand           |
-| `lavazza-a-modo-mio-kapsuli`    | `lavazza a modo mio` 480                                                      | `lavazza a modo mio капсули` 140, `a modo mio капсули` 110, `капсули лаваца а модо мио` 90                                                      | Lavazza capsules page                          |
-| `caffitaly-kapsuli`             | `caffitaly капсули` 480                                                       | `caffitaly` 1,600 (navigational), `кафитали` 260, `кафитали капсули` 170, `съвместими капсули за caffitaly` 90                                  | Tchibo machine page                            |
-| **new** `lavazza-kapsuli`       | `лаваца капсули` 1,000                                                        | `капсули лаваца` 880, `lavazza капсули` 480, `кафе капсули лаваца` 320                                                                          | Lavazza brand page, Blue, A Modo Mio           |
-| `kafe-na-zarna`                 | `кафе на зърна` 2,900                                                         | `кафе на зърна промоция` 720, `италианско кафе на зърна` 210, `кафе на зърна цена` 140, `кафе на зърна 100 арабика` 140                         | Lavazza beans page, beans article              |
-| **new** `kafe-na-zarna-lavazza` | `кафе лаваца на зърна` 590                                                    | `лаваца на зърна` 480, `кафе на зърна лаваца` 390, `кафе лаваца на зърна 1 кг цена` 210                                                         | Lavazza brand page                             |
-| `kafe-dozi`                     | `кафе дози` 590                                                               | `ese капсули` 140, `кафе на дози` 90, `хартиени дози кафе` 90, `кафе дозети` 50, `ese дози` 50                                                  | —                                              |
-| **new** `bezkofeinovo-kafe`     | `безкофеиново кафе` 1,000                                                     | `безкофеиново кафе на зърна` 320, `кафе без кофеин` 210, `безкофеинови капсули долче густо` 170                                                 | system pages (no "без кофеин" in their titles) |
-| **new** `nay-evtino-na-chasha`  | `евтино кафе на зърна` 170                                                    | `евтини капсули за кафе` 110, `евтини капсули неспресо` 110, `евтини капсули долче густо` 30                                                    | cup-cost article                               |
-| `promotsii`                     | `кафе на зърна промоция` 720 shared with beans                                | `долче густо капсули промоция` 260, `кафе капсули промоция` 110                                                                                 | — (exists only while a reduction exists)       |
-| `marki`                         | `марки кафе` 260                                                              | `италиански марки кафе` 170, `кафе марки` 70                                                                                                    | —                                              |
-| `marki/<brand>`                 | `<brand> кафе` / `кафе <brand>` (e.g. `бианчи кафе` 880, `kimbo` 590)         | `<brand> капсули` where no brand × format page exists                                                                                           | brand × format pages                           |
-| `za-kafemashina/<brand>`        | `капсули за <brand>` long tail; for Tchibo `tchibo cafissimo` 480             | `tchibo капсули` 390, `капсули чибо` 320, `кафе капсули чибо` 210, `cafissimo капсули` 170                                                      | Caffitaly page                                 |
-| `kafe-za-vending-mashini`       | `кафе за вендинг машини` 90                                                   | `кафе за вендинг` 50, `кафе за вендинг автомати` 50, `вендинг кафе` 40                                                                          | —                                              |
-| `blog/vidove-kapsuli-za-kafe`   | `видове капсули за кафе` 390                                                  | `видове капсули за кафе долче густо` 170, `видове капсули долче густо` 70                                                                       | capsule parent                                 |
-| Product `/<slug>`               | the product line, e.g. `lavazza super crema` 260, `lavazza crema e aroma` 720 | `<line> <format>`                                                                                                                               | another product with the same name (§6.1)      |
+| Page (`/bg/…`)                  | Owns (head term, volume)                                                                                                     | Also targets                                                                                                                                    | Must not compete with                          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Home `/bg`                      | `магазин за кафе` 1,000 · `онлайн магазин за кафе` 170 (KD 60)                                                               | `кафе` 22,200 (aspirational), `kafe` 1,000                                                                                                      | every category                                 |
+| `kafe-kapsuli`                  | `кафе капсули` 2,400 (KD 21)                                                                                                 | `капсули за кафе` 1,000, `кафе на капсули` 320, `капсули кафе` 260, `капсули за кафемашина` 170                                                 | each system page; the capsule-types article    |
+| `dolce-gusto-kapsuli`           | `капсули долче густо` 3,600                                                                                                  | `dolce gusto капсули` 1,900, `кафе капсули долче густо` 1,000, `съвместими капсули за долче густо` 140, `капсули за кафемашина долче густо` 140 | decaf page (decaf DG terms go there)           |
+| `nespresso-kapsuli`             | `неспресо капсули` 1,900                                                                                                     | `nespresso капсули` 1,600, `капсули неспресо` 1,300, `капсули за неспресо машина` 140                                                           | Lavazza capsules page                          |
+| `lavazza-blue-kapsuli`          | `lavazza blue капсули` 720                                                                                                   | `лаваца блу капсули` 480, `lavazza blue` 480, `капсули лаваца блу` 390                                                                          | Lavazza capsules page, Lavazza brand           |
+| `lavazza-a-modo-mio-kapsuli`    | `lavazza a modo mio` 480                                                                                                     | `lavazza a modo mio капсули` 140, `a modo mio капсули` 110, `капсули лаваца а модо мио` 90                                                      | Lavazza capsules page                          |
+| `caffitaly-kapsuli`             | `caffitaly капсули` 480                                                                                                      | `caffitaly` 1,600 (navigational), `кафитали` 260, `кафитали капсули` 170, `съвместими капсули за caffitaly` 90                                  | Tchibo machine page                            |
+| **new** `lavazza-kapsuli`       | `лаваца капсули` 1,000                                                                                                       | `капсули лаваца` 880, `lavazza капсули` 480, `кафе капсули лаваца` 320                                                                          | Lavazza brand page, Blue, A Modo Mio           |
+| `kafe-na-zarna`                 | `кафе на зърна` 2,900                                                                                                        | `кафе на зърна промоция` 720, `италианско кафе на зърна` 210, `кафе на зърна цена` 140, `кафе на зърна 100 арабика` 140                         | Lavazza beans page, beans article              |
+| **new** `kafe-na-zarna-lavazza` | `кафе лаваца на зърна` 590                                                                                                   | `лаваца на зърна` 480, `кафе на зърна лаваца` 390, `кафе лаваца на зърна 1 кг цена` 210                                                         | Lavazza brand page                             |
+| `kafe-dozi`                     | `кафе дози` 590                                                                                                              | `ese капсули` 140, `кафе на дози` 90, `хартиени дози кафе` 90, `кафе дозети` 50, `ese дози` 50                                                  | —                                              |
+| **new** `bezkofeinovo-kafe`     | `безкофеиново кафе` 1,000                                                                                                    | `безкофеиново кафе на зърна` 320, `кафе без кофеин` 210, `безкофеинови капсули долче густо` 170                                                 | system pages (no "без кофеин" in their titles) |
+| **new** `nay-evtino-na-chasha`  | `евтино кафе на зърна` 170                                                                                                   | `евтини капсули за кафе` 110, `евтини капсули неспресо` 110, `евтини капсули долче густо` 30                                                    | cup-cost article                               |
+| **new** `aromatizirano-kafe`    | `кафе лешник` 110 · `кафе с вкус на лешник` 90 · `кафе карамел` 70 · `ароматизирано кафе` 20 (measured 19 October 2026; §18) | `кафе амарето` 10, `кафе капсули лешник` 30                                                                                                     | —                                              |
+| `promotsii`                     | `кафе на зърна промоция` 720 shared with beans                                                                               | `долче густо капсули промоция` 260, `кафе капсули промоция` 110                                                                                 | — (exists only while a reduction exists)       |
+| `marki`                         | `марки кафе` 260                                                                                                             | `италиански марки кафе` 170, `кафе марки` 70                                                                                                    | —                                              |
+| `marki/<brand>`                 | `<brand> кафе` / `кафе <brand>` (e.g. `бианчи кафе` 880, `kimbo` 590)                                                        | `<brand> капсули` where no brand × format page exists                                                                                           | brand × format pages                           |
+| `za-kafemashina/<brand>`        | `капсули за <brand>` long tail; for Tchibo `tchibo cafissimo` 480                                                            | `tchibo капсули` 390, `капсули чибо` 320, `кафе капсули чибо` 210, `cafissimo капсули` 170                                                      | Caffitaly page                                 |
+| `kafe-za-vending-mashini`       | `кафе за вендинг машини` 90                                                                                                  | `кафе за вендинг` 50, `кафе за вендинг автомати` 50, `вендинг кафе` 40                                                                          | —                                              |
+| `blog/vidove-kapsuli-za-kafe`   | `видове капсули за кафе` 390                                                                                                 | `видове капсули за кафе долче густо` 170, `видове капсули долче густо` 70                                                                       | capsule parent                                 |
+| Product `/<slug>`               | the product line, e.g. `lavazza super crema` 260, `lavazza crema e aroma` 720                                                | `<line> <format>`                                                                                                                               | another product with the same name (§6.1)      |
 
 ---
 
@@ -855,26 +856,34 @@ The execution backlog's T2.1 (`research/buy-a-coffee/09-seo-execution-backlog.md
 measured one more cluster on 19 October 2026, after this study: „кафе лешник“
 110 a month, „кафе с вкус на лешник“ 90, „кафе карамел“ 70, „ароматизирано
 кафе“ 20, „кафе амарето“ 10. It is built as a fifth landing listing,
-`/bg/aromatizirano-kafe` [`flavoured-coffee`], on the decaf page's pattern, and
-adds one row to the map in §1, held with the rest by
-`apps/web/test/keyword-map.test.ts`:
-
-| Page (`/bg/…`)               | Owns (head term, volume)                                                                     | Also targets                                | Must not compete with |
-| ---------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------- |
-| **new** `aromatizirano-kafe` | `кафе лешник` 110 · `кафе с вкус на лешник` 90 · `кафе карамел` 70 · `ароматизирано кафе` 20 | `кафе амарето` 10, `кафе капсули лешник` 30 | —                     |
+`/bg/aromatizirano-kafe` [`flavoured-coffee`], on the decaf page's pattern. Its
+row is in the map in §1, the one row there measured after the study, and is
+held with the rest by `apps/web/test/keyword-map.test.ts`.
 
 - **What it lists** is the record's flag and nothing else: every product on
   sale with `lower(attributes->>'aromas') = 'yes'`, the very test of the
   listings' „Ароматизирано“ filter, grouped by system in the shop's order,
   cheapest per cup first. Twenty products in the reference snapshot: Dolce
   Gusto 11, ESE 4, Nespresso 3, Caffitaly 2. A flavoured product in no system
-  would be left out, as on the decaf page. The flag is on a few drinks that
-  are not coffee (a matcha, a latte), so the page counts „продукта“.
+  would be left out, as on the decaf page. The flag is not on every pack
+  whose own description speaks of an aroma (Bianchi's hazelnut capsules for
+  Nespresso carry `aromas: no`), so the page says it lists what the catalog
+  marks as flavoured, never "everything flavoured". No name overrides the
+  flag.
+- **Drinks without coffee.** The flag is on two drinks that hold no coffee, a
+  matcha latte and a plant-based latte for Dolce Gusto, and the page counts
+  „продукта“ and says „Някои от тях са напитки без кафе, например мача лате.“
+  No field of the record says a product is not coffee — the product kind
+  tells instant from roasted, by name, and the categories name the machine —
+  so the sentence is not computed: it stands while the page lists more than
+  one product, and `apps/web/test/landings.db.test.ts` fails the day either
+  drink leaves the page.
 - **Title** „Ароматизирано кафе с вкус на лешник, карамел и други“, **H1**
   „Ароматизирано кафе“. The two flavours are read off the supplier's names of
   what the page lists (`flavoursInName`, `apps/web/src/lib/catalog/landings.ts`),
-  so each leaves the title the day the last pack labelled with it does; „и
-  други“ stays while something labelled with neither is listed.
+  counted again over the cards actually drawn, as the count is, so each leaves
+  the title the day the last pack labelled with it does; „и други“ stays while
+  something labelled with neither is listed.
 - **The caveat is stated, not hidden.** The results for these searches are won
   mostly by flavoured ground coffee and beans, and the flavoured range here is
   capsules and ESE pods. The description reads „Кафе с вкус на лешник, карамел

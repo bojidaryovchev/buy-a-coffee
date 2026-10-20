@@ -309,7 +309,10 @@ describe("a landing listing with products", () => {
     expect(markup).toContain('href="/bg/kafe-dozi"');
     // Capsules are listed, so the page sends a visitor unsure of the system to the finder.
     expect(markup).toContain('href="/bg/za-kafemashina"');
-    expect(markup).toContain("на зърна или мляно в пакет в момента нямаме");
+    expect(markup).toContain(
+      "на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме",
+    );
+    expect(markup).not.toContain("всичко ароматизирано");
 
     const crumbs = jsonLd(markup, "ld-breadcrumbs");
     expect((crumbs.itemListElement as { item: string }[]).map((entry) => entry.item)).toEqual([

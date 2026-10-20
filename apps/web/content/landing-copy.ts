@@ -353,39 +353,64 @@ export const landingCopy: Readonly<Record<LandingId, LandingCopy>> = {
       );
     },
     intro: ({ count, methods, flavours = NO_FLAVOURS }) => {
-      const named = flavours.named.map((flavour) => `кафе с вкус на ${FLAVOUR_NAMES[flavour]}`);
+      const words = flavours.named.map((flavour) => FLAVOUR_NAMES[flavour]);
       const formats = formatPhrase(methods);
+      const capsules = methods.includes("capsule");
       return [
-        // Products, not coffees: the record's flag is on a few drinks too.
-        `Тук е всичко ароматизирано в магазина: ${pluralize(
-          count,
-          "продукт",
-          "продукта",
-        )}, отбелязани в каталога като ароматизирани.${
-          named.length > 0 ? ` Сред тях има ${joinList(named)}.` : ""
-        }`,
+        [
+          /* What the record flags, and no more: a pack can say hazelnut on
+             its box without the flag, and then it is not here. */
+          `Тук е всичко, отбелязано в каталога като ароматизирано: ${pluralize(
+            count,
+            "продукт",
+            "продукта",
+          )}.`,
+          ...(words.length === 0
+            ? []
+            : count === 1
+              ? [`Продуктът е с вкус на ${joinList(words)}.`]
+              : [`Сред тях има ${joinList(words.map((word) => `кафе с вкус на ${word}`))}.`]),
+          ...(count > 1 ? [FLAVOURED_DRINKS_SENTENCE] : []),
+        ].join(" "),
         // The formats, and the ones the searches for these words mostly want.
         ...(formats
           ? [
-              `Ароматизираното кафе при нас е ${formats}${
-                methods.includes("beans")
-                  ? "; мляно кафе в пакет в момента нямаме."
-                  : ": на зърна или мляно в пакет в момента нямаме."
-              }`,
+              methods.includes("beans")
+                ? `Всичко тук е ${formats}; мляно кафе в пакет в момента не предлагаме.`
+                : `Всичко тук е ${formats}: на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме.`,
             ]
           : []),
-        methods.includes("capsule")
-          ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
-          : "Във всеки раздел първа е най-ниската цена на чаша.",
+        ...(count > 1
+          ? [
+              capsules
+                ? "Всяка система е в свой раздел, защото капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ. Намерете раздела на своята машина — в него първа е най-ниската цена на чаша."
+                : "Във всеки раздел първа е най-ниската цена на чаша.",
+            ]
+          : capsules
+            ? [
+                "Капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ: проверете дали вашата машина е от тази система.",
+              ]
+            : []),
       ];
     },
     groupHeading: (system) => {
       if (system.method === "capsule") return `Ароматизирани ${capsuleShelfName(system)}`;
       return system.method === "pod" ? "Ароматизирани дози ESE" : "Ароматизирано кафе на зърна";
     },
-    llms: "Всички ароматизирани продукти, разделени по система.",
+    llms: "Продуктите, отбелязани в каталога като ароматизирани, разделени по система.",
   },
 };
+
+/**
+ * Not everything the record flags as flavoured is coffee: a matcha latte and a
+ * plant-based latte for Dolce Gusto carry the flag too. No field of the record
+ * says which products are not coffee (the product kind tells instant from
+ * roasted, by name, and the categories name only the machine), and the page
+ * must not guess from names. So the sentence stands whenever the page lists
+ * more than one product, and `landings.db.test.ts` holds it to the catalog: it
+ * names the products it rests on and fails the day either leaves the page.
+ */
+export const FLAVOURED_DRINKS_SENTENCE = "Някои от тях са напитки без кафе, например мача лате.";
 
 /** A system's name on the cheapest page's headings, where the Cyrillic is typed as often. */
 const CHEAPEST_SYSTEM_NAMES: Partial<Record<string, string>> = {

@@ -23,6 +23,8 @@ import {
   type LandingRow,
 } from "@/lib/catalog/landings";
 import { resolveProductFormat } from "@/lib/catalog/fallback-copy";
+import { withDrawnCards } from "@/lib/catalog/landing-queries";
+import type { ProductCardView } from "@/lib/catalog/types";
 import {
   brandFormatLink,
   relatedLandingLinks,
@@ -33,6 +35,7 @@ import { href, isReservedSlug } from "@/lib/routes";
 import { DESCRIPTION_LIMIT } from "@/lib/seo/description";
 import {
   CALLBACK_SENTENCE,
+  FLAVOURED_DRINKS_SENTENCE,
   cheapestGroupNote,
   cupRangeText,
   landingCopy,
@@ -552,6 +555,43 @@ describe("flavoured", () => {
     expect(flavoursInName("Caramelised Hazelnuts")).toEqual([]);
   });
 
+  it("names in its title only the flavours of the cards actually drawn, as it counts them", () => {
+    const card = (id: string) => ({ id }) as unknown as ProductCardView;
+    const ids = selected.groups.flatMap((group) => group.items.map((item) => item.id));
+    const all = withDrawnCards(selected, new Map(ids.map((id) => [id, card(id)])));
+    expect(all.count).toBe(selected.count);
+    expect(all.flavours).toEqual(selected.flavours);
+
+    // Every hazelnut pack left the catalog between the two reads: no card, no „лешник“.
+    const hazelnut = new Set(
+      FLAVOURED_CATALOG.filter((entry) => flavoursInName(entry.name).includes("hazelnut")).map(
+        (entry) => entry.id,
+      ),
+    );
+    const drawn = withDrawnCards(
+      selected,
+      new Map(ids.filter((id) => !hazelnut.has(id)).map((id) => [id, card(id)])),
+    );
+    expect(drawn.count).toBe(
+      selected.count - [...hazelnut].filter((id) => ids.includes(id)).length,
+    );
+    expect(drawn.flavours).toEqual({ named: ["caramel"], others: true });
+    expect(
+      landingCopy.flavoured.title({
+        count: drawn.count,
+        systems: [],
+        methods: drawn.methods,
+        cupRange: null,
+        commonPack: null,
+        currency: "EUR",
+        flavours: drawn.flavours,
+      }),
+    ).toBe("Ароматизирано кафе с вкус на карамел и други");
+
+    // Nothing drawn at all: nothing named.
+    expect(withDrawnCards(selected, new Map()).flavours).toEqual(NO_FLAVOURS);
+  });
+
   it("exists only while something is flagged, and says which groups a link may name", () => {
     const available = landingAvailability(FLAVOURED_CATALOG);
     expect(available.counts.flavoured).toBe(9);
@@ -781,24 +821,55 @@ describe("the copy", () => {
     );
     const [first, formats, order] = landingCopy.flavoured.intro({ ...both, count: 20 });
     expect(first).toBe(
-      "Тук е всичко ароматизирано в магазина: 20 продукта, отбелязани в каталога като ароматизирани. Сред тях има кафе с вкус на лешник и кафе с вкус на карамел.",
+      "Тук е всичко, отбелязано в каталога като ароматизирано: 20 продукта. Сред тях има кафе с вкус на лешник и кафе с вкус на карамел. Някои от тях са напитки без кафе, например мача лате.",
     );
     expect(formats).toBe(
-      "Ароматизираното кафе при нас е в капсули и дози ESE: на зърна или мляно в пакет в момента нямаме.",
+      "Всичко тук е в капсули и дози ESE: на зърна в каталога няма отбелязано като ароматизирано, а мляно кафе в пакет в момента не предлагаме.",
     );
     expect(order).toContain("капсулата влиза само в машината, за която е направена");
 
     const withBeans = facts({ methods: ["capsule", "pod", "beans"] });
     expect(landingCopy.flavoured.intro(withBeans)[1]).toBe(
-      "Ароматизираното кафе при нас е в капсули, дози ESE и на зърна; мляно кафе в пакет в момента нямаме.",
+      "Всичко тук е в капсули, дози ESE и на зърна; мляно кафе в пакет в момента не предлагаме.",
     );
     expect(landingCopy.flavoured.description(withBeans)).toMatch(
       /^Ароматизирано кафе в капсули, дози ESE и на зърна\./,
     );
     // Pods alone: no capsule sentence, and no flavour named that is not listed.
-    const pods = landingCopy.flavoured.intro(facts({ methods: ["pod"], count: 1 }));
+    const pods = landingCopy.flavoured.intro(facts({ methods: ["pod"], count: 3 }));
     expect(pods.join(" ")).not.toMatch(/капсул|лешник|карамел/);
-    expect(pods[0]).toContain("1 продукт,");
+  });
+
+  it("claims for the flavoured page only what the flag says, never „всичко ароматизирано“", () => {
+    const text = [
+      ...landingCopy.flavoured.intro(facts({ count: 20 })),
+      landingCopy.flavoured.llms,
+    ].join(" ");
+    // A pack can say hazelnut on its box without the flag; the page lists the flag.
+    expect(text).not.toMatch(/всичко ароматизирано|всички ароматизирани/i);
+    expect(text).toContain("отбелязано в каталога като ароматизирано");
+    expect(landingCopy.flavoured.llms).toBe(
+      "Продуктите, отбелязани в каталога като ароматизирани, разделени по система.",
+    );
+  });
+
+  it("speaks of one flavoured product in the singular", () => {
+    const one = landingCopy.flavoured.intro(
+      facts({ count: 1, flavours: { named: ["hazelnut"], others: false } }),
+    );
+    expect(one[0]).toBe(
+      "Тук е всичко, отбелязано в каталога като ароматизирано: 1 продукт. Продуктът е с вкус на лешник.",
+    );
+    const text = one.join(" ");
+    expect(text).not.toMatch(/Сред тях|Някои от тях|отбелязани|първа е най-ниската/);
+    expect(text).not.toContain(FLAVOURED_DRINKS_SENTENCE);
+    expect(one.at(-1)).toBe(
+      "Капсулата влиза само в машината, за която е направена, какъвто и да е вкусът ѝ: проверете дали вашата машина е от тази система.",
+    );
+    // Several, and the plural comes back with the drinks sentence.
+    const two = landingCopy.flavoured.intro(facts({ count: 2 })).join(" ");
+    expect(two).toContain("2 продукта.");
+    expect(two).toContain(FLAVOURED_DRINKS_SENTENCE);
   });
 
   it("heads each flavoured group by the shelf's own name", () => {

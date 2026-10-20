@@ -126,6 +126,8 @@ export interface LandingItem {
   readonly estimated: boolean;
   /** The pack as a customer says it („1 кг“, „100 броя“), or null. */
   readonly pack: string | null;
+  /** The searched flavours the supplier's name labels it with; see `flavoursInName`. */
+  readonly flavours: readonly Flavour[];
 }
 
 export interface LandingGroup {
@@ -184,6 +186,7 @@ function resolve(row: LandingRow): Resolved {
     perCup: pricePerServing(row.price, servings),
     estimated: servings?.estimated ?? false,
     pack: packSizeLabel(row.weightValue, row.weightUnit),
+    flavours: flavoursInName(row.name),
     perKg: (() => {
       const unit = pricePerUnitMeasure(row.price, row.weightValue, row.weightUnit);
       return unit?.unit === "kg" ? unit.amount : null;
@@ -272,22 +275,25 @@ export const NO_FLAVOURS: LandingFlavours = { named: [], others: false };
 /**
  * The searched flavours a supplier's name is labelled with: none, one or both.
  *
- * Asked of what a selection lists, and read only by the flavoured page's
- * words, whose products the record has already called flavoured: so that its
- * title and introduction name a flavour exactly while it lists one. The day
- * the last hazelnut pack leaves, „лешник“ leaves the title.
+ * Read only by the flavoured page's words, whose products the record has
+ * already called flavoured: so that its title and introduction name a flavour
+ * exactly while it lists one. The day the last hazelnut pack leaves,
+ * „лешник“ leaves the title.
  */
 export function flavoursInName(name: string): readonly Flavour[] {
   const words = new Set(name.toLowerCase().split(/[^\p{L}\p{N}]+/u));
   return FLAVOURS.filter((flavour) => FLAVOUR_WORDS[flavour].some((word) => words.has(word)));
 }
 
-function flavoursOf(items: readonly LandingItem[], rows: readonly LandingRow[]): LandingFlavours {
-  const names = new Map(rows.map((row) => [row.id, row.name]));
-  const labelled = items.map((item) => flavoursInName(names.get(item.id) ?? ""));
+/**
+ * Which searched flavours some items are labelled with, and whether any is
+ * labelled with neither. Asked of the whole selection here, and again by
+ * `landing-queries.ts` of the items that actually drew a card, as the count is.
+ */
+export function flavoursOf(items: readonly LandingItem[]): LandingFlavours {
   return {
-    named: FLAVOURS.filter((flavour) => labelled.some((found) => found.includes(flavour))),
-    others: labelled.some((found) => found.length === 0),
+    named: FLAVOURS.filter((flavour) => items.some((item) => item.flavours.includes(flavour))),
+    others: items.some((item) => item.flavours.length === 0),
   };
 }
 
@@ -299,7 +305,13 @@ function flavoursOf(items: readonly LandingItem[], rows: readonly LandingRow[]):
 const canBeOrdered = (row: LandingRow): boolean => row.availability !== "out_of_stock";
 
 function strip(item: Resolved): LandingItem {
-  return { id: item.id, perCup: item.perCup, estimated: item.estimated, pack: item.pack };
+  return {
+    id: item.id,
+    perCup: item.perCup,
+    estimated: item.estimated,
+    pack: item.pack,
+    flavours: item.flavours,
+  };
 }
 
 /** Group by system, in the order given, each group cheapest per cup first. */
@@ -324,7 +336,7 @@ function groupBySystem(
   });
 }
 
-function selection(groups: readonly LandingGroup[], rows: readonly LandingRow[]): LandingSelection {
+function selection(groups: readonly LandingGroup[]): LandingSelection {
   const items = groups.flatMap((group) => group.items);
   const priced = items
     .filter((item): item is LandingItem & { perCup: string } => item.perCup !== null)
@@ -348,7 +360,7 @@ function selection(groups: readonly LandingGroup[], rows: readonly LandingRow[])
       groups.some((group) => group.system.method === method),
     ),
     commonPack: packs.size === 1 ? (onlyPack ?? null) : null,
-    flavours: flavoursOf(items, rows),
+    flavours: flavoursOf(items),
   };
 }
 
@@ -388,7 +400,6 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           resolved.filter((item) => isLavazza(item.row)),
           order,
         ),
-        rows,
       );
     }
     case "lavazzaBeans":
@@ -397,7 +408,6 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           resolved.filter((item) => isLavazza(item.row)),
           BREWING_SYSTEMS.filter((system) => system.method === "beans"),
         ),
-        rows,
       );
     case "decaf":
       return selection(
@@ -405,7 +415,6 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           resolved.filter((item) => isDecaf(item.row)),
           BREWING_SYSTEMS,
         ),
-        rows,
       );
     case "cheapest":
       return selection(
@@ -414,7 +423,6 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           BREWING_SYSTEMS,
           CHEAPEST_PER_SYSTEM,
         ),
-        rows,
       );
     case "flavoured":
       return selection(
@@ -422,7 +430,6 @@ export function selectLanding(id: LandingId, rows: readonly LandingRow[]): Landi
           resolved.filter((item) => isFlavoured(item.row)),
           BREWING_SYSTEMS,
         ),
-        rows,
       );
   }
 }
@@ -443,7 +450,6 @@ export function selectSystem(
       rows.map(resolve),
       BREWING_SYSTEMS.filter((system) => system.id === systemId),
     ),
-    rows,
   );
 }
 

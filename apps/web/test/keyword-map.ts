@@ -1,10 +1,10 @@
 /**
  * The keyword map: which page owns which search term.
  *
- * Copied row by row from `docs/seo.md` §1, which is binding, and the one row
- * its §18 adds since (the flavoured listing, research 09 T2.1): "One page owns
+ * Copied row by row from `docs/seo.md` §1, which is binding: "One page owns
  * each cluster. A page outside the 'owns' column may mention the term but must
- * not carry it in its title or H1." `keyword-map.test.ts` holds every title
+ * not carry it in its title or H1." (The flavoured listing's row was measured
+ * after the study, by research 09 T2.1; §18 says how it was built.) `keyword-map.test.ts` holds every title
  * and heading the storefront builds against this table.
  *
  * `head` is the "Owns" column. `twins` are the same words in the other order:
