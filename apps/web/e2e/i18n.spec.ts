@@ -19,12 +19,13 @@ const locationOf = (response: Awaited<ReturnType<APIRequestContext["get"]>>) => 
 };
 
 test.describe("the bare /", () => {
-  test("resolves to Bulgarian, temporarily, by Accept-Language and nothing else", async ({
+  // Permanent while Bulgarian is the only locale: every visitor gets the same answer.
+  test("resolves to Bulgarian, permanently, by Accept-Language and nothing else", async ({
     request,
   }) => {
     for (const language of ["bg-BG,bg;q=0.9", "en-GB,en;q=0.8", "de-DE"]) {
       const response = await raw(request, "/", { "accept-language": language });
-      expect(response.status(), language).toBe(307);
+      expect(response.status(), language).toBe(308);
       expect(locationOf(response)).toBe(BG.home);
       expect(response.headers()["vary"]).toMatch(/Accept-Language/i);
       // The Cookies page promises the shop sets none; the language is no exception.
@@ -55,7 +56,8 @@ test.describe("the pre-locale URLs", () => {
       ["/cookies", BG.cookies],
       ["/journal", BG.journal],
       ["/wizard", BG.wizard],
-      ["/wizard/result", BG.wizardResult],
+      // Without answers, straight to the wizard rather than via the result page.
+      ["/wizard/result", BG.wizard],
       ["/wizard/machines", BG.machines],
       ["/wizard/machines/krups", BG.machineBrand("krups")],
       ["/newsletter/unsubscribe", BG.unsubscribe],
