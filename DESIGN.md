@@ -902,7 +902,10 @@ reduce` the global rule in `globals.css` stops every animation, and
   element at rest.
 - **The Measured Rule.** `pnpm measure:budgets` runs before and after every
   change that adds motion or imagery, against the same build and data, and the
-  numbers go in "Budgets".
+  numbers go in "Budgets". So does `pnpm measure:lighthouse` for any change
+  that adds script, a font or a preload to every page: it scores the page as
+  PageSpeed Insights does, and that model charges every byte asked for before
+  the first paint, which a real Fast 4G link barely notices.
 
 ## Imagery
 
@@ -2824,6 +2827,22 @@ to files; `test/emails.test.ts` checks the rules above on the rendered HTML.
 local production build on a shared laptop: Pixel 7 profile, DevTools "Fast 4G"
 network, 4× CPU slowdown, five cold runs per page. The field numbers arrive
 through Speed Insights.
+
+**The score a phone gets in PageSpeed Insights** is a second lens:
+`pnpm measure:lighthouse`, Lighthouse with PSI's mobile defaults (a Moto G
+Power, 4× CPU, simulated slow 4G), five runs a page, medians, gated at 90 for
+Performance and 100 for the rest. 20 October 2026, Phase L, local production
+builds of `main` before (f8c57e4) and after, the reference catalog:
+
+| Page               | Performance | LCP (simulated) | TBT         | A11y     | Best practices | SEO |
+| ------------------ | ----------- | --------------- | ----------- | -------- | -------------- | --- |
+| Home               | 79 → 89     | 5.31 → 3.74 s   | 114 → 30 ms | 90 → 100 | 92 → 100       | 100 |
+| Listing (a system) | 79 → 88     | 5.42 → 3.87 s   | 103 → 30 ms | 100      | 92 → 100       | 100 |
+| Product page       | 80 → 89     | 5.20 → 3.72 s   | 85 → 32 ms  | 100      | 92 → 100       | 100 |
+
+Live PSI read about two points above these local builds before the change
+(home 80). Locally, Best Practices also lost points to the platform's
+analytics scripts, which exist only on Vercel and now mount only there.
 
 **19 October 2026, before Phase K** — the baseline every Phase K change is
 measured against. The local catalog with its real photographs (`.storage/`),

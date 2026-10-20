@@ -26,6 +26,8 @@ public pages. They drift — re-measure before relying on one.
 - [Phase I — After launch](#phase-i--after-launch)
 - [Phase J — Bulgarian URLs, brand logos and search demand](#phase-j--bulgarian-urls-brand-logos-and-search-demand)
 - [Phase K — Visual direction: the counter, lit](#phase-k--visual-direction-the-counter-lit)
+- [Phase L — PageSpeed: the score a phone gets](#phase-l--pagespeed-the-score-a-phone-gets)
+- [Phase P — The shop's own promotions, and a newsletter that writes itself](#phase-p--the-shops-own-promotions-and-a-newsletter-that-writes-itself)
 - [Order and dependencies](#order-and-dependencies)
 - [Not doing](#not-doing)
 - [Appendix: what changed at the source](#appendix-what-changed-at-the-source)
@@ -1191,6 +1193,87 @@ Decided with the owner on 19 October 2026:
     then the code, then the cut-out workflow by hand (60, then 150 photos).
     Open: the owner's look at the SVG logo and at the cut-outs waiting in
     `/admin/snimki`; Speed Insights field data a week on.
+
+## Phase L — PageSpeed: the score a phone gets
+
+Added on 20 October 2026, when the owner brought PageSpeed Insights' mobile
+report for the home page: Performance 80, Accessibility 90, Best Practices 96,
+SEO 100, and an LCP of 4.8 s for a page that really painted at 0.75 s. PSI
+scores a simulated mid-range phone on slow 4G (150 ms round trips, 1.6 Mbit/s,
+4× CPU) and charges every byte requested before the first paint; the shop's
+own `measure:budgets`, on a real Fast 4G link, read the same page at 1.5 s and
+could not see it. Every page asked for about 330 KB of script and 230 KB of
+preloaded fonts before painting. Like K this is code, and it reaches production
+only with the owner's go-ahead.
+
+Decided with the owner on 20 October 2026:
+
+- **The newsletter keeps react-hook-form**, loaded lazily rather than replaced.
+- **The scroll reveal moves without fading** (left to us; see L4).
+- **Everything:** the fixes with a measured effect and the second tier after
+  them, each measured and kept only if it wins.
+
+- [x] **L0 · Measure as PSI does · S** — `pnpm measure:lighthouse`:
+      Lighthouse with PSI's mobile defaults, five fresh runs a page, medians,
+      exit 1 under 90 for Performance or 100 for the other three. Run through
+      npx, pinned: installed, its tree resolved a second drizzle-orm. On
+      Windows, headless Chrome throttles a window it thinks is covered to one
+      frame a second, which first made the live page look like it painted at
+      2.5 s; the script passes the flags that stop it and refuses a run that
+      shows it.
+- [x] **L1 · No Node in the browser · M** — the header's search field reached
+      `@catalog/shared`, whose barrel re-exported `hash.ts` and `node:crypto`,
+      so every page shipped crypto-browserify (about 90–107 KB with brotli),
+      whose `util` polyfill's `Function()` check was the CSP report behind Best
+      Practices' 96. `hash.ts` left the barrel; `client-imports.test.ts` walks
+      every client module's imports and fails on Node, server-only and server
+      packages; `pnpm check:bundle` scans the build in CI.
+- [x] **L2 · Forms off the first load · M** — the newsletter band draws a plain
+      form that works without script and posts to the same action; its
+      react-hook-form and zod arrive as the band nears the viewport, after
+      load. The header's search field had been pulling zod in through
+      `filters.ts`; the zod-free helpers are `filter-query.ts`. The header's
+      cart link prefetches its page on intent, not on sight: on sight it
+      brought the order form's react-hook-form and zod with every page.
+- [x] **L3 · Fonts · S** — Inter's Latin Extended face (85 KB, no character
+      of it in the catalog or the copy) is no longer preloaded; on 19 October
+      dropping it had read 100 ms later on Fast 4G, under PSI's model it was
+      0.5 s of LCP. Inter is self-hosted with its weight axis limited to the
+      400–700 the shop uses, and Literata's optical-size axis starts at 12
+      (it is set from 13 px to 64 px): every glyph draws as before, and the
+      preloaded faces went from 230 KB to 104 KB.
+- [x] **L4 · Accessibility and best practices · S** — the system tiles rose
+      from 15 % opacity, and Lighthouse, which does not scroll, read them at
+      1.3:1; they rise at full opacity now (DESIGN.md, "Motion"). The delivery
+      strip's `<dl>` nested each pair in two divs. Analytics mount only on
+      Vercel, the one place their scripts exist.
+- [x] **L5 · The header's islands · M** — the search typeahead arrives after
+      load or on first touch; the field is drawn by the server and hydrates in
+      place, which also fixed text typed before hydration being lost. The
+      drawer was deferred too and put back: a first tap could wait up to a
+      second with no feedback, for 2–3 KB.
+  - **Found, not shipped.** `experimental.inlineCss` made LCP no better and
+    TBT twice as long: Next writes the CSS into the page twice. A tighter
+    Latin subset of Literata saved 3–8 KB and risked missing glyphs in a
+    future heading. Serving listings, products and brand pages from the CDN
+    (ISR, with filtered views rewritten to a dynamic route) was built and
+    reviewed, and withheld: every filter tap rendered twice and the mobile
+    filter sheet closed after one tap, and a rarely visited product page could
+    show a week-old price. The way there is Cache Components with on-demand
+    revalidation from the sync, as its own piece of work.
+  - **Measured** 20 October 2026, `measure:lighthouse` against local
+    production builds of `main` (f8c57e4) and of this phase, same database,
+    five runs a page: Performance home 79 → 89, listing 79 → 88, product
+    80 → 89; LCP 5.31 → 3.74 s, 5.42 → 3.87 s, 5.20 → 3.72 s; TBT about
+    100 → 30 ms; Accessibility, Best Practices and SEO 100 on all three. Live
+    PSI scored about two points above these local builds before the phase.
+    `measure:budgets` (Fast 4G): LCP 1.0–1.2 s on both, CLS 0. Its INP medians
+    read 8 ms higher on this phase (72–80 against 88), within this machine's
+    noise: a direct split of the menu tap read home 12 ms faster and the
+    product page 12 ms slower, and the stepper identical. Speed Insights'
+    field data is the judge, a week after the deploy.
+  - The e2e suite (882) passed. The test server's "destination stream closed
+    early" log, 724 times in a run of `main`'s suite, fell to 5.
 
 ## Phase P — The shop's own promotions, and a newsletter that writes itself
 
