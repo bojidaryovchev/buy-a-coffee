@@ -464,6 +464,77 @@ states the dose it assumed (`servingAssumption` in `lib/catalog/format.ts`).
 The sync stores the same function's answer in `products.servings` for sorting,
 so the order of a listing and the figure on a card cannot disagree.
 
+## Promotions
+
+The shop's own reductions, run by the owner from `/admin/promotsii`
+([`lib/promotions/`](../apps/web/src/lib/promotions/)). A promotion is a
+percentage (1–50; the form asks again above 20, since every reduction comes out
+of the owner's margin) off whole brands, whole categories (with every category
+below), single products, less exclusions, for whole days in Sofia — at most
+60, starting at most a year ahead. `starts_at` is 00:00 Sofia of the first day,
+`ends_at` 00:00 Sofia of the day after the last (`lib/promotions/days.ts`, the
+one place the shop's days are worked out, DST-safe both ways). How it prices a
+product is the [price layer](#pricing); this section is how it is kept.
+
+**Editing rules,** enforced in the actions under `FOR UPDATE`, not only in the
+form. Upcoming: everything. Running: name, customer label, the last day (not
+before today) and what it covers; the percentage and the first day are locked,
+because changing the reduction mid-run would muddle the 30-day history ("за
+друга отстъпка спрете тази и започнете нова"). Stopped or ended: read-only.
+"Спри сега" sets `stopped_at`. "Изтрий" exists only before the start — a
+started promotion is part of the price history and is never deleted.
+"Дублирай" opens the editor filled in (`/admin/promotsii/nova?ot=<id>`,
+starting tomorrow) and creates nothing until Запази. Saves carry the version
+the page was opened with; a stale tab keeps what was typed and is told.
+
+**Membership** (`membership.ts`). The choice is kept as made
+(`promotions.targets`) and resolved into `promotion_products` at every
+refresh, so a product the sync brings into a promoted brand joins within the
+hour. `missing` products stay members (most return on the next sync); only
+`removed` ones leave. A product that leaves a started promotion keeps its row
+with `removed_at` — it is history — and rejoining clears it and starts a new
+stint; before the start a row is simply deleted.
+
+**The 30-day lowest price** (`reference.ts`, pure; `history.ts` reads its
+inputs). For each member, at T = the later of the promotion's start and the
+product's join, over the 30 Sofia calendar days before T: every regular price
+in effect (from the `sync_changes` rows that carry `currentPrice` — a
+`catalog:link` move carries none and is passed over — or the override, taken
+as constant), and, for every other promotion that priced the product in the
+window, the window's lowest regular price less that promotion's percentage.
+The minimum is the reference. **No claim without the whole window:** a product
+the shop has had for less than 30 days, or that had no price when the window
+opened, gets a null reference, and the price layer then strikes nothing. The
+module errs low wherever the history is uncertain.
+
+**Refresh** (`refresh.ts`). Every promotion that can still change, under an
+advisory lock: membership, then every reference not yet final — provisional
+while T is ahead, computed at exactly T and marked final at the first refresh
+after it. A final reference never rises; it may fall when a deeper promotion
+took the product over since T (`settledReferenceFloor`). Stints overwritten in
+a refresh are still counted by every reference computed in it. The panel's
+save, stop and delete run the refresh in the same transaction as the write, so
+the shop never sees new dates beside old references; if the refresh fails the
+write rolls back.
+
+**Revalidation** (`revalidate.ts`). After a write, and when the cron's refresh
+reports `shopChanged` (a promotion started or ended, a running one gained or
+lost a product, or a reference moved), `revalidatePath("/(site)/[lang]",
+"layout")` and `/sitemap.xml`. Not `revalidatePath("/", "layout")`: there is no
+`app/layout.tsx`, and it would cover the admin too. Without it a cached landing
+page would keep the old price for up to five minutes (`e2e/promotions.spec.ts`
+fails exactly there when it is turned off). Known lag: the search typeahead's
+CDN cache (`s-maxage=60, stale-while-revalidate=300`) is not purged and can
+show the old price for a few minutes.
+
+**The editor's preview** (`preview.ts`) draws what the shop will show, through
+the same rules: the winning promotion's price where two overlap, no struck
+price for a null reference, no badge under 1%, `missing` members counted and
+labelled.
+
+Not kept: the history of `retail_price_override` (there is no UI that sets
+one).
+
 ## Filters, sorting and pagination
 
 Filter state lives entirely in the URL, parsed and validated by
@@ -685,6 +756,24 @@ anything no longer orderable with the reason, and sends the order through
 which re-prices every line from the database and stores it in
 `order_inquiry_items` - the browser's figures are never trusted.
 
+**Under a promotion.** `/api/cart` carries, per line, the struck price, the
+badge figure and the promotion's customer name and last day — only for the
+shop's own promotions (the source's own struck prices stay out of the cart and
+the customer's mail), and never the promotion's id or the owner's name for it.
+The cart strikes reduced lines and adds "Спестявате". Each line posts the unit
+price it showed as a hint that is compared, never stored: if any server price
+differs — a promotion ended while the cart was open — `submitCartOrder` stores
+nothing and answers "Цените се промениха — прегледайте количката и изпратете
+отново.", and the cart asks for prices again. It also asks again when the tab
+becomes visible, on a page restored from history, and just after the earliest
+promotion end among its lines (`priceEndsAt`, never shown). A stored line
+snapshots `regular_unit_price`, `discount_percent`, `promotion_id` and
+`promotion_name` (the owner's name, looked up when the order is stored, under
+`FOR KEY SHARE` so the promotion cannot be deleted mid-order; migration
+`0013`). The owner's mail and the panel show "−10% · <name>, редовна X" and
+what the promotions cost; the customer's mail strikes what the page struck,
+never the regular price.
+
 **One form.** The product page's order panel, `#order`, has „Добави в
 количката“ and „Поръчай“; the second puts the product in the cart unless it is
 there and opens `/bg/kolichka`, whose form
@@ -714,7 +803,7 @@ same messages and what was typed. The server is the authority either way.
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
 safe in the database before any notification is attempted, so a misconfigured
-email provider can never lose an order. Submissions are idempotent within a five-minute window, keyed on the phone number and the cart's lines, so a double-clicked button cannot create two orders. The delivery is checked as its own object beside the rest of the schema, so an empty form reports every missing field on the first press.
+email provider can never lose an order. Submissions are idempotent within a five-minute window, keyed on the phone number and the cart's lines, so a double-clicked button cannot create two orders. A press is matched against the current window's key and the previous one's, under a per-phone advisory lock, because promotions switch at Sofia midnight, which is always a window's edge: a double press across it is still one order, at the first press's price. The delivery is checked as its own object beside the rest of the schema, so an empty form reports every missing field on the first press.
 
 **The confirmation says when to expect the call.** It is built on the server at
 the moment of submission from `siteConfig.commerce.openingHours`, read as wall
@@ -1044,7 +1133,7 @@ All three tables are keyed by the brand's source key, like
 ## Crons and region
 
 `apps/web/vercel.json` pins functions to `fra1`, next to the database in
-`eu-central-1`, and schedules two daily crons. Both answer 404 unless the request
+`eu-central-1`, and schedules four crons (the Pro plan allows an hourly one). Both answer 404 unless the request
 carries `Authorization: Bearer <CRON_SECRET>` — no secret configured means the
 route does not exist ([`lib/cron-auth.ts`](../apps/web/src/lib/cron-auth.ts)).
 
@@ -1059,6 +1148,11 @@ route does not exist ([`lib/cron-auth.ts`](../apps/web/src/lib/cron-auth.ts)).
   bookkeeping, not syncs, and are ignored.
 - **`/api/cron/retention`** (03:40 UTC). See [the mailbox](#the-mailbox). The
   response carries counts and nothing else.
+- **`/api/cron/promotions`** (5 past every hour, so 00:05 Sofia whatever the
+  season). The [promotions](#promotions) refresh: products the sync brought
+  into a promoted brand or category join, references settle once their
+  promotion has started, and the shop is revalidated when anything it shows
+  may have moved. Counts only.
 
 ## Rate limiting
 
@@ -1282,6 +1376,16 @@ earlier run silently reused an unrelated application listening on the chosen
 port, and generic assertions passed against it. The config gives the server it
 starts throwaway admin credentials, so the admin-gate spec does not depend on
 the machine's `.env.local`.
+
+A few specs write to that database to set up what they check — a promotion, a
+copied product, a sync run — and clean up after. Every such write goes through
+`e2e/support/database.ts`, which refuses before connecting unless the host is
+`localhost` or `127.0.0.1` or `CI` is set: a shell left pointing at
+production after a migration must make the suite stop, not write.
+`e2e/promotion.spec.ts` runs in a desktop-only "after" project once every
+other spec has finished, because a running promotion fills the promotions page
+that other specs compare against the build-time sitemap; on its own it runs
+with `--project after --no-deps`.
 
 ## Deployment
 
