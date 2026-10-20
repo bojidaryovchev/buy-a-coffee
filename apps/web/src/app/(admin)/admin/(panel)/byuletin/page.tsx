@@ -85,8 +85,11 @@ function monthlyLine(plan: MonthlyPlan): string {
     ...(newArrivals.length > 0 ? [productsPhrase(newArrivals.length, "нов", "нови")] : []),
     ...(reduced.length > 0 ? [productsPhrase(reduced.length, "намален", "намалени")] : []),
   ];
+  const counted = plan.sinceLetter
+    ? `от ${dayWords(plan.since)} насам, след последното писмо`
+    : `от последните 30 дни`;
   if (parts.length === 0) {
-    return `Няма нови продукти от ${dayWords(plan.since)} насам и няма намалени. Писмото ще бъде само поздрав и подпис — напишете какво е новото.`;
+    return `Няма нови продукти (${counted}) и няма намалени. Писмото ще бъде само поздрав и подпис — напишете какво е новото.`;
   }
   const named = promotions
     .map(
@@ -94,7 +97,7 @@ function monthlyLine(plan: MonthlyPlan): string {
         `${promotion.label ? `„${promotion.label}“` : `−${promotion.percentOff}%`} до ${dayWords(lastDay(promotion.endsAt))}`,
     )
     .join(", ");
-  return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са от ${dayWords(plan.since)} насам, след последното писмо.`;
+  return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са ${counted}.`;
 }
 
 /** A promotion in the list to choose from: the owner's name, its reduction and its days. */

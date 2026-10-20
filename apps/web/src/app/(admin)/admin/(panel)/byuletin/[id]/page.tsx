@@ -70,7 +70,7 @@ function DuplicateForm({ id }: { id: string }) {
  * without script as well as with it. The answer is the only `danger` button
  * on the page (DESIGN.md, "Buttons").
  */
-function DeleteDraft({ id }: { id: string }) {
+function DeleteDraft({ id, month }: { id: string; month: string | null }) {
   return (
     <details className="group relative">
       <summary
@@ -82,6 +82,7 @@ function DeleteDraft({ id }: { id: string }) {
         <p className="font-semibold text-ink-900">Да изтрием ли черновата?</p>
         <p className="mt-1 text-ink-700">
           Текстът и списъкът с продукти се губят. Качените файлове остават в хранилището.
+          {month && ` Бюлетинът за ${month} няма да бъде подготвен отново.`}
         </p>
         <form action={deleteNewsletter} className="mt-3">
           <input type="hidden" name="id" value={id} />
@@ -135,7 +136,8 @@ export default async function AdminCampaignPage({
 }) {
   const { id } = await params;
   const campaign = await getCampaign(id);
-  if (!campaign) notFound();
+  // A dismissed month's draft is kept only as the monthly job's claim (`deleteDraft`).
+  if (!campaign || campaign.status === "dismissed") notFound();
 
   if (campaign.status === "draft") {
     const [activeCount, capitalised, lastLetter, promotion] = await Promise.all([
@@ -161,7 +163,10 @@ export default async function AdminCampaignPage({
           </div>
           <div className="flex flex-wrap items-start gap-2">
             <DuplicateForm id={campaign.id} />
-            <DeleteDraft id={campaign.id} />
+            <DeleteDraft
+              id={campaign.id}
+              month={campaign.autoPeriod ? periodMonthName(campaign.autoPeriod) : null}
+            />
           </div>
         </div>
 

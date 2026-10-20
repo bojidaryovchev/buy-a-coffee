@@ -58,20 +58,18 @@ export async function lastLetterStart(): Promise<Date | null> {
   return row?.startedAt ?? null;
 }
 
-/** The window new arrivals are counted in: since the last letter, else the last 30 days. */
-export async function newArrivalsSince(now: Date): Promise<Date> {
-  return (await lastLetterStart()) ?? new Date(now.getTime() - NEW_ARRIVAL_DAYS * DAY);
-}
-
 export interface MonthlyPlan {
   readonly input: MonthlyInput;
-  /** Where the new arrivals were counted from. */
+  /** Where the new arrivals were counted from: the last letter's start, else 30 days back. */
   readonly since: Date;
+  /** Whether `since` is the last letter's start. */
+  readonly sinceLetter: boolean;
 }
 
 /** The monthly letter's data, as of `now`. */
 export async function monthlyPlan(now: Date = new Date()): Promise<MonthlyPlan> {
-  const since = await newArrivalsSince(now);
+  const last = await lastLetterStart();
+  const since = last ?? new Date(now.getTime() - NEW_ARRIVAL_DAYS * DAY);
   const [arrivals, reductions] = await Promise.all([
     listNewProductCards({ since, limit: MAX_BLOCK_PRODUCTS }),
     listReducedProductCards({ limit: REDUCED_READ }),
@@ -85,6 +83,7 @@ export async function monthlyPlan(now: Date = new Date()): Promise<MonthlyPlan> 
   ];
   return {
     since,
+    sinceLetter: last !== null,
     input: {
       now,
       newArrivals: arrivals.map((card) => card.slug),

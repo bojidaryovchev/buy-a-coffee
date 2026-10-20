@@ -42,6 +42,9 @@ const now = sql`now()`;
  *   sent     every recipient has an answer and none of them is a failure
  *   partial  some went, and some failed or are still waiting for a resume
  *   failed   nothing went
+ *   dismissed  a draft the monthly job prepared (`auto_period`) and the owner
+ *            threw away: kept, emptied and out of every list, only so the job
+ *            does not prepare that month again
  */
 export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "draft",
@@ -49,6 +52,7 @@ export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "sent",
   "partial",
   "failed",
+  "dismissed",
 ] as const;
 export type NewsletterCampaignStatus = (typeof NEWSLETTER_CAMPAIGN_STATUSES)[number];
 

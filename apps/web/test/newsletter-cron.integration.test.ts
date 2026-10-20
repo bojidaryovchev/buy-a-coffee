@@ -203,6 +203,31 @@ suite("the newsletter's daily job (integration)", () => {
       expect(notices).toHaveLength(1);
     });
 
+    it("stays thrown away when the owner deletes it: the month is not prepared again", async () => {
+      await arrival("nov");
+      await run();
+      const [draft] = await all();
+      expect(await campaigns.deleteDraft(draft!.id)).toBe(true);
+      // Out of every list and page, emptied, and still the month's claim.
+      expect(await campaigns.listCampaigns()).toEqual([]);
+      expect(await campaigns.getCampaign(draft!.id)).toMatchObject({
+        status: "dismissed",
+        body: "",
+        autoPeriod: sofiaPeriod(new Date()),
+      });
+      expect(await campaigns.duplicateCampaign(draft!.id)).toBeNull();
+      expect(await campaigns.newsletterNextStep()).toBeNull();
+
+      expect((await run()).draft).toBe("exists");
+      expect(notices).toHaveLength(1);
+      expect(await all()).toHaveLength(1);
+
+      // A draft the owner started is deleted outright, as before.
+      const own = await campaigns.createDraft({ subject: "Моят" });
+      expect(await campaigns.deleteDraft(own)).toBe(true);
+      expect(await campaigns.getCampaign(own)).toBeNull();
+    });
+
     it("is not made when there is nothing new and nothing reduced", async () => {
       const report = await run();
       expect(report).toMatchObject({ draft: "nothing_new", draftsCreated: 0, ownerNotified: 0 });

@@ -1,5 +1,19 @@
 import "server-only";
-import { and, asc, count, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   newsletterCampaigns,
   newsletterDeliveries,
@@ -170,7 +184,7 @@ export async function hasMonthlyDraftSince(since: Date): Promise<boolean> {
  */
 export async function duplicateCampaign(id: string): Promise<string | null> {
   const source = await getCampaign(id);
-  if (!source) return null;
+  if (!source || source.status === "dismissed") return null;
   return createDraft({
     subject: source.subject,
     preheader: source.preheader,
@@ -191,10 +205,12 @@ export async function getCampaign(id: string): Promise<CampaignRow | null> {
   return row ?? null;
 }
 
+/** Every campaign the panel lists, newest first: all but the dismissed (`deleteDraft`). */
 export async function listCampaigns(limit = 50): Promise<CampaignRow[]> {
   return db
     .select()
     .from(newsletterCampaigns)
+    .where(ne(newsletterCampaigns.status, "dismissed"))
     .orderBy(desc(newsletterCampaigns.createdAt))
     .limit(limit);
 }
@@ -242,12 +258,33 @@ export async function saveDraft(
     : { ok: false, reason: "not_draft" };
 }
 
-/** Drafts only. A campaign that went out is the record of what was sent. */
+/**
+ * Drafts only. A campaign that went out is the record of what was sent.
+ *
+ * The draft the monthly job prepared is the month's claim (`auto_period`):
+ * deleted outright, the job would find the month without one and prepare it —
+ * and tell the owner — again the next morning. So it is emptied and marked
+ * `dismissed` instead, which every list and page leaves out.
+ */
 export async function deleteDraft(id: string): Promise<boolean> {
   if (!isUuid(id)) return false;
+  const draft = and(eq(newsletterCampaigns.id, id), eq(newsletterCampaigns.status, "draft"));
+  const dismissed = await db
+    .update(newsletterCampaigns)
+    .set({
+      status: "dismissed",
+      subject: "",
+      preheader: "",
+      body: "",
+      attachments: [],
+      updatedAt: new Date(),
+    })
+    .where(and(draft, isNotNull(newsletterCampaigns.autoPeriod)))
+    .returning({ id: newsletterCampaigns.id });
+  if (dismissed.length > 0) return true;
   const deleted = await db
     .delete(newsletterCampaigns)
-    .where(and(eq(newsletterCampaigns.id, id), eq(newsletterCampaigns.status, "draft")))
+    .where(draft)
     .returning({ id: newsletterCampaigns.id });
   return deleted.length > 0;
 }
