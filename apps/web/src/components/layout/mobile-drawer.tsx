@@ -11,11 +11,8 @@ import { Wordmark } from "@/components/layout/wordmark";
 import { plural } from "@/i18n/fill";
 
 /**
- * The mobile navigation drawer itself, opened by `MobileNav`'s trigger.
- *
- * Only ever reached through the `import()` in `mobile-nav.tsx`: fetched after
- * the page has loaded, or the moment a finger lands on the trigger, so no page
- * downloads it to paint. Mounted while open, and gone when closed.
+ * The mobile navigation drawer itself, opened by `MobileNav`'s trigger
+ * (`mobile-nav.tsx`). Mounted while open, and gone when closed.
  *
  * The rail's structure, in the rail's order, with nothing left out and nothing
  * behind a second tap: the two ways in for someone who knows only their

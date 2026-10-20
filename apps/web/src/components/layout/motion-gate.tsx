@@ -16,8 +16,7 @@ import { afterLoadIdle } from "@/lib/after-load";
  * everything is simply in place — as where `animation-timeline` is not
  * supported. Set once per visit; a client-side navigation keeps it.
  *
- * The same moment fetches the header's search suggestions and drawer
- * (`lib/after-load.ts`).
+ * The same moment fetches the search field's typeahead (`lib/after-load.ts`).
  */
 export function MotionGate() {
   useEffect(() => {

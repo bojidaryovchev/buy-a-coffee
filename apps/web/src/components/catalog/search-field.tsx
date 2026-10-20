@@ -42,8 +42,14 @@ import { href, routes } from "@/lib/routes";
  * rows (`search-suggestions.tsx`) — is fetched on the first idle moment after
  * the page has loaded, or the moment the visitor points at or focuses the
  * field, whichever comes first. Until it is here the field is a plain search
- * box: it takes text and submits, and announces itself as a combobox only
- * once it has a list to offer.
+ * box that takes text and submits; once it is here the field is a combobox,
+ * and names its list in `aria-controls` only while the list is in the page.
+ *
+ * The query the field shows comes from the address. The search page knows it
+ * on the server and hands it in (`initialQuery`), so its field is drawn with
+ * it. The header's is not told: a layout does not see the address, so the
+ * server draws it empty and it fills in from the address once the page has
+ * hydrated (`FollowAddress`).
  *
  * The `<input>` is the same element from the server's HTML to the open
  * dropdown. Nothing replaces it, so nothing typed is lost and the focus — and
@@ -57,6 +63,12 @@ const MIN_TERM_LENGTH = 2;
 
 const EMPTY: SearchSuggestions = { term: "", products: [], brands: [], categories: [], total: 0 };
 
+/*
+ * Its own chunk, fetched after the page. A few modules its rows share with the
+ * page — the system icon, the product image — are copied into that chunk
+ * rather than shared with the page's, a few hundred bytes the bundler judges
+ * cheaper than another request; accepted.
+ */
 const TYPEAHEAD = deferredModule(() => import("@/components/catalog/search-suggestions"));
 
 /** Ask for the typeahead now: the visitor is reaching for the field. */
@@ -68,10 +80,16 @@ export function SearchField({
   locale,
   copy,
   autoFocus = false,
+  initialQuery = "",
 }: {
   locale: Locale;
   copy: SearchCopy;
   autoFocus?: boolean;
+  /**
+   * The query the page was asked for, where the server knows it (the search
+   * page), so the field is drawn with it. The header has none to give.
+   */
+  initialQuery?: string;
 }) {
   const router = useRouter();
   const searchPath = href(locale, routes.search);
@@ -83,7 +101,7 @@ export function SearchField({
   const typeahead = useDeferredModule(TYPEAHEAD);
   const links = useMemo(() => typeahead?.suggestionLinks(locale), [typeahead, locale]);
 
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<SearchSuggestions>(EMPTY);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -217,7 +235,9 @@ export function SearchField({
             enterKeyHint="search"
             role={typeahead ? "combobox" : undefined}
             aria-expanded={typeahead ? isExpanded : undefined}
-            aria-controls={typeahead ? listboxId : undefined}
+            // Only while the panel draws the list: an id that names nothing
+            // in the page is a broken reference.
+            aria-controls={isExpanded ? listboxId : undefined}
             aria-autocomplete={typeahead ? "list" : undefined}
             aria-activedescendant={activeOptionId}
             autoFocus={autoFocus}

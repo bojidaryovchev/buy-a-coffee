@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { waitForHydration } from "./support/hydration";
 import { PRODUCT_LINK, expectProductPage } from "./support/paths";
 
 /** Search behaviour against our own PostgreSQL catalog. */
@@ -205,6 +206,70 @@ test.describe("typeahead", () => {
     await expect(field).toBeFocused();
     // The text arrived before the list could; the list still comes.
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
+  });
+
+  test("keeps what is typed into the hydrated field while its typeahead is held up", async ({
+    page,
+  }) => {
+    // The typeahead's chunk — the one script that asks for suggestions — is
+    // held until released: a slow network, on the one request that matters.
+    let release = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/_next/static/chunks/*.js", async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes("/api/search/suggest")) await released;
+      await route.fulfill({ response, body });
+    });
+
+    await page.goto("/");
+    await waitForHydration(page);
+    const field = searchInput(page);
+    await field.pressSequentially("lavazza", { delay: 30 });
+
+    // Hydrated, typed into, and still without its typeahead.
+    await expect(field).toHaveValue("lavazza");
+    await expect(field).not.toHaveAttribute("role", "combobox");
+
+    release();
+    await expect(field).toHaveAttribute("role", "combobox");
+    await expect(field).toHaveValue("lavazza");
+    await expect(field).toBeFocused();
+    await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
+  });
+
+  test("both fields follow the query in the address, back and forward", async ({ page }) => {
+    await page.goto("/bg/tarsene?q=lavazza");
+    // The two search forms' fields, the site header's first. (Not by `header`:
+    // the page's own field sits in the page's `<header>`. Not by `name` alone:
+    // the listing's sort form carries `q` too, hidden.)
+    const fields = page.locator('form[role="search"] input[name="q"]');
+    await expect(fields).toHaveCount(2);
+    const header = fields.first();
+    const own = page.locator('main form[role="search"] input[name="q"]');
+    // The page's own field has the query from the server; the header's takes
+    // it from the address.
+    await expect(own).toHaveValue("lavazza");
+    await expect(header).toHaveValue("lavazza");
+
+    // A second search from the page's field, once hydrated: a client-side
+    // navigation, which only the fields' own following can keep up with.
+    await waitForHydration(page);
+    await own.fill("illy");
+    await own.press("Enter");
+    await expect(page).toHaveURL(/\/bg\/tarsene\?q=illy$/);
+    await expect(own).toHaveValue("illy");
+    await expect(header).toHaveValue("illy");
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/bg\/tarsene\?q=lavazza$/);
+    await expect(own).toHaveValue("lavazza");
+    await expect(header).toHaveValue("lavazza");
+
+    await page.goForward();
+    await expect(page).toHaveURL(/\/bg\/tarsene\?q=illy$/);
+    await expect(own).toHaveValue("illy");
+    await expect(header).toHaveValue("illy");
   });
 
   test("suggests products with images as you type", async ({ page }) => {

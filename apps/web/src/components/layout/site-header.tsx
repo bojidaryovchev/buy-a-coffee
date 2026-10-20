@@ -30,9 +30,9 @@ import { href, routes } from "@/lib/routes";
  * category read it already makes, in the page's locale and with that locale's
  * dictionary. The client components are the ones that must be: the drawer, the
  * search field, the language switcher and the rail links, which mark the
- * current section. The drawer and the search field's typeahead are the bulk of
- * that code and neither is needed to paint, so each is fetched after the page
- * has loaded, or the moment the visitor reaches for it (`lib/after-load.ts`).
+ * current section. The search field's typeahead is the bulk of that code and
+ * is not needed to paint, so it is fetched after the page has loaded, or the
+ * moment the visitor reaches for the field (`lib/after-load.ts`).
  */
 export function SiteHeader({
   navigation,

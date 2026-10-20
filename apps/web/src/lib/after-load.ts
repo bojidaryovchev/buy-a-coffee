@@ -2,14 +2,18 @@ import { useEffect, useSyncExternalStore } from "react";
 
 /**
  * Work that waits until the page has loaded: the scroll-driven motion
- * (`MotionGate`) and the code behind the header's controls, which nobody can
- * use in the first second and every page used to download before its load
- * event.
+ * (`MotionGate`) and the search field's typeahead, which nobody can use in the
+ * first second and every page used to download before its load event.
  *
  * Simulated slow 4G — PageSpeed Insights' phone — charges the first paint for
  * every byte requested before it. A module imported here is not one of them:
  * it is fetched on the first idle moment after `load`, or at once when the
  * visitor reaches for the control it serves, whichever comes first.
+ *
+ * Only for a control that works without its module and can take it late. The
+ * search field is a form that submits; its suggestions can appear a moment
+ * after the first keystroke. A control whose first use needs the code — the
+ * menu, which must open on the tap — imports it like any other.
  */
 
 /**
@@ -86,19 +90,15 @@ const notOnTheServer = () => undefined;
 
 /**
  * The module, once it is here; undefined on the server, while hydrating and
- * until it arrives. Asks for it on the first idle moment after `load`, unless
- * `wanted` says the control is not on this screen (the drawer's trigger is
- * hidden on a desktop). The caller adds the interaction that cannot wait:
- * `module.load()` from a focus, `pointerdown` or key handler.
+ * until it arrives. Asks for it on the first idle moment after `load`. The
+ * caller adds the interaction that cannot wait: `module.load()` from a focus,
+ * `pointerdown` or key handler.
  *
  * Read through `useSyncExternalStore`, so the render that draws the arrived
  * module is a synchronous one: it reads the field and swaps in the panel in
  * one task, with no keystroke in between.
  */
-export function useDeferredModule<T>(
-  module: DeferredModule<T>,
-  wanted: () => boolean = () => true,
-): T | undefined {
+export function useDeferredModule<T>(module: DeferredModule<T>): T | undefined {
   const current = useSyncExternalStore(module.subscribe, module.current, notOnTheServer);
 
   useEffect(() => {
@@ -106,9 +106,8 @@ export function useDeferredModule<T>(
     return afterLoadIdle(() => {
       // Nothing to do with a failure here: the control works without it, and
       // the next interaction asks again.
-      if (wanted()) module.load().catch(() => undefined);
+      module.load().catch(() => undefined);
     });
-    // `wanted` is read once, when the moment comes; it need not be stable.
   }, [module]);
 
   return current;

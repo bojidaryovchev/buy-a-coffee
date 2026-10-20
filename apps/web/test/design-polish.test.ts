@@ -161,7 +161,7 @@ describe("search field", () => {
     expect(input).toContain('type="search"');
   });
 
-  it("is a plain search box until its typeahead arrives, never a combobox with no list", () => {
+  it("is a plain search box until its typeahead arrives", () => {
     // The combobox semantics come with the typeahead, after the page has
     // loaded (`test/header-islands.test.ts`); the server's field claims none.
     const input = tags(live, "input")[0] ?? "";

@@ -77,7 +77,9 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
           </p>
         )}
         <div className="mt-5">
-          <SearchField locale={locale} copy={copy} autoFocus={!hasQuery} />
+          {/* Drawn with the query, which the server already has; the
+              header's field has to wait for the address. */}
+          <SearchField locale={locale} copy={copy} autoFocus={!hasQuery} initialQuery={query.q} />
         </div>
       </header>
 

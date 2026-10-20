@@ -883,10 +883,11 @@ Each rule names what it protects. They hold for every motion on every page.
   intensity track pours on the product page only, and is simply full on a
   card. The newsletter band's check waits the same way before it watches for
   the band to come near (Newsletter band, "Behaviour"). The same moment
-  fetches the code of the header controls nobody uses in the first second —
-  the search typeahead and the mobile drawer — unless the visitor reaches for
-  one first (`lib/after-load.ts`). Simulated slow 4G charges the first paint
-  for every byte requested before it.
+  fetches the search field's typeahead, unless the visitor reaches for the
+  field first (`lib/after-load.ts`): simulated slow 4G charges the first
+  paint for every byte requested before it. Only a control that works
+  without its code may wait for it this way. The menu must open on the tap,
+  so the drawer is part of the page's own code.
 - **The Unseen Loop Rule** (INP, battery). The steam pauses when it leaves the
   viewport (an `IntersectionObserver` sets `animation-play-state`) and when the
   tab is hidden. No other loop exists.
@@ -1755,8 +1756,9 @@ the pack size, and the price; a brand row shows the brand logo at size
 field itself and it hydrates in place; the typeahead — its requests, its panel
 and everything in a row — is fetched after the page has loaded, or the moment a
 pointer or the focus reaches the field (`search-suggestions.tsx`, "The Quiet
-Load Rule"). Until then the field is a plain search box and is not announced as
-a combobox. Its `<input>` is never replaced, so nothing typed is lost and a
+Load Rule"). Until then the field is a plain search box; from then on it is a
+combobox, which names its list in `aria-controls` only while the list is in
+the page. Its `<input>` is never replaced, so nothing typed is lost and a
 phone's keyboard stays open while the typeahead arrives.
 
 **Phone.** Row 2 is hidden; the menu button opens the drawer. The sticky header
@@ -1812,10 +1814,8 @@ text-pine-900` with `aria-current="page"`.
 
 **Behaviour.** Focus moves to the close button on open, is trapped inside, and
 returns to the trigger on close. Escape, the scrim and any navigation close it.
-Slides in over 200 ms. The panel's code (`mobile-drawer.tsx`) is not in the
-page's first download: it is fetched after the page has loaded, where the
-trigger is drawn, and at the latest on the trigger's `pointerdown`, so the
-first tap opens it. Should the fetch fail, the trigger follows its link.
+Slides in over 200 ms. It opens on the first tap, with nothing to fetch: its
+code is part of the page's own.
 
 **Never.** A drawer whose order differs from the rail. Systems hidden behind a
 second tap. A full-screen takeover that hides the page entirely. Search inside
@@ -2632,9 +2632,12 @@ What a visitor sees while something is pending:
 - _The search field._ Nothing: the server draws the field itself, a real
   `GET` form that already works, and the page hydrates it where it stands.
   Its typeahead arrives after the page has loaded and changes nothing in the
-  box. Only the part that reads the address sits in a Suspense boundary of
-  its own, inside the field, and draws nothing. The 404 offers
-  `SearchFieldFallback`, the same box with no script at all. Not a skeleton.
+  box. On the search page the page's own field is drawn with the query in
+  it; the header's, whose layout is not told the address, takes the query
+  from the address once the page has hydrated. Only the part that reads the
+  address sits in a Suspense boundary of its own, inside the field, and draws
+  nothing. The 404 offers `SearchFieldFallback`, the same box with no script
+  at all. Not a skeleton.
 - _A submitting form._ The button goes to the pending state: `disabled`,
   `aria-busy`, and a label that says what is happening ("Изпраща се…"). It
   keeps its width. The result arrives in the form's `aria-live` line.

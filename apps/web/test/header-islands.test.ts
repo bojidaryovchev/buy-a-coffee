@@ -6,21 +6,20 @@ import { act, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /*
- * The header's two heavy controls arrive after the page: the search field's
- * typeahead and the mobile drawer are fetched on the first idle moment after
- * `load`, or the moment the visitor reaches for them (`lib/after-load.ts`).
- * What has to hold is what a visitor on a slow phone does in between: type
- * into the field, tap the menu. Each module is held back here behind a gate,
- * so the test decides when it "arrives".
+ * The header's controls as a visitor on a slow phone meets them: drawn by the
+ * server, then hydrated where they stand.
+ *
+ * The search field's typeahead arrives after the page (`lib/after-load.ts`),
+ * held back here behind a gate so the test decides when. What has to hold in
+ * between is that the field takes text — before hydration, and while the
+ * typeahead is on its way — and never loses a character of it. The menu has
+ * nothing to wait for: it opens on the first tap.
  */
 
 const held = vi.hoisted(() => {
-  const gate = () => {
-    let open = () => {};
-    const promise = new Promise<void>((resolve) => (open = resolve));
-    return { promise, open: () => open() };
-  };
-  return { typeahead: gate(), drawer: gate(), params: new URLSearchParams() };
+  let open = () => {};
+  const promise = new Promise<void>((resolve) => (open = resolve));
+  return { typeahead: { promise, open: () => open() }, params: new URLSearchParams() };
 });
 
 vi.mock("next/navigation", () => ({
@@ -30,25 +29,23 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/bg",
 }));
 
+/*
+ * A stand-in typeahead with one row for any term: enough to see the field
+ * become a combobox, open its list and name it.
+ */
 vi.mock("@/components/catalog/search-suggestions", async () => {
   await held.typeahead.promise;
+  const answer = (term: string) => ({ term, products: [], brands: [], categories: [], total: 1 });
   return {
-    suggestionLinks: () => ({}),
-    suggestionOptions: () => [],
-    fetchSuggestions: () => () => undefined,
-    SuggestionPanel: () => null,
-  };
-});
-
-vi.mock("@/components/layout/mobile-drawer", async () => {
-  await held.drawer.promise;
-  return {
-    MobileDrawer: ({ id, onClose }: { id: string; onClose: () => void }) =>
-      createElement(
-        "div",
-        { role: "dialog", id },
-        createElement("button", { type: "button", onClick: onClose }, "Затвори"),
-      ),
+    suggestionLinks: () => ({ results: (term: string) => `/bg/tarsene?q=${term}` }),
+    suggestionOptions: (suggestions: { term: string }, term: string) =>
+      suggestions.term === term ? [`/bg/tarsene?q=${term}`] : [],
+    fetchSuggestions: (term: string, onResult: (s: ReturnType<typeof answer>) => void) => {
+      onResult(answer(term));
+      return () => undefined;
+    },
+    SuggestionPanel: ({ id, expanded }: { id: string; expanded: boolean }) =>
+      expanded ? createElement("ul", { id, role: "listbox" }) : null,
   };
 });
 
@@ -61,11 +58,15 @@ import { BUSINESS_SECTIONS } from "@/lib/catalog/business-sections";
 let root: Root | null = null;
 let recoverable: unknown[] = [];
 
-afterEach(() => {
+function unmount() {
   act(() => root?.unmount());
   root = null;
-  recoverable = [];
   document.body.innerHTML = "";
+}
+
+afterEach(() => {
+  unmount();
+  recoverable = [];
   held.params = new URLSearchParams();
 });
 
@@ -90,14 +91,33 @@ async function serve(element: ReactElement, beforeHydration?: (host: HTMLElement
   return host;
 }
 
-describe("the search field", () => {
-  const field = () => createElement(SearchField, { locale: "bg", copy: dict.search });
+const field = (props: { initialQuery?: string } = {}) =>
+  createElement(SearchField, { locale: "bg", copy: dict.search, ...props });
 
-  it("is drawn by the server as a plain search form, a combobox only once it has a list", () => {
+/** Let the typeahead arrive, as a pointer on the way to a field asks it to. */
+async function typeaheadHere() {
+  held.typeahead.open();
+  const host = await serve(field());
+  fireEvent.pointerDown(host.querySelector("input")!);
+  await settle();
+  expect(host.querySelector("input")!.getAttribute("role")).toBe("combobox");
+  unmount();
+}
+
+describe("the search field", () => {
+  it("is drawn by the server as a plain search form, not yet a combobox", () => {
     const markup = renderToString(field());
     expect(markup).toMatch(/<form role="search"[^>]*action="\/bg\/tarsene" method="get"/);
     expect(markup).toContain('name="q"');
     expect(markup).not.toContain("combobox");
+    expect(markup).not.toContain("aria-controls");
+  });
+
+  it("is drawn with the query it is handed, so the search page shows it before any script", async () => {
+    expect(renderToString(field({ initialQuery: "lavazza" }))).toContain('value="lavazza"');
+    const host = await serve(field({ initialQuery: "lavazza" }));
+    expect(recoverable).toEqual([]);
+    expect(host.querySelector("input")!.value).toBe("lavazza");
   });
 
   it("keeps the same input, and every character, while its typeahead arrives", async () => {
@@ -108,6 +128,8 @@ describe("the search field", () => {
     expect(recoverable).toEqual([]);
     const input = host.querySelector("input")!;
     expect(input.value).toBe("ла");
+    // Not here yet. (Were it, this test would be testing nothing; it fails
+    // instead.)
     expect(input.getAttribute("role")).toBeNull();
 
     // Reaching for the field asks for the typeahead; typing goes on meanwhile.
@@ -115,6 +137,7 @@ describe("the search field", () => {
     act(() => input.focus());
     fireEvent.change(input, { target: { value: "лав" } });
     fireEvent.change(input, { target: { value: "лава" } });
+    expect(input.getAttribute("role")).toBeNull();
 
     held.typeahead.open();
     await settle();
@@ -122,16 +145,26 @@ describe("the search field", () => {
     expect(host.querySelector("input")).toBe(input);
     expect(input.value).toBe("лава");
     expect(document.activeElement).toBe(input);
-    // And from now on it is the typeahead's combobox.
+    // And from now on it is the typeahead's combobox, with the list for what
+    // was typed while it was on its way.
     expect(input.getAttribute("role")).toBe("combobox");
     expect(input.getAttribute("aria-autocomplete")).toBe("list");
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+    const listbox = document.querySelector('[role="listbox"]')!;
+    expect(listbox).not.toBeNull();
+    expect(input.getAttribute("aria-controls")).toBe(listbox.id);
+
+    // Closed, the list leaves the page, and the field stops naming it.
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
     expect(input.getAttribute("aria-expanded")).toBe("false");
-    expect(input.getAttribute("aria-controls")).toMatch(/.+/);
+    expect(input.getAttribute("aria-controls")).toBeNull();
   });
 
   it("keeps text typed before hydration when the typeahead is already here", async () => {
-    // The typeahead arrived in the previous test, so it renders right after
-    // hydration — the render that would write an empty value over the text.
+    await typeaheadHere();
+    // The typeahead renders right after hydration — the render that would
+    // write an empty value over the text.
     const host = await serve(field(), (page) => {
       page.querySelector("input")!.value = "кафе";
     });
@@ -147,8 +180,7 @@ describe("the search field", () => {
     await settle();
     expect(untouched.querySelector("input")!.value).toBe("lavazza");
 
-    act(() => root?.unmount());
-    root = null;
+    unmount();
     const typed = await serve(field(), (page) => {
       page.querySelector("input")!.value = "illy";
     });
@@ -179,26 +211,22 @@ describe("the menu trigger", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("opens on the first tap, even before the drawer's code has arrived", async () => {
+  it("opens the drawer on the first tap, at once", async () => {
     const host = await serve(nav());
     const trigger = host.querySelector("a")!;
 
-    // The finger lands (the fetch starts), lifts (the click), and only then
-    // does the drawer arrive.
-    fireEvent.pointerDown(trigger);
-    fireEvent.click(trigger);
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
-
-    held.drawer.open();
-    await settle();
-
+    // No waiting and no settling: the drawer is in the page the moment the
+    // tap has been handled.
+    act(() => void fireEvent.click(trigger));
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog).not.toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(trigger.getAttribute("aria-controls")).toBe(dialog.id);
+    expect(dialog.contains(document.activeElement)).toBe(true);
 
-    await act(async () => fireEvent.click(dialog.querySelector("button")!));
+    act(() => void fireEvent.keyDown(document, { key: "Escape" }));
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
   });
 });

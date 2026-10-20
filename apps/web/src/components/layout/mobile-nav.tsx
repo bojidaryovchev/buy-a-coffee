@@ -3,9 +3,9 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { MenuIcon } from "@/components/layout/icons";
+import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import type { SiteNavigation } from "@/components/layout/navigation";
 import type { Dictionary } from "@/i18n/dictionaries/bg";
-import { deferredModule, useDeferredModule } from "@/lib/after-load";
 
 /** The drawer's words: its own, and the navigation's. */
 export interface MobileNavCopy {
@@ -14,7 +14,8 @@ export interface MobileNavCopy {
 }
 
 /**
- * Mobile navigation: the menu trigger, and the drawer it opens.
+ * Mobile navigation: the menu trigger, and the drawer it opens
+ * (`mobile-drawer.tsx`).
  *
  * The trigger is a link to the category index. Without JavaScript nothing can
  * open a drawer, and a menu button that does nothing is the worst control on
@@ -23,23 +24,15 @@ export interface MobileNavCopy {
  * from then on that is what it does, with `aria-expanded` and
  * `aria-controls`.
  *
- * The drawer (`mobile-drawer.tsx`) is not part of the page's first download.
- * It is fetched on the first idle moment after the page has loaded — on a
- * phone, where the trigger is drawn — and at the latest when a finger lands on
- * the trigger: `pointerdown` comes a beat before the `click` that opens it, so
- * the click finds the drawer ready, or waits the moment it takes. Should the
- * fetch fail (a dropped connection), the trigger does what its link says and
- * goes to the category index.
+ * The drawer is part of the page's own code, not fetched on demand. It was,
+ * for a while, to take its 2 to 3 KB out of the first download, and a tap
+ * that came before it then waited for the network with nothing to show for
+ * it — a fifth of a second on fast 4G, most of a second on slow — and the
+ * drawer opened later, over whatever the visitor had gone on to do. The menu
+ * opens on the tap.
  */
 
 const subscribe = (): (() => void) => () => {};
-
-const DRAWER = deferredModule(() => import("@/components/layout/mobile-drawer"));
-
-/** Ask for the drawer now: someone is reaching for the trigger. */
-const prepare = () => {
-  DRAWER.load().catch(() => undefined);
-};
 
 export function MobileNav({
   navigation,
@@ -62,25 +55,11 @@ export function MobileNav({
     () => true,
     () => false,
   );
-  // From `md` up the trigger is hidden and nothing can open the drawer.
-  const loaded = useDeferredModule(
-    DRAWER,
-    () => (triggerRef.current?.getClientRects().length ?? 0) > 0,
-  );
-  const expanded = open && loaded !== undefined;
 
   // Any navigation closes the drawer.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
-
-  const show = () => {
-    setOpen(true);
-    DRAWER.load().catch(() => {
-      setOpen(false);
-      window.location.assign(links.allCategories.href);
-    });
-  };
 
   return (
     <>
@@ -89,22 +68,20 @@ export function MobileNav({
         href={links.allCategories.href}
         role={hydrated ? "button" : undefined}
         aria-label={drawer.open}
-        aria-expanded={hydrated ? expanded : undefined}
-        aria-controls={hydrated && expanded ? panelId : undefined}
-        onPointerDown={prepare}
-        onFocus={prepare}
+        aria-expanded={hydrated ? open : undefined}
+        aria-controls={hydrated && open ? panelId : undefined}
         onClick={(event) => {
           // A modified click is someone opening the categories page in a new
           // tab, which is what the link says it does.
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          show();
+          setOpen(true);
         }}
         onKeyDown={(event) => {
           // A link answers Enter by itself; a button also answers Space.
           if (event.key === " ") {
             event.preventDefault();
-            show();
+            setOpen(true);
           }
         }}
         className="-ml-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-sm text-ink-700 transition-colors hover:bg-paper-sunken hover:text-ink-900 md:hidden"
@@ -112,8 +89,8 @@ export function MobileNav({
         <MenuIcon />
       </a>
 
-      {expanded && (
-        <loaded.MobileDrawer
+      {open && (
+        <MobileDrawer
           id={panelId}
           navigation={navigation}
           copy={copy}
