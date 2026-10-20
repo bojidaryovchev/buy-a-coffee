@@ -150,18 +150,19 @@ function withoutNames(text: string, names: readonly string[], token: string): st
 /**
  * The compatibility wording, which every product that states a fit must use
  * („Tchibo посочва, че в Cafissimo трябва да се използват само нейните
- * капсули“), replaced by a token the other text cannot share. Without this,
- * the second Caffitaly product written as the skill asks would „repeat“ the
- * first one's caveat and be thrown away: a fixed sentence is not copied
- * phrasing, any more than the product's own name is.
+ * капсули“), counted as one word. Without this, the second Caffitaly product
+ * written as the skill asks would „repeat“ the first one's caveat and be
+ * thrown away. The same placeholder stands in both texts, so a run of copied
+ * words continues through the fixed phrase rather than stopping at it: a
+ * paragraph copied around the caveat is still a copied paragraph.
  */
 const FIXED_WORDING = Object.values(COMPATIBILITY_WORDING).map(
   (wording) =>
     new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"), "giu"),
 );
 
-function withoutFixedWording(text: string, token: string): string {
-  return FIXED_WORDING.reduce((result, wording) => result.replace(wording, ` ${token} `), text);
+function withoutFixedWording(text: string): string {
+  return FIXED_WORDING.reduce((result, wording) => result.replace(wording, " qqfixed "), text);
 }
 
 /**
@@ -251,9 +252,9 @@ export function auditGeneratedCopy(
   if (wearer !== undefined && wearer !== item.id) {
     problems.push("краткото описание е същото като на друг продукт");
   }
-  const ownSummary = withoutFixedWording(summary, "qqours");
+  const ownSummary = withoutFixedWording(summary);
   for (const sibling of item.siblingSummaries) {
-    const run = longestSharedRun(withoutFixedWording(sibling, "qqtheirs"), ownSummary);
+    const run = longestSharedRun(withoutFixedWording(sibling), ownSummary);
     if (run > MAX_INTERNAL_RUN_WORDS / 2) {
       problems.push(`краткото описание повтаря ${run} поредни думи от това на сроден продукт`);
       break;
@@ -262,11 +263,11 @@ export function auditGeneratedCopy(
   // Our own paragraphs on two of our URLs are the duplicate problem moved in-house.
   // The fixed compatibility wording is not counted: every such product must use it.
   paragraphs: for (const [index, paragraph] of body.entries()) {
-    const ours = withoutFixedWording(paragraph, "qqours");
+    const ours = withoutFixedWording(paragraph);
     for (const [owner, published] of context.bodies) {
       if (owner === item.id) continue;
       for (const other of published) {
-        const run = longestSharedRun(withoutFixedWording(other, "qqtheirs"), ours);
+        const run = longestSharedRun(withoutFixedWording(other), ours);
         if (run > MAX_INTERNAL_RUN_WORDS) {
           problems.push(
             `абзац ${index + 1} повтаря ${run} поредни думи от описанието на друг продукт`,

@@ -597,6 +597,22 @@ describe("auditGeneratedCopy", () => {
     ]);
   });
 
+  it("still catches a paragraph copied around a fixed phrase", () => {
+    // 38 words, the fixed Dolce Gusto wording in the middle: neither side of it
+    // alone is longer than the limit, but the copy runs straight through it.
+    const copied = `Вкусът е наситен и ароматен, с изразена крема и дълъг послевкус и леко горчив завършек, ${COMPATIBILITY_WORDING.dolceGusto}, кратко еспресо, което не се нуждае от захар, за да се усети в чашата сутрин.`;
+    expect(copied.split(/\s+/u).length).toBe(38);
+    const item = workItem({
+      title: "Rema Caffè Espresso",
+      format: "Капсули за Dolce Gusto",
+      pack: { label: "16 бр.", inName: null, inPackField: null, mayState: true },
+    });
+    const bodies = new Map([["other", [copied]]]);
+    expect(audit(withBody(copied), item, { bodies }).problems).toEqual([
+      expect.stringMatching(/^абзац 3 повтаря \d+ поредни думи от описанието на друг продукт$/),
+    ]);
+  });
+
   it("names each broken rule once, however many sentences break it", () => {
     const copy = withBody(
       "Съвместими с машини Dolce Gusto на Krups.",
