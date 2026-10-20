@@ -80,7 +80,8 @@ export interface SplitSourceKey {
 
 /**
  * A name or a product code reduced to what tells one product from another:
- * transliterated, lower-cased, every space and mark of punctuation removed.
+ * transliterated, lower-cased, every space and mark of punctuation removed
+ * but a mark between two digits.
  *
  *     "Кафе на зърна Moreno Super Bar 1кг."   -> kafenazarnamorenosuperbar1kg
  *     "Кафе на зърна Moreno Super Bar 1 кг"   -> kafenazarnamorenosuperbar1kg
@@ -90,12 +91,19 @@ export interface SplitSourceKey {
  * a name the source re-spaces or re-punctuates is the same name to both, and
  * neither moves the product. Two records it cannot tell apart are, for the
  * sync, one product.
+ *
+ * Which is why a mark between two digits is kept, as `p`: "7,5" and "7.5" are
+ * `7p5`, "75" is `75`. Those are different numbers — "2,50 г" and "250 г" are
+ * different packs — and dropping the comma would merge two products and drop
+ * one. A space between digits ("1 000") is a thousands separator, and goes
+ * like any other space.
  */
 export function identityToken(value: string): string {
   return transliterate(normalizeLabel(value))
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/(\d)\s*[^\p{L}\p{N}\s]+\s*(?=\d)/gu, "$1p")
     .replace(/[^a-z0-9]+/g, "");
 }
 

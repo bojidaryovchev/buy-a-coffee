@@ -178,6 +178,21 @@ describe("split source keys", () => {
     );
   });
 
+  it("keep the mark between two digits: 7,5 is not 75, and 2,50 г is not 250 г", () => {
+    expect(identityToken("Lungo 7,5")).toBe("lungo7p5");
+    expect(identityToken("Lungo 7.5")).toBe("lungo7p5");
+    expect(identityToken("Lungo 75")).toBe("lungo75");
+    expect(identityToken("Какао 2,50г")).not.toBe(identityToken("Какао 250г"));
+    // Still deaf to the space between a number and its unit, and to a
+    // thousands separator.
+    expect(identityToken("Кафе 1кг.")).toBe(identityToken("Кафе 1 кг."));
+    expect(identityToken("Кафе 1 000 г")).toBe(identityToken("Кафе 1000 г"));
+    // And the Super Bar's key is the one it had.
+    expect(splitDiscriminator("name", "Кафе на зърна Moreno Super Bar 1кг.")).toBe(
+      "name:kafenazarnamorenosuperbar1kg",
+    );
+  });
+
   it("can be linked by hand, unchanged, with the pack size alone as the variant", () => {
     expect(parsePathSourceKey(SUPER_KEY)).toEqual({
       sourceKey: SUPER_KEY,
@@ -244,6 +259,31 @@ describe("resolveDuplicateKeys: records that share a key", () => {
     const partly = resolveDuplicateKeys([espressoBar({ sku: "00072" }), superBar()]);
     expect(keysOf(partly.products)).toEqual([ESPRESSO_KEY, SUPER_KEY]);
     expect(partly.keyCollisions[0]?.tiebreaker).toBe("name");
+  });
+
+  it("keeps two products whose names differ only in a decimal comma, and pairs them again", () => {
+    for (const [one, other] of [
+      ["Кафе на зърна Moreno Intenso 7,5 1кг.", "Кафе на зърна Moreno Intenso 75 1кг."],
+      ["Кафе на зърна Moreno Dolce 2,50г 1кг.", "Кафе на зърна Moreno Dolce 250г 1кг."],
+    ] as const) {
+      const first = listed(one);
+      const second = listed(other, { priceText: "€21.00" });
+      const { products, keyCollisions } = resolveDuplicateKeys([first, second]);
+      expect(products).toHaveLength(2);
+      expect(new Set(keysOf(products)).size).toBe(2);
+      expect(keyCollisions[0]).toMatchObject({ tiebreaker: "name", dropped: [], unresolved: [] });
+
+      // Stored, they pair with their own rows on every run after, either way round.
+      const rows = products.map((product) => stored(product));
+      for (const order of [
+        [first, second],
+        [second, first],
+      ]) {
+        const { keyed, diff } = sync(order, rows);
+        expect(keysOf(keyed.products).sort()).toEqual(keysOf(products).sort());
+        expect(diff.counts).toMatchObject({ unchanged: 2, created: 0, marked_missing: 0 });
+      }
+    }
   });
 
   it("still collapses the same product typed twice, silently", () => {
@@ -567,6 +607,34 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       expect(diff.moved).toEqual([]);
       expect([...diff.created, ...diff.missing]).toEqual([]);
       expect(keyed.keyCollisions[0]?.unresolved).toEqual([]);
+    });
+
+    it("N10b: listing codes that give the Super Bar the Espresso Bar's stored code are raised, never silent", () => {
+      // The Espresso Bar's row holds the code its page printed while it was alone.
+      const rows = split().map((row) => (row.sourceKey === PLAIN ? { ...row, sku: "00072" } : row));
+      const { keyed, diff } = sync(
+        [espressoBar({ sku: "00071" }), superBar({ sku: "00072" })],
+        rows,
+      );
+      // The Super Bar's record matches two rows — the Espresso Bar's by code,
+      // its own by name — so settling pairs nobody, and both keep the keys
+      // discovery gave them.
+      expect(keysOf(keyed.products)).toEqual([`${PLAIN}~code:00071`, `${PLAIN}~code:00072`]);
+      // Move detection then believes the code and moves the Espresso Bar's
+      // row onto it: a rename with a price change, which `identity_changed`
+      // names (it reads moves as well as updates).
+      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+        changeType: "moved",
+        movedFrom: { sourceKey: PLAIN, matchedBy: "sku" },
+        after: { name: "Кафе на зърна Moreno Super Bar 1кг.", currentPrice: "25.00" },
+      });
+      expect(changeFor(diff, ESPRESSO_ROW)?.changedFields).toEqual(
+        expect.arrayContaining(["name", "currentPrice"]),
+      );
+      // And `duplicate_key_conflict` raises the address: stored products
+      // vanished there as new ones arrived.
+      expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("marked_missing");
+      expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
     });
 
     it("S6: one name in two scripts cannot tell two products apart — the first is kept, and raised", () => {

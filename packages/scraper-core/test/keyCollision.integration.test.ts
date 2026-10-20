@@ -77,6 +77,12 @@ const SHARED_PAGE = buildProductPage(ESPRESSO, {
   ],
 });
 
+/** The shared page as the source might switch it: the Super Bar's. */
+const SUPER_PAGE = buildProductPage(SUPER, {
+  code: "00073",
+  characteristics: [["Състав", "100% арабика"]],
+});
+
 describeIntegration("two products at one source address (integration)", () => {
   let db: Database;
   let closeDb: () => Promise<void>;
@@ -103,7 +109,7 @@ describeIntegration("two products at one source address (integration)", () => {
 
   async function sync(
     catalog: readonly FakeProduct[],
-    options: { enrichMax?: number; dryRun?: boolean } = {},
+    options: { enrichMax?: number; dryRun?: boolean; page?: string } = {},
   ) {
     const config = loadConfig(
       {
@@ -131,7 +137,7 @@ describeIntegration("two products at one source address (integration)", () => {
     const { fetchImpl, requests } = createFakeFetch({
       products: catalog,
       ...SITE,
-      productPages: { [ADDRESS]: { html: SHARED_PAGE } },
+      productPages: { [ADDRESS]: { html: options.page ?? SHARED_PAGE } },
     });
     lastRequests = requests;
     return runCatalogSync({
@@ -327,6 +333,30 @@ describeIntegration("two products at one source address (integration)", () => {
     const superBar = await byKey(SUPER_KEY);
     expect(superBar?.characteristics).toEqual([]);
     expect(superBar?.enrichedAt).toBeNull();
+  });
+
+  it("does not enrich the Espresso Bar from the shared page once it shows the Super Bar", async () => {
+    await sync([ESPRESSO]);
+    await sync([ESPRESSO, SUPER], { enrichMax: 10, page: SUPER_PAGE });
+
+    // The Espresso Bar, under the plain key, is not the product the page names.
+    const espresso = await byKey(PLAIN);
+    expect(espresso?.characteristics).toEqual([]);
+    expect(espresso?.enrichedAt).toBeNull();
+    expect(espresso?.enrichAttemptedAt).toBeInstanceOf(Date);
+    // The Super Bar is, and takes what it says — but not its one code.
+    const superBar = await byKey(SUPER_KEY);
+    expect(superBar?.characteristics).toContainEqual({ label: "Състав", value: "100% арабика" });
+    expect(superBar?.sku).toBeNull();
+  });
+
+  it("still enriches the Espresso Bar from the shared page while the page is its own", async () => {
+    await sync([ESPRESSO]);
+    await sync([ESPRESSO, SUPER], { enrichMax: 10 });
+    const espresso = await byKey(PLAIN);
+    expect(espresso?.characteristics).toHaveLength(2);
+    expect(espresso?.sku).toBeNull();
+    expect((await byKey(SUPER_KEY))?.characteristics).toEqual([]);
   });
 
   it("S1 in the database: a re-punctuated name keeps both rows where they are", async () => {

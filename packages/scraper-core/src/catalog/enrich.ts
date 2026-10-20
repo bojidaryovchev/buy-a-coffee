@@ -1,5 +1,5 @@
 import type { Database } from "@catalog/db";
-import { type Logger, silentLogger } from "@catalog/shared";
+import { type Logger, TRAILING_QUANTITY, normalizeLabel, silentLogger } from "@catalog/shared";
 import type { ScraperConfig } from "../config.ts";
 import type { Fetcher } from "../fetch/fetcher.ts";
 import { type ProductCharacteristic, parseProductPage } from "../parsers/productPage.ts";
@@ -99,11 +99,18 @@ export function interpretProductPage(html: string): ProductPageFacts | null {
   };
 }
 
-/** True when a page's heading names the product, as `identityToken` reads names. */
+/**
+ * True when a page's heading names the product: the same name by
+ * `identityToken`, once the pack size each states at its end is set aside.
+ * One coffee in two packs is one name — the page for a 1 kg bag describes the
+ * 500 g bag's coffee too — while the Espresso Bar is not the Super Bar.
+ */
 function namesProduct(facts: ProductPageFacts, target: EnrichmentTarget): boolean {
   if (facts.name === null) return false;
-  const page = identityToken(facts.name);
-  return page !== "" && page === identityToken(target.name);
+  const withoutPack = (name: string) =>
+    identityToken(normalizeLabel(name).replace(TRAILING_QUANTITY, ""));
+  const page = withoutPack(facts.name);
+  return page !== "" && page === withoutPack(target.name);
 }
 
 /** Consecutive failed reads after which a reader stops asking. */
@@ -449,15 +456,18 @@ export async function enrichProducts(input: {
     }
 
     const { facts } = read;
-    if (parseSplitSourceKey(target.sourceKey) !== null && !namesProduct(facts, target)) {
+    const sharesPage = target.hasUrlCollision || parseSplitSourceKey(target.sourceKey) !== null;
+    if (sharesPage && !namesProduct(facts, target)) {
       /*
-       * One of two products the source lists at one address and size
-       * (`collisions.ts`), and the page there is about the other one: its
-       * blend, its roast and its code are not this product's. Nothing is
-       * stored, and the product waits a day, as one whose page failed does,
-       * rather than heading the backlog on every run. The page that does name
-       * it — the Espresso Bar's own, on a catalog synced from scratch — is
-       * read as any other.
+       * A page shared with another product — two the source lists at one
+       * address (`collisions.ts`), or two pack sizes of one coffee — that is
+       * about the other one: its blend, its roast and its code are not this
+       * product's. That holds for the product under the plain key too: the
+       * source can switch the shared page to the Super Bar, and the Espresso
+       * Bar must not take its characteristics. Nothing is stored, and the
+       * product waits a day, as one whose page failed does, rather than
+       * heading the backlog on every run. A page that does name it — its own,
+       * or its coffee's in another pack — is read as any other.
        */
       unattributable.push(target.productId);
       continue;
