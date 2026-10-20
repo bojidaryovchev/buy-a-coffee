@@ -18,14 +18,21 @@ import localFont from "next/font/local";
  * `test/fonts.test.ts` holds the subsets and what is preloaded.
  */
 /**
- * Inter keeps its Latin Extended subset, although `next/font/google` preloads
- * it (83 KB) and no page text used it on 19 October 2026. Dropping it was
- * measured the same day and made the first paint later, not earlier: about
- * 100 ms of lab LCP on a listing, alternating runs against the same build
- * with it (`IMPLEMENTATION_PLAN.md`, K2). Fewer bytes are not always sooner.
+ * `subsets` decides what is preloaded, not what exists: every face Google
+ * serves for Inter is declared with its `unicode-range` either way, and a
+ * browser fetches one only for a page that draws a character in it.
+ *
+ * Latin Extended is not preloaded. It is 85 KB, and no character in its range
+ * appears in the catalog, the dictionaries or the copy (scanned on 20 October
+ * 2026). On 19 October, dropping its preload measured about 100 ms *later* on
+ * a real Fast 4G link (`IMPLEMENTATION_PLAN.md`, K2); on 20 October, under
+ * PageSpeed Insights' simulated slow 4G — which charges every byte requested
+ * before the first paint — the same 85 KB was half a second of mobile LCP
+ * (4.9 s with it, 4.4 s without, on the live home page). The score search
+ * engines read is the second one.
  */
 const inter = Inter({
-  subsets: ["latin", "latin-ext", "cyrillic"],
+  subsets: ["latin", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
 });

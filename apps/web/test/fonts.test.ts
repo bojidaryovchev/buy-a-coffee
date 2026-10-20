@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { brotliDecompressSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
  * because `next/font/google` would load the whole weight range to get the axis.
  * What this guards: the files really carry the axis, each face matches only its
  * own subset, the faces are listed so that no fallback stands in for a subset
- * still loading, and nothing is preloaded that a Bulgarian page does not draw.
+ * still loading, and nothing is preloaded that a Bulgarian page does not draw —
+ * Inter's Latin Extended included.
  */
 
 const APP = path.resolve(__dirname, "../src/app");
@@ -93,9 +94,53 @@ function woff2Axes(bytes: Buffer): Array<{ tag: string; min: number; max: number
   return [];
 }
 
+/** Inter's Latin Extended `unicode-range`, as Google serves it. */
+const INTER_LATIN_EXT: ReadonlyArray<readonly [number, number]> = [
+  [0x0100, 0x02ba], [0x02bd, 0x02c5], [0x02c7, 0x02cc], [0x02ce, 0x02d7], [0x02dd, 0x02ff],
+  [0x1d00, 0x1dbf], [0x1e00, 0x1e9f], [0x1ef2, 0x1eff], [0x2020, 0x2020], [0x20a0, 0x20ab],
+  [0x20ad, 0x20c4], [0x2c60, 0x2c7f], [0xa720, 0xa7ff],
+]; // prettier-ignore
+
+/** Every committed file whose words reach a page: the catalog snapshot, the copy, the frame. */
+function pageText(): Array<{ file: string; text: string }> {
+  const ROOT = path.resolve(__dirname, "..");
+  const roots = [
+    path.resolve(ROOT, "../../reference/latest"),
+    path.join(ROOT, "content"),
+    path.join(ROOT, "src/i18n"),
+    path.join(ROOT, "src/components"),
+  ];
+  const files: Array<{ file: string; text: string }> = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(json|ts|tsx|md|mdx)$/.test(entry.name))
+        files.push({ file: path.relative(ROOT, full), text: readFileSync(full, "utf8") });
+    }
+  };
+  roots.forEach(walk);
+  return files;
+}
+
 describe("Inter", () => {
-  it("keeps Latin Extended: dropping it was measured and made the first paint later", () => {
-    expect(fontsSource).toMatch(/Inter\(\{\s*subsets: \["latin", "latin-ext", "cyrillic"\],/);
+  it("preloads Latin and Cyrillic only; Latin Extended is declared but fetched on demand", () => {
+    expect(fontsSource).toMatch(/Inter\(\{\s*subsets: \["latin", "cyrillic"\],/);
+  });
+
+  /* The premise of not preloading it. If this fails, a page now draws Latin
+     Extended: the face still loads when needed, but decide whether it should
+     be preloaded again (it costs half a second of PSI's mobile LCP). */
+  it("is not drawn by any text the shop ships", () => {
+    const found: string[] = [];
+    for (const { file, text } of pageText()) {
+      for (const char of text) {
+        const code = char.codePointAt(0)!;
+        if (INTER_LATIN_EXT.some(([from, to]) => code >= from && code <= to))
+          found.push(`${file}: ${char} (U+${code.toString(16).toUpperCase()})`);
+      }
+    }
+    expect(found).toEqual([]);
   });
 });
 

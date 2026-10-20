@@ -524,9 +524,10 @@
 
   /*
    * Below the fold, tied to the scroll (DESIGN.md, "Motion"): a tile or a
-   * drawing rises into place as it enters the viewport, from 15 % opacity —
-   * never from nothing — and the ordering steps' curl draws itself. Where
-   * scroll-driven animation is not supported, both are simply there.
+   * drawing rises into place as it enters the viewport, at full opacity
+   * throughout — it moves, it never fades — and the ordering steps' curl
+   * draws itself. Where scroll-driven animation is not supported, both are
+   * simply there.
    *
    * Only once `:root[data-motion]` is set (`MotionGate`, after load and an
    * idle moment). A `view()` timeline present while the page loads put the
@@ -644,13 +645,14 @@
   }
 }
 
+/* A rise, not a fade: text that waits below the fold at reduced opacity is,
+   to anyone reading it then — and to an accessibility audit, which does not
+   scroll — text at a failing contrast. */
 @keyframes reveal-rise {
   from {
-    opacity: 0.15;
     transform: translateY(26px);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }

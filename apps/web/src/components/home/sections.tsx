@@ -140,12 +140,15 @@ export function DeliveryPromise({
     <section aria-label="Доставка и плащане" className="border-b border-line">
       <dl className={`shell grid grid-cols-2 gap-4 py-5 ${FACT_COLUMNS[facts.length] ?? ""}`}>
         {facts.map((fact) => (
-          <div key={fact.id} className="flex gap-3">
-            {fact.icon}
-            <div>
-              <dt className="text-sm font-semibold text-ink-900">{fact.title}</dt>
-              <dd className="mt-0.5 text-xs text-ink-500">{fact.line}</dd>
-            </div>
+          /* One `div` per fact holding only its term and description: a
+             `<dl>` allows one wrapper per group and nothing beside the pair,
+             so the icon rides in the term, set into the group's indent. */
+          <div key={fact.id} className="relative pl-8">
+            <dt className="text-sm font-semibold text-ink-900">
+              <span className="absolute top-0 left-0">{fact.icon}</span>
+              {fact.title}
+            </dt>
+            <dd className="mt-0.5 text-xs text-ink-500">{fact.line}</dd>
           </div>
         ))}
       </dl>

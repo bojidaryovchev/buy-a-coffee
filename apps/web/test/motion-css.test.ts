@@ -32,6 +32,19 @@ describe('scroll-driven motion (DESIGN.md, "The Quiet Load Rule")', () => {
     }
   });
 
+  /* DESIGN.md, "Motion": a scroll-driven element moves, it never fades. One
+     waiting below the fold sits at its first keyframe, and text at partial
+     opacity there fails contrast for anyone — or any audit — that reads it. */
+  it("never animates opacity", () => {
+    for (const { selector, body } of rules) {
+      const name = /animation:\s*([a-z-]+)/.exec(body)?.[1];
+      expect(name, selector).toBeDefined();
+      const keyframes = new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(globals);
+      expect(keyframes, `@keyframes ${name}`).not.toBeNull();
+      expect(keyframes![1], `@keyframes ${name}`).not.toMatch(/opacity/);
+    }
+  });
+
   it("sits inside @supports and a no-preference motion query", () => {
     for (const { selector } of rules) {
       const before = globals.slice(0, globals.indexOf(selector));

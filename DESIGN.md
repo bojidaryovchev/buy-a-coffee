@@ -839,8 +839,12 @@ steam — and it stops whenever nobody can see it.
 
 Where `animation-timeline` is not supported (Firefox, today) the element is
 simply in place: scroll-driven motion is an enhancement, never a condition for
-seeing anything. A scroll-driven element starts from at least 15 % opacity,
-never from nothing.
+seeing anything. A scroll-driven element moves into place and never fades: it
+is at full opacity throughout. It used to rise from 15 % opacity, and an
+element waiting below the fold sits at the start of its animation, so its
+text was at a failing contrast to anyone who read it there — on 20 October
+2026 Lighthouse, which does not scroll, measured the system tiles at 1.3:1
+(6.4:1 and better at rest) and took the home page's accessibility score to 90.
 
 **Never.** A carousel or marquee that moves by itself, parallax, scroll
 hijacking or a smooth-scroll library, numbers that count up, scrambled text, a
