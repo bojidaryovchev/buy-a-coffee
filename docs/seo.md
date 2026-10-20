@@ -832,7 +832,10 @@ outside the study's subject. What was fixed, and where:
 - **Sitemap.** Product photographs and brand logos as image entries; a
   listing's `lastmod` is the newest change among its products, a legal page's
   the day its text changed (`apps/web/src/content/legal-revisions.ts`), and the
-  pages nothing dates carry none rather than the time of generation.
+  pages nothing dates carry none rather than the time of generation. On Vercel
+  it was still the copy made at build until the next deploy; since 20 October
+  2026 it is drawn on request, cached by the CDN for at most 70 minutes, and
+  redrawn after a sync (`docs/architecture.md`, "Catalog freshness").
 - **Pagination.** Page two and later of a clean listing are `index, follow`
   (they were `noindex, follow` until 20 October 2026, which left five products
   linked from no indexable page), canonical to themselves rather than to page
