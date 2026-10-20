@@ -3,6 +3,7 @@ import { SystemIcon } from "@/components/catalog/system-icon";
 import { Bean, Crema, Cup } from "@/components/illustrations/drawings";
 import { cx } from "@/components/ui/primitives";
 import { CUP_COST_SLUG } from "../../../content/journal/articles/cup-cost";
+import { ESE_MACHINE_SLUG } from "../../../content/journal/articles/ese-machine";
 import { FORMATS_SLUG } from "../../../content/journal/articles/formats";
 import { INTENSITY_SLUG } from "../../../content/journal/articles/intensity";
 import { ARABICA_ROBUSTA_SLUG, CHOOSE_BEANS_SLUG } from "../../../content/journal/articles/slugs";
@@ -38,6 +39,18 @@ export function ArticleDrawing({ slug, className }: { slug: string; className?: 
       return (
         <div aria-hidden className={box}>
           <Crema className="h-20 w-auto" />
+        </div>
+      );
+    case ESE_MACHINE_SLUG:
+      // A cup and the pod that makes it, the pod in neutral grey like the capsules below.
+      return (
+        <div
+          aria-hidden
+          className={box}
+          style={{ "--system": "var(--color-line-strong)" } as CSSProperties}
+        >
+          <Cup className="h-20 w-auto" />
+          <SystemIcon systemId="ese-pod" size="lg" />
         </div>
       );
     case WHICH_CAPSULE_SLUG:

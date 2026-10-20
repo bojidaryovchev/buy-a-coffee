@@ -2,6 +2,7 @@ import type { Article } from "./blocks";
 import { arabicaRobusta } from "./articles/arabica-robusta";
 import { chooseBeans } from "./articles/choose-beans";
 import { cupCost } from "./articles/cup-cost";
+import { eseMachine } from "./articles/ese-machine";
 import { formats } from "./articles/formats";
 import { intensity } from "./articles/intensity";
 import { whichCapsule } from "./articles/which-capsule";
@@ -17,12 +18,14 @@ import { whichCapsule } from "./articles/which-capsule";
  *
  * Order matters only between articles published on the same day: the journal
  * is shown newest first, and same-day articles keep the order written here.
- * Today that is all of them, so this list is the index: the three articles
- * that answer a question people measurably search come first (and are the
- * three the home page shows), then the machine question, then the two that
- * explain how the shop's own numbers are read.
+ * The ESE-machine guide is the newest, so it leads, and the three the home
+ * page shows are it and the first two below: all three answer a question
+ * people measurably search. The six launch articles share a day, so their
+ * order is this list's: the three measured questions, then the machine
+ * question, then the two that explain how the shop's own numbers are read.
  */
 export const ARTICLES: readonly Article[] = [
+  eseMachine,
   whichCapsule,
   chooseBeans,
   arabicaRobusta,

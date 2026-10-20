@@ -92,6 +92,7 @@ term but must not carry it in its title or H1.
 | `za-kafemashina/<brand>`        | `капсули за <brand>` long tail; for Tchibo `tchibo cafissimo` 480             | `tchibo капсули` 390, `капсули чибо` 320, `кафе капсули чибо` 210, `cafissimo капсули` 170                                                      | Caffitaly page                                 |
 | `kafe-za-vending-mashini`       | `кафе за вендинг машини` 90                                                   | `кафе за вендинг` 50, `кафе за вендинг автомати` 50, `вендинг кафе` 40                                                                          | —                                              |
 | `blog/vidove-kapsuli-za-kafe`   | `видове капсули за кафе` 390                                                  | `видове капсули за кафе долче густо` 170, `видове капсули долче густо` 70                                                                       | capsule parent                                 |
+| `blog/kafemashina-za-dozi-ese`  | `кафемашина за хартиени дози` 260                                             | `кафемашина с хартиени дози` 210, `кафемашина с филтър дози` 140                                                                                | `kafe-dozi` (the article ends there)           |
 | Product `/<slug>`               | the product line, e.g. `lavazza super crema` 260, `lavazza crema e aroma` 720 | `<line> <format>`                                                                                                                               | another product with the same name (§6.1)      |
 
 ---
@@ -848,6 +849,23 @@ outside the study's subject. What was fixed, and where:
   `BING_SITE_VERIFICATION`, and the web app manifest's **screenshots** and the
   **iOS home-screen tags**. All three env vars are empty until the owner
   supplies them, and nothing is printed or sent while they are.
+
+### The ESE-machine guide (20 October 2026)
+
+Research `09`, T2.3: an article at `/bg/blog/kafemashina-za-dozi-ese` for
+`кафемашина за хартиени дози` 260, `кафемашина с хартиени дози` 210 and
+`кафемашина с филтър дози` 140, measured for that research and not in §2. It
+owns the first in §1 (the row above was added with it). It says what an ESE pod
+is from the E.S.E. Consortium's page on the standard
+(<https://eseconsortium.com/standard>), names only the machines the machine
+database lists for pods, quotes every count and price from the catalog
+(`pods` in `apps/web/src/lib/catalog/journal-figures.ts`), and ends at
+`kafe-dozi`, which now links it as its one article (`article` in
+`apps/web/content/category-copy.ts`; §13.4). That listing is a stage-1 page of
+T1.1, so the link is a change to a treated page during its measurement window:
+it sits in the introduction under the products, and the title, `h1` and lead
+are unchanged. Being the newest article, it also takes the first of the three
+places the home page gives the journal, and „Арабика и робуста“ leaves it.
 
 ### Deliberate deviations
 
