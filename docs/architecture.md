@@ -78,12 +78,16 @@ brackets, the English one it becomes when `LOCALE_READY.en` is flipped.
 | `/admin/sabshteniya`, `/[id]`                                          | Contact-form messages                                                                                                                                                                                  |
 | `/admin/poshta`, `/[id]`                                               | The `info@` mailbox: inbound threads, answered as the shop                                                                                                                                             |
 | `/admin/poshta/fail/[messageId]/[index]`                               | An attachment, streamed through the session                                                                                                                                                            |
-| `/admin/byuletin`                                                      | Newsletter subscribers and their consent records. A list and an unsubscribe, and deliberately not a sender                                                                                             |
+| `/admin/byuletin`, `/[id]`                                             | The newsletter: subscribers and their consent records, the letters, and the composer (templates, blocks, preview, test copy, send, resume, stop)                                                       |
+| `/admin/promotsii`, `/nova`, `/[id]`                                   | The shop's own promotions: the list, the editor with its live preview, stop, copy, delete before the start                                                                                             |
 | `/admin/sinhron`                                                       | Is the catalog current, and if not, why                                                                                                                                                                |
 | `/api/inbound`                                                         | Resend `email.received` webhook                                                                                                                                                                        |
 | `/api/search/suggest`                                                  | The typeahead                                                                                                                                                                                          |
 | `/api/cron/sync-health`                                                | Daily sync alarm (Vercel cron)                                                                                                                                                                         |
 | `/api/cron/retention`                                                  | Daily retention deletion (Vercel cron)                                                                                                                                                                 |
+| `/api/cron/promotions`                                                 | Hourly promotions refresh and shop revalidation (Vercel cron)                                                                                                                                          |
+| `/api/cron/newsletter`                                                 | Daily: the monthly draft in the first week, and resuming a stalled send (Vercel cron)                                                                                                                  |
+| `/api/admin/newsletter/*`, `/api/admin/promotions/*`                   | The two editors' previews, product searches and the newsletter's uploads, behind the panel session                                                                                                     |
 
 The admin panel, the API, `/media`, the share card and every file with an
 extension carry no locale and are never touched by the proxy.
@@ -902,7 +906,69 @@ put back from the panel. Unsubscribing from a mail link goes through
 mail scanners open every link; the button is a POST. The page sends a
 `same-origin` referrer policy so the token is not handed to anything off the
 site — not `no-referrer`, which makes the browser send `Origin: null` and Next.js
-refuse the server action. There is still no sender, deliberately.
+refuse the server action.
+
+**Sending** ([`lib/newsletter/`](../apps/web/src/lib/newsletter/), since 19
+October 2026). The shop's own table decides who is mailed: one Resend account
+serves four sites, so a letter goes out through `resend.batch.send` with no
+topic, one copy per reader with their own unsubscribe link and the one-click
+`List-Unsubscribe` headers, and the account-wide `unsubscribed` flag is never
+written (the topic is synced only for Resend's own pages). Starting a send
+fixes the recipients and snapshots the products into the campaign
+(`newsletter_deliveries`, `attachments`), so a resumed send mails the letter
+that was confirmed. Batches carry idempotency keys; a refused batch is split
+into single sends; an ambiguous answer is held under the same key; bounces and
+complaints are matched by the stored Resend email id only. A run has a 200 s
+budget inside the function's 300.
+
+**Composing.** The body is the Markdown subset of `emails/markdown.ts` with
+product lines — `[[продукти: адрес, …]]` (picked), `[[нови-продукти]]`,
+`[[промоции]]` (resolved at send) and `[[промоции: адрес, …]]` (picked
+reductions, each of which must still be reduced at send). The composer
+(`components/admin/newsletter-blocks.tsx`) shows that one string as blocks —
+text with its formatting buttons, product lists as rows with × and "+ Добави",
+move up and down — and back, losslessly (`body-blocks.ts`; fuzzed); a
+"Markdown" switch shows the raw text. Saves are versioned (`revision`), so a
+stale tab can neither overwrite nor send.
+
+**Starting points** (`templates.ts`, `template-data.ts`, `createNewsletterFromTemplate`).
+_Monthly_: what is new — `isNewArrival` since the later of the last sent
+monthly letter's cutoff and 30 days ago, so nothing is called new that the
+site's "Ново" badge would not call new, and what arrived after a letter was
+prepared comes in the next one — and what is reduced now, own promotions
+first, up to twelve cards. _Promotion_: one promotion's members whose honest
+badge (against the 30-day lowest price) reaches the promotion's percentage, so
+"−X%" is true of every product listed; the owner is told how many were left
+out and why. Before the promotion starts its letter names no figure and
+cannot be sent. _Blank_. The draft keeps its plan (`letter-plan`, in
+`attachments`: when the data was read, which promotions it names, what was
+left out).
+
+**Before sending** (`deliverability.ts`, `product-blocks.ts`, `claims.ts`).
+Stops the send: an unreadable line; an address that names no product; more
+than twelve products; products that cannot be read; a letter with neither
+text nor products; a picked reduction that is no longer reduced; a promotion
+the letter names that has ended or was stopped; a promotion letter's product
+whose badge is below the promotion's percentage. Only warns: a section left
+empty (it vanishes whole, heading and text with it, when all its products come
+from the catalog), a picked product sold out or withdrawn since (left out),
+and a letter within 30 days of the last one (the band promises no more than
+one a month). A test copy goes to any one address (default the owner's), 10 an
+hour.
+
+**The monthly draft** (`/api/cron/newsletter`, daily 07:00 UTC; `cron.ts`).
+On days 1–7 of a Sofia month, once (`auto_period`, unique), unless a letter
+already went out this month or an owner-started monthly draft is waiting, and
+only when something is new or reduced: it prepares the draft and mails the
+owner a link (`newsletter_draft` notice). It never sends to subscribers. A
+prepared draft the owner deletes is kept as `dismissed`, so the month's claim
+stands and the job does not prepare it again. The same job resumes a send
+that stopped for a transient reason (its time budget, a rate limit, a network
+or 5xx error, a stale heartbeat) within 23 hours of its start — never one that
+stopped for the account, the products, the template or repeated identical
+refusals, which wait for the owner. "Спри изпращането" ends a stopped send:
+waiting copies are skipped, one already handed to Resend is marked failed
+("may have arrived").
 
 ## The mailbox
 
@@ -1148,6 +1214,10 @@ route does not exist ([`lib/cron-auth.ts`](../apps/web/src/lib/cron-auth.ts)).
   bookkeeping, not syncs, and are ignored.
 - **`/api/cron/retention`** (03:40 UTC). See [the mailbox](#the-mailbox). The
   response carries counts and nothing else.
+- **`/api/cron/newsletter`** (07:00 UTC). The monthly draft in the first week
+  of a Sofia month, and the resume of a send that stopped for a transient
+  reason: see [the newsletter](#the-admin-panel). Answers 500, with the
+  counts, when either step failed.
 - **`/api/cron/promotions`** (5 past every hour, so 00:05 Sofia whatever the
   season). The [promotions](#promotions) refresh: products the sync brought
   into a promoted brand or category join, references settle once their
@@ -1168,6 +1238,7 @@ counter per warm instance. Without one — unit tests, a checkout with no databa
 | Order         | 5 per 10 minutes | open                 |
 | Contact       | 3 per 30 minutes | open                 |
 | Newsletter    | 3 per hour       | open                 |
+| Test copy     | 10 per hour      | open                 |
 | Suggestions   | 60 per minute    | open                 |
 | Admin sign-in | see above        | **closed**           |
 

@@ -114,7 +114,13 @@ the recommendation wizard and its result page; machine-compatibility pages by
 brand and model; search with typeahead in both alphabets; contact form;
 newsletter consent capture; legal pages; an admin panel for order requests,
 messages, the shared mailbox and the newsletter — the list, and a composer that
-sends to it with each reader's own unsubscribe link.
+sends to it with each reader's own unsubscribe link. The letter is at most
+monthly: the new coffees and the current promotions. It is prepared by itself
+in the first week of each month, for the owner to check and send; nothing is
+ever sent without the owner pressing Send. Promotions are run from the same
+panel: a percentage off chosen brands, categories or products for a run of
+days, shown on cards, the product page, the cart, the order and its mails, and
+kept as history once they have started.
 
 **Also built, to the standard in `DESIGN.md`:** machine-first navigation; system
 badge and intensity scale on every card; add to cart from the card; a facts
