@@ -2,7 +2,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseMoney, parseWeight, sha256Hex, normalizeHtmlForHash } from "@catalog/shared";
+import { parseMoney, parseWeight, normalizeHtmlForHash } from "@catalog/shared";
+import { sha256Hex } from "@catalog/shared/hash";
 import {
   extractJsonArrayAfterKey,
   flattenCategories,

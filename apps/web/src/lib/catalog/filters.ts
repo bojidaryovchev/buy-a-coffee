@@ -283,9 +283,16 @@ export function listActiveFilters(query: CatalogQuery): readonly ActiveFilter[] 
 /**
  * Whether a listing URL should be indexed.
  *
- * A filtered or paginated permutation is near-duplicate content and would
- * dilute the canonical listing, so only the clean first page is indexable.
+ * A filtered or sorted permutation is near-duplicate content and would dilute
+ * the canonical listing, so it is not. The clean listing is, on every page:
+ * page two is the only page that links the products page one has no room
+ * for, and while it was `noindex` five products had no indexable page
+ * linking them at all (research 08 §3.1). Each page is canonical to itself
+ * and titled „— страница N“ (`lib/seo/pagination.ts`). Page two and later
+ * count as clean only at the default page size, the one their canonical
+ * names; a page past the last one is a 404 (`isPastLastPage`).
  */
 export function shouldIndexListing(query: CatalogQuery): boolean {
-  return !hasActiveFilters(query) && query.page === 1 && query.sort === "relevance";
+  if (hasActiveFilters(query) || query.sort !== "relevance") return false;
+  return query.page === 1 || query.pageSize === DEFAULT_PAGE_SIZE;
 }

@@ -38,6 +38,7 @@
     "reference:coverage:write": "pnpm --filter @catalog/web reference:coverage:write",
     "check:originality": "pnpm --filter @catalog/web check:originality",
     "check:launch": "pnpm --filter @catalog/web check:launch",
+    "check:bundle": "pnpm --filter @catalog/web check:bundle",
     "seed:dev": "pnpm --filter @catalog/web seed:dev",
     "seed:reference": "pnpm --filter @catalog/web seed:reference",
     "copy:apply": "pnpm --filter @catalog/web copy:apply",

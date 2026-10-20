@@ -4,7 +4,9 @@
 #
 #   verify  typecheck, lint, formatting, unit tests, then — against a real
 #           PostgreSQL holding the reference catalog — integration tests, the
-#           originality and reference-coverage guards, and a production build.
+#           originality and reference-coverage guards, a production build, and
+#           a check that the build ships neither the crypto polyfill nor the
+#           eval probe in Next's util and assert polyfills.
 #   e2e     the whole Playwright suite, desktop and mobile, against a
 #           production build backed by the same catalog. Nothing is excluded.
 #
@@ -118,6 +120,14 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Reads the build just made: crypto-browserify, Turbopack's stand-in for
+      # `node:crypto`, must not be in the browser's JavaScript, nor the
+      # `Function()` generator probe of Next's util polyfill (which it
+      # requires) and assert polyfill, which a CSP reports as eval; whichever
+      # import brought them (apps/web/scripts/check-bundle.ts).
+      - name: Bundle check
+        run: pnpm check:bundle
 
   e2e:
     name: End-to-end (desktop and mobile)

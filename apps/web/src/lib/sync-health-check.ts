@@ -1,12 +1,14 @@
 import "server-only";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { syncAlerts, syncRuns } from "@catalog/db/schema";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 import {
   MANUAL_LINK_RUN_KIND,
   SYNC_CONDITION_LABEL,
+  evaluateIdentityChanges,
   evaluateSyncHealth,
+  type IdentityChangeSnapshot,
   type SyncCondition,
   type SyncRunSnapshot,
 } from "@/lib/sync-health";
@@ -66,6 +68,63 @@ async function readRuns(): Promise<SyncRunSnapshot[]> {
 }
 
 /**
+ * How far back a rename is looked for: one day, the check's own interval. The
+ * check runs once a day at a fixed time and the sync at fixed times, so each
+ * sync run falls in exactly one check's window and a rename is named once.
+ */
+const IDENTITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** The most renames one check reads; the summary names five and counts the rest. */
+export const IDENTITY_READ = 50;
+
+/**
+ * Updates, returns and moves in real runs of the last day that renamed a
+ * product. A move is included: pairing a renamed source URL with the wrong
+ * product is a substitution too.
+ */
+async function readIdentityChanges(now: Date): Promise<IdentityChangeSnapshot[]> {
+  return db
+    .select({
+      sourceKey: syncChanges.sourceKey,
+      before: syncChanges.before,
+      after: syncChanges.after,
+    })
+    .from(syncChanges)
+    .innerJoin(syncRuns, eq(syncRuns.id, syncChanges.syncRunId))
+    .where(
+      and(
+        eq(syncRuns.dryRun, false),
+        inArray(syncChanges.changeType, ["updated", "restored", "moved"]),
+        sql`${syncChanges.changedFields} @> '["name"]'::jsonb`,
+        gte(syncChanges.createdAt, new Date(now.getTime() - IDENTITY_WINDOW_MS)),
+      ),
+    )
+    .orderBy(desc(syncChanges.createdAt))
+    .limit(IDENTITY_READ);
+}
+
+/**
+ * The rename finding, or null. A failure to read is logged and left out: the
+ * check exists for the run conditions above all, and one new query must not
+ * take them down with it.
+ */
+async function identityFinding(now: Date) {
+  try {
+    const renamed = await readIdentityChanges(now);
+    return evaluateIdentityChanges(renamed, { more: renamed.length >= IDENTITY_READ });
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "sync_health.identity_read_failed",
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return null;
+  }
+}
+
+/**
  * Claim today's slot for a condition. True only for the caller that got it.
  *
  * The insert is the lock: two overlapping invocations (a retry, a manual
@@ -89,8 +148,8 @@ async function release(condition: SyncCondition, day: string): Promise<void> {
 }
 
 export async function runSyncHealthCheck(now: Date = new Date()): Promise<SyncHealthReport> {
-  const runs = await readRuns();
-  const findings = evaluateSyncHealth(runs, now);
+  const [runs, identity] = await Promise.all([readRuns(), identityFinding(now)]);
+  const findings = [...evaluateSyncHealth(runs, now), ...(identity ? [identity] : [])];
   const day = alertDay(now);
 
   const conditions: SyncHealthReport["conditions"] = [];

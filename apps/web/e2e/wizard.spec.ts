@@ -100,7 +100,7 @@ test("the machine finder answers which capsule a model takes", async ({ page }) 
   // states, and nothing crawlable may point at one.
   await page.locator('main a[href="/bg/dolce-gusto-kapsuli"]').click();
   await expect(page).toHaveURL(/\/bg\/dolce-gusto-kapsuli$/);
-  await expect(page.locator("h1")).toHaveText("Капсули за Dolce Gusto");
+  await expect(page.locator("h1")).toHaveText("Капсули за Dolce Gusto (Долче Густо)");
 });
 
 test("a machine we cannot supply gets a straight answer", async ({ page }) => {

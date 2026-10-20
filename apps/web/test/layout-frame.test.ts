@@ -47,6 +47,7 @@ vi.mock("@/lib/catalog/sitemap-queries", () => ({
       categoryKeys: [],
       reduced: false,
       images: [],
+      listed: true,
       ...product,
     })),
 }));
@@ -360,6 +361,46 @@ describe("the footer", () => {
     const one = markup({ ...NO_LANDINGS, counts: { ...NO_LANDINGS.counts, cheapest: 21 } });
     expect(one).not.toContain("/bg/bezkofeinovo-kafe");
     expect(one).toContain('href="/bg/nay-evtino-na-chasha"');
+  });
+
+  /* The pages with measured demand and almost no links (research 09, T1.4),
+     under the anchors every other page gives them. */
+  it("links the Lavazza landings while they list something, and the Tchibo page always", () => {
+    expect(markup()).toMatch(
+      /href="\/bg\/za-kafemashina\/tchibo"[^>]*>Капсули за Tchibo Cafissimo</,
+    );
+    expect(markup()).not.toContain('href="/bg/lavazza-kapsuli"');
+    expect(markup()).not.toContain('href="/bg/kafe-na-zarna-lavazza"');
+    const both = markup({
+      ...NO_LANDINGS,
+      counts: { ...NO_LANDINGS.counts, lavazzaCapsules: 5, lavazzaBeans: 3 },
+    });
+    expect(both).toMatch(/href="\/bg\/lavazza-kapsuli"[^>]*>Капсули Lavazza</);
+    expect(both).toMatch(/href="\/bg\/kafe-na-zarna-lavazza"[^>]*>Кафе на зърна Lavazza</);
+  });
+
+  // Read from the tree the frame already has: no query of its own.
+  it("knows from the tree whether consumables lists anything", () => {
+    expect(navigation().hasConsumables).toBe(true);
+    const empty = TREE.map((entry) =>
+      entry.slug === "konsumativi" ? { ...entry, productCount: 0 } : entry,
+    );
+    expect(navigation(empty).hasConsumables).toBe(false);
+  });
+
+  // Out of the sitemap while empty, so out of the footer and the drawer too.
+  it("leaves the consumables page out while it lists nothing", () => {
+    const empty = buildNavigation(TREE, {
+      locale: "bg",
+      labels: dict.nav,
+      sections: BUSINESS_SECTIONS,
+      listingName: categoryNameFor,
+      hasConsumables: false,
+    });
+    expect(empty.hasConsumables).toBe(false);
+    const rendered = html(createElement(SiteFooterView, { navigation: empty, dict }));
+    expect(rendered).not.toContain('href="/bg/konsumativi"');
+    expect(rendered).toContain('href="/bg/kafe-za-vending-mashini"');
   });
 
   it("reads for itself which landings exist, so the layout passes nothing new", async () => {

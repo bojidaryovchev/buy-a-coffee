@@ -174,7 +174,8 @@ test.describe("the Tchibo machine page", () => {
     const response = await page.goto(path);
     expect(response?.status()).toBe(200);
     await expect(page.locator("h1")).toHaveText("Капсули за Tchibo Cafissimo");
-    await expect(page).toHaveTitle(/^Капсули за Tchibo Cafissimo \(Чибо\) — пасват Caffitaly/);
+    // „формат“, not „пасват“: Tchibo tells owners to use its own capsules.
+    await expect(page).toHaveTitle(/^Капсули за Tchibo Cafissimo \(Чибо\) — формат Caffitaly/);
     await expectNoHeadingSkips(page);
 
     const cards = page.locator(`main ${PRODUCT_LINK}`);

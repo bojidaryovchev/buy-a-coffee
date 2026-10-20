@@ -1,4 +1,3 @@
-import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 
 /**
@@ -18,16 +17,80 @@ import localFont from "next/font/local";
  * `test/fonts.test.ts` holds the subsets and what is preloaded.
  */
 /**
- * Inter keeps its Latin Extended subset, although `next/font/google` preloads
- * it (83 KB) and no page text used it on 19 October 2026. Dropping it was
- * measured the same day and made the first paint later, not earlier: about
- * 100 ms of lab LCP on a listing, alternating runs against the same build
- * with it (`IMPLEMENTATION_PLAN.md`, K2). Fewer bytes are not always sooner.
+ * Inter, self-hosted like Literata below, one face per subset, at the weights
+ * the shop sets it in: 400 to 700 (normal, medium, semibold, and bold for
+ * `<strong>`). Google serves the whole 100–900 axis, and the axis's far ends
+ * are most of a variable font's bytes.
+ *
+ * The files are Google Fonts' own Inter 4.001 subset files — the ones
+ * `next/font/google` served until 20 October 2026 — with the weight axis
+ * limited to 400–700 by fontTools' instancer (`varLib.instancer wght=400:700`,
+ * then re-saved as WOFF2 keeping every glyph, feature and name). Every
+ * character draws the same at every weight in that range, to within one unit
+ * of 2048, and the OpenType features are unchanged. Latin went from 48 to
+ * 34 KB and Cyrillic from 19 to 13 KB: 20 KB less preloaded on every page.
+ * Licence: `fonts/OFL-Inter.txt`.
+ *
+ * Latin Extended is not preloaded. It is 56 KB (85 KB at the full axis), and
+ * no character in its range appears in the catalog, the dictionaries or the
+ * copy (scanned on 20 October 2026; `test/fonts.test.ts` keeps scanning). On
+ * 19 October, dropping its preload measured about 100 ms *later* on a real
+ * Fast 4G link (`IMPLEMENTATION_PLAN.md`, K2); on 20 October, under PageSpeed
+ * Insights' simulated slow 4G — which charges every byte requested before the
+ * first paint — the 85 KB were half a second of mobile LCP (4.9 s with, 4.4 s
+ * without, on the live home page). The score search engines read is the
+ * second one. The face is still declared, so a page that does draw one of its
+ * characters fetches it.
+ *
+ * The faces Google also served for Greek, Vietnamese and the rarer Cyrillic
+ * letters are not carried: nothing here is written in them, and such a
+ * character falls to the size-adjusted Arial below, as it would have while
+ * its face loaded. As with Literata, the stack lists Cyrillic, Latin Extended,
+ * Latin, and only the last carries the fallback.
  */
-const inter = Inter({
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  variable: "--font-inter",
+const interCyrillic = localFont({
+  src: "./fonts/inter-wght-400-700-cyrillic.woff2",
+  weight: "400 700",
+  style: "normal",
   display: "swap",
+  variable: "--font-inter-cyrillic",
+  adjustFontFallback: false,
+  declarations: [
+    { prop: "unicode-range", value: "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116" },
+  ],
+});
+
+const interLatinExt = localFont({
+  src: "./fonts/inter-wght-400-700-latin-ext.woff2",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
+  variable: "--font-inter-latin-ext",
+  adjustFontFallback: false,
+  preload: false,
+  declarations: [
+    {
+      prop: "unicode-range",
+      value:
+        "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF",
+    },
+  ],
+});
+
+const interLatin = localFont({
+  src: "./fonts/inter-wght-400-700-latin.woff2",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
+  variable: "--font-inter-latin",
+  adjustFontFallback: "Arial",
+  declarations: [
+    {
+      prop: "unicode-range",
+      value:
+        "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+    },
+  ],
 });
 
 /**
@@ -116,7 +179,9 @@ const literataItalic = localFont({
 });
 
 export const fontVariables = [
-  inter.variable,
+  interCyrillic.variable,
+  interLatinExt.variable,
+  interLatin.variable,
   literataCyrillic.variable,
   literataLatinExt.variable,
   literataLatin.variable,

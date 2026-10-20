@@ -40,6 +40,7 @@ export function BusinessSectionView({
   query,
   listing,
   blends = [],
+  relatedListed = true,
 }: {
   locale: Locale;
   copy: BusinessSectionCopy;
@@ -50,6 +51,12 @@ export function BusinessSectionView({
   listing: SectionListing | null;
   /** Vending blends found elsewhere in the catalog. */
   blends?: readonly ProductCardView[];
+  /**
+   * Whether the other section's page lists anything. The link to it is drawn
+   * only then: an empty section is `noindex` and out of the sitemap, and no
+   * indexable page links it (`e2e/link-graph.spec.ts`).
+   */
+  relatedListed?: boolean;
 }) {
   const pagePath = href(locale, path);
   const breadcrumbs = [
@@ -190,15 +197,17 @@ export function BusinessSectionView({
           </a>
           <p className="mt-0.5 text-sm text-ink-500">{siteConfig.contact.hours}</p>
 
-          <p className="mt-8 text-sm text-ink-700">
-            {copy.related.text}{" "}
-            <Link
-              href={targetHref(locale, copy.related.href)}
-              className="font-medium text-pine-700 underline underline-offset-4"
-            >
-              {copy.related.label}
-            </Link>
-          </p>
+          {relatedListed && (
+            <p className="mt-8 text-sm text-ink-700">
+              {copy.related.text}{" "}
+              <Link
+                href={targetHref(locale, copy.related.href)}
+                className="font-medium text-pine-700 underline underline-offset-4"
+              >
+                {copy.related.label}
+              </Link>
+            </p>
+          )}
         </div>
 
         <ContactForm defaultSubject={copy.enquiry.subject} />

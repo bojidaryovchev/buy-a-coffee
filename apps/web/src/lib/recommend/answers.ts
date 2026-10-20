@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getMachineModel } from "@/content/machines";
 import { routes } from "@/lib/routes";
 import { BREWING_SYSTEMS, type BrewMethod, type BrewingSystemId } from "./systems";
 
@@ -215,6 +216,16 @@ export function parseWizardAnswers(params: RawWizardParams): WizardAnswers {
   if (!result.success) return EMPTY_ANSWERS;
 
   const answers = result.data;
+  /*
+   * A machine decides its system. A link that names a machine and another
+   * system — a Dolce Gusto NEO with `system=dolce-gusto`, say — contradicts
+   * itself, and both halves are dropped rather than recommending capsules
+   * that machine does not take.
+   */
+  const machine = getMachineModel(answers.machine);
+  if (machine && answers.system && machine.model.system !== answers.system) {
+    return { ...answers, machine: null, system: null };
+  }
   /*
    * A system implies its brew method. Someone who arrives from a machine page
    * with `?system=nespresso-original` has answered step one without seeing it,

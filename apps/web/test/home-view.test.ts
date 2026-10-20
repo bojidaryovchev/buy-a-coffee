@@ -547,6 +547,24 @@ describe("home page: the delivery promise", () => {
     expect(alone?.line).toBe("Доставката е по тарифата на куриера и се плаща при получаване.");
   });
 
+  /* What Lighthouse's `definition-list` and `dlitem` audits hold, and the
+     accessibility tree with them: each group one `div`, holding only a `dt`
+     and its `dd`. The icon used to sit beside them in a second `div`. */
+  it("is a well-formed definition list", () => {
+    const list = /<dl\b[^>]*>(.*)<\/dl>/s.exec(strip(COMMERCE))?.[1];
+    expect(list).toBeDefined();
+    // Neither a term nor a description holds a `div`, so this reads each group whole.
+    const groups = list!.match(/<div\b[^>]*>.*?<\/div>/gs) ?? [];
+    expect(groups).toHaveLength(4);
+    expect(groups.join("")).toBe(list);
+    for (const group of groups) {
+      expect(group).toMatch(
+        /^<div\b[^>]*><dt\b[^>]*>(?:(?!<\/dt>).)*<\/dt><dd\b[^>]*>(?:(?!<\/dd>).)*<\/dd><\/div>$/s,
+      );
+      expect(group).toMatch(/<dt\b[^>]*>.*<svg\b[^>]*aria-hidden="true"/s);
+    }
+  });
+
   it("is absent with fewer than two facts", () => {
     expect(deliveryFacts(BARE_COMMERCE).map((fact) => fact.id)).toEqual(["confirmation"]);
     expect(strip(BARE_COMMERCE)).toBe("");

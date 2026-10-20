@@ -11,13 +11,8 @@ import {
   syncChanges,
   syncRuns,
 } from "@catalog/db/schema";
-import {
-  packServings,
-  parseWeight,
-  pricePerServing,
-  semanticHash,
-  silentLogger,
-} from "@catalog/shared";
+import { packServings, parseWeight, pricePerServing, silentLogger } from "@catalog/shared";
+import { semanticHash } from "@catalog/shared/hash";
 import { loadConfig } from "../src/config.ts";
 import { Fetcher } from "../src/fetch/fetcher.ts";
 import {

@@ -277,7 +277,9 @@ export function MobileDrawer({
               </li>
             ))}
             <li>{row(navigation.vending.href, navigation.vending.label)}</li>
-            <li>{row(navigation.consumables.href, navigation.consumables.label)}</li>
+            {navigation.hasConsumables && (
+              <li>{row(navigation.consumables.href, navigation.consumables.label)}</li>
+            )}
           </ul>
 
           <hr className="my-2 border-line" />

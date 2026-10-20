@@ -23,6 +23,7 @@ import { BREWING_SYSTEMS, type BrewingSystemId } from "@/lib/recommend/systems";
 import { countPhrase } from "./plural";
 import type { Locale } from "@/i18n/config";
 import { brandHref, categoryHref, href, routes, systemCategory } from "@/lib/routes";
+import { TCHIBO_PAIR } from "@/lib/catalog/related-landings";
 
 /**
  * The home page's sections below the hero, in DESIGN.md order ("Home page",
@@ -140,12 +141,15 @@ export function DeliveryPromise({
     <section aria-label="Доставка и плащане" className="border-b border-line">
       <dl className={`shell grid grid-cols-2 gap-4 py-5 ${FACT_COLUMNS[facts.length] ?? ""}`}>
         {facts.map((fact) => (
-          <div key={fact.id} className="flex gap-3">
-            {fact.icon}
-            <div>
-              <dt className="text-sm font-semibold text-ink-900">{fact.title}</dt>
-              <dd className="mt-0.5 text-xs text-ink-500">{fact.line}</dd>
-            </div>
+          /* One `div` per fact holding only its term and description: a
+             `<dl>` allows one wrapper per group and nothing beside the pair,
+             so the icon rides in the term, set into the group's indent. */
+          <div key={fact.id} className="relative pl-8">
+            <dt className="text-sm font-semibold text-ink-900">
+              <span className="absolute top-0 left-0">{fact.icon}</span>
+              {fact.title}
+            </dt>
+            <dd className="mt-0.5 text-xs text-ink-500">{fact.line}</dd>
           </div>
         ))}
       </dl>
@@ -233,6 +237,24 @@ export function ShopBySystem({
           </Link>
         </li>
       </ul>
+      {/*
+        The Caffitaly tile is a link already, so the machine that takes the
+        same format gets its own line under the row: „tchibo cafissimo“ is
+        searched by name, and its page is the one that answers it.
+      */}
+      {systems.some(({ system }) => system.id === TCHIBO_PAIR.system) && (
+        <p className="mt-4 text-sm text-ink-700">
+          Имате Tchibo Cafissimo? Машината приема формата Caffitaly, макар Tchibo да съветва само
+          собствени капсули:{" "}
+          <Link
+            href={href(locale, routes.machineBrand(TCHIBO_PAIR.machineBrand))}
+            className="inline-flex min-h-11 items-center font-medium text-pine-700 underline underline-offset-4 hover:text-pine-900 lg:min-h-6"
+          >
+            капсули за Tchibo Cafissimo
+          </Link>
+          .
+        </p>
+      )}
     </section>
   );
 }

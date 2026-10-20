@@ -24,7 +24,7 @@ import { relatedLandingLinks } from "@/lib/catalog/related-landings";
 import { shippingLocale, type LangParams } from "@/i18n/params";
 import { localeAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
-import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import {
   BRANDS_INDEX_META,
   brandDescriptionLead,
@@ -123,6 +123,8 @@ export default async function BrandPage({ params, searchParams }: PageProps) {
     listBrandCategoryKeys(brand.slug),
     brandHasInstantCoffee(brand.slug),
   ]);
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (isPastLastPage(result)) notFound();
   /*
    * Computed from what is in stock right now, not from the filtered listing:
    * the summary describes the brand, so it must not change when a visitor

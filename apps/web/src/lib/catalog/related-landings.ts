@@ -172,3 +172,29 @@ export function relatedLandingLinks(
 
   return links;
 }
+
+/**
+ * The brand × format page a product is listed on, as a link for its facts
+ * table: a Lavazza capsule names „Капсули Lavazza“, a Lavazza bag of beans
+ * „Кафе на зърна Lavazza“ (`docs/seo.md` §13.2). Decided by membership, not
+ * by guessing from the brand: a product links the landing only while that
+ * landing lists it, under the anchor every other page gives the same URL.
+ */
+export function brandFormatLink(
+  locale: Locale,
+  product: { readonly id: string; readonly systemId: BrewingSystemId | null },
+  availability: LandingAvailability,
+): RelatedLink | null {
+  for (const id of ["lavazzaCapsules", "lavazzaBeans"] as const) {
+    if (!availability.members?.[id]?.includes(product.id)) continue;
+    const anchor =
+      id === "lavazzaCapsules" &&
+      product.systemId &&
+      availability.groups[id].includes(product.systemId)
+        ? `#${product.systemId}`
+        : "";
+    const copy = relatedCopy[id];
+    return { key: id, href: href(locale, `${LANDING_PATHS[id]}${anchor}`), label: copy.label };
+  }
+  return null;
+}

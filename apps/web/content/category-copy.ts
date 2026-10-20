@@ -22,6 +22,14 @@ import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
  * It sits below the products on purpose — someone who already knows what they
  * want should not scroll past an essay to reach it.
  *
+ * **The lead.** Two or three sentences above the products, on the first page
+ * only, in the words the page's searches use — the Cyrillic spelling where
+ * that is what most people type, and „съвместими“. Short on purpose, for the
+ * same reason. Released in stages so each stage can be judged on its own
+ * (research `09`, Milestone 1): Dolce Gusto, Nespresso, beans and ESE pods
+ * first; Lavazza Blue, A Modo Mio, Caffitaly and the capsule hub follow in a
+ * later release and until then keep their heading and the generic sentence.
+ *
  * The rules this copy was written under:
  *
  *  - Written from scratch, by us. Nothing here is adapted from anybody else's
@@ -63,6 +71,12 @@ export interface CategoryCopy {
   /** The page's `h1`. */
   readonly h1: string;
   /**
+   * Above the products on the first page, 40–60 words: the page's head phrase,
+   * what the format fits, and what it does not. In place of the system's
+   * generic „Става за …“ sentence. See „The lead“ above.
+   */
+  readonly lead?: string;
+  /**
    * `<title>`, before the shop's name. `{systems}` is the capsule families on
    * sale under a parent listing.
    */
@@ -100,6 +114,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   "kafe-na-zyrna": {
     name: "Кафе на зърна",
     h1: "Кафе на зърна",
+    lead: "Кафе на зърна за автоматични кафемашини с вградена мелачка и за собствена мелачка у дома. Под всяка опаковка е цената на чаша, а на страницата на продукта и цената за 1 кг, така че сравнявате пакети с различен размер по едно и също мерило. Зърната се мелят точно преди кафето, затова тук избирате само вкус и опаковка.",
     title: "Кафе на зърна — цена за кг и на чаша",
     description: "Кафе на зърна с цена за килограм до всяка опаковка",
     article: CHOOSE_BEANS_SLUG,
@@ -126,7 +141,8 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   },
   nespresso: {
     name: "Капсули за Nespresso",
-    h1: "Капсули, съвместими с Nespresso",
+    h1: "Капсули, съвместими с Nespresso (Неспресо)",
+    lead: "Капсулите Неспресо тук са съвместими с класическите машини Nespresso (Original): Essenza, Inissia, Pixie, CitiZ и останалите модели от тази система. Под всяка кутия е цената на чаша, така че сравнявате кафетата по това, което плащате за едно кафе. Машините Vertuo приемат само собствените си капсули и тези не пасват в тях.",
     title: "Капсули за Nespresso (Неспресо) — цена на чаша",
     family: "Nespresso",
     description: "Капсули, съвместими с класическите машини Nespresso",
@@ -139,13 +155,14 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   },
   "dolce-gusto": {
     name: "Капсули за Dolce Gusto",
-    h1: "Капсули за Dolce Gusto",
+    h1: "Капсули за Dolce Gusto (Долче Густо)",
+    lead: "Капсулите Долче Густо тук са съвместими с класическите машини Dolce Gusto на Krups и De'Longhi: Piccolo, Genio, Mini Me, Infinissima и останалите. Цената на чаша стои под всяка кутия, за да сравните кафетата по реалната цена на едно кафе, а не на опаковка. Машините Dolce Gusto NEO работят с хартиени дози и тези капсули не пасват в тях.",
     title: "Капсули за Dolce Gusto (Долче Густо) — цена на чаша",
     family: "Dolce Gusto",
     description: "Капсули за машини Dolce Gusto",
     heading: "За кои машини са тези капсули",
     paragraphs: [
-      "Тези капсули са за машините от системата Dolce Gusto и не пасват на никоя друга.",
+      "Тези капсули са за класическите машини Dolce Gusto и не пасват на никоя друга система. По-новите машини Dolce Gusto NEO работят с хартиени дози и също не ги приемат.",
       "Капсулата за Dolce Gusto е лесна за разпознаване: широка и ниска, от пластмаса, затворена отгоре със сребристо фолио.",
       "Ако капсулите, които използвате досега, изглеждат другояче, най-вероятно машината ви е от друга система. Проверете модела в списъка с машини или минете през помощника за избор, преди да поръчате.",
     ],
@@ -161,8 +178,8 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     heading: "За кои машини са тези капсули",
     paragraphs: [
       "Lavazza Blue е системата на професионалните машини на Lavazza и най-често се среща в офиси.",
-      "Капсулата е по-голяма и по-твърда от тази за A Modo Mio, а самата машина обикновено носи означение LB. Двете системи на Lavazza не са взаимозаменяеми: за домашна машина на Lavazza търсете капсули A Modo Mio, а не тези.",
-      "Ако не можете да прецените коя от двете е вашата, потърсете модела в списъка с машини или отговорете на въпросите в помощника за избор.",
+      "Капсулата е по-голяма и по-твърда от тази за A Modo Mio, а самата машина обикновено носи означение LB. Системите на Lavazza не са взаимозаменяеми: за домашна машина на Lavazza търсете капсули A Modo Mio, а не тези. Офисните машини Espresso Point и Firma също са отделни системи и не приемат капсули Blue.",
+      "Ако не можете да прецените коя е вашата, потърсете модела в списъка с машини или отговорете на въпросите в помощника за избор.",
     ],
   },
   caffitaly: {
@@ -178,7 +195,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     links: [{ phrase: "машините Tchibo Cafissimo", to: routes.machineBrand("tchibo") }],
     heading: "За кои машини са тези капсули",
     paragraphs: [
-      "Капсулите Caffitaly са за машините от едноименната система. Същият формат работи и в машините Tchibo Cafissimo и K-fee.",
+      "Капсулите Caffitaly са за машините със знака Caffitaly System. Същия формат приемат и машините Tchibo Cafissimo, макар Tchibo да посочва, че в тях трябва да се използват само нейните капсули. Машините K-fee, професионалните машини Caffitaly и Coffee For You са други системи.",
       "Капсулата е пластмасова, с прозрачна или бяла основа. Формата ѝ напомня малка чашка с пръстен в горната част.",
       "Ако машината ви е от друга марка и не сте сигурни дали приема този формат, вижте я в списъка с машини или минете през помощника за избор.",
     ],
@@ -194,12 +211,13 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
     paragraphs: [
       "A Modo Mio е системата за домашните машини на Lavazza.",
       "Капсулата е малка и пластмасова, обикновено черна, с широк ръб отгоре. Не я бъркайте с капсулите за Lavazza Blue: те са по-големи и по-твърди, предназначени са за професионалните машини с означение LB и не влизат в домашните.",
-      "Ако се колебаете коя от двете системи на Lavazza имате, намерете модела в списъка с машини или оставете помощника за избор да ви насочи.",
+      "Ако се колебаете коя система на Lavazza имате, намерете модела в списъка с машини или оставете помощника за избор да ви насочи.",
     ],
   },
   "kafe-dozi": {
     name: "Кафе дози ESE",
     h1: "Кафе дози ESE",
+    lead: "Кафе дози ESE: хартиените дози, които мнозина търсят и като ESE капсули или дозети. Всяка доза е 44 мм и пасва на еспресо машина с цедка за дози ESE, без мелене и без пресоване на кафето. При всяка опаковка пише колко струва една чаша, така че дозите се сравняват помежду си лесно.",
     title: "Кафе дози ESE (хартиени дози 44 мм)",
     description: "Хартиени кафе дози ESE, 44 мм, за еспресо машини с цедка за дози",
     links: [

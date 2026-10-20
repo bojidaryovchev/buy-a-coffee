@@ -100,7 +100,7 @@ const filedUnder = (products: readonly SitemapProduct[], keys: ReadonlySet<strin
   products.filter((product) => product.categoryKeys.some((key) => keys.has(key)));
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [products, categories, brands, consumablesListed, landings, promotionCount, blends] =
+  const [pagesOfProducts, categories, brands, consumablesListed, landings, promotionCount, blends] =
     await Promise.all([
       listSitemapProducts(),
       getCategoryTree(),
@@ -111,6 +111,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       listVendingBlends(),
     ]);
 
+  /* Every indexable product page is listed; only those on sale date the
+     listings, since only those are shown on them. */
+  const products = pagesOfProducts.filter((product) => product.listed);
   const allCategories = flatten(categories);
   const catalogChanged = changed(products);
 
@@ -234,7 +237,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         logo ? [absoluteUrl(logo.file)] : undefined,
       );
     }),
-    ...products.map((product) =>
+    ...pagesOfProducts.map((product) =>
       // The catalog sync only moves `updatedAt` when the product genuinely changed.
       page(
         (locale) => productHref(locale, product),
