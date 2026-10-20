@@ -206,7 +206,7 @@ None of these blocks code. Each has a default the plan assumes.
 | Q7  | Vending Zone and Consumables                        | Content pages with an enquiry form now; products appear by themselves once the source lists them (E1).                                                                            |
 | Q8  | Brand logos and photography                         | Product packshots carry the imagery. Brand logos are each brand's own file from its own site, checked against the packs (J2). Four brands have none yet; text until then. `owner` |
 | Q9  | Who writes copy for new products                    | Written in the same way and under the same rules as the first 110 (B9). The generated fallback (B7) covers the gap.                                                               |
-| Q10 | Newsletter                                          | Collect and manage consent only. Sending is out of scope.                                                                                                                         |
+| Q10 | Newsletter                                          | First: collect and manage consent only. Since 19 October 2026 the panel sends it; since 20 October it starts from templates and a monthly draft (Phase P).                        |
 | Q11 | Repository visibility                               | Unchanged. Worth a deliberate yes: the repository documents the crawl and is public, and so will be the sync logs.                                                                |
 | Q12 | `infra/terraform`                                   | Keep as the documented alternative until the scheduled sync has run for 30 days, then delete.                                                                                     |
 | Q13 | "Remove competitor-related texts" (workspace TODO)  | Unclear what it targets. The storefront copy contains no comparison with another shop, and `check:originality` already forbids the source's name there. Needs a pointer.          |
@@ -911,7 +911,8 @@ Backlog, in rough order of value:
   without online checkout.
 - A multi-product enquiry ("order list") — only if calls show customers
   routinely ordering several products at once.
-- Sending the newsletter.
+- ~~Sending the newsletter.~~ Built 19 October 2026; templates, the block
+  composer and the monthly draft in Phase P.
 - Deleting `infra/terraform` (Q12).
 
 ## Phase J — Bulgarian URLs, brand logos and search demand
