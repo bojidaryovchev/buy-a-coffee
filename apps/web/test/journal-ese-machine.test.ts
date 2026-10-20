@@ -242,13 +242,28 @@ describe("the ESE-machine guide: machines", () => {
     }
   });
 
-  /* Corrected on 20 October 2026: illy publishes no E.S.E. version of the X7.1. */
-  it("lists the illy X7.1 as the Iperespresso machine illy says it is", () => {
-    expect(getMachineModel("illy-x7-ese")).toBeNull();
+  /*
+   * Corrected on 20 October 2026: illy publishes no E.S.E. version of the
+   * X7.1, so its old slug now names the Iperespresso machine it is. illy's
+   * own pod machine, the Easy, is the one illy model listed for pods.
+   */
+  it("lists the illy X7.1 as Iperespresso, and the illy Easy for pods", () => {
     expect(getMachineModel("illy-x7")?.model.system).toBe("illy-iperespresso");
+    expect(getMachineModel("illy-x7-ese")?.model.slug).toBe("illy-x7");
     const illy = MACHINE_BRANDS.find((brand) => brand.slug === "illy")!;
-    expect(illy.models.some((model) => model.system === "ese-pod")).toBe(false);
-    expect(text(EMPTY_JOURNAL_FIGURES)).not.toMatch(/X7|illy/);
+    expect(illy.models.filter((model) => model.system === "ese-pod").map((m) => m.slug)).toEqual([
+      "illy-easy",
+    ]);
+    const said = text(EMPTY_JOURNAL_FIGURES);
+    expect(said).not.toMatch(/X7/);
+    expect(said).toContain("illy — Easy (машина за дози)");
+  });
+
+  /* The Easy takes a pod from the top: nothing may say every listed machine has a pod filter. */
+  it("does not say a pod filter is how every listed machine takes pods", () => {
+    const said = text(EMPTY_JOURNAL_FIGURES);
+    expect(said).not.toMatch(/При (всички тях|моделите в нашия списък)/);
+    expect(said).toContain("При машините с цедка от нашия списък дозите влизат с цедката за дози");
   });
 
   it("warns that Dolce Gusto NEO's paper pods are another system, by the system's own name", () => {
@@ -312,9 +327,9 @@ describe("the ESE-machine guide: figures", () => {
     expect(WEIGHED_FIGURES.cupCost?.byMethod.pod?.count).toBe(3);
     expect(WEIGHED_FIGURES.pods?.byWeight).toBe(1);
     expect(said).toContain(
-      `излизат ${rangeText(WEIGHED_FIGURES.pods!.perCup!)} на чаша, когато броят им е обявен.`,
+      `излизат ${rangeText(WEIGHED_FIGURES.pods!.perCup!)} на чаша при кутиите с обявен брой дози.`,
     );
-    expect(said).toContain("1 продукт е обявен с тегло вместо с брой дози");
+    expect(said).toContain("Един продукт е обявен с тегло вместо с брой дози");
     // The only „≈“ is the one the sentence explains; no price carries it.
     expect(said).not.toMatch(/≈\s*\d/);
     const table = blocks.find((block) => block.type === "table");
@@ -347,6 +362,39 @@ describe("the ESE-machine guide: figures", () => {
     expect(said).toContain("са само на една степен, „средно“: 1 продукт.");
     expect(blocks.some((block) => block.type === "table")).toBe(false);
     expect(said).not.toMatch(/1 броя|1 продукта|приемат 1 /);
+  });
+
+  it("opens no sentence with a numeral when several boxes are sold by weight", () => {
+    const weighed = (price: string) =>
+      row({
+        category: "kafe-dozi",
+        price,
+        weightValue: "250",
+        weightUnit: "g",
+        strength: "strong",
+      });
+    const figures = computeJournalFigures(
+      [pod("30.00", "150", "strong", "10 от 12"), weighed("10.00"), weighed("11.00")],
+      "EUR",
+    );
+    const said = text(figures);
+    expect(said).toContain("С тегло вместо с брой дози са обявени 2 продукта");
+    expect(said).not.toMatch(/(^|\. )\d/m);
+  });
+
+  /* „защото кутиите са с различен брой дози“ only when the catalog shows boxes of two sizes. */
+  it("says the boxes differ in size only when they do", () => {
+    const differ = "защото кутиите са с различен брой дози";
+    expect(POD_FIGURES.formats?.byMethod.pod?.packs.length).toBeGreaterThan(1);
+    expect(text(POD_FIGURES)).toContain(differ);
+    const sameSize = computeJournalFigures(
+      [pod("13.50", "50", "medium", "8 от 10"), pod("15.50", "50", "strong", "9 от 10")],
+      "EUR",
+    );
+    expect(sameSize.formats?.byMethod.pod?.packs).toEqual(["50"]);
+    expect(text(sameSize)).not.toContain(differ);
+    expect(text(FIXTURE_FIGURES)).not.toContain(differ);
+    expect(text(EMPTY_JOURNAL_FIGURES)).not.toContain(differ);
   });
 
   it("names the intensity scales the pods are declared on", () => {

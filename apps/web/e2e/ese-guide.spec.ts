@@ -21,11 +21,11 @@ import { characters, shopTitle } from "./support/titles";
  */
 
 const ARTICLE = "/bg/blog/kafemashina-za-dozi-ese";
-const TITLE = "Кафемашина за хартиени дози: коя ги приема и какви дози има";
+const TITLE = "Кафемашина за хартиени дози: как се познава и кои дози има";
 const META =
   "Как да познаете кафемашина за хартиени дози ESE, какво да проверите, преди да купите такава, и как да изберете дозите по цена на чаша и интензивност.";
 /** The machine-database brands with a model that takes ESE pods. */
-const POD_MACHINE_BRANDS = ["delonghi", "gaggia", "smeg"] as const;
+const POD_MACHINE_BRANDS = ["delonghi", "gaggia", "smeg", "illy"] as const;
 
 const decode = (text: string) =>
   text
@@ -141,12 +141,18 @@ test.describe("the ESE-machine guide", () => {
 
   /*
    * Corrected with this article: the X7.1 was listed for pods with no source,
-   * and illy makes it for Iperespresso capsules only. Nothing on the illy page
-   * may send its owner to the pods any more.
+   * and illy makes it for Iperespresso capsules only. Its owner is told that
+   * nothing here fits; the illy Easy, illy's own pod machine, is sent to the
+   * pods instead.
    */
-  test("the illy page lists the X7.1 among the machines we have nothing for", async ({ page }) => {
+  test("the illy page offers pods for the Easy and nothing for the X7.1", async ({ page }) => {
     await page.goto(BG.machineBrand("illy"));
-    await expect(page.locator(`main a[href="${BG.pods}"]`)).toHaveCount(0);
+    const pods = page.locator("main section", {
+      has: page.getByRole("heading", { name: "Дози ESE", exact: true }),
+    });
+    await expect(pods).toContainText("Easy (машина за дози)");
+    await expect(pods).not.toContainText("X7");
+    await expect(page.locator(`main a[href="${BG.pods}"]`)).toHaveCount(1);
     await expect(page.locator("main #illy-x7-ese")).toHaveCount(0);
     const unsupported = page.locator("main section", {
       has: page.getByRole("heading", { name: "Модели, за които не предлагаме кафе" }),
@@ -154,7 +160,7 @@ test.describe("the ESE-machine guide", () => {
     await expect(unsupported).toContainText("X7.1 Iperespresso");
   });
 
-  test("a pod's own page no longer offers it for the X7.1", async ({ page }) => {
+  test("a pod's own page offers it for the illy Easy, not the X7.1", async ({ page }) => {
     await page.goto(BG.pods);
     const first = await page.locator(`main ${PRODUCT_LINK}`).first().getAttribute("href");
     await page.goto(first as string);
@@ -162,7 +168,22 @@ test.describe("the ESE-machine guide", () => {
       has: page.getByRole("heading", { name: "Става за тези машини" }),
     });
     await expect(fits).toContainText("De'Longhi Dedica");
-    await expect(fits).not.toContainText(/X7|illy/);
+    await expect(fits).toContainText("illy Easy");
+    await expect(fits).not.toContainText("X7");
+  });
+
+  /* A wizard link from before the correction must not end in pods for an X7.1. */
+  test("the X7.1's old slug with the pod system goes back to the first question", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${BG.wizardResult}?machine=illy-x7-ese&system=ese-pod&brew=pod`,
+      { maxRedirects: 0 },
+    );
+    expect([302, 303, 307, 308]).toContain(response.status());
+    expect(new URL(response.headers()["location"] ?? "", "http://shop.test").pathname).toBe(
+      BG.wizard,
+    );
   });
 
   test("keeps the pods listing's title, heading and lead as they were", async ({ page }) => {

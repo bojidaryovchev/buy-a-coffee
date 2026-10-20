@@ -881,10 +881,14 @@ Written with it, and live wherever `apps/web/src/content/machines.ts` is: the
 illy X7.1 was listed for ESE pods („X7.1 (версия за дози)“) with no source.
 illy makes it for its Iperespresso capsules only, and publishes no E.S.E.
 version, so it is now „X7.1 Iperespresso“, among the machines nothing here
-fits. It leaves the pods group of `za-kafemashina/illy`, the „Става за тези
-машини“ list on every pod's product page and the list of pod brands in the
-formats article. Which pod machines also brew ground coffee is a field of the
-database now (`alsoGround`), not a sentence of the article.
+fits. It leaves the pods group of `za-kafemashina/illy` and the „Става за тези
+машини“ list on every pod's product page. Its old slug, `illy-x7-ese`, now
+names the Iperespresso machine, so an old wizard link that pairs it with the
+pod system is a contradiction and recommends nothing. In its place in the pods
+group is illy's own pod machine, the Easy, which illy's page lists for E.S.E.
+pods, put in from the top with no portafilter. Which pod machines also brew
+ground coffee is a field of the database now (`alsoGround`, sourced from the
+maker's page or the model's own entry), not a sentence of the article.
 
 ### Deliberate deviations
 

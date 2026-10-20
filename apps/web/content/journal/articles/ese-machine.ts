@@ -46,7 +46,9 @@ import { WHICH_CAPSULE_SLUG } from "./which-capsule";
  *    De'Longhi's FAQ, https://www.delonghi.com/en-gb/faqs/How-big-are-ESE-pods/a/8750.
  *    That some machines are made for pods alone: illy's own ESE machine,
  *    https://www.illy.com/en-ca/coffee-machines/ese-coffee-pod-machines/illy-ese-coffee-machine/60453.html
- *    — named nowhere here, because the machine database does not list it.
+ *    — the illy Easy, which the machine database lists, with its source. It
+ *    has no portafilter, so nothing here says that every listed machine takes
+ *    pods in a pod filter.
  *  - **Which machines take pods.** The machine database, `machines.ts`, and
  *    nothing else (`PRODUCT.md`, "Compatibility is a promise"). The list is
  *    built from the models whose system is `ese-pod`, and which of them brew
@@ -90,11 +92,17 @@ const stepLabel = (key: string): string => (STRENGTH_LABELS[key] ?? key).toLocal
 
 const doses = (count: number): string => pluralize(count, "доза", "дози");
 
+/** The box sizes on sale, in pods, when every size is a count of pods; else none. */
+function podCounts(summary: FormatSummary | null): number[] {
+  // Pods are sold by the piece; a size written by weight is not a number of pods.
+  if (!summary || !summary.packs.every((pack) => /^\d+$/.test(pack))) return [];
+  return summary.packs.map(Number);
+}
+
 /** "В момента в категорията има 45 продукта, в кутии от 18 до 200 дози." */
 function choiceText(summary: FormatSummary | null): Block[] {
   if (!summary) return [];
-  // Pods are sold by the piece; a size written by weight is not a number of pods.
-  const counts = summary.packs.every((pack) => /^\d+$/.test(pack)) ? summary.packs.map(Number) : [];
+  const counts = podCounts(summary);
   const first = counts[0];
   const last = counts[counts.length - 1];
   const packs =
@@ -120,14 +128,14 @@ function priceText(pods: PodFigures | null): Block[] {
   const sentences: string[] = [];
   if (pods.perCup) {
     sentences.push(
-      `В момента дозите в каталога ни излизат ${rangeText(pods.perCup)} на чаша${weighed > 0 ? ", когато броят им е обявен" : ""}.`,
+      `В момента дозите в каталога ни излизат ${rangeText(pods.perCup)} на чаша${weighed > 0 ? " при кутиите с обявен брой дози" : ""}.`,
     );
   }
   if (weighed > 0) {
     sentences.push(
       weighed === 1
-        ? "1 продукт е обявен с тегло вместо с брой дози: при него броят е приблизителен и пред цената на чаша стои знакът ≈."
-        : `${weighed} продукта са обявени с тегло вместо с брой дози: при тях броят е приблизителен и пред цената на чаша стои знакът ≈.`,
+        ? "Един продукт е обявен с тегло вместо с брой дози: при него броят е приблизителен и пред цената на чаша стои знакът ≈."
+        : `С тегло вместо с брой дози са обявени ${weighed} продукта: при тях броят е приблизителен и пред цената на чаша стои знакът ≈.`,
     );
   }
   return sentences.length > 0 ? [p(sentences.join(" "))] : [];
@@ -179,9 +187,9 @@ function scaleText(pods: PodFigures | null): Inline[] {
 
 export const eseMachine: Article = {
   slug: ESE_MACHINE_SLUG,
-  title: "Кафемашина за хартиени дози: коя ги приема и какви дози има",
+  title: "Кафемашина за хартиени дози: как се познава и кои дози има",
   description:
-    "Хартиената доза ESE е 44 мм и влиза в еспресо машина с цедка за дози. Как да разберете дали вашата машина я приема, какво да проверите при нова и как да изберете дозите.",
+    "Хартиената доза ESE е 44 мм и влиза в еспресо машина с цедка за дози или в машина само за дози. Как да разберете дали вашата машина я приема, какво да проверите при нова и как да изберете дозите.",
   metaDescription:
     "Как да познаете кафемашина за хартиени дози ESE, какво да проверите, преди да купите такава, и как да изберете дозите по цена на чаша и интензивност.",
   publishedAt: "2026-10-20",
@@ -235,7 +243,7 @@ export const eseMachine: Article = {
           ".",
         ],
         "Потърсете знака ESE върху машината. По стандарта той стои и на машините, и на опаковките на дозите, а двата знака заедно казват, че машината и дозите си пасват.",
-        "Вижте с какви цедки е машината. При моделите в нашия списък дозите влизат с цедката за дози, която наричат още филтър за дози.",
+        "Вижте с какви цедки е машината. При машините с цедка от нашия списък дозите влизат с цедката за дози, която наричат още филтър за дози.",
         [
           "Намерете модела в ",
           link(MACHINES_HREF, "списъка ни по марки"),
@@ -271,7 +279,7 @@ export const eseMachine: Article = {
               ]),
             ),
             p(
-              `${modelCount === 1 ? "При него" : "При всички тях"} дозите влизат с цедката за дози. Ако вашият модел е тук, дозите от категорията `,
+              "Ако вашият модел е тук, дозите от категорията ",
               link(podsHref, "кафе дози"),
               " стават за него.",
             ),
@@ -323,7 +331,11 @@ export const eseMachine: Article = {
 
       h3("Цената на чаша"),
       p(
-        "Когато броят дози в кутията е обявен, цената на чаша е точна: една доза е една чаша, така че цената на кутията се дели на броя дози в нея. Тя стои до цената на кутията при всеки продукт. Сравнявайте по нея, защото кутиите са с различен брой дози.",
+        "Когато броят дози в кутията е обявен, цената на чаша е точна: една доза е една чаша, така че цената на кутията се дели на броя дози в нея. Тя стои до цената на кутията при всеки продукт.",
+        // Said only when the catalog shows it: boxes of more than one size.
+        ...(podCounts(formats?.byMethod.pod ?? null).length > 1
+          ? [" Сравнявайте по нея, защото кутиите са с различен брой дози."]
+          : []),
       ),
       ...priceText(pods),
       p(

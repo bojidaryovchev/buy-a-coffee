@@ -438,7 +438,8 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
         name: "Classic (ръчна с цедка)",
         aliases: ["класик"],
         system: "ese-pod",
-        // The brand's summary above: the manual models take ground coffee too.
+        // Gaggia: "3 filters available ... for ground coffee or coffee pods",
+        // https://www.gaggia.com/manual-machines/new-classic-e24/
         alsoGround: true,
         note: "С цедката за дози приема хартиени дози ESE 44 мм.",
       },
@@ -446,6 +447,9 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
         slug: "gaggia-carezza",
         name: "Carezza (ръчна с цедка)",
         system: "ese-pod",
+        // Gaggia: "comes with a filter for 1 or 2 cups of ground coffee, and a
+        // special filter for coffee pods",
+        // https://www.gaggia.com/manual-machines/carezza-deluxe/
         alsoGround: true,
         note: "С цедката за дози приема хартиени дози ESE 44 мм.",
       },
@@ -475,7 +479,8 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
     slug: "illy",
     name: "illy",
     aliases: ["или", "илли"],
-    summary: "Машините Iperespresso приемат само собствените капсули на illy.",
+    summary:
+      "Машините Iperespresso приемат само собствените капсули на illy, а Easy работи с хартиени дози ESE.",
     models: [
       { slug: "illy-y3", name: "Y3.3 Iperespresso", system: "illy-iperespresso" },
       { slug: "illy-y5", name: "Y5 Iperespresso", system: "illy-iperespresso" },
@@ -490,6 +495,18 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
        * than reused, so the old anchor does not now say the opposite.
        */
       { slug: "illy-x7", name: "X7.1 Iperespresso", system: "illy-iperespresso" },
+      /*
+       * illy's own page: "Coffee Format E.S.E. Pods", and "the pod is inserted
+       * at the top and disposed of into the pod-collection drawer",
+       * https://www.illy.com/en-gb/espresso-machines/ese-coffee-machines/coffee-machine-illy-ese-red/coffee-machines-illyese-uk.html
+       * No portafilter, so no pod filter either, and no ground coffee.
+       */
+      {
+        slug: "illy-easy",
+        name: "Easy (машина за дози)",
+        system: "ese-pod",
+        note: "Приема хартиени дози ESE: дозата се слага отгоре, а след кафето отива в чекмеджето за използвани дози.",
+      },
     ],
   },
   {
@@ -515,6 +532,19 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
   },
 ];
 
+/**
+ * Slugs a model was listed under before, and the slug it has now.
+ *
+ * A model's slug is in wizard links and in anchors on its brand's page, so a
+ * model that was listed wrongly and corrected keeps answering under the old
+ * slug, as what it really is. `illy-x7-ese` claimed the X7.1 took ESE pods;
+ * it now names the Iperespresso machine, so a link that pairs it with the pod
+ * system contradicts itself and the wizard drops both halves.
+ */
+const MOVED_MODEL_SLUGS: Readonly<Record<string, string>> = {
+  "illy-x7-ese": "illy-x7",
+};
+
 const MODELS_BY_SLUG = new Map<string, { brand: MachineBrand; model: MachineModel }>();
 const BRANDS_BY_SLUG = new Map<string, MachineBrand>();
 
@@ -532,7 +562,8 @@ export function getMachineModel(
   slug: string | null | undefined,
 ): { readonly brand: MachineBrand; readonly model: MachineModel } | null {
   if (!slug) return null;
-  return MODELS_BY_SLUG.get(slug) ?? null;
+  const current = Object.hasOwn(MOVED_MODEL_SLUGS, slug) ? MOVED_MODEL_SLUGS[slug] : slug;
+  return MODELS_BY_SLUG.get(current ?? slug) ?? null;
 }
 
 /** Every model in the database, flattened. Used by tests and by search. */

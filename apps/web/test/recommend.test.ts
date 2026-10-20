@@ -136,6 +136,22 @@ describe("parseWizardAnswers", () => {
     expect(genio.system).toBe("dolce-gusto");
   });
 
+  /*
+   * `illy-x7-ese` listed the X7.1 as a machine for ESE pods until 20 October
+   * 2026; it is an Iperespresso machine, now `illy-x7`. A link from before
+   * still pairs it with the pod system, and must not recommend pods.
+   */
+  it("reads a model's former slug as the model it is now", () => {
+    expect(getMachineModel("illy-x7-ese")?.model.slug).toBe("illy-x7");
+    const old = parseWizardAnswers({ machine: "illy-x7-ese", system: "ese-pod", brew: "pod" });
+    expect(old.machine).toBeNull();
+    expect(old.system).toBeNull();
+    // Alone, it is carried forward under the slug the model has now.
+    expect(parseWizardAnswers({ machine: "illy-x7-ese" }).machine).toBe("illy-x7");
+    expect(wizardHref(parseWizardAnswers({ machine: "illy-x7-ese" }))).toContain("machine=illy-x7");
+    expect(wizardHref(parseWizardAnswers({ machine: "illy-x7-ese" }))).not.toContain("ese");
+  });
+
   it("rejects a machine slug that is not slug-shaped", () => {
     expect(parseWizardAnswers({ machine: "../../etc/passwd" }).machine).toBeNull();
     expect(parseWizardAnswers({ machine: "krups-genio-s" }).machine).toBe("krups-genio-s");
