@@ -36,13 +36,17 @@
  *    изключение на“) opens a run that excludes it. A run carries across a list
  *    („не пасват на Nespresso, Dolce Gusto или K-fee“) and ends at the first
  *    word that is not part of one — a new verb („Не горчат и пасват на K-fee“:
- *    the negation was about bitterness), a contrast („но“, „а“), or the end of
- *    the clause („;“, „:“, a dash). „Не само“ affirms.
+ *    the negation was about bitterness), a contrast („но“, „а“), a comma that
+ *    opens a clause of its own („Не са за Nespresso, K-fee обаче ги приема“),
+ *    or the end of the clause („;“, „:“, a dash). A colon or a dash straight
+ *    after a fit word is a label, not an end: „Съвместимост: Dolce Gusto“.
+ *    „Не само“ affirms, and so does „освен … и на“ ("besides").
  *  - Each name then takes the run it stands in: affirmed, excluded, or — when
  *    no run reaches it — neutral. A neutral name may still be excluded by what
  *    its own clause goes on to say („NEO не ги приема“, „Vertuo приема само
- *    собствените си капсули“, „K-fee е отделна система“), and a capsule named
- *    by its system („хартиени дози NEO“, „капсулите на K-fee“) promises
+ *    собствените си капсули“, „K-fee е отделна система“), unless the clause
+ *    then takes it back („…но с адаптер приема и тези капсули“). A capsule
+ *    named by its system („хартиени дози NEO“, „капсулите на K-fee“) promises
  *    nothing about machines.
  *
  * WHAT IT ASKS OF EACH NAME.
@@ -50,14 +54,16 @@
  *  1. A machine phrase that speaks for every machine of a name — „машини Dolce
  *     Gusto“, „всички модели Nespresso“, „всяка Dolce Gusto“ — carries the
  *     qualifier that leaves out the one that does not fit: NEO or Vertuo
- *     excluded in its own sentence, Original straight after Nespresso, or
+ *     excluded in its own sentence, Original in its own noun phrase, or
  *     „класическите“ with that exclusion somewhere in the text. „Домашни
  *     машини Nespresso“ never passes: Vertuo is a home machine.
- *  2. NEO, Vertuo and K-fee are only ever named to be excluded.
+ *  2. NEO, Vertuo and K-fee (with EXPRESSI) are only ever named to be excluded.
  *  3. A Cafissimo — or a Tchibo machine — named as a fit needs Tchibo's own
  *     word somewhere in the text, as a statement of its own: Tchibo (or the
- *     machine's maker) says that only its own capsules should be used. „Работи
- *     само с капсули Caffitaly“ is the claim again, not the caveat.
+ *     machine's maker) says that only its own capsules should be used, or that
+ *     the warranty may not cover a repair after other capsules. „Работи само с
+ *     капсули Caffitaly“ is the claim again; „оригинални капсули или
+ *     съвместими“ adds others; „без да губите гаранцията“ is the opposite.
  *  4. „Съвместими с Dolce Gusto“ or „с Nespresso“, without a machine word,
  *     needs NEO excluded (or Original named) somewhere in the text.
  *
@@ -67,6 +73,29 @@
  * reader's own machine in an instruction („Поставете капсулата в машината
  * Dolce Gusto“), nor a negative sentence („Капсула за Dolce Gusto не влиза в
  * машина Nespresso“ is true of every Nespresso).
+ *
+ * ACCEPTED GAPS — known, judged not worth the complexity, each a sentence the
+ * copywriter is unlikely to write and the skill steers away from:
+ *
+ *  - English or other Latin-script prose („Compatible with all Dolce Gusto
+ *    machines“) is not read. The copywriter's audit already rejects any text
+ *    that is not mainly Bulgarian.
+ *  - Markup is not read beyond `&nbsp;` and `&shy;`: the audit rejects HTML,
+ *    and the hand-written file has none.
+ *  - A capsule named by its system after a fit word („съвместими с капсули
+ *    Vertuo“) passes as a capsule, not a machine.
+ *  - A machine referred to only by a pronoun („…но пасват в нея“) or only by
+ *    its models („пасват на Essenza Mini и Pixie“) is not a name, so it is not
+ *    judged; the name it stands for usually is, earlier in the sentence.
+ *  - Headings and labels outside product copy („Кафемашини K-fee: собствена
+ *    система капсули“, „Капсули за Tchibo Cafissimo“) are judged one string at
+ *    a time, without the page's caveat beside them. Only product copy is gated.
+ *  - Deliberately strict: a Tchibo machine with no line named counts as a
+ *    Cafissimo („кафемашина Tchibo с джезве“) — only the Esperto and Qbo lines
+ *    are recognised as others; a plural machine phrase is held to its
+ *    qualifier even in a sentence that promises nothing („Машините Nespresso
+ *    се произвеждат от Krups“); and „ползват собствени капсули“ without
+ *    „само“ does not exclude a machine.
  *
  * WHAT IT ASSUMES. That the shop sells no NEO pods, Vertuo capsules or K-fee
  * capsules — true of the catalogue, whose capsule formats are Dolce Gusto,
@@ -91,7 +120,7 @@ export type CompatibilityRule =
   | "nespresso-vertuo"
   /** A fit with Nespresso promised, and Original named nowhere in the text. */
   | "nespresso-unqualified"
-  /** K-fee named as a machine the capsules suit. */
+  /** K-fee (or EXPRESSI) named as a machine the capsules suit. */
   | "k-fee"
   /** Tchibo Cafissimo named as a machine the capsules suit, without Tchibo's caveat. */
   | "tchibo-cafissimo";
@@ -110,8 +139,8 @@ export interface CompatibilityProblem {
  * The wording that is right, as the hand-written copy uses it and the
  * copywriter's skill teaches it. Each passes every rule here, and the skill
  * file quotes each one (both tested), so the rules and what the model is told
- * cannot drift apart. The copywriter's originality audit does not count these
- * as shared phrasing: every product that states the fit must use them.
+ * cannot drift apart. The copywriter's originality audit counts each as one
+ * word: every product that states the fit must use them.
  */
 export const COMPATIBILITY_WORDING = {
   dolceGusto: "съвместими с класическите машини Dolce Gusto (не NEO)",
@@ -127,15 +156,24 @@ export const COMPATIBILITY_WORDING = {
 /*
  * Written as character codes so the source shows what they are: stress marks
  * (the pronoun „ѝ“ is often typed as „и“ plus a grave accent), that pronoun as
- * one character, and the hyphens a word processor puts in „K‑fee“.
+ * one character, the hyphens a word processor puts in „K‑fee“, and what cannot
+ * be seen — a soft hyphen, zero-width spaces and joiners, a byte-order mark.
  */
 const STRESS_MARKS = new RegExp(`[${String.fromCharCode(0x300, 0x301)}]`, "g");
 const I_WITH_GRAVE = new RegExp(String.fromCharCode(0x45d), "g");
 const HYPHENS = new RegExp(`[${String.fromCharCode(0x2010, 0x2011)}]`, "g");
+/* An alternation, not a class: a zero-width joiner inside a class joins what is around it. */
+const INVISIBLE = new RegExp(
+  [0xad, 0x200b, 0x200c, 0x200d, 0x2060, 0xfeff].map((code) => String.fromCharCode(code)).join("|"),
+  "g",
+);
 
 function normalise(text: string): string {
   return text
     .normalize("NFC")
+    .replace(/&nbsp;|&#160;|&#xa0;/giu, " ")
+    .replace(/&shy;|&#173;|&#xad;/giu, "")
+    .replace(INVISIBLE, "")
     .replace(I_WITH_GRAVE, "и")
     .replace(STRESS_MARKS, "")
     .replace(HYPHENS, "-");
@@ -189,7 +227,21 @@ function tokenize(sentence: string): Token[] {
 type SystemName = "dolce-gusto" | "nespresso" | "neo" | "vertuo" | "k-fee" | "cafissimo" | "tchibo";
 
 const NESCAFE = new Set(["nescafé", "nescafe", "нескафе"]);
-const K_FEE = new Set(["k-fee", "kfee", "к-фий", "кфий", "к-фи"]);
+const NESPRESSO = new Set(["nespresso", "неспресо", "неспрессо"]);
+/** K-fee, and EXPRESSI — Aldi's capsules for the same machines. */
+const K_FEE = new Set([
+  "k-fee",
+  "kfee",
+  "к-фий",
+  "кфий",
+  "к-фи",
+  "кей-фий",
+  "кейфий",
+  "expressi",
+  "експреси",
+]);
+const CAFISSIMO = new Set(["cafissimo", "кафисимо", "кафиссимо"]);
+const TCHIBO = new Set(["tchibo", "чибо", "тчибо"]);
 /** Tchibo's lines that are not the Cafissimo: the Qbo pods, the Esperto bean-to-cup machines. */
 const TCHIBO_OTHER_LINES = new Set(["qbo", "esperto"]);
 
@@ -218,6 +270,8 @@ const NEGATION_FILLER = new Set([
 const EXCLUDING = new Set(["без", "освен", "извън"]);
 /** What follows a contrast is affirmed again: „не за Nespresso, а за K-fee“. */
 const CONTRAST = new Set(["но", "а", "ала", "обаче", "ами"]);
+/** An object pronoun after a comma: the comma opened a clause with a verb of its own. */
+const OBJECT_PRONOUN = new Set(["ги", "го", "я", "им"]);
 const PREPOSITION = new Set(["с", "със", "за", "в", "във", "на", "от"]);
 const QUANTIFIER = new Set([
   "всички",
@@ -240,9 +294,6 @@ const MACHINE = /^(?:кафе)?машин|^модел|^апарат/u;
 const MACHINES = /^(?:(?:кафе)?машин(?:и|ите|ки|ките)|модели|моделите|апарати|апаратите)$/u;
 const MODIFIER =
   /^(?:класическ|домашн|професионалн|нов|по-нов|стар|автоматичн|капсулн|оригинал|първ|втор|поколени)/u;
-/** Tchibo, or a machine's maker, telling owners something. */
-const SAYS =
-  /^(?:посочва|посочи|препоръчва|препоръча|съветва|казва|изисква|предупреждава|настоява|заявява|уточнява|указва|напомня)/u;
 
 const isWord = (token: Token | undefined): token is Token => token !== undefined && !token.punct;
 const isMachine = (token: Token | undefined) => isWord(token) && MACHINE.test(token.w);
@@ -263,21 +314,24 @@ function nameAt(tokens: readonly Token[], i: number): { name: SystemName; length
   const token = tokens[i];
   if (!isWord(token)) return null;
   const w = token.w;
+  const next = tokens[i + 1]?.w;
   if (NESCAFE.has(w)) {
     const length = dolceGustoLength(tokens, i + 1);
     return length ? { name: "dolce-gusto", length: length + 1 } : null;
   }
   const dolceGusto = dolceGustoLength(tokens, i);
   if (dolceGusto) return { name: "dolce-gusto", length: dolceGusto };
-  if (w === "nespresso" || w === "неспресо") return { name: "nespresso", length: 1 };
+  if (NESPRESSO.has(w)) return { name: "nespresso", length: 1 };
   if (w === "neo" || w === "нео" || w.startsWith("neo-") || w.startsWith("нео-")) {
     return { name: "neo", length: 1 };
   }
   if (w.startsWith("vertuo") || w.startsWith("вертуо")) return { name: "vertuo", length: 1 };
   if (K_FEE.has(w)) return { name: "k-fee", length: 1 };
-  if (w === "k" && tokens[i + 1]?.w === "fee") return { name: "k-fee", length: 2 };
-  if (w === "cafissimo" || w === "кафисимо") return { name: "cafissimo", length: 1 };
-  if (w === "tchibo" || w === "чибо") return { name: "tchibo", length: 1 };
+  if ((w === "k" && next === "fee") || (w === "кей" && next === "фий")) {
+    return { name: "k-fee", length: 2 };
+  }
+  if (CAFISSIMO.has(w)) return { name: "cafissimo", length: 1 };
+  if (TCHIBO.has(w)) return { name: "tchibo", length: 1 };
   return null;
 }
 
@@ -292,6 +346,30 @@ function continuesRun(tokens: readonly Token[], i: number): boolean {
     MODIFIER.test(token.w) ||
     isLatin(token)
   );
+}
+
+/**
+ * Whether the stretch after a comma, colon or dash — up to the next one —
+ * has a verb of its own: a fit word, a negation, a contrast, or an object
+ * pronoun („K-fee обаче ги приема“). Then it is a clause, not a list item.
+ */
+function opensAClause(tokens: readonly Token[], from: number): boolean {
+  for (let k = from; k < tokens.length; k += 1) {
+    const token = tokens[k] as Token;
+    if (token.punct) {
+      if (token.w === "(" || token.w === ")") continue;
+      return false;
+    }
+    if (
+      FIT.test(token.w) ||
+      NEGATION.has(token.w) ||
+      CONTRAST.has(token.w) ||
+      OBJECT_PRONOUN.has(token.w)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* --- Reading a sentence ----------------------------------------------------- */
@@ -326,11 +404,28 @@ function readRuns(tokens: readonly Token[]): { mentions: Mention[]; machines: Ma
   const outer: Run[] = [];
   let run = NO_RUN;
   let runs = 0;
+  /** The last fit word of the clause, for a label that follows a machine word. */
+  let lastFitAt: number | null = null;
+  /**
+   * An exclusion by „без“, „освен“ or „извън“ governs only its own noun
+   * phrase: „Работят без Nespresso adapter в K-fee“ affirms K-fee again, and
+   * „освен на машините Caffitaly и на K-fee“ means "besides".
+   */
+  let excluding: { before: Run; besides: boolean; words: number } | null = null;
   const open = (polarity: Polarity, fitAt: number | null): Run => ({
     polarity,
     fitAt,
     id: (runs += 1),
   });
+  const set = (next: Run) => {
+    run = next;
+    excluding = null;
+  };
+  const endClause = () => {
+    set(NO_RUN);
+    outer.length = 0;
+    lastFitAt = null;
+  };
 
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i] as Token;
@@ -338,14 +433,34 @@ function readRuns(tokens: readonly Token[]): { mentions: Mention[]; machines: Ma
       if (token.w === "(") {
         // A parenthesis says its own thing: „(не NEO)“, „(NEO не е съвместима)“.
         outer.push(run);
-        run = NO_RUN;
-      } else if (token.w === ")") run = outer.pop() ?? NO_RUN;
-      else if (token.w !== ",") {
-        // „;“, „:“ and a dash end the clause, and whatever ran in it.
-        run = NO_RUN;
-        outer.length = 0;
+        set(NO_RUN);
+      } else if (token.w === ")") {
+        set(outer.pop() ?? NO_RUN);
+      } else if (token.w === ",") {
+        if (opensAClause(tokens, i + 1)) set(NO_RUN);
+      } else if (token.w === ":" || token.w === "—") {
+        // „Съвместимост: Dolce Gusto“, „Съвместими машини: …“, „съвместими — Nespresso“.
+        const before = tokens[i - 1];
+        const label =
+          !opensAClause(tokens, i + 1) &&
+          (isFit(before) || (isMachine(before) && lastFitAt !== null));
+        if (!label) endClause();
+        else if (run.polarity === "none") set(open("affirm", lastFitAt));
+      } else {
+        endClause();
       }
       continue;
+    }
+
+    const w = token.w;
+    if (excluding) {
+      const besides = excluding.besides;
+      if (besides && w === "и" && PREPOSITION.has(tokens[i + 1]?.w ?? "")) {
+        set(open("affirm", null));
+        continue;
+      }
+      if (!besides && PREPOSITION.has(w) && excluding.words > 0) set(excluding.before);
+      else excluding.words += 1;
     }
 
     const named = nameAt(tokens, i);
@@ -355,32 +470,30 @@ function readRuns(tokens: readonly Token[]): { mentions: Mention[]; machines: Ma
       continue;
     }
 
-    const w = token.w;
     if (NEGATION.has(w)) {
       let j = i + 1;
       while (isWord(tokens[j]) && NEGATION_FILLER.has((tokens[j] as Token).w)) j += 1;
       const next = tokens[j];
       if (isWord(next) && (next.w === "само" || next.w === "единствено")) {
         // „Не само за Caffitaly“: not only - so also.
-        if (run.polarity !== "affirm") run = open("affirm", null);
+        if (run.polarity !== "affirm") set(open("affirm", null));
         i = j;
       } else if (isFit(next)) {
-        run = open("negate", null);
+        set(open("negate", null));
         i = j;
       } else if (
         isWord(next) &&
         (PREPOSITION.has(next.w) ||
           QUANTIFIER.has(next.w) ||
           MACHINE.test(next.w) ||
-          MODIFIER.test(next.w) ||
           nameAt(tokens, j) !== null)
       ) {
-        // „не с Vertuo“, „(не NEO)“, „не за класическите…“
-        run = open("negate", null);
+        // „не с Vertuo“, „(не NEO)“, „не за машините…“
+        set(open("negate", null));
         i = j - 1;
       } else {
-        // A negated verb about something else („не горчат“, „не прави“).
-        run = NO_RUN;
+        // A negated word about something else („не горчат“, „не са оригинални“).
+        set(NO_RUN);
       }
       continue;
     }
@@ -389,27 +502,30 @@ function readRuns(tokens: readonly Token[]): { mentions: Mention[]; machines: Ma
       (w === "с" && tokens[i + 1]?.w === "изключение") ||
       (w.startsWith("различн") && tokens[i + 1]?.w === "от")
     ) {
-      run = open("negate", null);
+      set(open("negate", null));
       i += 1;
       continue;
     }
     if (EXCLUDING.has(w)) {
-      run = open("negate", null);
+      const before = run;
+      set(open("negate", null));
+      excluding = { before, besides: w === "освен", words: 0 };
       continue;
     }
     if (CONTRAST.has(w)) {
-      run = NO_RUN;
+      set(NO_RUN);
       continue;
     }
     if (FIT.test(w)) {
-      run = open("affirm", token.start);
+      set(open("affirm", token.start));
+      lastFitAt = token.start;
       continue;
     }
     if (MACHINE.test(w)) {
       machines.push({ index: i, run });
       continue;
     }
-    if (!continuesRun(tokens, i)) run = NO_RUN;
+    if (!continuesRun(tokens, i)) set(NO_RUN);
   }
   return { mentions, machines };
 }
@@ -422,16 +538,26 @@ const LOOKAHEAD_TOKENS = 30;
 /** „не ги приема“, „няма да влязат“, „не е съвместима“, and what follows it. */
 const FIT_DENIED =
   /(?<![\p{L}\p{N}])(?:не|нито|няма\s+да)\s+(?:(?:са|е|се|ги|го|ще|могат|може|бива|би|биха|и|да|я|им|също|вече)\s+){0,3}(?:съвместим|пас|влиз|влез|вляз|став|стан|работ|прием|подходящ|предназначен|годн)\p{L}*([^,.;:]*)/giu;
+/** „…тези капсули не са за тях.“ */
+const NOT_FOR_THEM =
+  /(?<![\p{L}\p{N}])(?:не|нито)\s+(?:са|е)\s+(?:за|в|във)\s+(?:тях|нея|него|тези\s+машини)(?![\p{L}\p{N}])/giu;
 /** „За моделите NEO не са.“ */
 const DENIED_AT_END = /(?<![\p{L}\p{N}])не\s+(?:са|е)\s*(?:[,.;:)]|$)/iu;
-/** „Vertuo приема само собствените си капсули“, „NEO работи с хартиени дози“. */
+/**
+ * „Vertuo приема само собствените си капсули“, „NEO работи с хартиени дози“,
+ * „Vertuo използва други капсули“. Its own capsules exclude ours only with
+ * „само“: „приема собствените си капсули и тези“ does not.
+ */
 const TAKES_ITS_OWN =
-  /(?<![\p{L}\p{N}])(?:приема|приемат|работи|работят|използва|използват|ползва|ползват)\s+(?:(?:само|единствено|с|със)\s+){0,2}(?:собствен|сво[иья]|нейн|негов|друг|хартиен|капсулите\s+на|капсули\s+(?:vertuo|neo|k-fee|tchibo))/iu;
+  /(?<![\p{L}\p{N}])(?:приема|приемат|работи|работят|използва|използват|ползва|ползват)\s+(?:(?:с|със)\s+)?(?:(?:само|единствено)\s+(?:(?:с|със)\s+)?(?:собствен|сво[иья]|нейн|негов|капсулите\s+на|капсули\s+(?:vertuo|neo|k-fee|tchibo))|друг|хартиен)\p{L}*/giu;
 /** „K-fee е отделна система“, „…са други системи“, „— собствена система“; not „със собствена система за налягане“. */
 const SYSTEM_APART =
-  /(?:(?<![\p{L}\p{N}])(?:е|са)|[—–,(]|\s-)\s*(?:(?:една|по|също|изцяло)\s+)?(?:отделн|самостоятелн|собствен|друг|несъвместим)\p{L}*\s+(?:[\p{L}-]+\s+)?(?:систем|формат)/iu;
+  /(?:(?<![\p{L}\p{N}])(?:е|са)|[—–,(]|\s-)\s*(?:(?:една|по|също|изцяло)\s+)?(?:отделн|самостоятелн|собствен|друг|несъвместим)\p{L}*\s+(?:[\p{L}-]+\s+)?(?:систем|формат)\p{L}*/giu;
 /** „…няколко несъвместими системи: Dolce Gusto и Dolce Gusto NEO, Nespresso Original и Vertuo“. */
 const SYSTEMS_LISTED = /(?:несъвместим|различн|отделн|друг)\p{L}*\s+систем\p{L}*\s*:$/iu;
+/** „…собствените си капсули и тези“: the machine's own, and others. */
+const AND_OTHERS =
+  /^\s*,?\s*(?:и|или)\s+(?:(?:с|със|на)\s+)?(?:тези|такива|съвместим|друг|чужд|капсул|caffitaly|кафитали)/iu;
 
 /**
  * The rest of a name's clause: through commas and dashes, up to „;“ or „:“,
@@ -457,7 +583,7 @@ function clauseAfter(
   return sentence.slice(from, to);
 }
 
-/** Whether the rest of a sentence names a system other than `name`. */
+/** Whether a text names a system other than `name`. */
 function namesAnother(text: string, name: SystemName): boolean {
   const tokens = tokenize(text);
   return tokens.some((_, i) => {
@@ -466,27 +592,78 @@ function namesAnother(text: string, name: SystemName): boolean {
   });
 }
 
-/** Whether what follows a neutral name excludes it. */
+/**
+ * Whether what follows an exclusion takes it back: a fit word that is not
+ * negated („Машините K-fee, които не стават за лате, приемат тези капсули“),
+ * or a contrast that adds („…, но и с тези капсули“, „…, ала и тези стават“).
+ * Read up to the next system's name: „— Vertuo приема…“ is another subject.
+ */
+function takenBack(text: string): boolean {
+  const tokens = tokenize(text);
+  for (let k = 0; k < tokens.length; k += 1) {
+    const token = tokens[k] as Token;
+    if (token.punct) continue;
+    if (nameAt(tokens, k)) return false;
+    if (CONTRAST.has(token.w) && ["и", "също"].includes(tokens[k + 1]?.w ?? "")) return true;
+    if (FIT.test(token.w)) {
+      let back = k - 1;
+      while (isWord(tokens[back]) && NEGATION_FILLER.has((tokens[back] as Token).w)) back -= 1;
+      if (!NEGATION.has(tokens[back]?.w ?? "")) return true;
+    }
+  }
+  return false;
+}
+
+/** Whether what follows a neutral name excludes it, and does not take it back. */
 function excludedByItsClause(sentence: string, tokens: readonly Token[], m: Mention): boolean {
   const after = clauseAfter(sentence, tokens, m.last, false);
+  const whole = clauseAfter(sentence, tokens, m.last, true);
+  const holds = (text: string, at: number) => !takenBack(text.slice(at));
+
   for (const denial of after.matchAll(FIT_DENIED)) {
+    const rest = denial[1] ?? "";
     // „K-fee, които не пасват на Nespresso“: the denial is about Nespresso.
-    if (!namesAnother(denial[1] ?? "", m.name)) return true;
+    if (namesAnother(rest, m.name)) continue;
+    // „не работи без адаптер“: so with one, it does.
+    if (/^\s*без(?![\p{L}\p{N}])/u.test(rest)) continue;
+    if (holds(after, denial.index + denial[0].length)) return true;
+  }
+  for (const denial of after.matchAll(NOT_FOR_THEM)) {
+    if (holds(after, denial.index + denial[0].length)) return true;
   }
   if (DENIED_AT_END.test(after)) return true;
-  const whole = clauseAfter(sentence, tokens, m.last, true);
-  if (TAKES_ITS_OWN.test(whole) || SYSTEM_APART.test(whole)) return true;
+  for (const own of whole.matchAll(TAKES_ITS_OWN)) {
+    const end = own.index + own[0].length;
+    const object = whole
+      .slice(end)
+      .replace(/^(?:\s+(?:си|и|й|капсули|дози|капсулите|дозите))+/u, "");
+    if (AND_OTHERS.test(object)) continue;
+    if (holds(whole, end)) return true;
+  }
+  for (const apart of whole.matchAll(SYSTEM_APART)) {
+    if (holds(whole, apart.index + apart[0].length)) return true;
+  }
   const before = sentence.slice(0, (tokens[m.first] as Token).start);
   const clauseStart = before.lastIndexOf(";") + 1;
   const colon = before.lastIndexOf(":");
   return colon >= clauseStart && SYSTEMS_LISTED.test(before.slice(clauseStart, colon + 1));
 }
 
-/** „капсули Vertuo“, „хартиени дози NEO“, „капсулите на K-fee“: a capsule, not a machine. */
-function namesACapsule(tokens: readonly Token[], m: Mention): boolean {
+/**
+ * „капсули Vertuo“, „хартиени дози NEO“, „капсулите на K-fee“ — and the next
+ * in that list, „капсулите на K-fee и EXPRESSI“: a capsule, not a machine.
+ */
+function namesACapsule(
+  tokens: readonly Token[],
+  m: Mention,
+  mentions: readonly Mention[],
+): boolean {
   const capsule = (token: Token | undefined) => isWord(token) && /^(?:капсул|доз)/u.test(token.w);
   const before = tokens[m.first - 1];
-  return capsule(before) || (before?.w === "на" && capsule(tokens[m.first - 2]));
+  if (capsule(before) || (before?.w === "на" && capsule(tokens[m.first - 2]))) return true;
+  if (before?.w !== "и" && before?.w !== "или") return false;
+  const previous = mentions.find((other) => other.last === m.first - 2);
+  return previous !== undefined && namesACapsule(tokens, previous, mentions);
 }
 
 /* --- Machine phrases ------------------------------------------------------- */
@@ -545,50 +722,81 @@ function phraseOf(tokens: readonly Token[], m: Mention): Phrase {
   return describePhrase(tokens, modifiersBefore(tokens, m.first - 1), m.first - 1, after);
 }
 
+/** A Tchibo machine: „Tchibo машините“, „машините Tchibo“, „машините на Tchibo“. */
+function tchiboMachine(tokens: readonly Token[], m: Mention): boolean {
+  const before = tokens[m.first - 1];
+  return (
+    isMachine(before) ||
+    isMachine(tokens[m.last + 1]) ||
+    ((before?.w === "на" || before?.w === "от") && isMachine(tokens[m.first - 2]))
+  );
+}
+
 /* --- Tchibo's caveat ------------------------------------------------------- */
 
-const OWN_CAPSULES_SOURCE =
-  "(?:(?:нейн|собствен|сво|негов|оригинал)\\p{L}*(?:\\s+(?:си|и|й))?(?:\\s+[\\p{L}\\p{N}-]+){0,2}\\s+капсул|капсул\\p{L}*\\s+(?:на\\s+)?(?:tchibo|чибо|марката|производителя))";
-const OWN_CAPSULES = new RegExp(`(?<![\\p{L}\\p{N}])${OWN_CAPSULES_SOURCE}`, "u");
-const OWN_CAPSULES_NEXT = new RegExp(`^(?:(?:с|със)\\s+)?${OWN_CAPSULES_SOURCE}`, "u");
-const ONLY = /(?<![\p{L}\p{N}])(?:само|единствено)\s+/gu;
+const OWN_CAPSULES =
+  /(?<![\p{L}\p{N}])(?:(?:нейн|собствен|сво|негов|оригинал)\p{L}*(?:\s+(?:си|и|й))?(?:\s+[\p{L}\p{N}-]+){0,2}\s+капсул\p{L}*|капсул\p{L}*\s+(?:на\s+)?(?:tchibo|чибо|тчибо|марката|производителя))/gu;
+const ONLY = /(?<![\p{L}\p{N}])(?:само|единствено)\s+(?:(?:с|със)\s+)?$/u;
+/** Another maker's capsules within Tchibo's own: „оригинални капсули Caffitaly“. */
+const ANOTHER_MAKER = /caffitaly|кафитали|lavazza|nespresso|dolce|starbucks|kimbo|illy/u;
+/** Who speaks: Tchibo or its machine's maker — not „производителят на капсулите“. */
+const MAKER = /(?<![\p{L}\p{N}])производител\p{L}*\s+(?:на\s+машин|tchibo|чибо|тчибо)/u;
+/** Telling owners: „посочва“, „препоръчва“, „по препоръка на“, „пише в инструкциите“. */
+const SAYS =
+  /^(?:посочва|посочи|препоръчва|препоръча|препоръка|съветва|казва|изисква|предупреждава|настоява|заявява|уточнява|указва|напомня|пише|позиция)/u;
+/** The imperfect: „препоръчваше“, „посочваха“ — what Tchibo used to say („пише“ is not one). */
+const USED_TO = /(?:аше|еше|яше|аха|еха|яха)$/u;
 const WARRANTY = /гаранци/u;
-/** Lost or not covered — not „не губите гаранцията“. */
-const WARRANTY_DENIED =
-  /(?<![\p{L}\p{N}])не\s+(?:се\s+)?(?:поема|поеме|покрива|покрие|важи|признава|признае)|(?<!не\s)(?<![\p{L}\p{N}])(?:губи|загуб|отпада|отпадне|анулир|отказ)\p{L}*/u;
+/** Not covered — „не поема“, „не покрива“, „може да не покрие“; never „не се губи“. */
+const WARRANTY_NOT_COVERED =
+  /(?<![\p{L}\p{N}])не\s+(?:се\s+)?(?:поема|поеме|покрива|покрие|важи)(?![\p{L}\p{N}])/u;
 
 /**
  * Whether a sentence gives Tchibo's word on the Cafissimo, as a statement of
- * its own: Tchibo the company (or the machine's maker) says — „посочва“,
- * „препоръчва“, „съветва“… — that only its own capsules should be used.
- * „Само“ there must govern those capsules: „Tchibo Cafissimo работи само с
- * капсули Caffitaly“ is the claim again, and „Tchibo предлага само капсули за
- * Cafissimo и Qbo“ says nothing of the kind. The warranty counts only as lost
- * or not covered („не поема“, „може да не покрие“) — „не губите гаранцията“
- * is the opposite.
+ * its own: Tchibo the company, or its machine's maker, says — „посочва“,
+ * „препоръчва“, „по препоръка на“, „пише в инструкциите“… — that only its own
+ * capsules should be used, or that the warranty may not cover a repair after
+ * others. „Само“ there governs those capsules („Tchibo Cafissimo работи само с
+ * капсули Caffitaly“ is the claim again); they are Tchibo's, not another
+ * maker's („оригинални капсули Caffitaly“), and nothing is added to them
+ * („оригинални капсули или съвместими като тези“). What Tchibo used to say,
+ * or no longer says, is not its word.
  */
 function givesTchibosWord(sentence: string, tokens: readonly Token[]): boolean {
+  const lower = sentence.toLowerCase();
+  if (/(?<![\p{L}\p{N}])вече\s+не(?![\p{L}\p{N}])/u.test(lower)) return false;
   const company = tokens.some(
     (token, i) =>
-      (token.w === "tchibo" || token.w === "чибо") &&
-      !isMachine(tokens[i - 1]) &&
-      !isMachine(tokens[i + 1]) &&
-      !["cafissimo", "кафисимо", ...TCHIBO_OTHER_LINES].includes(tokens[i + 1]?.w ?? ""),
+      TCHIBO.has(token.w) &&
+      (SAYS.test(tokens[i + 1]?.w ?? "") ||
+        (!isMachine(tokens[i - 1]) &&
+          !isMachine(tokens[i + 1]) &&
+          !CAFISSIMO.has(tokens[i + 1]?.w ?? "") &&
+          !TCHIBO_OTHER_LINES.has(tokens[i + 1]?.w ?? ""))),
   );
-  const maker = tokens.some((token) => token.w.startsWith("производител"));
-  if (!company && !maker) return false;
-  const lower = sentence.toLowerCase();
-  // „Tchibo не поема по гаранция ремонт след чужди капсули“: its own word, as an act.
-  if (WARRANTY.test(lower) && WARRANTY_DENIED.test(lower)) return true;
+  if (!company && !MAKER.test(lower)) return false;
+  if (WARRANTY.test(lower) && WARRANTY_NOT_COVERED.test(lower)) return true;
   const says =
-    tokens.some((token, i) => SAYS.test(token.w) && !NEGATION.has(tokens[i - 1]?.w ?? "")) ||
-    /(?<![\p{L}\p{N}])(?:по думите на|според)\s/iu.test(sentence);
-  if (!says || !OWN_CAPSULES.test(lower)) return false;
-  const onlies = [...lower.matchAll(ONLY)];
-  return (
-    onlies.length === 0 ||
-    onlies.some((only) => OWN_CAPSULES_NEXT.test(lower.slice(only.index + only[0].length)))
-  );
+    tokens.some(
+      (token, i) =>
+        SAYS.test(token.w) && !USED_TO.test(token.w) && !NEGATION.has(tokens[i - 1]?.w ?? ""),
+    ) || /(?<![\p{L}\p{N}])(?:по думите на|според)\s/u.test(lower);
+  if (!says) return false;
+  const onlyUsed = /(?<![\p{L}\p{N}])(?:само|единствено)(?![\p{L}\p{N}])/u.test(lower);
+  for (const own of lower.matchAll(OWN_CAPSULES)) {
+    const end = own.index + own[0].length;
+    const following = lower.slice(end, end + 40).split(/[,.;:]/u)[0] ?? "";
+    if (
+      ANOTHER_MAKER.test(own[0]) ||
+      ANOTHER_MAKER.test(following.split(/\s+/u).slice(0, 3).join(" "))
+    ) {
+      continue;
+    }
+    if (AND_OTHERS.test(lower.slice(end))) continue;
+    if (onlyUsed && !ONLY.test(lower.slice(0, own.index))) continue;
+    return true;
+  }
+  return false;
 }
 
 /* --- The rules ------------------------------------------------------------- */
@@ -656,14 +864,24 @@ function refersToOther(sentence: ReadSentence, m: Mention): boolean {
   return /^(?:vertuo|вертуо|professional)|^pro$/u.test(next.w);
 }
 
-/** „Nespresso Original“, „(Original)“, „(системата Original)“, „от линията Original“. */
-function originalAfter(tokens: readonly Token[], m: Mention): boolean {
+const isOriginal = (token: Token | undefined) =>
+  isWord(token) && (token.w.startsWith("original") || token.w.startsWith("оригинал"));
+
+/**
+ * Original in the name's own noun phrase: „Nespresso Original“, „(Original)“,
+ * „(системата Original)“, „от линията Original“, „Nespresso машини
+ * (Original)“, „Original за Nespresso“.
+ */
+function namesOriginal(tokens: readonly Token[], m: Mention): boolean {
   let k = m.last + 1;
+  if (isMachine(tokens[k])) k += 1;
   if (tokens[k]?.w === "(") k += 1;
   if (tokens[k]?.w === "от") k += 1;
   if (LINK_NOUN.has(tokens[k]?.w ?? "") || tokens[k]?.w === "line") k += 1;
-  const w = tokens[k]?.w ?? "";
-  return w.startsWith("original") || w.startsWith("оригинал");
+  if (isOriginal(tokens[k])) return true;
+  const before = tokens[m.first - 1];
+  if (isOriginal(before)) return true;
+  return (before?.w === "за" || before?.w === "на") && isOriginal(tokens[m.first - 2]);
 }
 
 /**
@@ -684,7 +902,7 @@ export function compatibilityProblems(text: string | readonly string[]): Compati
   const textExcludesVertuo = sentences.some((sentence) => sentence.excludesVertuo);
   const textNamesOriginal = all.some(
     ({ sentence, m }) =>
-      m.name === "nespresso" && m.run.polarity !== "negate" && originalAfter(sentence.tokens, m),
+      m.name === "nespresso" && m.run.polarity !== "negate" && namesOriginal(sentence.tokens, m),
   );
   const problems: CompatibilityProblem[] = [];
   const unqualified: Array<{ rule: CompatibilityRule; phrase: string; sentence: string }> = [];
@@ -702,7 +920,9 @@ export function compatibilityProblems(text: string | readonly string[]): Compati
       if (m.name === "neo" || m.name === "vertuo" || m.name === "k-fee") {
         if (m.name === "neo" && !mentionsDolceGusto) continue;
         if (m.run.polarity === "negate") continue;
-        if (m.run.polarity === "none" && (namesACapsule(tokens, m) || neutralExcluded(m))) continue;
+        if (m.run.polarity === "none") {
+          if (namesACapsule(tokens, m, sentence.mentions) || neutralExcluded(m)) continue;
+        }
         const rule =
           m.name === "neo" ? "dolce-gusto-neo" : m.name === "vertuo" ? "nespresso-vertuo" : "k-fee";
         problems.push(problem(rule, slice(m.first, m.last), s));
@@ -712,10 +932,11 @@ export function compatibilityProblems(text: string | readonly string[]): Compati
       if (m.name === "cafissimo" || m.name === "tchibo") {
         if (m.name === "tchibo") {
           const next = tokens[m.last + 1]?.w ?? "";
-          if (next === "cafissimo" || next === "кафисимо" || TCHIBO_OTHER_LINES.has(next)) continue;
-          const machine = isMachine(tokens[m.first - 1]) || isMachine(tokens[m.last + 1]);
+          if (CAFISSIMO.has(next) || TCHIBO_OTHER_LINES.has(next)) continue;
           // Tchibo the company („Tchibo посочва…“, „капсули на Tchibo“) promises no fit.
-          if (!machine && !(m.run.polarity === "affirm" && m.run.fitAt !== null)) continue;
+          if (!tchiboMachine(tokens, m) && !(m.run.polarity === "affirm" && m.run.fitAt !== null)) {
+            continue;
+          }
         }
         if (m.run.polarity === "negate" || neutralExcluded(m)) continue;
         claims.push({ phrase: slice(m.first, m.last), sentence: s });
@@ -740,7 +961,7 @@ export function compatibilityProblems(text: string | readonly string[]): Compati
             problems.push(problem("nespresso-home", words, s));
             continue;
           }
-          if (originalAfter(tokens, m) || sentence.excludesVertuo) continue;
+          if (namesOriginal(tokens, m) || sentence.excludesVertuo) continue;
           if (phrase.classic && (textNamesOriginal || textExcludesVertuo)) continue;
           problems.push(problem("nespresso-machines", words, s));
         }
@@ -750,7 +971,7 @@ export function compatibilityProblems(text: string | readonly string[]): Compati
       // The system's name, or the reader's own machine: a promise only after a fit word.
       if (m.run.polarity !== "affirm" || m.run.fitAt === null) continue;
       if (dolceGusto ? textExcludesNeo : textNamesOriginal || textExcludesVertuo) continue;
-      if (!dolceGusto && originalAfter(tokens, m)) continue;
+      if (!dolceGusto && namesOriginal(tokens, m)) continue;
       unqualified.push({
         rule: dolceGusto ? "dolce-gusto-unqualified" : "nespresso-unqualified",
         phrase: s.slice(m.run.fitAt, (tokens[m.last] as Token).end),
