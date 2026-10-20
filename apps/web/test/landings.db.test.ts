@@ -22,35 +22,28 @@ import { getListingFacts } from "@/lib/catalog/listing-facts";
 import { parseCatalogQuery } from "@/lib/catalog/filters";
 import { listProducts } from "@/lib/catalog/queries";
 import { BREWING_SYSTEMS } from "@/lib/recommend/systems";
-import { isNoCoffee } from "@/lib/catalog/no-coffee";
+import { coffeeVerdict } from "@/lib/catalog/no-coffee";
 import { FLAVOURED_COFFEE, NO_COFFEE } from "../content/no-coffee";
 import { productCopy } from "../content/product-copy";
 
-/** Every product on sale flagged flavoured, as the no-coffee rule reads it. */
+/** Every product on sale flagged flavoured, with what the audit is keyed by. */
 interface Flagged {
   readonly id: string;
   readonly slug: string;
   readonly slugs: readonly string[];
-  readonly descriptions: readonly string[];
 }
 
 async function flaggedProducts(): Promise<readonly Flagged[]> {
   const { sql, close } = createDatabase({ url: databaseUrl!, max: 1, connectTimeoutSeconds: 3 });
   try {
     const rows = await sql`
-      select id, slug, previous_slugs, description_text, description_text_override,
-             description_html_override
+      select id, slug, previous_slugs
       from products
       where status = 'active' and lower(attributes->>'aromas') = 'yes'`;
     return rows.map((row) => ({
       id: row.id as string,
       slug: row.slug as string,
       slugs: [row.slug as string, ...((row.previous_slugs as string[] | null) ?? [])],
-      descriptions: [
-        row.description_text,
-        row.description_text_override,
-        row.description_html_override,
-      ].filter((text): text is string => typeof text === "string"),
     }));
   } finally {
     await close();
@@ -132,10 +125,12 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
     }
   });
 
-  it("lists as flavoured what the listings' aromas filter finds, less what holds no coffee", async () => {
+  it("lists as flavoured what the listings' aromas filter finds, less what is not audited coffee", async () => {
     const view = await getLanding("flavoured");
     const noCoffee = new Set(
-      (await flaggedProducts()).filter((product) => isNoCoffee(product)).map((p) => p.slug),
+      (await flaggedProducts())
+        .filter((product) => coffeeVerdict(product.slugs) !== "coffee")
+        .map((p) => p.slug),
     );
     for (const system of BREWING_SYSTEMS) {
       const filtered = await listProducts({
@@ -169,23 +164,24 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
    * the page headed „Ароматизирано кафе“, and its flags stay as they are. The
    * audit behind it is `content/no-coffee.ts`.
    */
-  it("audits every flagged product, and lists exactly those the audit found to be coffee", async () => {
+  it("lists exactly the audited coffees on sale: the seventeen, and nothing unread", async () => {
     const flagged = await flaggedProducts();
-    const audited = new Set([...NO_COFFEE, ...FLAVOURED_COFFEE].map((entry) => entry.slug));
-    // A flagged product the audit has not read fails here, before anyone relies on the page.
-    expect(flagged.filter((product) => !product.slugs.some((slug) => audited.has(slug)))).toEqual(
-      [],
-    );
+    // The reference catalog holds no flagged product the audit has not read;
+    // one it did would be held back (below) and raised by the sync-health check.
+    expect(
+      flagged.filter((product) => coffeeVerdict(product.slugs) === "unaudited").map((p) => p.slug),
+    ).toEqual([]);
 
     const view = await getLanding("flavoured");
     const listed = new Set(view.groups.flatMap((group) => group.products.map((p) => p.slug)));
     const coffee = new Set(FLAVOURED_COFFEE.map((entry) => entry.slug));
     // Everything listed is coffee by the audit…
     expect([...listed].filter((slug) => !coffee.has(slug))).toEqual([]);
-    // …and every audited coffee on sale is listed: the guard caught none of them.
+    // …and every audited coffee on sale is listed, whatever its description says.
     const onSale = flagged.filter((product) => coffee.has(product.slug));
     expect(onSale.map((product) => product.slug).filter((slug) => !listed.has(slug))).toEqual([]);
     expect(view.count).toBe(onSale.length);
+    expect(view.count).toBe(FLAVOURED_COFFEE.length);
   });
 
   it("leaves the drinks without coffee off the page, their flags untouched", async () => {
@@ -197,7 +193,7 @@ describe.skipIf(!hasCatalog)("the landing listings, against the catalog", () => 
       const product = flagged.find((candidate) => candidate.slugs.includes(slug));
       // Still flagged flavoured in the catalog: the page leaves it out, not the record.
       expect(product, slug).toBeDefined();
-      expect(isNoCoffee(product!), slug).toBe(true);
+      expect(coffeeVerdict(product!.slugs), slug).toBe("no-coffee");
       expect(listed.has(product!.slug), slug).toBe(false);
       // Out of the sitemap's date and the existence check too, which read the same members.
       expect(availability.members?.flavoured ?? [], slug).not.toContain(product!.id);

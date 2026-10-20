@@ -1,6 +1,6 @@
 import "server-only";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
+import { products, syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 import {
@@ -8,6 +8,9 @@ import {
   SYNC_CONDITION_LABEL,
   evaluateIdentityChanges,
   evaluateSyncHealth,
+  evaluateUnauditedFlavoured,
+  unauditedFlavoured,
+  type FlavouredProductSnapshot,
   type IdentityChangeSnapshot,
   type SyncCondition,
   type SyncRunSnapshot,
@@ -26,7 +29,8 @@ import {
     without reading the table's whole life on every check. */
 const RUNS_READ = 50;
 
-export type AlertOutcome = "sent" | "already_sent_today" | "delivery_failed";
+/** `already_raised`: a held-back flavoured product was named in an earlier mail. */
+export type AlertOutcome = "sent" | "already_sent_today" | "already_raised" | "delivery_failed";
 
 export interface SyncHealthReport {
   checkedAt: string;
@@ -147,6 +151,118 @@ async function release(condition: SyncCondition, day: string): Promise<void> {
     .where(and(eq(syncAlerts.condition, condition), eq(syncAlerts.day, day)));
 }
 
+/* --- Flavoured products nobody has classified ---------------------------- */
+
+/**
+ * The claim key of one held-back product: the condition and the product's
+ * slug, in `sync_alerts.condition`. Kept by product rather than by day, so a
+ * product is mailed about once — the first check that finds it unaudited —
+ * and not every morning until somebody classifies it; a product found later
+ * is a new occurrence and is mailed about in its turn.
+ */
+const unauditedKey = (slug: string): string => `flavoured_unaudited:${slug}`;
+
+/** Every product on sale flagged flavoured, with what the audit and the hint read. */
+async function readFlavoured(): Promise<FlavouredProductSnapshot[]> {
+  const rows = await db
+    .select({
+      slug: products.slug,
+      previousSlugs: products.previousSlugs,
+      name: products.name,
+      descriptionText: products.descriptionText,
+      descriptionTextOverride: products.descriptionTextOverride,
+      descriptionHtmlOverride: products.descriptionHtmlOverride,
+    })
+    .from(products)
+    // The listings' filter's own test, as `isFlavoured` in `lib/catalog/landings.ts`.
+    .where(
+      and(eq(products.status, "active"), sql`lower(${products.attributes}->>'aromas') = 'yes'`),
+    );
+  return rows.map((row) => ({
+    slug: row.slug,
+    previousSlugs: row.previousSlugs ?? [],
+    name: row.name,
+    descriptions: [
+      row.descriptionText,
+      row.descriptionTextOverride,
+      row.descriptionHtmlOverride,
+    ].filter((text): text is string => typeof text === "string" && text.trim() !== ""),
+  }));
+}
+
+/** The held-back products some earlier check already mailed about, on any day. */
+async function raisedBefore(slugs: readonly string[]): Promise<ReadonlySet<string>> {
+  if (slugs.length === 0) return new Set();
+  const rows = await db
+    .select({ condition: syncAlerts.condition })
+    .from(syncAlerts)
+    .where(inArray(syncAlerts.condition, slugs.map(unauditedKey)));
+  return new Set(rows.map((row) => row.condition));
+}
+
+/**
+ * Raise what is new among the held-back products: one mail naming them all,
+ * claimed product by product so two overlapping checks name each once. The
+ * claims are given back when the mail does not go, so the next check tries
+ * again. A failure to read is logged and left out, as the rename read is.
+ */
+async function raiseUnauditedFlavoured(
+  day: string,
+): Promise<{ readonly outcome: AlertOutcome; readonly sent: number } | null> {
+  let held: FlavouredProductSnapshot[];
+  try {
+    held = unauditedFlavoured(await readFlavoured());
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "sync_health.flavoured_read_failed",
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return null;
+  }
+  if (held.length === 0) return null;
+
+  const raised = await raisedBefore(held.map((product) => product.slug));
+  const fresh = held.filter((product) => !raised.has(unauditedKey(product.slug)));
+  if (fresh.length === 0) return { outcome: "already_raised", sent: 0 };
+
+  const claimed = new Set(
+    (
+      await db
+        .insert(syncAlerts)
+        .values(fresh.map((product) => ({ condition: unauditedKey(product.slug), day })))
+        .onConflictDoNothing()
+        .returning({ condition: syncAlerts.condition })
+    ).map((row) => row.condition),
+  );
+  const mine = fresh.filter((product) => claimed.has(unauditedKey(product.slug)));
+  if (mine.length === 0) return { outcome: "already_raised", sent: 0 };
+
+  const finding = evaluateUnauditedFlavoured(mine, {
+    alreadyRaised: held.length - fresh.length,
+  });
+  const { delivered } = await notify({
+    kind: "sync_alert",
+    subject: `Синхронизация: ${SYNC_CONDITION_LABEL.flavoured_unaudited}`,
+    summary: finding!.summary,
+    recordId: `flavoured_unaudited:${day}`,
+  });
+  if (delivered) return { outcome: "sent", sent: 1 };
+
+  await db.delete(syncAlerts).where(
+    and(
+      inArray(
+        syncAlerts.condition,
+        mine.map((product) => unauditedKey(product.slug)),
+      ),
+      eq(syncAlerts.day, day),
+    ),
+  );
+  return { outcome: "delivery_failed", sent: 0 };
+}
+
 export async function runSyncHealthCheck(now: Date = new Date()): Promise<SyncHealthReport> {
   const [runs, identity] = await Promise.all([readRuns(), identityFinding(now)]);
   const findings = [...evaluateSyncHealth(runs, now), ...(identity ? [identity] : [])];
@@ -178,6 +294,12 @@ export async function runSyncHealthCheck(now: Date = new Date()): Promise<SyncHe
       await release(finding.condition, day);
       conditions.push({ condition: finding.condition, outcome: "delivery_failed" });
     }
+  }
+
+  const flavoured = await raiseUnauditedFlavoured(day);
+  if (flavoured) {
+    sent += flavoured.sent;
+    conditions.push({ condition: "flavoured_unaudited", outcome: flavoured.outcome });
   }
 
   return { checkedAt: now.toISOString(), runsRead: runs.length, conditions, sent };

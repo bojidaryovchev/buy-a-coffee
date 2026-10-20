@@ -1,19 +1,24 @@
 /**
- * Which flavoured products hold no coffee, and the evidence for each.
+ * Which flavoured products are coffee and which hold none, with the evidence
+ * for each: the audit the flavoured listing is built on.
  *
  * The flavoured listing (`/bg/aromatizirano-kafe`) is headed „Ароматизирано
- * кафе“, and it lists what the record flags as flavoured (`aromas: yes`). The
- * flag is also on drinks with no coffee in them. On 20 October 2026 the owner
- * decided to keep those products off the page **without changing their flags**:
+ * кафе“, over what the record flags as flavoured (`aromas: yes`). The flag is
+ * also on drinks with no coffee in them. The owner decided on 20 October 2026
+ * that those must not be on the page, and that missing a coffee costs less
+ * than listing a drink that is not one; and that no flag is changed for it —
  * the flags are the supplier's, the listings' „Ароматизирано“ filter reads
- * them, and a matcha latte is flavoured. Two things keep them off
- * (`src/lib/catalog/no-coffee.ts`):
+ * them, and a matcha latte is flavoured.
  *
- *  - `NO_COFFEE`, below: products that hold no coffee, each with what says so;
- *  - a guard for the products added after it: one whose stored description,
- *    the supplier's or ours, says that it holds no coffee („без кафе“, „не
- *    съдържа кафе“, „вместо кафе“…). „Без кофеин“ is not one of them: decaf is
- *    coffee.
+ * So **the page lists only `FLAVOURED_COFFEE`**: products a person has read
+ * and found to be coffee. `NO_COFFEE` is what was found to hold none. A
+ * flagged product in neither list is held back, never listed, and raised by
+ * the sync-health check (`flavoured_unaudited`, `src/lib/sync-health.ts`) with
+ * a note of what its description suggests. To list it, read it and file it
+ * here, in one list or the other, with the words that decide it. Nothing is
+ * decided from a name or a phrase: „Не можете без кафе сутрин?“ is said of
+ * coffee, and a matcha's description need not say „кафе“ at all
+ * (`src/lib/catalog/no-coffee.ts`).
  *
  * **Keyed by the storefront slug**, as `product-copy.ts` is and for its
  * reason. The slug is ours: allocated the first time the sync sees a product
@@ -21,7 +26,8 @@
  * follows the supplier's renames, so an entry keyed by one would be orphaned,
  * silently, by the first rename. A slug changes only when we run
  * `catalog:reslug`, which keeps the old one in `previous_slugs`; the match
- * reads those too, so not even that drops an entry.
+ * reads those too, so not even that drops an entry. A slug in both lists
+ * counts as no coffee.
  *
  * **The audit.** On 20 October 2026 every product then flagged flavoured —
  * twenty — was read: the supplier's description as the snapshot holds it, our
@@ -30,8 +36,6 @@
  * coffee (`NO_COFFEE`); seventeen do (`FLAVOURED_COFFEE`), with the words that
  * say so. Nothing was assumed from a name: a cappuccino, a chocolate and a
  * ginseng blend are coffee because their descriptions say coffee.
- * `test/landings.db.test.ts` fails on a flagged product in neither list, so
- * the next one is read before anyone relies on the page.
  */
 
 export interface CoffeeEvidence {

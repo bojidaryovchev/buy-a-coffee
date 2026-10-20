@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { sourceSites, syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
+import { products, sourceSites, syncAlerts, syncChanges, syncRuns } from "@catalog/db/schema";
 import type { Database } from "@catalog/db";
 import type { Notification } from "@/lib/notifications";
 import type { runSyncHealthCheck } from "@/lib/sync-health-check";
@@ -353,6 +353,115 @@ suite("sync-health check (integration)", () => {
     expect(notification?.kind).toBe("sync_alert");
     expect(notification?.subject).toMatch(/^Синхронизация: /);
     expect(notification?.recordId).toMatch(/^no_recent_success:\d{4}-\d{2}-\d{2}$/);
+  });
+
+  /* --- Flavoured products nobody has classified ------------------------- */
+
+  let serial = 0;
+  async function addProduct(
+    slug: string,
+    over: Partial<typeof products.$inferInsert> = {},
+  ): Promise<void> {
+    serial += 1;
+    await db.insert(products).values({
+      sourceSiteId: siteId,
+      sourceKey: `/p-${serial}/#16pc`,
+      sourceUrl: `https://example.test/p-${serial}/`,
+      sourcePath: `/p-${serial}/`,
+      name: `Капсули ${slug}`,
+      slug,
+      semanticHash: `hash-${serial}`,
+      status: "active",
+      attributes: { aromas: "yes" },
+      ...over,
+    });
+  }
+
+  /** A healthy sync, an audited coffee that says „без кафе“, a drink filed as one, an unflagged pack. */
+  async function flavouredCatalog(): Promise<void> {
+    await healthy();
+    await addRun(1);
+    await addProduct("bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br", {
+      descriptionText: "Не можете без кафе сутрин? Еспресо с лешник.",
+    });
+    await addProduct("rema-caffe-matcha-kapsuli-dolce-gusto-16-br");
+    await addProduct("new-plain-capsules-16", { attributes: { aromas: "no" } });
+  }
+
+  const flavouredMails = () => sent.filter((n) => n.recordId.startsWith("flavoured_unaudited:"));
+
+  it("flavoured_unaudited: names a held-back product once, and never again for it", async () => {
+    await flavouredCatalog();
+    await addProduct("new-hazelnut-latte-16", {
+      descriptionHtmlOverride: "<p>Без&nbsp;кафе: мляко и лешник.</p>",
+    });
+
+    const first = await run();
+    expect(first.conditions).toEqual([{ condition: "flavoured_unaudited", outcome: "sent" }]);
+    expect(first.sent).toBe(1);
+    const [mail] = flavouredMails();
+    expect(mail?.subject).toBe("Синхронизация: ароматизиран продукт за проверка");
+    expect(mail?.summary).toContain("(new-hazelnut-latte-16) — описанието казва „Без кафе“");
+    expect(mail?.summary).toContain("apps/web/content/no-coffee.ts");
+    // Audited either way, or not flagged: not raised, whatever the words say.
+    for (const slug of [
+      "bianchi-hazelnut-aroma-espresso-kapsuli-dolce-gusto-16-br",
+      "rema-caffe-matcha-kapsuli-dolce-gusto-16-br",
+      "new-plain-capsules-16",
+    ]) {
+      expect(mail?.summary, slug).not.toContain(slug);
+    }
+
+    // The same day, and the next: the product is not news any more.
+    const again = await run();
+    expect(again.conditions).toEqual([
+      { condition: "flavoured_unaudited", outcome: "already_raised" },
+    ]);
+    await run(new Date(Date.now() + 24 * 3_600_000));
+    expect(flavouredMails()).toHaveLength(1);
+  });
+
+  it("flavoured_unaudited: a product found later is a new occurrence, mailed on its own", async () => {
+    await flavouredCatalog();
+    await addProduct("new-hazelnut-latte-16");
+    await run();
+    await addProduct("new-caramel-latte-16");
+    // A day later the sync itself is stale too; that is its own condition.
+    const later = await run(new Date(Date.now() + 24 * 3_600_000));
+    expect(later.conditions).toContainEqual({ condition: "flavoured_unaudited", outcome: "sent" });
+    const mails = flavouredMails();
+    expect(mails).toHaveLength(2);
+    expect(mails[1]?.summary).toContain("(new-caramel-latte-16)");
+    expect(mails[1]?.summary).not.toContain("(new-hazelnut-latte-16)");
+    expect(mails[1]?.summary).toContain("Още 1 от предишно известие също чака проверка.");
+  });
+
+  it("flavoured_unaudited: nothing to say while every flagged product is classified", async () => {
+    await flavouredCatalog();
+    const report = await run();
+    expect(report.conditions).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it("flavoured_unaudited: gives the products back when the mail does not go", async () => {
+    await flavouredCatalog();
+    await addProduct("new-hazelnut-latte-16");
+    deliver = false;
+    const failed = await run();
+    expect(failed.conditions).toEqual([
+      { condition: "flavoured_unaudited", outcome: "delivery_failed" },
+    ]);
+    expect(await db.select().from(syncAlerts)).toEqual([]);
+    deliver = true;
+    await run();
+    expect(flavouredMails()).toHaveLength(1);
+  });
+
+  it("flavoured_unaudited: two overlapping checks name a product once", async () => {
+    await flavouredCatalog();
+    await addProduct("new-hazelnut-latte-16");
+    await Promise.all([run(), run(), run()]);
+    expect(flavouredMails()).toHaveLength(1);
   });
 
   describe("the route", () => {

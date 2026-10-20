@@ -606,13 +606,13 @@ already be indexed or bookmarked, and a dead end helps nobody. That page is
 Five pages the search study found demand for and the catalog can fill. None is
 a category the source keeps; each is a rule applied to the products on sale.
 
-| Route                       | Lists                                                                                                                                                                                                                 |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/bg/lavazza-kapsuli`       | Lavazza's capsules, a group per system: the two systems Lavazza makes machines for first, then the ones its capsules only fit                                                                                         |
-| `/bg/kafe-na-zarna-lavazza` | Lavazza's products filed under coffee beans                                                                                                                                                                           |
-| `/bg/bezkofeinovo-kafe`     | every product whose record says decaf (`attributes.decaf = 'yes'`), a group per system. A name is never read                                                                                                          |
-| `/bg/nay-evtino-na-chasha`  | per system, the `CHEAPEST_PER_SYSTEM` products with the lowest price per cup among those that can be ordered and have the figure                                                                                      |
-| `/bg/aromatizirano-kafe`    | every product whose record says flavoured (`lower(attributes->>'aromas') = 'yes'`, the filter's test) and that holds coffee (`content/no-coffee.ts`, `lib/catalog/no-coffee.ts`; flags untouched), a group per system |
+| Route                       | Lists                                                                                                                                                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/bg/lavazza-kapsuli`       | Lavazza's capsules, a group per system: the two systems Lavazza makes machines for first, then the ones its capsules only fit                                                                                                                |
+| `/bg/kafe-na-zarna-lavazza` | Lavazza's products filed under coffee beans                                                                                                                                                                                                  |
+| `/bg/bezkofeinovo-kafe`     | every product whose record says decaf (`attributes.decaf = 'yes'`), a group per system. A name is never read                                                                                                                                 |
+| `/bg/nay-evtino-na-chasha`  | per system, the `CHEAPEST_PER_SYSTEM` products with the lowest price per cup among those that can be ordered and have the figure                                                                                                             |
+| `/bg/aromatizirano-kafe`    | every product whose record says flavoured (`lower(attributes->>'aromas') = 'yes'`, the filter's test) and that the audit files as coffee (`content/no-coffee.ts`; flags untouched; anything unread held back and raised), a group per system |
 
 | Module                                                                               | Responsibility                                                                                |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -1235,7 +1235,13 @@ route does not exist ([`lib/cron-auth.ts`](../apps/web/src/lib/cron-auth.ts)).
   carrying the catalog, parser confidence below 0.9, image failures. Each
   condition alerts at most once per UTC day, through `notify()` with kind
   `sync_alert`, claimed in `sync_alerts`. Runs written by `catalog:link` are
-  bookkeeping, not syncs, and are ignored.
+  bookkeeping, not syncs, and are ignored. Two conditions are about what the
+  sync brought: a product it renamed under the same address
+  (`identity_changed`), and a product flagged flavoured that nobody has filed
+  as coffee or as not coffee in `content/no-coffee.ts`
+  (`flavoured_unaudited`). The flavoured page holds such a product back; the
+  alert names it, with what its description suggests, once per product — the
+  claim is the condition and the slug, on whatever day it was first sent.
 - **`/api/cron/retention`** (03:40 UTC). See [the mailbox](#the-mailbox). The
   response carries counts and nothing else.
 - **`/api/cron/newsletter`** (07:00 UTC). The monthly draft in the first week
