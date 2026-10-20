@@ -100,7 +100,7 @@ export const SYNC_CONDITION_LABEL: Record<SyncCondition, string> = {
   source_fallback: "каталогът идва от резервния източник",
   low_confidence: "ниска сигурност на разчитането",
   image_failed: "снимки, които не са свалени",
-  duplicate_key_conflict: "неразличими продукти под един адрес",
+  duplicate_key_conflict: "продукти под един адрес за проверка",
   identity_changed: "продукт със сменено име",
 };
 
@@ -131,11 +131,30 @@ export interface KeyCollisionNote {
 /** How many collisions the summary names before it only counts. */
 const COLLISIONS_NAMED = 5;
 
+/**
+ * How far back the collision check looks: one day, the daily check's own
+ * interval, as for renames (`IDENTITY_WINDOW_MS` in `sync-health-check.ts`).
+ * Measured from when a run finished, so a run still going when one check
+ * reads is in the next check's day, not in neither.
+ */
+export const COLLISION_WINDOW_MS = 24 * HOUR_MS;
+
 /** The sync's reasons, in words. An unknown reason is shown as it is. */
 const COLLISION_REASON: Readonly<Record<string, string>> = {
   indistinguishable:
-    "записи с еднакво име и код, но различна цена или наличност; показан е първият",
-  unmatched: "наш продукт вече не е сред изброените там, а се появи нов; преименуван или подменен",
+    "записи с едно име и код, но различно съдържание; показан е първият, а поправка може да направи само източникът",
+  unmatched: "наш продукт вече не е сред изброените там, а се появи нов: преименуван или подменен",
+};
+
+/** What a person can do about each reason. */
+const COLLISION_ADVICE: Readonly<Record<string, string>> = {
+  unmatched:
+    "Ако изчезналият и новият продукт са един и същ, свържете ги: " +
+    "pnpm catalog:link <стария slug> <новия ключ> --absorb-twin --apply " +
+    "(новият ред се изтрива, а старият поема новия ключ и запазва адреса си). " +
+    "Ако са различни продукти, нищо не правете: старият се премахва сам след три синхронизации.",
+  indistinguishable:
+    "За неразличимите записи няма какво да се свързва: само източникът може да ги раздели.",
 };
 
 /**
@@ -161,6 +180,66 @@ export function unresolvedKeyCollisions(run: SyncRunSnapshot): KeyCollisionNote[
 }
 
 /**
+ * The unresolved collisions that appeared in the last day, each once.
+ *
+ * The sync runs four times a day and the alarm checks once, so a condition
+ * judged on the latest run alone would miss what three runs in four record —
+ * and an `unmatched` collision is recorded only by the run in which the
+ * product vanished. So every real run that finished within the window is read,
+ * as the rename check reads every rename of the day.
+ *
+ * And each collision is named only when it is new: when the run before it,
+ * the previous real run that recorded collisions at all, did not already have
+ * that key with that reason. An `indistinguishable` pair the source goes on
+ * listing is then mailed the day it appears, not every day after, since only
+ * the source can fix it; a run that failed before recording anything says
+ * nothing either way and is skipped over.
+ */
+export function newKeyCollisions(
+  runs: readonly SyncRunSnapshot[],
+  now: Date,
+  windowMs: number = COLLISION_WINDOW_MS,
+): KeyCollisionNote[] {
+  const recorded = runs
+    .filter(
+      (run) =>
+        !run.dryRun &&
+        isFinished(run) &&
+        !isManualLinkRun(run) &&
+        Array.isArray(run.metadata?.keyCollisions),
+    )
+    .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  const since = now.getTime() - windowMs;
+  const id = (sourceKey: string, reason: string): string => JSON.stringify([sourceKey, reason]);
+  const seen = (run: SyncRunSnapshot | undefined): Set<string> =>
+    new Set(
+      run
+        ? unresolvedKeyCollisions(run).flatMap((note) =>
+            note.unresolved.map((reason) => id(note.sourceKey, reason)),
+          )
+        : [],
+    );
+
+  const fresh = new Map<string, Set<string>>();
+  recorded.forEach((run, index) => {
+    if (finishedAt(run).getTime() < since) return;
+    const before = seen(recorded[index + 1]);
+    for (const note of unresolvedKeyCollisions(run)) {
+      for (const reason of note.unresolved) {
+        if (before.has(id(note.sourceKey, reason))) continue;
+        const reasons = fresh.get(note.sourceKey) ?? new Set<string>();
+        reasons.add(reason);
+        fresh.set(note.sourceKey, reasons);
+      }
+    }
+  });
+  return [...fresh.entries()].map(([sourceKey, reasons]) => ({
+    sourceKey,
+    unresolved: [...reasons],
+  }));
+}
+
+/**
  * The conditions that hold right now, in a fixed order, each at most once.
  *
  * Dry runs are ignored throughout: they write nothing, are started by a person,
@@ -172,6 +251,9 @@ export function unresolvedKeyCollisions(run: SyncRunSnapshot): KeyCollisionNote[
  *
  * An empty history is `no_recent_success`: a catalog that has never been
  * synchronised is exactly as stale as one that stopped.
+ *
+ * Every condition judges the latest real run but one: `duplicate_key_conflict`
+ * reads the day's runs (`newKeyCollisions`).
  */
 export function evaluateSyncHealth(
   runs: readonly SyncRunSnapshot[],
@@ -243,7 +325,7 @@ export function evaluateSyncHealth(
     );
   }
 
-  const collisions = unresolvedKeyCollisions(latest);
+  const collisions = newKeyCollisions(real, now);
   if (collisions.length > 0) {
     const named = collisions
       .slice(0, COLLISIONS_NAMED)
@@ -253,11 +335,15 @@ export function evaluateSyncHealth(
       })
       .join("; ");
     const rest = collisions.length - COLLISIONS_NAMED;
+    const reasons = new Set(collisions.flatMap((collision) => collision.unresolved));
+    const advice = Object.entries(COLLISION_ADVICE)
+      .filter(([reason]) => reasons.has(reason))
+      .map(([, text]) => ` ${text}`)
+      .join("");
     add(
       "duplicate_key_conflict",
-      `Източникът изброява различни продукти под един адрес и размер и синхронизацията не ги ` +
-        `различи: ${named}${rest > 0 ? ` и още ${rest}` : ""}. Нищо не е налучкано; проверете ` +
-        "ги и при нужда ги свържете ръчно (catalog:link).",
+      "Под един адрес и размер при източника синхронизацията не можа сама да подреди продуктите: " +
+        `${named}${rest > 0 ? ` и още ${rest}` : ""}. Нищо не е налучкано.${advice}`,
     );
   }
 

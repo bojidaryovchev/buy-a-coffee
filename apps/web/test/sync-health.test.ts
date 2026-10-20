@@ -6,6 +6,7 @@ import {
   evaluateSyncHealth,
   type SyncCondition,
   type SyncRunSnapshot,
+  newKeyCollisions,
   unresolvedKeyCollisions,
 } from "@/lib/sync-health";
 
@@ -201,6 +202,8 @@ describe("evaluateSyncHealth", () => {
     });
     const withCollisions = (h: number, keyCollisions: unknown) =>
       run(h, { metadata: { keyCollisions } });
+    /** A clean run, as the sync records one: it settled every collision it met. */
+    const clean = (h: number) => withCollisions(h, []);
 
     it("is raised for a collision the sync could not settle, naming the key and the reason", () => {
       const findings = evaluateSyncHealth(
@@ -209,26 +212,77 @@ describe("evaluateSyncHealth", () => {
       );
       expect(findings.map((f) => f.condition)).toEqual(["duplicate_key_conflict"]);
       expect(findings[0]?.summary).toContain(PLAIN);
-      expect(findings[0]?.summary).toContain("различна цена или наличност");
+      expect(findings[0]?.summary).toContain("различно съдържание");
       expect(SYNC_CONDITIONS).toContain("duplicate_key_conflict");
     });
 
-    it("names a stored product that matched none of the records", () => {
-      const [finding] = evaluateSyncHealth([withCollisions(1, [collision(["unmatched"])])], NOW);
-      expect(finding?.summary).toContain("преименуван или подменен");
+    it("says what to do: link a rename with --absorb-twin, or leave it to the source", () => {
+      const [unmatched] = evaluateSyncHealth([withCollisions(1, [collision(["unmatched"])])], NOW);
+      expect(unmatched?.summary).toContain("преименуван или подменен");
+      expect(unmatched?.summary).toContain("pnpm catalog:link");
+      expect(unmatched?.summary).toContain("--absorb-twin --apply");
+      expect(unmatched?.summary).not.toContain("само източникът може да ги раздели");
+
+      const [indistinguishable] = evaluateSyncHealth(
+        [withCollisions(1, [collision(["indistinguishable"])])],
+        NOW,
+      );
+      expect(indistinguishable?.summary).toContain("само източникът може да ги раздели");
+      expect(indistinguishable?.summary).not.toContain("catalog:link");
     });
 
     it("is not raised for a collision the sync settled itself: both products kept", () => {
       expect(conditions([withCollisions(1, [collision([])])])).toEqual([]);
     });
 
-    it("judges the latest run only, like the other run conditions", () => {
-      expect(conditions([run(1), withCollisions(7, [collision(["indistinguishable"])])])).toEqual(
-        [],
-      );
-      expect(conditions([withCollisions(1, [collision(["indistinguishable"])]), run(7)])).toEqual([
+    /* H2: four syncs a day, one check. */
+    it("reads every run of the last day, not only the latest", () => {
+      const day = [clean(1), clean(7), withCollisions(13, [collision(["unmatched"])]), clean(19)];
+      expect(conditions(day)).toEqual(["duplicate_key_conflict"]);
+      // The run that recorded it, and only it, is named.
+      expect(newKeyCollisions(day, NOW)).toEqual([{ sourceKey: PLAIN, unresolved: ["unmatched"] }]);
+    });
+
+    it("measures the day from when a run finished, so a run is in exactly one check's day", () => {
+      // Started 24.05 h ago, finished 23.95 h ago: today's.
+      expect(conditions([clean(1), withCollisions(24.05, [collision(["unmatched"])])])).toEqual([
         "duplicate_key_conflict",
       ]);
+      // Finished 24.1 h ago: yesterday's check named it.
+      expect(conditions([clean(1), withCollisions(24.2, [collision(["unmatched"])])])).toEqual([]);
+    });
+
+    /* L6: what only the source can fix is mailed once, when it appears. */
+    it("names a collision once: not again while the source goes on listing it", () => {
+      const ongoing = (h: number) => withCollisions(h, [collision(["indistinguishable"])]);
+      // It appeared yesterday, and every run since has it: nothing new today.
+      expect(conditions([ongoing(1), ongoing(7), ongoing(13), ongoing(19), ongoing(25)])).toEqual(
+        [],
+      );
+      // It appeared today: named.
+      expect(conditions([ongoing(1), ongoing(7), clean(13), clean(19)])).toEqual([
+        "duplicate_key_conflict",
+      ]);
+      // It went away and came back: named again.
+      expect(conditions([ongoing(1), clean(7), ongoing(25)])).toEqual(["duplicate_key_conflict"]);
+    });
+
+    it("tells a new reason at a known key from the old one", () => {
+      const runs = [
+        withCollisions(1, [collision(["indistinguishable", "unmatched"])]),
+        withCollisions(30, [collision(["indistinguishable"])]),
+      ];
+      expect(newKeyCollisions(runs, NOW)).toEqual([
+        { sourceKey: PLAIN, unresolved: ["unmatched"] },
+      ]);
+    });
+
+    it("compares with the last run that recorded collisions, past a run that failed first", () => {
+      const ongoing = (h: number) => withCollisions(h, [collision(["indistinguishable"])]);
+      const failed = run(7, { status: "failed", metadata: {} });
+      expect(conditions([ongoing(1), failed, ongoing(30)])).toEqual([]);
+      // The first run that ever recorded collisions has nothing before it: new.
+      expect(conditions([ongoing(1), run(30)])).toEqual(["duplicate_key_conflict"]);
     });
 
     it("ignores a dry run, however recent", () => {

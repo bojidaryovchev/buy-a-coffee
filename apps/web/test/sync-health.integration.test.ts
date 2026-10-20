@@ -266,6 +266,33 @@ suite("sync-health check (integration)", () => {
     expect(sent[0]?.summary).toContain("/moreno-super-bar-1/#1000g");
   });
 
+  it("mails what any of the day's four syncs recorded, once (H2)", async () => {
+    await addRun(19, { metadata: keyCollisions([]) });
+    await addRun(13, { metadata: keyCollisions(["unmatched"]) });
+    await addRun(7, { metadata: keyCollisions([]) });
+    await addRun(1, { metadata: keyCollisions([]) });
+
+    const first = await run();
+    expect(first.conditions).toEqual([{ condition: "duplicate_key_conflict", outcome: "sent" }]);
+    expect(sent[0]?.summary).toContain("--absorb-twin");
+
+    const second = await run();
+    expect(second.conditions).toEqual([
+      { condition: "duplicate_key_conflict", outcome: "already_sent_today" },
+    ]);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("does not mail again the next day what the source goes on listing (L6)", async () => {
+    // Appeared 30 h ago, yesterday's check named it, and every run since has it.
+    for (const h of [30, 25, 19, 13, 7, 1]) {
+      await addRun(h, { metadata: keyCollisions(["indistinguishable"]) });
+    }
+    const report = await run();
+    expect(report.conditions).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
   it("ignores dry runs", async () => {
     await healthy();
     await addRun(1, { status: "failed", dryRun: true });
