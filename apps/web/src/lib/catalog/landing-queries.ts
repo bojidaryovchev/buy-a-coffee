@@ -135,6 +135,7 @@ async function withCards(chosen: LandingSelection): Promise<LandingView> {
       key: group.key,
       system: group.system,
       poolSize: group.poolSize,
+      lowestPerKg: group.lowestPerKg,
       products: group.items
         .map((item) => cards.get(item.id))
         .filter((card): card is ProductCardView => card !== undefined),

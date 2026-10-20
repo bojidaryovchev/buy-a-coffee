@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Breadcrumbs, ButtonLink } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -13,7 +14,7 @@ import { listProducts } from "@/lib/catalog/queries";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
-import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPage, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { breadcrumbJsonLd, listingBreadcrumbs } from "@/lib/seo/json-ld";
 import {
   CALLBACK_SENTENCE,
@@ -83,6 +84,8 @@ export default async function PromotionsPage({ params, searchParams }: PageProps
   const path = href(locale, routes.promotions);
   const query = parseCatalogQuery(await searchParams);
   const result = await listProducts({ query, promotionsOnly: true });
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (isPastLastPage(result)) notFound();
   /*
    * With nothing reduced there is nothing for the lead to describe, and "all
    * of this is reduced" above an empty state would be a sentence about no

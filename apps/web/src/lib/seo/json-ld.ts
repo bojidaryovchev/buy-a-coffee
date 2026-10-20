@@ -234,6 +234,11 @@ function shippingDetails(
  * when the shop has said who pays for the return and left out — not defaulted
  * — when it has not. A fixed return-shipping fee is not something the config
  * can express, so `ReturnShippingFees` is never emitted.
+ *
+ * `returnMethod` is by mail, always: the shop has no counter or kiosk, and a
+ * return is the customer sending the goods back (`withdrawalSection` in
+ * `content/legal.ts`: "докато не представите доказателство, че сте я
+ * изпратили").
  */
 function merchantReturnPolicy(
   commerce: CommerceConfig,
@@ -254,6 +259,7 @@ function merchantReturnPolicy(
     applicableCountry: "BG",
     returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
     merchantReturnDays: days,
+    returnMethod: "https://schema.org/ReturnByMail",
     ...(fees ? { returnFees: fees } : {}),
     merchantReturnLink: absoluteUrl(href(locale, routes.delivery)),
   };
@@ -341,11 +347,11 @@ export function productWeight(pack: ProductDetailView["pack"]): Record<string, u
  * What the offer says about availability.
  *
  * An active product says what the record says. One that is not active is not
- * on sale, and its page says so ("Този продукт вече не се предлага"), so its
- * structured data must not say `InStock` behind it: a product the sync has
- * lost track of for now (`missing`) is `OutOfStock`; one taken off the
- * catalog (`removed`) is `Discontinued`. Both pages are `noindex`; this is
- * for every other reader of the markup.
+ * on sale, and its page says so, so its structured data must not say
+ * `InStock` behind it: a product the sync has lost track of for now
+ * (`missing`, "Временно недостъпен") is `OutOfStock` on a page that stays
+ * indexed; one taken off the catalog (`removed`) is `Discontinued` on a
+ * `noindex` page (`lib/catalog/product-status.ts`).
  */
 export function offerAvailability(
   product: Pick<ProductDetailView, "status" | "availability">,

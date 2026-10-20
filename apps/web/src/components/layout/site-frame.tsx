@@ -42,6 +42,7 @@ export async function loadNavigation(locale: Locale, dict: Dictionary): Promise<
     listingName: categoryNameFor,
     // A link to a page that has only ever been empty is worse than no link.
     hasPromotions: promotionCount > 0,
+    // Whether consumables lists anything is read from the same tree: no query.
   });
 }
 

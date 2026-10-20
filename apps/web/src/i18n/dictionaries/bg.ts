@@ -122,6 +122,11 @@ export const bg = {
     /** The two listings cut across every system; shown only while they list something. */
     decaf: "Безкофеиново кафе",
     cheapestPerCup: "Най-евтино на чаша",
+    /* The brand × format and machine pages with measured demand, under the
+       anchors every other page gives them (`relatedCopy` in landing-copy). */
+    lavazzaCapsules: "Капсули Lavazza",
+    lavazzaBeans: "Кафе на зърна Lavazza",
+    tchibo: "Капсули за Tchibo Cafissimo",
     terms: "Общи условия",
     privacy: "Поверителност",
     cookies: "Бисквитки",

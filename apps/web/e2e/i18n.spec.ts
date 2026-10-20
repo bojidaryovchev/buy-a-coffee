@@ -19,12 +19,13 @@ const locationOf = (response: Awaited<ReturnType<APIRequestContext["get"]>>) => 
 };
 
 test.describe("the bare /", () => {
-  test("resolves to Bulgarian, temporarily, by Accept-Language and nothing else", async ({
+  // Permanent while Bulgarian is the only locale: every visitor gets the same answer.
+  test("resolves to Bulgarian, permanently, by Accept-Language and nothing else", async ({
     request,
   }) => {
     for (const language of ["bg-BG,bg;q=0.9", "en-GB,en;q=0.8", "de-DE"]) {
       const response = await raw(request, "/", { "accept-language": language });
-      expect(response.status(), language).toBe(307);
+      expect(response.status(), language).toBe(308);
       expect(locationOf(response)).toBe(BG.home);
       expect(response.headers()["vary"]).toMatch(/Accept-Language/i);
       // The Cookies page promises the shop sets none; the language is no exception.
@@ -55,7 +56,8 @@ test.describe("the pre-locale URLs", () => {
       ["/cookies", BG.cookies],
       ["/journal", BG.journal],
       ["/wizard", BG.wizard],
-      ["/wizard/result", BG.wizardResult],
+      // Without answers, straight to the wizard rather than via the result page.
+      ["/wizard/result", BG.wizard],
       ["/wizard/machines", BG.machines],
       ["/wizard/machines/krups", BG.machineBrand("krups")],
       ["/newsletter/unsubscribe", BG.unsubscribe],
@@ -466,29 +468,69 @@ test.describe("the head of every page", () => {
   });
 
   /*
-   * Page two of a clean listing is not one to rank, but it is the only page
-   * that links what page one has no room for: `noindex, follow`, canonical to
-   * itself (not to page one, which would contradict the noindex), and titled
-   * as page two so it is not a duplicate of page one (`lib/seo/pagination.ts`).
+   * Page two of a clean listing is the only page that links what page one has
+   * no room for, so it is indexed — `noindex` there left products linked from
+   * nowhere a search engine keeps following. It is canonical to itself and
+   * titled as page two, so it is not a duplicate of page one
+   * (`lib/seo/pagination.ts`).
    */
-  test("page two of a listing is noindex, follow, names itself and says which page it is", async ({
+  test("page two of a listing is index, follow, names itself and says which page it is", async ({
     page,
   }) => {
-    for (const listing of [BG.capsules, BG.brand("lavazza")]) {
+    /* Listings long enough for a page two in the reference catalog. A page past
+       the last is a 404 now, so the listing must really have one: page one
+       links it. */
+    for (const listing of [BG.capsules, BG.brand("lollo-caffe")]) {
       await page.goto(listing);
       const firstTitle = await page.title();
       const view = `${listing}?page=2`;
+      await expect(page.locator(`main a[href="${view}"]`).first(), listing).toBeAttached();
       await page.goto(view);
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-        "content",
-        "noindex, follow",
-      );
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
       const canonical = new URL((await canonicalOf(page))!);
       expect(canonical.pathname + canonical.search, view).toBe(view);
       expect(await meta(page, 'property="og:url"'), view).toBe(canonical.href);
       expect(await page.title(), view).toContain("— страница 2");
       expect(await page.title(), view).not.toBe(firstTitle);
     }
+  });
+
+  test("a filtered or sorted later page stays noindex", async ({ page }) => {
+    for (const view of [
+      `${BG.capsules}?page=2&sort=price-asc`,
+      `${BG.capsules}?page=2&brand=lavazza`,
+    ]) {
+      const response = await page.goto(view);
+      if (response?.status() === 404) continue; // A filter with one page has no page two.
+      await expect(page.locator('meta[name="robots"]'), view).toHaveAttribute("content", /noindex/);
+    }
+  });
+
+  /* Indexable later pages must not multiply into empty ones: a page number
+     past the last is a 404, on every paginated listing. */
+  test("a page past the last one is a 404, never an indexable empty page", async ({ request }) => {
+    for (const view of [
+      `${BG.capsules}?page=99`,
+      `${BG.brand("lavazza")}?page=99`,
+      `${BG.promotions}?page=99`,
+      `${BG.capsules}?page=99&brand=lavazza`,
+      // A section page, whether or not its own category lists anything yet.
+      `${BG.vending}?page=99`,
+      `${BG.consumables}?page=99`,
+    ]) {
+      const response = await request.get(view, { maxRedirects: 0 });
+      expect(response.status(), view).toBe(404);
+      /* A 404 is never indexed, whatever else it says. A page-level `notFound()`
+         under `[lang]` also keeps the layout's default `index, follow` beside
+         Next's `noindex` (the same for every page-level 404 here); the
+         `noindex` must be there. */
+      const robots = [
+        ...(await response.text()).matchAll(/<meta name="robots" content="([^"]+)"/g),
+      ].map((match) => match[1]);
+      expect(robots, view).toContain("noindex");
+    }
+    // Garbage is page one, not a 404.
+    expect((await request.get(`${BG.capsules}?page=abc`)).status()).toBe(200);
   });
 
   test("the consumables page is noindex and out of the sitemap while it lists nothing", async ({

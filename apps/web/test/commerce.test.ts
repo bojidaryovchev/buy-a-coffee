@@ -613,6 +613,8 @@ describe("structured data", () => {
       applicableCountry: "BG",
       returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: 14,
+      // No counter or kiosk: a return is sent back.
+      returnMethod: "https://schema.org/ReturnByMail",
       returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
       merchantReturnLink: expect.stringMatching(/\/bg\/dostavka-i-plashtane$/),
     });

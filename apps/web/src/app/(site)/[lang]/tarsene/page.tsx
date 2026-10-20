@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Breadcrumbs, ButtonLink, EmptyState } from "@/components/ui/primitives";
 import { CatalogListing } from "@/components/catalog/catalog-listing";
 import { Suspense } from "react";
@@ -14,6 +15,7 @@ import { shareMetadata } from "@/lib/seo/share";
 import { href, routes } from "@/lib/routes";
 import { NOINDEX } from "@/lib/seo/robots";
 import { pageTitle } from "@/lib/seo/title";
+import { isPastLastPage } from "@/lib/seo/pagination";
 
 /**
  * Search results.
@@ -54,6 +56,8 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
   const query = parseCatalogQuery(await searchParams);
   const hasQuery = query.q.length > 0;
   const result = hasQuery ? await listProducts({ query }) : null;
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (result && isPastLastPage(result)) notFound();
 
   return (
     <div className="shell pb-16">

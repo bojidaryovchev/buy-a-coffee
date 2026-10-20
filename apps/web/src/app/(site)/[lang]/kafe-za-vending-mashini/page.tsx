@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { parseCatalogQuery, shouldIndexListing, type RawSearchParams } from "@/lib/catalog/filters";
 import { getListingFacts, type ListingFacts } from "@/lib/catalog/listing-facts";
 import {
@@ -7,11 +8,12 @@ import {
   getSectionContents,
   getSectionListing,
   listVendingBlends,
+  sectionListsProducts,
 } from "@/lib/catalog/vending";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
 import { shareMetadata } from "@/lib/seo/share";
-import { listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
+import { isPastLastPageOf, listingPage, pageQuery, pagedTitle } from "@/lib/seo/pagination";
 import { href } from "@/lib/routes";
 import { cupRangeOfRanges } from "@/lib/catalog/cup-range";
 import { metaDescription, pageTitle } from "@/lib/seo/listing-meta";
@@ -91,10 +93,13 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 export default async function VendingPage({ params, searchParams }: PageProps) {
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
-  const [listing, blends] = await Promise.all([
+  const [listing, blends, consumablesListed] = await Promise.all([
     getSectionListing(section.id, query),
     listVendingBlends(),
+    sectionListsProducts("consumables"),
   ]);
+  // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
+  if (isPastLastPageOf(query.page, listing?.result)) notFound();
 
   return (
     <BusinessSectionView
@@ -104,6 +109,7 @@ export default async function VendingPage({ params, searchParams }: PageProps) {
       query={query}
       listing={listing}
       blends={blends}
+      relatedListed={consumablesListed}
     />
   );
 }

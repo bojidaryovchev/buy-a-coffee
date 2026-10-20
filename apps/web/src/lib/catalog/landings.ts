@@ -3,6 +3,7 @@ import {
   packServings,
   parseDecimal,
   pricePerServing,
+  pricePerUnitMeasure,
   productKind,
 } from "@catalog/shared";
 import { routes, type CanonicalPath } from "@/lib/routes";
@@ -132,6 +133,11 @@ export interface LandingGroup {
    * have been chosen.
    */
   readonly poolSize: number;
+  /**
+   * The lowest price per kilogram among `items`, exact, or null when none is
+   * sold by weight (every capsule and pod).
+   */
+  readonly lowestPerKg: string | null;
 }
 
 /** One end of a per-cup range. */
@@ -157,6 +163,8 @@ const METHOD_ORDER: readonly BrewMethod[] = ["capsule", "pod", "beans"];
 interface Resolved extends LandingItem {
   readonly row: LandingRow;
   readonly system: BrewingSystem | null;
+  /** Price per kilogram, for a product sold by weight. */
+  readonly perKg: string | null;
 }
 
 function resolve(row: LandingRow): Resolved {
@@ -168,7 +176,17 @@ function resolve(row: LandingRow): Resolved {
     perCup: pricePerServing(row.price, servings),
     estimated: servings?.estimated ?? false,
     pack: packSizeLabel(row.weightValue, row.weightUnit),
+    perKg: (() => {
+      const unit = pricePerUnitMeasure(row.price, row.weightValue, row.weightUnit);
+      return unit?.unit === "kg" ? unit.amount : null;
+    })(),
   };
+}
+
+/** The lowest of some exact decimal amounts, or null for none. */
+function lowest(amounts: readonly (string | null)[]): string | null {
+  const known = amounts.filter((amount): amount is string => amount !== null);
+  return known.sort((a, b) => compareDecimal(parseDecimal(a), parseDecimal(b)))[0] ?? null;
 }
 
 /**
@@ -223,7 +241,15 @@ function groupBySystem(
     const pool = items.filter((item) => item.system?.id === system.id).sort(byCupPrice);
     if (pool.length === 0) return [];
     const chosen = limit === undefined ? pool : pool.slice(0, limit);
-    return [{ key: system.id, system, items: chosen.map(strip), poolSize: pool.length }];
+    return [
+      {
+        key: system.id,
+        system,
+        items: chosen.map(strip),
+        poolSize: pool.length,
+        lowestPerKg: lowest(chosen.map((item) => item.perKg)),
+      },
+    ];
   });
 }
 

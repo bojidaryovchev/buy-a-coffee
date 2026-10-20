@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isPlaceholderImage, resolveImageUrl } from "./images";
 import { productPageChangedAt } from "./page-changed";
 import { isReduced } from "./price-sql";
+import { SITEMAP_PRODUCT_STATUSES } from "./product-status";
 
 /**
  * What the sitemap needs to know about every product on sale, in three round
@@ -15,8 +16,10 @@ import { isReduced } from "./price-sql";
  * sitemap happened to be generated.
  *
  * Its own file, like `landing-queries.ts`, and by the same rules as
- * `queries.ts`: only `active` products, and the price is
- * `retail_price_override ?? current_price`.
+ * `queries.ts`: the price is `retail_price_override ?? current_price`, and
+ * only `active` products are `listed` — what a listing shows, and so what
+ * dates it. A `missing` product is here too, unlisted: its page stays
+ * indexable until the sync gives up on it (`lib/catalog/product-status.ts`).
  */
 
 export interface SitemapProduct {
@@ -31,6 +34,8 @@ export interface SitemapProduct {
   readonly reduced: boolean;
   /** Its photographs, resolved against today's image host, in gallery order. */
   readonly images: readonly string[];
+  /** On sale (`active`), so shown by the listings it is filed under. */
+  readonly listed: boolean;
 }
 
 export async function listSitemapProducts(): Promise<readonly SitemapProduct[]> {
@@ -41,10 +46,11 @@ export async function listSitemapProducts(): Promise<readonly SitemapProduct[]> 
       updatedAt: productPageChangedAt,
       brandSlug: brands.slug,
       reduced: isReduced,
+      status: products.status,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
-    .where(eq(products.status, "active"))
+    .where(inArray(products.status, [...SITEMAP_PRODUCT_STATUSES]))
     .orderBy(asc(products.slug));
   if (rows.length === 0) return [];
 
@@ -101,5 +107,6 @@ export async function listSitemapProducts(): Promise<readonly SitemapProduct[]> 
     categoryKeys: keys.get(row.id) ?? [],
     reduced: Boolean(row.reduced),
     images: images.get(row.id) ?? [],
+    listed: row.status === "active",
   }));
 }

@@ -187,8 +187,10 @@ shareable, bookmarkable and crawlable, and the entire catalog is not shipped to
 every visitor. Every control is an ordinary link, so filtering works with
 JavaScript off.
 
-Filtered, sorted and paginated permutations are `noindex` and the canonical
-always points at the clean first page.
+Filtered and sorted permutations are `noindex` and the canonical always points
+at the clean first page. Later pages of the clean listing are indexed and
+canonical to themselves (changed 20 October 2026; see `docs/seo.md`,
+"Pagination").
 
 **Pagination and sorting are additions, not omissions.** The source has neither
 and renders every product at once.

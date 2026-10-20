@@ -165,6 +165,16 @@ describe("a product", () => {
     expect(checkStructuredData(page(below))).toEqual([]);
   });
 
+  // The shop has no counter or kiosk: a return is sent back (research 09, T1.8).
+  it("says how a return is made: by mail", () => {
+    const offers = productJsonLd(product(), "bg").offers as Record<string, unknown>;
+    expect(offers.hasMerchantReturnPolicy).toMatchObject({
+      "@type": "MerchantReturnPolicy",
+      returnMethod: "https://schema.org/ReturnByMail",
+      merchantReturnDays: 14,
+    });
+  });
+
   it("passes it with no price, as a product with no offer", () => {
     expect(checkStructuredData(page(productJsonLd(product({ price: null }), "bg")))).toEqual([]);
   });
