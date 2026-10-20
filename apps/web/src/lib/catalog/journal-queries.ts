@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { productKind, productName } from "@catalog/shared";
 import { db } from "@/lib/db";
@@ -13,6 +13,7 @@ import {
 } from "./journal-figures";
 import { getLandingAvailability } from "./landing-queries";
 import { LANDING_IDS, type LandingId } from "./landings";
+import { retailPrice } from "./price-sql";
 
 /**
  * The catalog read behind the journal's figures.
@@ -38,9 +39,7 @@ async function loadJournalRows(): Promise<readonly JournalCatalogRow[]> {
       previousSourceKeys: products.previousSourceKeys,
       brandKey: brands.sourceKey,
       brandName: brands.name,
-      price: sql<
-        string | null
-      >`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`,
+      price: retailPrice,
       currency: products.currency,
       weightValue: products.weightValue,
       weightUnit: products.weightUnit,

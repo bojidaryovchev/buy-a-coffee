@@ -1,9 +1,10 @@
 import "server-only";
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { brands, categories, productCategories, productImages, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { isPlaceholderImage, resolveImageUrl } from "./images";
 import { productPageChangedAt } from "./page-changed";
+import { isReduced } from "./price-sql";
 
 /**
  * What the sitemap needs to know about every product on sale, in three round
@@ -33,15 +34,13 @@ export interface SitemapProduct {
 }
 
 export async function listSitemapProducts(): Promise<readonly SitemapProduct[]> {
-  const price = sql`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
-  const oldPrice = sql`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
   const rows = await db
     .select({
       id: products.id,
       slug: products.slug,
       updatedAt: productPageChangedAt,
       brandSlug: brands.slug,
-      reduced: sql<boolean>`(${oldPrice} is not null and ${oldPrice} > ${price})`,
+      reduced: isReduced,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))

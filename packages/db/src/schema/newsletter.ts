@@ -10,6 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { newsletterSubscribers } from "./storefront.ts";
+import { promotions } from "./promotions.ts";
 
 const now = sql`now()`;
 
@@ -50,6 +51,15 @@ export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "failed",
 ] as const;
 export type NewsletterCampaignStatus = (typeof NEWSLETTER_CAMPAIGN_STATUSES)[number];
+
+/**
+ * What a draft can be started from (`apps/web/src/lib/newsletter/templates.ts`):
+ *
+ *   monthly    what is new since the last letter, and what is reduced now
+ *   promotion  one promotion, announced
+ */
+export const NEWSLETTER_TEMPLATES = ["monthly", "promotion"] as const;
+export type NewsletterTemplate = (typeof NEWSLETTER_TEMPLATES)[number];
 
 /**
  * Where one recipient's copy is.
@@ -164,8 +174,24 @@ export const newsletterCampaigns = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     /** When the last recipient got an answer. */
     sentAt: timestamp("sent_at", { withTimezone: true }),
+
+    /** What the draft was started from; null for a blank one. */
+    template: text("template", { enum: NEWSLETTER_TEMPLATES }),
+    /**
+     * The month ("2026-11") a draft was prepared for by the monthly job, so
+     * the job never prepares two for one month. Null for drafts the owner
+     * started.
+     */
+    autoPeriod: text("auto_period"),
+    /** The promotion a promotion letter announces. */
+    promotionId: uuid("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
   },
-  (table) => [index("newsletter_campaigns_created_idx").on(table.createdAt)],
+  (table) => [
+    index("newsletter_campaigns_created_idx").on(table.createdAt),
+    uniqueIndex("newsletter_campaigns_auto_period_idx")
+      .on(table.autoPeriod)
+      .where(sql`${table.autoPeriod} is not null`),
+  ],
 );
 
 export const newsletterDeliveries = pgTable(

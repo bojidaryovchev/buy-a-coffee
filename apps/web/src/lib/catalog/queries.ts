@@ -30,6 +30,17 @@ import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./
 import { publishedSummary, resolveProductFormat } from "./fallback-copy";
 import { isInstantCoffee, isNotInstantCoffee } from "./product-kind-sql";
 import {
+  isRecentArrival,
+  isReduced,
+  promotionEndsAt,
+  promotionId,
+  promotionLabel,
+  promotionPercent,
+  regularPrice,
+  retailOldPrice,
+  retailPrice,
+} from "./price-sql";
+import {
   brandNameMatch,
   categoryNameMatch,
   searchMatch,
@@ -54,21 +65,17 @@ import type {
  *  - Only `status = 'active'` products are ever listed. `missing` products are
  *    hidden while the sync is unsure about them; `removed` products are gone.
  *    A page that showed either would be advertising something unbuyable.
- *  - The displayed price is `retail_price_override ?? current_price`, so a
- *    manually pinned price wins without the source value ever being lost.
+ *  - The displayed price is `retail_price_override ?? current_price`, less a
+ *    running promotion (`price-sql.ts`), so a manually pinned price wins
+ *    without the source value ever being lost.
  *  - Every query is parameterised through Drizzle. No string interpolation of
  *    user input reaches SQL.
  *  - Listings load their products, images and facets in a bounded number of
  *    round trips. There is no per-product query anywhere.
  */
 
-/** The price the customer sees. */
-const retailPrice = sql<
-  string | null
->`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
-const retailOldPrice = sql<
-  string | null
->`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
+// The price the customer sees, and the struck price, with any running
+// promotion applied: `price-sql.ts`, the one definition of both.
 
 /*
  * The copy the customer sees: ours, or a sentence generated from our own data.
@@ -155,6 +162,12 @@ const productColumns = {
   ...nameColumns,
   price: retailPrice,
   oldPrice: retailOldPrice,
+  regularPrice,
+  promotionId,
+  promotionPercent,
+  promotionLabel,
+  promotionEndsAt,
+  isNew: isRecentArrival,
   currency: products.currency,
   availability: products.availability,
   weight: products.weight,
@@ -179,6 +192,14 @@ type ProductRow = {
   packOverrideValue: string | null;
   price: string | null;
   oldPrice: string | null;
+  /** The price without the running promotion; equal to `price` without one. */
+  regularPrice: string | null;
+  promotionId: string | null;
+  /** int4, which the driver may hand over as a number or a string. */
+  promotionPercent: number | string | null;
+  promotionLabel: string | null;
+  promotionEndsAt: string | Date | null;
+  isNew: boolean | null;
   currency: string | null;
   availability: string;
   weight: string | null;
@@ -220,6 +241,25 @@ function displayName(row: ProductRow) {
   });
 }
 
+/**
+ * The running promotion, as a card carries it. Present whenever one prices the
+ * product, even when its struck price is not a reduction (the 30-day lowest
+ * was already lower): the price is still the promotion's, and the cart and the
+ * order record say so; only the badge and the struck price stay away.
+ */
+function promotionOf(row: ProductRow): ProductCardView["promotion"] {
+  if (row.promotionId === null || row.promotionPercent === null) return null;
+  const endsAt = row.promotionEndsAt === null ? null : new Date(row.promotionEndsAt);
+  if (endsAt === null || Number.isNaN(endsAt.getTime())) return null;
+  return {
+    id: row.promotionId,
+    label: row.promotionLabel,
+    percentOff: Number(row.promotionPercent),
+    endsAt: endsAt.toISOString(),
+    regularPrice: toPriceView(row.regularPrice, row.currency),
+  };
+}
+
 function toCard(
   row: ProductRow,
   image: StoredImage | undefined,
@@ -248,6 +288,8 @@ function toCard(
     // An old price is only shown when it is genuinely a reduction.
     oldPrice: discount === null ? null : oldPrice,
     discountPercent: discount,
+    promotion: promotionOf(row),
+    isNew: row.isNew === true,
     availability: row.availability as ProductCardView["availability"],
     // Ours when the size parsed ("500 г"), the stored text ("0.500кг.") when not.
     weight: name.quantity?.label ?? row.weight,
@@ -522,7 +564,7 @@ export async function listProducts(options: ListProductsOptions): Promise<Produc
     extra.push(eq(brands.slug, options.brandSlug));
   }
   if (options.promotionsOnly) {
-    extra.push(sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`);
+    extra.push(isReduced);
   }
 
   const conditions = buildFilterConditions(query, extra);
@@ -1201,9 +1243,7 @@ export async function countPromotions(): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(products)
-    .where(
-      and(isVisible, sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`),
-    );
+    .where(and(isVisible, isReduced));
   return row?.count ?? 0;
 }
 
@@ -1266,9 +1306,6 @@ export async function listProductCardsByIds(
  * same photograph as the product page. The reads below choose WHICH
  * products; nothing about how one is shown is decided outside this file.
  */
-
-/** A genuine reduction, as the promotions listing counts one. */
-const isReduced = sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`;
 
 /**
  * What an automatic block offers: something a reader can order. A sold-out
@@ -1493,7 +1530,7 @@ export async function getCatalogSummary(): Promise<{
   const [row] = await db
     .select({
       products: sql<number>`count(*) filter (where ${products.status} = 'active')::int`,
-      promotions: sql<number>`count(*) filter (where ${products.status} = 'active' and ${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice})::int`,
+      promotions: sql<number>`count(*) filter (where ${products.status} = 'active' and ${isReduced})::int`,
     })
     .from(products);
 

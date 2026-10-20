@@ -84,6 +84,30 @@ export interface ProductCardView {
   readonly price: PriceView | null;
   readonly oldPrice: PriceView | null;
   readonly discountPercent: number | null;
+  /**
+   * The shop's promotion pricing this product now (`price-sql.ts`), or null.
+   * `price` already has its reduction taken off; `regularPrice` is the price
+   * without it. `percentOff` is what the owner chose, while `discountPercent`
+   * is what the badge may claim against the 30-day lowest price, and can be
+   * smaller or absent. Never carries the owner's own name for the promotion.
+   *
+   * Optional in the type only so that a view assembled by hand need not
+   * repeat it; every query sets it.
+   */
+  readonly promotion?: {
+    readonly id: string;
+    /** The owner's words for customers, "Есенни дни", or null. */
+    readonly label: string | null;
+    readonly percentOff: number;
+    /** ISO instant the promotion ends: the end of its last day in Sofia. */
+    readonly endsAt: string;
+    readonly regularPrice: PriceView | null;
+  } | null;
+  /**
+   * First seen in the last 30 days, and not with an import of the catalog
+   * (`isNewArrival` in `price-sql.ts`). Optional for the reason above.
+   */
+  readonly isNew?: boolean;
   readonly availability: Availability;
   /** The pack size as the shop writes it ("1 кг", "16 бр."), else the stored text. */
   readonly weight: string | null;

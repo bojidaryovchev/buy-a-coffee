@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { brands, categories, productCategories, products } from "@catalog/db/schema";
 import { db } from "@/lib/db";
 import { listProductCardsByIds } from "./queries";
@@ -16,6 +16,7 @@ import {
   type LandingSelection,
 } from "./landings";
 import type { ProductCardView } from "./types";
+import { retailPrice } from "./price-sql";
 
 /**
  * The catalog reads behind the landing listings.
@@ -44,9 +45,7 @@ const loadLandingRows = cache(async (): Promise<readonly LandingRow[]> => {
       name: products.name,
       brandSlug: brands.slug,
       brandSourceKey: brands.sourceKey,
-      price: sql<
-        string | null
-      >`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`,
+      price: retailPrice,
       weightValue: products.weightValue,
       weightUnit: products.weightUnit,
       availability: products.availability,
