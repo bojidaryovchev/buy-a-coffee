@@ -11,6 +11,7 @@ import {
 import type { Database } from "@catalog/db";
 // Types only: the module is imported in `beforeAll`, once the test database is chosen.
 import type * as Queries from "@/lib/catalog/queries";
+import * as priceSql from "@/lib/catalog/price-sql";
 import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
 
 /**
@@ -186,6 +187,41 @@ suite("price layer (integration)", () => {
       expect(card.price?.amount).toBe("10.00");
       expect(card.promotion).toBeNull();
     }
+  });
+
+  it("applies in a query of the products table alone, where Drizzle drops table names", async () => {
+    // A select list over one table renders `${products.id}` as a bare "id",
+    // which inside the promotion subquery would mean the promotion's id
+    // (docs/architecture.md, "One trap worth knowing about").
+    const id = await addProduct("solo", "10.00");
+    await addProduct("plain", "10.00");
+    await addPromotion({ percentOff: 10, members: [{ productId: id, reference: "10.00" }] });
+    const summary = await queries.getCatalogSummary();
+    expect(summary.promotions).toBe(1);
+    const [row] = await db
+      .select({ price: priceSql.retailPrice })
+      .from(products)
+      .where(sql`${products.id} = ${id}`);
+    expect(row?.price).toBe("9.00");
+
+    const [run] = await db
+      .insert(syncRuns)
+      .values({ sourceSiteId: siteId, status: "succeeded" })
+      .returning({ id: syncRuns.id });
+    await db.execute(
+      sql`update products set first_seen_at = now() - interval '1 day' where id = ${id}`,
+    );
+    await db.insert(syncChanges).values({
+      syncRunId: run!.id,
+      productId: id,
+      sourceKey: "/solo/",
+      changeType: "created",
+    });
+    const [fresh] = await db
+      .select({ isNew: priceSql.isRecentArrival })
+      .from(products)
+      .where(sql`${products.id} = ${id}`);
+    expect(fresh?.isNew).toBe(true);
   });
 
   it("gives a product in two running promotions the larger reduction", async () => {

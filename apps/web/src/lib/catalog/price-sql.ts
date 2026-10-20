@@ -29,6 +29,16 @@ export const regularPrice = sql<
   string | null
 >`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
 
+/*
+ * The product a subquery below belongs to, written out rather than as
+ * `${products.id}`: in the select list of a query over `products` alone,
+ * Drizzle renders that as a bare "id", which inside the subquery means the
+ * subquery's own row — the promotion's id, the sync change's id — and the
+ * subquery silently matches nothing (docs/architecture.md, "One trap worth
+ * knowing about"). Nothing aliases `products`, so the table name is the name.
+ */
+const outerProductId = sql.raw(`"products"."id"`);
+
 /** One field of the promotion pricing the product now, or null. */
 function runningPromotion(
   field: "p.id" | "p.percent_off" | "p.label" | "p.ends_at" | "pp.reference_price",
@@ -37,7 +47,7 @@ function runningPromotion(
     select ${sql.raw(field)}
     from ${promotionProducts} pp
     join ${promotions} p on p.id = pp.promotion_id
-    where pp.product_id = ${products.id}
+    where pp.product_id = ${outerProductId}
       and pp.removed_at is null
       and p.stopped_at is null
       and p.starts_at <= now()
@@ -88,7 +98,7 @@ export const NEW_ARRIVAL_DAYS = 30;
 export function isNewArrival(since: SQL): SQL<boolean> {
   return sql<boolean>`(${products.firstSeenAt} >= ${since} and exists (
     select 1 from ${syncChanges} created
-    where created.product_id = ${products.id}
+    where created.product_id = ${outerProductId}
       and created.change_type = 'created'
       and (
         select count(*) from ${syncChanges} batch
