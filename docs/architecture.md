@@ -770,7 +770,11 @@ differs — a promotion ended while the cart was open — `submitCartOrder` stor
 nothing and answers "Цените се промениха — прегледайте количката и изпратете
 отново.", and the cart asks for prices again. It also asks again when the tab
 becomes visible, on a page restored from history, and just after the earliest
-promotion end among its lines (`priceEndsAt`, never shown). A stored line
+promotion end among its lines (`priceEndsAt`, never shown; the timer is set
+again after every answer). Those asks are quiet: one that fails, or meets a
+429, keeps the answer on screen and the form as typed, and retries with
+backoff (`requoteRetryDelay`); only the first load, a refusal or the retry
+button can show the cart as failed. A stored line
 snapshots `regular_unit_price`, `discount_percent`, `promotion_id` and
 `promotion_name` (the owner's name, looked up when the order is stored, under
 `FOR KEY SHARE` so the promotion cannot be deleted mid-order; migration
@@ -807,7 +811,7 @@ same messages and what was typed. The server is the authority either way.
 **The server side** ([`lib/forms/actions.ts`](../apps/web/src/lib/forms/actions.ts)):
 rate limit → validate (including a honeypot) → persist → notify. The record is
 safe in the database before any notification is attempted, so a misconfigured
-email provider can never lose an order. Submissions are idempotent within a five-minute window, keyed on the phone number and the cart's lines, so a double-clicked button cannot create two orders. A press is matched against the current window's key and the previous one's, under a per-phone advisory lock, because promotions switch at Sofia midnight, which is always a window's edge: a double press across it is still one order, at the first press's price. The delivery is checked as its own object beside the rest of the schema, so an empty form reports every missing field on the first press.
+email provider can never lose an order. Submissions are idempotent within a five-minute window, keyed on the phone number, the delivery (method, courier, city, postcode, address, office) and the cart's lines, so a double-clicked button cannot create two orders, while the same cart sent to another place is a new one. A press is matched against the current window's key and the previous one's, under a per-phone advisory lock, because promotions switch at Sofia midnight, which is always a window's edge: a double press across it is still one order, at the first press's price. The repeat is looked up before availability and prices are checked, so it is answered as the stored order even if something sold out or a price moved in between. The delivery is checked as its own object beside the rest of the schema, so an empty form reports every missing field on the first press.
 
 **The confirmation says when to expect the call.** It is built on the server at
 the moment of submission from `siteConfig.commerce.openingHours`, read as wall
