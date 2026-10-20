@@ -14,7 +14,8 @@
  * A run is judged by its own record. `sync_runs` rows carry more columns than
  * are read here; unknown columns are ignored on purpose, so the sync can grow
  * without this breaking. `sync_changes` is read for one thing only, a
- * product the sync renamed (`evaluateIdentityChanges`).
+ * product the sync renamed (`evaluateIdentityChanges`). Of `metadata`, two
+ * keys are read: `kind`, and `keyCollisions` (`duplicate_key_conflict`).
  */
 
 export const SYNC_CONDITIONS = [
@@ -25,6 +26,7 @@ export const SYNC_CONDITIONS = [
   "source_fallback",
   "low_confidence",
   "image_failed",
+  "duplicate_key_conflict",
   "identity_changed",
 ] as const;
 
@@ -98,6 +100,7 @@ export const SYNC_CONDITION_LABEL: Record<SyncCondition, string> = {
   source_fallback: "каталогът идва от резервния източник",
   low_confidence: "ниска сигурност на разчитането",
   image_failed: "снимки, които не са свалени",
+  duplicate_key_conflict: "неразличими продукти под един адрес",
   identity_changed: "продукт със сменено име",
 };
 
@@ -113,6 +116,48 @@ function confidenceOf(run: SyncRunSnapshot): number | null {
   const value =
     typeof run.parserConfidence === "number" ? run.parserConfidence : Number(run.parserConfidence);
   return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * A shared source key the sync could not settle on its own, as it records it
+ * in `sync_runs.metadata.keyCollisions` (`collisions.ts` in
+ * `@catalog/scraper-core`). Only `sourceKey` and `unresolved` are read.
+ */
+export interface KeyCollisionNote {
+  readonly sourceKey: string;
+  readonly unresolved: readonly string[];
+}
+
+/** How many collisions the summary names before it only counts. */
+const COLLISIONS_NAMED = 5;
+
+/** The sync's reasons, in words. An unknown reason is shown as it is. */
+const COLLISION_REASON: Readonly<Record<string, string>> = {
+  indistinguishable:
+    "записи с еднакво име и код, но различна цена или наличност; показан е първият",
+  unmatched: "наш продукт вече не е сред изброените там, а се появи нов; преименуван или подменен",
+};
+
+/**
+ * The collisions of one run that are still a person's to settle.
+ *
+ * A collision the sync settled itself — two products told apart by code or
+ * name, each kept under its own key — is recorded with nothing in
+ * `unresolved` and raises nothing: the source still lists the two at one
+ * address, and an alarm every day about that would teach people to ignore
+ * this one. Read defensively: the column is `jsonb`, and a run written before
+ * the sync recorded collisions has none.
+ */
+export function unresolvedKeyCollisions(run: SyncRunSnapshot): KeyCollisionNote[] {
+  const recorded = run.metadata?.keyCollisions;
+  if (!Array.isArray(recorded)) return [];
+  return recorded.flatMap((entry: unknown) => {
+    if (entry === null || typeof entry !== "object") return [];
+    const { sourceKey, unresolved } = entry as Record<string, unknown>;
+    if (typeof sourceKey !== "string" || !Array.isArray(unresolved)) return [];
+    const reasons = unresolved.filter((reason): reason is string => typeof reason === "string");
+    return reasons.length > 0 ? [{ sourceKey, unresolved: reasons }] : [];
+  });
 }
 
 /**
@@ -198,6 +243,24 @@ export function evaluateSyncHealth(
     );
   }
 
+  const collisions = unresolvedKeyCollisions(latest);
+  if (collisions.length > 0) {
+    const named = collisions
+      .slice(0, COLLISIONS_NAMED)
+      .map(({ sourceKey, unresolved }) => {
+        const why = unresolved.map((reason) => COLLISION_REASON[reason] ?? reason).join("; ");
+        return `${sourceKey} (${why})`;
+      })
+      .join("; ");
+    const rest = collisions.length - COLLISIONS_NAMED;
+    add(
+      "duplicate_key_conflict",
+      `Източникът изброява различни продукти под един адрес и размер и синхронизацията не ги ` +
+        `различи: ${named}${rest > 0 ? ` и още ${rest}` : ""}. Нищо не е налучкано; проверете ` +
+        "ги и при нужда ги свържете ръчно (catalog:link).",
+    );
+  }
+
   return findings;
 }
 
@@ -221,14 +284,16 @@ const text = (value: unknown): string | null =>
 /**
  * A product the sync renamed, as a finding — or null for none.
  *
- * The sync keys a product by its address at the source and pack size. Where
- * the source lists two products at one address, it keeps the first and drops
- * the second (research 08 §1.4, until the sync's own fix): if the source ever
- * lists them the other way round, the existing product takes the other one's
- * name and price — under its old URL, its old slug, and its own order history.
- * The sync reports that as an ordinary update. A rename is rare on its own, so
- * every one is named for a person to check; a product whose identity really
- * changed is then caught the day it happens instead of by a customer.
+ * The sync keys a product by its address at the source and pack size. A
+ * product whose address the source gives to another product takes that one's
+ * name and price — under its old URL, its old slug, and its own order history
+ * — and the sync reports it as an ordinary update. Two products listed at one
+ * address at once are now told apart by the sync (research 08 §1.4;
+ * `duplicate_key_conflict` above for the ones it cannot), but an address
+ * reused one product after another still looks exactly like this. A rename is
+ * rare on its own, so every one is named for a person to check; a product
+ * whose identity really changed is then caught the day it happens instead of
+ * by a customer.
  *
  * Read-only: it reads what the sync already records, and changes nothing the
  * sync does.

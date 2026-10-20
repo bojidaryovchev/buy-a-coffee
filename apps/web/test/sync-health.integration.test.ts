@@ -108,6 +108,28 @@ suite("sync-health check (integration)", () => {
     });
   }
 
+  /**
+   * The collisions a sync run records in `metadata.keyCollisions`, in the
+   * shape `collisions.ts` in `@catalog/scraper-core` writes them.
+   */
+  const keyCollisions = (unresolved: string[]) => ({
+    keyCollisions: [
+      {
+        sourceKey: "/moreno-super-bar-1/#1000g",
+        tiebreaker: unresolved.length === 0 ? "name" : null,
+        products: [
+          {
+            sourceKey: "/moreno-super-bar-1/#1000g",
+            name: "Кафе на зърна Moreno Espresso Bar 1кг.",
+            price: "20.00",
+          },
+        ],
+        dropped: [],
+        unresolved,
+      },
+    ],
+  });
+
   const scenarios: Array<[SyncCondition, () => Promise<void>]> = [
     ["no_recent_success", () => addRun(30)],
     [
@@ -158,6 +180,13 @@ suite("sync-health check (integration)", () => {
       async () => {
         await healthy();
         await addRun(1, { imagesFailed: 2 });
+      },
+    ],
+    [
+      "duplicate_key_conflict",
+      async () => {
+        await healthy();
+        await addRun(1, { metadata: keyCollisions(["indistinguishable"]) });
       },
     ],
     [
@@ -219,6 +248,22 @@ suite("sync-health check (integration)", () => {
     const report = await run();
     expect(report.conditions).toEqual([]);
     expect(sent).toEqual([]);
+  });
+
+  it("sends nothing for two products the sync told apart and kept", async () => {
+    await healthy();
+    await addRun(1, { metadata: keyCollisions([]) });
+    const report = await run();
+    expect(report.conditions).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it("names the unsettled key in the notification it sends", async () => {
+    await healthy();
+    await addRun(1, { metadata: keyCollisions(["unmatched"]) });
+    await run();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.summary).toContain("/moreno-super-bar-1/#1000g");
   });
 
   it("ignores dry runs", async () => {

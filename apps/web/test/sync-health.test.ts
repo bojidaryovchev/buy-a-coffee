@@ -6,6 +6,7 @@ import {
   evaluateSyncHealth,
   type SyncCondition,
   type SyncRunSnapshot,
+  unresolvedKeyCollisions,
 } from "@/lib/sync-health";
 
 const NOW = new Date("2026-10-10T12:00:00Z");
@@ -186,11 +187,96 @@ describe("evaluateSyncHealth", () => {
     const withExtra = { ...run(1), movedCount: 4, somethingNew: "x" } as SyncRunSnapshot;
     expect(conditions([withExtra])).toEqual([]);
   });
+
+  /* Two products the source lists at one address and pack size, as the sync
+     records them in `sync_runs.metadata.keyCollisions` (research 08 §1.4). */
+  describe("duplicate_key_conflict", () => {
+    const PLAIN = "/moreno-super-bar-1/#1000g";
+    const collision = (unresolved: string[], sourceKey = PLAIN) => ({
+      sourceKey,
+      tiebreaker: unresolved.length === 0 ? "name" : null,
+      products: [{ sourceKey, name: "Кафе на зърна Moreno Espresso Bar 1кг.", price: "20.00" }],
+      dropped: [],
+      unresolved,
+    });
+    const withCollisions = (h: number, keyCollisions: unknown) =>
+      run(h, { metadata: { keyCollisions } });
+
+    it("is raised for a collision the sync could not settle, naming the key and the reason", () => {
+      const findings = evaluateSyncHealth(
+        [withCollisions(1, [collision(["indistinguishable"])])],
+        NOW,
+      );
+      expect(findings.map((f) => f.condition)).toEqual(["duplicate_key_conflict"]);
+      expect(findings[0]?.summary).toContain(PLAIN);
+      expect(findings[0]?.summary).toContain("различна цена или наличност");
+      expect(SYNC_CONDITIONS).toContain("duplicate_key_conflict");
+    });
+
+    it("names a stored product that matched none of the records", () => {
+      const [finding] = evaluateSyncHealth([withCollisions(1, [collision(["unmatched"])])], NOW);
+      expect(finding?.summary).toContain("преименуван или подменен");
+    });
+
+    it("is not raised for a collision the sync settled itself: both products kept", () => {
+      expect(conditions([withCollisions(1, [collision([])])])).toEqual([]);
+    });
+
+    it("judges the latest run only, like the other run conditions", () => {
+      expect(conditions([run(1), withCollisions(7, [collision(["indistinguishable"])])])).toEqual(
+        [],
+      );
+      expect(conditions([withCollisions(1, [collision(["indistinguishable"])]), run(7)])).toEqual([
+        "duplicate_key_conflict",
+      ]);
+    });
+
+    it("ignores a dry run, however recent", () => {
+      const dry = { ...withCollisions(0.5, [collision(["unmatched"])]), dryRun: true };
+      expect(conditions([dry, run(1)])).toEqual([]);
+    });
+
+    it("names five and counts the rest; reads only well-formed entries", () => {
+      const many = Array.from({ length: 7 }, (_, i) =>
+        collision(["indistinguishable"], `/p-${i}/#1000g`),
+      );
+      const [finding] = evaluateSyncHealth(
+        [withCollisions(1, [...many, null, "junk", { sourceKey: 4, unresolved: ["x"] }])],
+        NOW,
+      );
+      expect(finding?.summary).toContain("/p-4/#1000g");
+      expect(finding?.summary).not.toContain("/p-5/#1000g");
+      expect(finding?.summary).toContain("и още 2");
+    });
+
+    it("says nothing for a run recorded before collisions were, or with junk in their place", () => {
+      expect(conditions([run(1, { metadata: {} })])).toEqual([]);
+      expect(conditions([run(1, { metadata: null })])).toEqual([]);
+      expect(conditions([withCollisions(1, "not a list")])).toEqual([]);
+      expect(
+        conditions([withCollisions(1, [{ sourceKey: PLAIN, unresolved: [1, null] }])]),
+      ).toEqual([]);
+    });
+
+    it("takes its place in the fixed order, after the image check", () => {
+      expect(
+        conditions([{ ...withCollisions(1, [collision(["unmatched"])]), imagesFailed: 1 }]),
+      ).toEqual(["image_failed", "duplicate_key_conflict"]);
+    });
+
+    it("is pure: unresolvedKeyCollisions reads one run", () => {
+      expect(
+        unresolvedKeyCollisions(
+          withCollisions(1, [collision([]), collision(["unmatched"], "/x/#1000g")]),
+        ),
+      ).toEqual([{ sourceKey: "/x/#1000g", unresolved: ["unmatched"] }]);
+    });
+  });
 });
 
-/* The sync keeps one of two products listed at one source address; if the
-   source swaps them, the kept row takes the other's name and price as an
-   ordinary update (research 08 §1.4). Every rename is named for a person. */
+/* A row whose source address another product takes over gets that one's
+   name and price as an ordinary update (research 08 §1.4). Every rename is
+   named for a person. */
 describe("evaluateIdentityChanges", () => {
   const change = (
     before: string | null,
