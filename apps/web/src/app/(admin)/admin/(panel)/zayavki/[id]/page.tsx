@@ -12,7 +12,14 @@ import { StatusPicker } from "@/components/admin/status-picker";
 import { RecordReplyForm } from "@/components/admin/record-reply-form";
 import { NewsletterMarkForm } from "@/components/admin/newsletter-mark-form";
 import { deliveryLines, fullName } from "@/lib/orders/delivery";
-import { lineTotal, orderSum, productCount, storedLine } from "@/lib/orders/lines";
+import {
+  lineTotal,
+  orderSavings,
+  orderSum,
+  productCount,
+  reductionNote,
+  storedLine,
+} from "@/lib/orders/lines";
 import { toPriceView } from "@/lib/catalog/format";
 
 export const metadata: Metadata = { title: "Заявка" };
@@ -34,13 +41,21 @@ export const dynamic = "force-dynamic";
  * (what the owner orders by), with the quantity and the price it was priced at
  * when the request came in — not today's. A request from before the cart has
  * no recorded price, and the table says so rather than looking one up.
+ *
+ * A line the shop's own promotion priced says so under its name: the
+ * percentage, the promotion as the owner named it, and the regular price, so
+ * what the reduction cost the margin is read off the order; the table's foot
+ * adds it up. All from the line's snapshot, never from the promotion as it is
+ * now.
  */
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
   const subscriber = order.email ? await getSubscriberByEmail(order.email) : null;
-  const sum = orderSum(order.items.map((item) => storedLine(item, "")));
+  const lines = order.items.map((item) => storedLine(item, item.productName ?? ""));
+  const sum = orderSum(lines);
+  const promotionsCost = orderSavings(lines);
   // A line from before the cart recorded no price and no shop name.
   const unrecorded = order.items.some((item) => item.displayName === null);
   const delivery = deliveryLines(order);
@@ -95,7 +110,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <tbody className="divide-y divide-line border-t border-line">
             {order.items.map((item, index) => {
               const unit = item.unitPrice ? toPriceView(item.unitPrice, item.currency) : null;
-              const total = lineTotal(storedLine(item, "").unitPrice, item.quantity);
+              const line = lines[index]!;
+              const total = lineTotal(line.unitPrice, item.quantity);
+              // "−10% · Есенна кампания, редовна 9,95 €", from the snapshot.
+              const reduced = reductionNote(line);
               const name = item.productName ?? "(изтрит продукт)";
               return (
                 <tr key={index} className="align-top text-ink-900">
@@ -109,6 +127,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                       </Link>
                     ) : (
                       name
+                    )}
+                    {reduced && (
+                      <p className="mt-0.5 text-xs text-ink-500 tabular-nums">{reduced}</p>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">{item.quantity}</td>
@@ -142,6 +163,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 {sum.subtotal?.formatted ?? <span className="font-normal text-ink-500">—</span>}
               </td>
             </tr>
+            {promotionsCost && (
+              <tr className="text-ink-700">
+                <th scope="row" colSpan={3} className="px-5 pb-3 text-left font-normal">
+                  Отстъпка по промоции, спрямо редовните цени
+                </th>
+                <td className="px-5 pb-3 text-right tabular-nums">{promotionsCost.formatted}</td>
+              </tr>
+            )}
           </tfoot>
         </table>
         {unrecorded && (

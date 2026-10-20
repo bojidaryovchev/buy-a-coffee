@@ -248,16 +248,28 @@ export const deliverySchema = z.object(deliveryShape).superRefine(checkDelivery)
 export const CART_MESSAGES = {
   empty: "Количката е празна. Добавете продукт и изпратете отново.",
   changed: "Количката се промени в друг прозорец. Презаредете страницата и изпратете отново.",
+  /** The action's answer when a price moved since the page showed it (`submitCartOrder`). */
+  repriced: "Цените се промениха — прегледайте количката и изпратете отново.",
 } as const;
+
+/** An exact decimal price as the cart page writes one: "8.95". */
+const SHOWN_PRICE = /^\d{1,10}(\.\d{1,2})?$/;
 
 /**
  * The cart's lines, as the order form posts them: one hidden field holding the
- * JSON the page wrote from the cart (`[{"productId": "…", "quantity": 2}]`).
+ * JSON the page wrote from the cart
+ * (`[{"productId": "…", "quantity": 2, "price": "8.95"}]`).
  *
  * The page writes it, so only a hand-made post — or a cart changed in another
  * tab between drawing and sending — gets it wrong, and the message says to
  * reload. The ids and quantities are all the browser is trusted with; what each
  * product is and costs is read from the database by the action.
+ *
+ * `price` is the unit price the page showed for the line (null for "цена при
+ * запитване"), and only a hint: the action never stores it, and only compares
+ * it with the price it read, to refuse an order whose price moved while the
+ * page was open — a promotion that ended at midnight, say — rather than store
+ * a price the customer never saw. A post without it is priced as before.
  */
 const cartLineSchema = z.object({
   productId: z.string().refine(isProductId, CART_MESSAGES.changed),
@@ -266,6 +278,11 @@ const cartLineSchema = z.object({
     .int(CART_MESSAGES.changed)
     .min(MIN_QUANTITY, CART_MESSAGES.changed)
     .max(MAX_QUANTITY, CART_MESSAGES.changed),
+  price: z
+    .string({ invalid_type_error: CART_MESSAGES.changed })
+    .regex(SHOWN_PRICE, CART_MESSAGES.changed)
+    .nullable()
+    .optional(),
 });
 
 const parseLines = (value: unknown): unknown => {

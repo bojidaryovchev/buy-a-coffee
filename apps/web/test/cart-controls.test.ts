@@ -264,6 +264,10 @@ const product = (overrides: Partial<CartProductView> & { id: string }): CartProd
   detail: "Капсули, 10 бр.",
   image: null,
   price: { amount: "5.00", currency: "EUR", formatted: "5,00 €" },
+  oldPrice: null,
+  discountPercent: null,
+  promotion: null,
+  priceEndsAt: null,
   servingPrice: "0,50 € на чаша",
   availability: "in_stock",
   blocked: null,
@@ -343,6 +347,68 @@ describe("the cart page", () => {
     expect(sum.textContent).toContain("Без 1 продукт с цена при запитване");
   });
 
+  it("draws a reduced line as its card does, and says what the reductions save", async () => {
+    serve([
+      product({
+        id: A,
+        title: "Lavazza",
+        price: { amount: "8.95", currency: "EUR", formatted: "8,95 €" },
+        oldPrice: { amount: "9.95", currency: "EUR", formatted: "9,95 €" },
+        discountPercent: 10,
+        // The end of 15 November in Sofia (EET, UTC+2).
+        promotion: { label: "Есенни дни", endsAt: "2026-11-15T22:00:00.000Z" },
+        priceEndsAt: "2026-11-15T22:00:00.000Z",
+      }),
+      product({
+        id: B,
+        title: "Kimbo",
+        // The source's own struck price never reaches the cart (`toCartProductView`).
+        price: { amount: "4.00", currency: "EUR", formatted: "4,00 €" },
+      }),
+      product({
+        id: C,
+        title: "Borbone",
+        price: { amount: "3.00", currency: "EUR", formatted: "3,00 €" },
+      }),
+    ]);
+    render(createElement(CartView, { locale: "bg" }));
+    fill([
+      { productId: A, quantity: 2 },
+      { productId: B, quantity: 1 },
+      { productId: C, quantity: 1 },
+    ]);
+    const row = (await screen.findByRole("link", { name: "Lavazza" })).closest("li")!;
+
+    expect(row.textContent).toMatch(/Намалена цена 8,95\s€ за брой/);
+    const struck = within(row).getByText(/^9,95\s€$/);
+    expect(struck.className).toContain("line-through");
+    expect(row.textContent).toContain("Стара цена");
+    expect(within(row).getByText("−10%")).toBeTruthy();
+    expect(row.textContent).toMatch(/Есенни дни · до 15 ноември/);
+    // No timer: a date.
+    expect(row.textContent).not.toMatch(/остава|ч\.|мин/);
+
+    const plain = screen.getByRole("link", { name: "Borbone" }).closest("li")!;
+    expect(plain.textContent).not.toContain("Стара цена");
+    expect(screen.getByRole("link", { name: "Kimbo" }).closest("li")!.textContent).not.toContain(
+      "до ",
+    );
+
+    const sum = screen.getByLabelText("Сума и поръчка");
+    // 2 × 8,95 + 4,00 + 3,00 — the reduced prices are what is charged.
+    expect(sum.textContent).toMatch(/24,90\s€/);
+    // (9,95 − 8,95) × 2: the shop's own reduction, and only that.
+    expect(sum.textContent).toMatch(/Спестявате\s*2,00\s€/);
+  });
+
+  it("says nothing of savings when nothing is reduced", async () => {
+    serve([product({ id: A, title: "Lavazza" })]);
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+    expect(screen.getByLabelText("Сума и поръчка").textContent).not.toContain("Спестявате");
+  });
+
   it("removes a line, and changes a quantity without asking the server again", async () => {
     const fetch = serve([product({ id: A, title: "Lavazza" }), product({ id: B, title: "Kimbo" })]);
     render(createElement(CartView, { locale: "bg" }));
@@ -390,8 +456,10 @@ describe("the cart page", () => {
     const sent = actions.submitCartOrder.mock.calls[0]?.find(
       (arg: unknown) => arg instanceof FormData,
     ) as FormData;
-    // Ids and quantities only, and only what can be ordered.
-    expect(JSON.parse(String(sent.get("lines")))).toEqual([{ productId: A, quantity: 2 }]);
+    // Ids, quantities and the price each line showed, and only what can be ordered.
+    expect(JSON.parse(String(sent.get("lines")))).toEqual([
+      { productId: A, quantity: 2, price: "5.00" },
+    ]);
     expect(sent.get("phone")).toBe("0888 123 456");
     expect(sent.get("firstName")).toBe("Иван");
     expect(sent.get("deliveryCourier")).toBe("econt");
@@ -420,6 +488,227 @@ describe("the cart page", () => {
     );
     expect(await screen.findByText(/Вече не можем да приемем поръчка за Lavazza/)).toBeTruthy();
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  });
+
+  it("shows the new price when the action says the prices changed, and sends that one next", async () => {
+    // The promotion ended between the page's answer and the press.
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            products: [
+              product({
+                id: A,
+                title: "Lavazza",
+                price: { amount: "8.95", currency: "EUR", formatted: "8,95 €" },
+                oldPrice: { amount: "9.95", currency: "EUR", formatted: "9,95 €" },
+                discountPercent: 10,
+                promotion: { label: null, endsAt: "2026-10-20T22:00:00.000Z" },
+                priceEndsAt: "2026-10-20T22:00:00.000Z",
+              }),
+            ],
+          }),
+        ),
+      )
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            products: [
+              product({
+                id: A,
+                title: "Lavazza",
+                price: { amount: "9.95", currency: "EUR", formatted: "9,95 €" },
+              }),
+            ],
+          }),
+        ),
+      );
+    vi.stubGlobal("fetch", fetch);
+    actions.submitCartOrder.mockResolvedValue({
+      status: "error",
+      message: "Цените се промениха — прегледайте количката и изпратете отново.",
+    });
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+
+    await fillOrder();
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
+    );
+    const firstSent = actions.submitCartOrder.mock.calls[0]?.find(
+      (arg: unknown) => arg instanceof FormData,
+    ) as FormData;
+    expect(JSON.parse(String(firstSent.get("lines")))).toEqual([
+      { productId: A, quantity: 1, price: "8.95" },
+    ]);
+
+    expect(await screen.findByText(/Цените се промениха/)).toBeTruthy();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    const row = (await screen.findByRole("link", { name: "Lavazza" })).closest("li")!;
+    await waitFor(() => expect(row.textContent).toMatch(/9,95\s€ за брой/));
+    expect(row.textContent).not.toContain("Стара цена");
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
+    );
+    await waitFor(() => expect(actions.submitCartOrder).toHaveBeenCalledTimes(2));
+    const secondSent = actions.submitCartOrder.mock.calls[1]?.find(
+      (arg: unknown) => arg instanceof FormData,
+    ) as FormData;
+    expect(JSON.parse(String(secondSent.get("lines")))).toEqual([
+      { productId: A, quantity: 1, price: "9.95" },
+    ]);
+  });
+
+  it("asks again when the page is looked at again, or comes back from the history", async () => {
+    const fetch = serve([product({ id: A, title: "Lavazza" })]);
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => void document.dispatchEvent(new Event("visibilitychange")));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+
+    // A page shown on first load is not a return; one restored from the history is.
+    const shown = (persisted: boolean) => {
+      const event = new Event("pageshow") as PageTransitionEvent;
+      Object.defineProperty(event, "persisted", { value: persisted });
+      return event;
+    };
+    await act(async () => void window.dispatchEvent(shown(false)));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await act(async () => void window.dispatchEvent(shown(true)));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+  });
+
+  it("asks again just after the first promotion in the cart ends", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const endsAt = new Date(Date.now() + 60_000).toISOString();
+      const fetch = serve([
+        product({ id: A, title: "Lavazza", priceEndsAt: endsAt }),
+        product({
+          id: B,
+          title: "Kimbo",
+          priceEndsAt: new Date(Date.now() + 3_600_000).toISOString(),
+        }),
+      ]);
+      render(createElement(CartView, { locale: "bg" }));
+      fill([
+        { productId: A, quantity: 1 },
+        { productId: B, quantity: 1 },
+      ]);
+      await screen.findByRole("link", { name: "Lavazza" });
+      expect(fetch).toHaveBeenCalledTimes(1);
+
+      await act(async () => void vi.advanceTimersByTime(55_000));
+      expect(fetch).toHaveBeenCalledTimes(1);
+      await act(async () => void vi.advanceTimersByTime(10_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("asks again at the end even when the answer names the same end", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      // The server's clock a moment behind: the promotion still prices the line.
+      const endsAt = new Date(Date.now() + 60_000).toISOString();
+      const fetch = serve([product({ id: A, title: "Lavazza", priceEndsAt: endsAt })]);
+      render(createElement(CartView, { locale: "bg" }));
+      fill([{ productId: A, quantity: 1 }]);
+      await screen.findByRole("link", { name: "Lavazza" });
+
+      await act(async () => void vi.advanceTimersByTime(63_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      // The same end, now past by the browser's clock: asked again 30 s later.
+      await act(async () => void vi.advanceTimersByTime(31_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the cart and what was typed when asking again in the background fails, and tries again", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const answer = () =>
+        new Response(JSON.stringify({ products: [product({ id: A, title: "Lavazza" })] }));
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(answer())
+        // Back to the tab: the limiter says wait seven seconds.
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ error: "rate_limited" }), {
+            status: 429,
+            headers: { "retry-after": "7" },
+          }),
+        )
+        // The first quiet retry: the network is gone.
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValue(answer());
+      vi.stubGlobal("fetch", fetch);
+      render(createElement(CartView, { locale: "bg" }));
+      fill([{ productId: A, quantity: 1 }]);
+      await screen.findByRole("link", { name: "Lavazza" });
+      await act(async () =>
+        fireEvent.change(screen.getByRole("textbox", { name: "Име" }), {
+          target: { value: "Иван" },
+        }),
+      );
+
+      await act(async () => void document.dispatchEvent(new Event("visibilitychange")));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      // Still the cart, the form and the name, with no alarm.
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.getByRole("link", { name: "Lavazza" })).toBeTruthy();
+      expect((screen.getByRole("textbox", { name: "Име" }) as HTMLInputElement).value).toBe("Иван");
+
+      // Not before the seven seconds the server asked for.
+      await act(async () => void vi.advanceTimersByTime(6_000));
+      expect(fetch).toHaveBeenCalledTimes(2);
+      await act(async () => void vi.advanceTimersByTime(2_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+      expect(screen.queryByRole("alert")).toBeNull();
+
+      // Twice failed: ten seconds, then an answer, and the form untouched.
+      await act(async () => void vi.advanceTimersByTime(9_000));
+      expect(fetch).toHaveBeenCalledTimes(3);
+      await act(async () => void vi.advanceTimersByTime(2_000));
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect((screen.getByRole("textbox", { name: "Име" }) as HTMLInputElement).value).toBe("Иван");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says it could not load the cart when asking again after a refusal fails", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ products: [product({ id: A, title: "Lavazza" })] })),
+      )
+      .mockResolvedValue(new Response("{}", { status: 503 }));
+    vi.stubGlobal("fetch", fetch);
+    actions.submitCartOrder.mockResolvedValue({
+      status: "error",
+      message: "Цените се промениха — прегледайте количката и изпратете отново.",
+    });
+    render(createElement(CartView, { locale: "bg" }));
+    fill([{ productId: A, quantity: 1 }]);
+    await screen.findByRole("link", { name: "Lavazza" });
+    await fillOrder();
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати заявката" })),
+    );
+    // The refusal asks out loud: a failure then is said, with the products kept.
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText(/Продуктите ви са запазени/)).toBeTruthy();
   });
 
   it("says when it could not load the products, and keeps them", async () => {

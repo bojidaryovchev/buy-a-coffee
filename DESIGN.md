@@ -411,7 +411,8 @@ on `espresso-900` (edge 6.00:1) or on `paper-raised` (edge 3.07:1). It never
 sits directly on `paper` or `paper-sunken`, where its edge falls under 3:1.
 
 **The Clay Means Reduced Rule.** Clay marks a price that went down: the reduced
-price, the reduction badge, the promotions link and band. It is not a caution
+price, the reduction badge, the promotions link and band, and the cart's
+"Спестявате" line. It is not a caution
 colour, a brand flourish or a hover state. Cautions use `caution`.
 
 **The Critical Stays In Forms Rule.** `critical` appears on a form error and a
@@ -1136,7 +1137,7 @@ min-h-5 text-2xs font-semibold tracking-[0.06em] uppercase`. Not interactive.
 | Tone        | Classes                         | Ratio | Use                                              |
 | ----------- | ------------------------------- | ----- | ------------------------------------------------ |
 | `neutral`   | `bg-paper-sunken text-ink-700`  | 9.24  | Pack size, "Изчерпан", "Попитайте ни".           |
-| `positive`  | `bg-pine-100 text-pine-900`     | 12.71 | "В наличност".                                   |
+| `positive`  | `bg-pine-100 text-pine-900`     | 12.71 | "В наличност", "Ново".                           |
 | `caution`   | `bg-caution-100 text-caution`   | 6.24  | "По поръчка".                                    |
 | `critical`  | `bg-critical-100 text-critical` | 5.59  | Admin only.                                      |
 | `reduction` | `bg-clay-600 text-paper-raised` | 7.26  | "−15%". The existing tone name `accent` is this. |
@@ -1153,8 +1154,14 @@ Availability, one mapping everywhere:
 | `out_of_stock` | Изчерпан     | `neutral`  | Shown, top right of the well. |
 | `unknown`      | Попитайте ни | `neutral`  | Shown, top right of the well. |
 
-**Never.** A badge for a claim the data does not hold ("Ново", "Топ",
-"Препоръчано", "Био"). More than two badges over one packshot. A badge as the
+**"Ново"** is a claim the data holds: first seen in the last 30 days, and not
+with an import of the catalog (`isRecentArrival` in `lib/catalog/price-sql.ts`).
+It sits top left of the well, where the reduction badge sits; a reduced product
+shows the reduction there instead, so a pack never carries more than two
+badges.
+
+**Never.** A badge for a claim the data does not hold ("Топ", "Препоръчано",
+"Био"). More than two badges over one packshot. A badge as the
 only carrier of a fact a screen reader needs — it is real text, so it is read.
 
 ### System badge
@@ -2197,6 +2204,13 @@ border border-line bg-well` buttons, `gap-2`, under the well. Selected:
      Reduced: `text-clay-600`, followed by the old price in `text-lg
 tabular-nums text-ink-300 line-through` and the reduction badge; the same
      `sr-only` prefixes as on the card.
+   - Under the shop's own promotion, and only when there is a reduction to
+     show, `mt-3 text-sm text-ink-700` below the price per cup: the
+     promotion's customer name in `font-semibold text-ink-900` if it has one,
+     and "Намалението важи до 15 ноември."; then, `mt-1 text-xs text-ink-500`,
+     that the struck price is the lowest of the last 30 days before the
+     reduction. No countdown. A promotion with nothing to claim shows the
+     price alone (`product-price.tsx`).
    - Directly under, `mt-1 flex flex-wrap gap-x-4 text-sm font-medium
 tabular-nums text-pine-700`: the price per cup ("0,35 € на чаша", or
      "≈ …" when estimated) and, for goods sold by weight, the unit price
@@ -2337,7 +2351,10 @@ the sitemap). Breadcrumbs, the `h1` "Количка", then:
   `rounded-sm`; the pack standing where a cut-out is live), then the
   title as a link (`text-sm font-medium`, `sm:text-base`), the detail line in
   `text-sm text-ink-500`, the availability badge when it is not "В
-  наличност", the unit price "5,60 € за брой" and the price per cup in
+  наличност", the unit price "5,60 € за брой" — when the shop's own promotion
+  reduces it, the price in `font-medium text-clay-600` with the struck price,
+  the badge and "Промоция до 15 ноември" (or the promotion's customer name and
+  "до 15 ноември") — and the price per cup in
   `text-xs font-medium text-pine-700`, then the stepper and the line total
   (`text-base font-semibold tabular-nums`) on one row, and a `ghost` `sm`
   "Премахни" with a 16 px ×.
@@ -2348,6 +2365,9 @@ the sitemap). Breadcrumbs, the `h1` "Количка", then:
 text-caution` line counts them. They are left out of the sum and the order.
 - _Sum:_ a `rounded-md border border-line bg-paper-raised` panel: "Сума на
   продуктите (3 бр.)" and the figure in `text-xl font-semibold tabular-nums`;
+  when the shop's own promotions reduce lines, a `text-sm` row "Спестявате"
+  in `text-ink-700` with the figure in `font-semibold text-clay-600` (the
+  source's own struck prices never count here);
   when some lines have no price, "Без 1 продукт с цена при запитване — цената
   ще ви кажем по телефона." in `text-xs text-ink-500`; then "Доставката и
   крайната сума потвърждаваме по телефона. На сайта нищо не се плаща." Under a
@@ -2729,7 +2749,11 @@ callouts. No gold, no clay.
 **Blocks.** `Heading`, `Paragraph`, `Button` (primary pine, secondary
 outlined), `Divider`, `KeyValueRows`, `OrderLines` (two columns: name with
 "2 бр. × 19,90 €" under it, the line total right; the sum and what it leaves
-out), `Callout`, `ImageBlock` (alt required), `AttachmentList`, `Signature`.
+out; a line the shop's own promotion reduced says so in ink — the customer
+"вместо ~~9,95 €~~, −10%" against what the page struck, the owner "−10% ·
+<their name for the promotion>, редовна 9,95 €" — and the customer's sum is
+followed by "Спестявате"), `Callout`, `ImageBlock` (alt required),
+`AttachmentList`, `Signature`.
 
 **Never.** A relative URL, a `<style>` block, a colour not in `theme.ts`, an
 image that carries meaning without its text, HTML from the newsletter

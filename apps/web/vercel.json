@@ -3,6 +3,8 @@
   "regions": ["fra1"],
   "crons": [
     { "path": "/api/cron/sync-health", "schedule": "15 7 * * *" },
-    { "path": "/api/cron/retention", "schedule": "40 3 * * *" }
+    { "path": "/api/cron/retention", "schedule": "40 3 * * *" },
+    { "path": "/api/cron/promotions", "schedule": "5 * * * *" },
+    { "path": "/api/cron/newsletter", "schedule": "0 7 * * *" }
   ]
 }

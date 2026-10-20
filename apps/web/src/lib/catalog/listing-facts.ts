@@ -5,6 +5,7 @@ import { brands, categories, productCategories, products } from "@catalog/db/sch
 import { db } from "@/lib/db";
 import { isInstantCoffee, isNotInstantCoffee } from "./product-kind-sql";
 import { cupRangeOf, uniformPieceCount, type CupRange, type CupRangeRow } from "./cup-range";
+import { isReduced, retailPrice } from "./price-sql";
 
 /**
  * What a listing's title and meta description say about the products on it.
@@ -44,13 +45,6 @@ export interface ListingFacts {
   readonly uniformPieceCount: number | null;
 }
 
-const retailPrice = sql<
-  string | null
->`coalesce(${products.retailPriceOverride}, ${products.currentPrice})`;
-const retailOldPrice = sql<
-  string | null
->`coalesce(${products.retailOldPriceOverride}, ${products.oldPrice})`;
-
 function scopeCondition(scope: ListingScope): SQL | undefined {
   switch (scope.kind) {
     case "all":
@@ -66,7 +60,7 @@ function scopeCondition(scope: ListingScope): SQL | undefined {
     case "brand":
       return eq(brands.slug, scope.slug);
     case "promotions":
-      return sql`${retailOldPrice} is not null and ${retailOldPrice} > ${retailPrice}`;
+      return isReduced;
     case "products":
       return inArray(products.slug, [...scope.slugs]);
   }

@@ -35,7 +35,10 @@ export interface ProductCardData {
 }
 
 export function ProductCard(data: ProductCardData) {
-  const reduced = data.oldPrice !== null && data.discountPercent !== null;
+  // As on the product card: a struck price is a reduction, and the badge is
+  // drawn only for one of at least one percent (`productCardFacts`).
+  const reduced = data.oldPrice !== null;
+  const badge = reduced && data.discountPercent !== null && data.discountPercent >= 1;
   return (
     <CardFrame lockup={data.lockup}>
       <div style={{ display: "flex", flexDirection: "column", width: LEFT, paddingRight: 40 }}>
@@ -103,7 +106,7 @@ export function ProductCard(data: ProductCardData) {
                   {data.oldPrice}
                 </div>
               ) : null}
-              {reduced ? (
+              {badge ? (
                 <div
                   style={{
                     display: "flex",

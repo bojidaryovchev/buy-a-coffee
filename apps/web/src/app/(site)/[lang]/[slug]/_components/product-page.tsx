@@ -19,6 +19,7 @@ import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { getRelatedProducts } from "@/lib/catalog/queries";
 import type { ProductDetailView } from "@/lib/catalog/types";
 import { productMetaDescription, productPageTitle, productTitleWords } from "./product-meta";
+import { ProductPrice } from "./product-price";
 import { compatibilityLine, packLabel, systemListingHref } from "@/lib/catalog/product-facts";
 import { getBrewingSystem } from "@/lib/recommend/systems";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/seo/json-ld";
@@ -154,7 +155,6 @@ export async function ProductPage({
   const fits = compatibilityLine(system);
 
   const pack = packLabel(product.pack) ?? product.weight;
-  const reduced = product.discountPercent !== null && product.oldPrice !== null;
   const descriptionHtml = sanitizeHtml(product.descriptionHtml);
   const hasFacts = factRows(product, locale, brandFormat).length > 0;
 
@@ -235,47 +235,9 @@ export async function ProductPage({
             </p>
           )}
 
-          <div className="mt-5">
-            {product.price ? (
-              <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {reduced && <span className="sr-only">Намалена цена </span>}
-                <span
-                  className={`text-3xl font-semibold tabular-nums ${reduced ? "text-clay-600" : "text-ink-900"}`}
-                >
-                  {product.price.formatted}
-                </span>
-                {reduced && product.oldPrice && (
-                  <>
-                    <span className="sr-only">Стара цена </span>
-                    <span className="text-lg text-ink-300 tabular-nums line-through">
-                      {product.oldPrice.formatted}
-                    </span>
-                    <Badge tone="accent" className="tabular-nums">
-                      −{product.discountPercent}%
-                    </Badge>
-                  </>
-                )}
-              </p>
-            ) : (
-              <p className="text-lg text-ink-500">
-                Цена при запитване — обадете ни се и ще ви я кажем.
-              </p>
-            )}
-
-            {/*
-              Directly under the pack price, not only in the facts table. Price
-              indication rules want the unit price beside the selling price,
-              and the price per cup is the number that makes a box of ten
-              capsules comparable to a kilogram of beans — which is the
-              question a customer is actually asking.
-            */}
-            {(product.servingPrice || product.unitPrice) && (
-              <p className="mt-1 flex flex-wrap gap-x-4 text-sm font-medium text-pine-700 tabular-nums">
-                {product.servingPrice && <span>{product.servingPrice.formatted}</span>}
-                {product.unitPrice && <span>{product.unitPrice.formatted}</span>}
-              </p>
-            )}
-          </div>
+          {/* The price, a reduction, per cup and per kilogram, and the shop's
+              own promotion with its last day (`product-price.tsx`). */}
+          <ProductPrice product={product} />
 
           {product.descriptionText && (
             <p className="mt-4 max-w-[60ch] text-base text-ink-700">{product.descriptionText}</p>

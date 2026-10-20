@@ -1,7 +1,16 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type MouseEvent,
+} from "react";
 import type { NewsletterAttachment } from "@catalog/db/schema";
 import { FieldError } from "@/components/forms/field-error";
 import {
@@ -11,12 +20,23 @@ import {
   TEXTAREA_CLASS,
 } from "@/components/forms/field-styles";
 import { useActionForm } from "@/components/forms/use-schema-form";
+import {
+  NewsletterBlocks,
+  fromPicker,
+  type KnownProducts,
+} from "@/components/admin/newsletter-blocks";
 import { NewsletterChecklist } from "@/components/admin/newsletter-checklist";
-import { insertBlockLine } from "@/components/admin/newsletter-edits";
+import { TEXT_TOOLS, insertBlockLine, type Edit } from "@/components/admin/newsletter-edits";
 import { NewsletterProductPicker } from "@/components/admin/newsletter-product-picker";
 import { submitNewsletter, type NewsletterFormState } from "@/lib/newsletter/actions";
+import { parseBody, serializeBody, type BodyModel } from "@/lib/newsletter/body-blocks";
+import type { NamedPromotion, PlannedPromotion, PromotionFacts } from "@/lib/newsletter/claims";
 import { checkDeliverability } from "@/lib/newsletter/deliverability";
-import type { BlockReport, PreviewResponse } from "@/lib/newsletter/product-blocks";
+import type {
+  BlockReport,
+  PreviewResponse,
+  ReportedProduct,
+} from "@/lib/newsletter/product-blocks";
 import { DEFAULT_BLOCK_PRODUCTS, productTokenLine } from "@/lib/newsletter/tokens";
 import {
   MAX_ATTACHMENTS,
@@ -27,33 +47,42 @@ import {
   attachmentKind,
   newsletterDraftSchema,
   requireContent,
+  testAddressSchema,
   type NewsletterIntent,
 } from "@/lib/newsletter/schemas";
 
 /**
- * Writing a newsletter: subject, preview line, text, files, a live preview,
- * and three buttons — save, send a test to the shop's inbox, send to the list.
+ * Writing a newsletter: subject, preview line, the letter as blocks of text
+ * and products, files, a live preview, and three buttons — save, send a test
+ * to any one address (the owner's own by default), send to the list.
  *
  * Built like the reply form (`reply-form.tsx`): a real form posting to a
  * server action, validated in the browser with the schema the action checks
  * with, and keeping what was typed when the server says no. What it adds:
  *
- *   - A toolbar that writes the Markdown subset the template reads
- *     (`emails/markdown.ts`). The owner never writes HTML, and nothing typed
- *     here can become HTML in a subscriber's inbox.
+ *   - The letter as blocks (`newsletter-blocks.tsx`): text with a toolbar
+ *     that writes the Markdown subset the template reads (`emails/markdown.ts`),
+ *     and products drawn as products, to take out, add to, and move. The
+ *     blocks are a view of the one body string the form posts — the save, the
+ *     preview, the checks and the send all still read only that — and
+ *     "Markdown" shows the string itself, for whoever prefers to type it.
+ *     Before the script runs the Markdown view is what is drawn, so the form
+ *     posts without one. The owner never writes HTML, and nothing typed here
+ *     can become HTML in a subscriber's inbox.
  *   - Uploads straight from the browser to Vercel Blob, signed by
  *     `/api/admin/newsletter/upload`. Resend's batch sending carries no
  *     attachments, so a file is hosted and linked: a picture is drawn in the
  *     letter, anything else is a download button. The composer says so.
- *   - Products: a picker that finds them by name, brand or address and puts
- *     a `[[продукти: …]]` line in the text, and one-press lines for the
- *     newest products and the reductions (`lib/newsletter/tokens.ts`). The
- *     letter fills them from the catalog when it is drawn.
+ *   - Products: a picker that finds them by name, brand or address, and
+ *     blocks for the newest products and the reductions
+ *     (`lib/newsletter/tokens.ts`). The letter fills them from the catalog
+ *     when it is drawn.
  *   - A preview of the real template, rendered on the server a moment after
  *     typing stops, in an iframe with every sandbox restriction on.
- *   - "Преди изпращане": what is likely to send the letter to spam, worked
- *     out as the owner types (`lib/newsletter/deliverability.ts`) and repeated
- *     in the send confirmation. Advice; it blocks nothing.
+ *   - "Преди изпращане": what would stop the send, what the letter will go
+ *     without, and what is likely to send it to spam, worked out as the owner
+ *     types (`lib/newsletter/deliverability.ts`) and repeated in the send
+ *     confirmation — with a letter within a month of the last one among them.
  *   - Sending behind a second, explicit step that names the number of
  *     recipients. It is a `<details>`, so it works with or without script, and
  *     the action refuses the send if the list has changed since.
@@ -68,6 +97,18 @@ export interface ComposerCampaign {
   body: string;
   attachments: NewsletterAttachment[];
 }
+
+/** The same text, whichever line ends it was written with. */
+const sameText = (a: string, b: string) => a.replace(/\r\n?/g, "\n") === b.replace(/\r\n?/g, "\n");
+
+/** The script has run: the blocks can be drawn, and the body travels in its hidden field. */
+const subscribeNothing = () => () => undefined;
+const useHydrated = () =>
+  useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
 
 const BUTTON_PRIMARY =
   "inline-flex min-h-11 items-center justify-center rounded-sm bg-pine-900 px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-paper transition-colors hover:bg-pine-700 disabled:cursor-not-allowed disabled:bg-paper-sunken disabled:text-ink-500";
@@ -106,74 +147,15 @@ function sizeLabel(bytes: number): string {
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
 
-/* -- the toolbar ------------------------------------------------------------ */
-
-type Edit = (
-  text: string,
-  start: number,
-  end: number,
-) => {
-  text: string;
-  selectionStart: number;
-  selectionEnd: number;
-};
-
-/** Wrap the selection, or insert the markers around a placeholder word. */
-const wrap =
-  (marker: string, placeholder: string): Edit =>
-  (text, start, end) => {
-    const selected = text.slice(start, end) || placeholder;
-    const next = `${text.slice(0, start)}${marker}${selected}${marker}${text.slice(end)}`;
-    return {
-      text: next,
-      selectionStart: start + marker.length,
-      selectionEnd: start + marker.length + selected.length,
-    };
-  };
-
-/** Put a prefix at the start of every line the selection touches. */
-const prefixLines =
-  (prefix: string): Edit =>
-  (text, start, end) => {
-    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
-    const lineEndIndex = text.indexOf("\n", end);
-    const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
-    const block = text
-      .slice(lineStart, lineEnd)
-      .split("\n")
-      .map((line) =>
-        line.startsWith(prefix) ? line : `${prefix}${line.replace(/^(#+|-|\*)\s+/, "")}`,
-      )
-      .join("\n");
-    const next = `${text.slice(0, lineStart)}${block}${text.slice(lineEnd)}`;
-    return { text: next, selectionStart: lineStart, selectionEnd: lineStart + block.length };
-  };
-
-/** `[selection](https://)`, with the address selected for pasting over. */
-const link: Edit = (text, start, end) => {
-  const label = text.slice(start, end) || "текст на връзката";
-  const inserted = `[${label}](https://)`;
-  const next = `${text.slice(0, start)}${inserted}${text.slice(end)}`;
-  const urlStart = start + label.length + 3;
-  return { text: next, selectionStart: urlStart, selectionEnd: urlStart + "https://".length };
-};
-
 /** The two automatic blocks, as their buttons write them. */
 const NEW_LINE = productTokenLine({ kind: "new", limit: DEFAULT_BLOCK_PRODUCTS });
 const SALE_LINE = productTokenLine({ kind: "sale", limit: DEFAULT_BLOCK_PRODUCTS });
 
-const TOOLS: { label: string; title: string; edit: Edit }[] = [
-  { label: "Заглавие", title: "Подзаглавие (## в началото на реда)", edit: prefixLines("## ") },
-  { label: "Удебелен", title: "Удебелен текст (**…**)", edit: wrap("**", "удебелен текст") },
-  { label: "Курсив", title: "Курсив (*…*)", edit: wrap("*", "курсив") },
-  { label: "Връзка", title: "Връзка ([текст](https://…))", edit: link },
-  { label: "Списък", title: "Списък (- в началото на всеки ред)", edit: prefixLines("- ") },
-];
-
 /* -- the composer ----------------------------------------------------------- */
 
-/** One empty list, so the checks are not recomputed for a new `[]` every render. */
+/** Empty lists, so the checks are not recomputed for a new `[]` every render. */
 const NO_NAMES: readonly string[] = [];
+const NO_PROMOTIONS: readonly NamedPromotion[] = [];
 
 export function NewsletterComposer({
   campaign,
@@ -183,15 +165,31 @@ export function NewsletterComposer({
   canSend,
   canUpload,
   capitalised = NO_NAMES,
+  lastLetterAt = null,
+  announced = null,
+  announcedPlan = null,
+  announcedMissing = false,
+  named = NO_PROMOTIONS,
 }: {
   campaign: ComposerCampaign;
   activeCount: number;
   sender: string;
+  /** Where a test copy goes unless another address is typed: the owner's notifications. */
   testRecipient: string | null;
   canSend: boolean;
   canUpload: boolean;
   /** Brand and line names that may be written in capitals (`listCapitalisedNames`). */
   capitalised?: readonly string[];
+  /** When the last letter that went out started (ISO), for "once a month". */
+  lastLetterAt?: string | null;
+  /** The promotion this letter announces, for what it may claim (`claims.ts`). */
+  announced?: PromotionFacts | null;
+  /** That promotion as the letter was written about it. */
+  announcedPlan?: PlannedPromotion | null;
+  /** A promotion's letter whose promotion was deleted. */
+  announcedMissing?: boolean;
+  /** The promotions the letter was written naming, as written and as they stand. */
+  named?: readonly NamedPromotion[];
 }) {
   const { state, formAction, form, formProps, pending, errorOf, ariaFor } = useActionForm({
     schema: newsletterDraftSchema,
@@ -205,9 +203,10 @@ export function NewsletterComposer({
       preheader: campaign.preheader,
       body: campaign.body,
       attachments: JSON.stringify(campaign.attachments),
+      testTo: testRecipient ?? "",
     }),
   });
-  const { register, setValue, watch, getValues, reset, setError } = form;
+  const { register, setValue, watch, getValues, reset, setError, formState } = form;
 
   const [files, setFiles] = useState<NewsletterAttachment[]>(campaign.attachments);
   const [savedFiles, setSavedFiles] = useState(() => JSON.stringify(campaign.attachments));
@@ -252,14 +251,62 @@ export function NewsletterComposer({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  /* -- toolbar -- */
-  const bodyField = register("body");
+  /* -- the body: blocks, or the Markdown it is -- */
+  const hydrated = useHydrated();
+  const [chosenMode, setChosenMode] = useState<"blocks" | "markdown" | null>(null);
+  const mode = chosenMode ?? (hydrated ? "blocks" : "markdown");
+  /* Typed before the script ran: the page is drawn with the Markdown view, a
+     plain field the browser posts, and the owner may have started on it.
+     React, hydrating a textarea, puts the text it drew back over a typed
+     one, so the field is read here, as the component first renders in the
+     browser — before React reaches it. Only that field: it alone has a name
+     before the script runs. The form and the blocks then start from it — but
+     only for a real change: a textarea reads its text back with LF for the
+     CRLF a saved body has, which is the same text, and the body stays
+     exactly as it was saved (and the draft not "changed"). */
+  const [typedEarly] = useState<string | null>(() => {
+    if (typeof document === "undefined") return null;
+    const field = document.getElementById("body");
+    if (!(field instanceof HTMLTextAreaElement) || field.name !== "body") return null;
+    return sameText(field.value, campaign.body) ? null : field.value;
+  });
+  const [model, setModel] = useState<BodyModel>(() => parseBody(typedEarly ?? campaign.body));
+  const setBody = (text: string) =>
+    setValue("body", text, { shouldDirty: true, shouldValidate: formState.isSubmitted });
+  const changeModel = (next: BodyModel) => {
+    setModel(next);
+    setBody(serializeBody(next));
+  };
+  const toggleMode = () => {
+    if (mode === "markdown") setModel(parseBody(getValues("body") ?? ""));
+    setChosenMode(mode === "markdown" ? "blocks" : "markdown");
+  };
+
+  useLayoutEffect(() => {
+    if (typedEarly !== null) setValue("body", typedEarly, { shouldDirty: true });
+    // Once, as the script takes over.
+  }, []);
+
+  /* What the owner has seen of each product, by slug — from the preview and
+     the search — so a block redraws at once when its list changes. */
+  const [known, setKnown] = useState<KnownProducts>(() => new Map());
+  const learn = (products: readonly (ReportedProduct & { soldOut?: boolean })[]) => {
+    if (products.length === 0) return;
+    setKnown((current) => {
+      const next = new Map(current);
+      for (const product of products) next.set(product.slug, product);
+      return next;
+    });
+  };
+
+  /* -- the Markdown view's toolbar -- */
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const apply = (edit: Edit) => {
     const area = bodyRef.current;
     if (!area) return;
     const result = edit(area.value, area.selectionStart, area.selectionEnd);
-    setValue("body", result.text, { shouldDirty: true });
+    area.value = result.text;
+    setBody(result.text);
     requestAnimationFrame(() => {
       area.focus();
       area.setSelectionRange(result.selectionStart, result.selectionEnd);
@@ -345,6 +392,7 @@ export function NewsletterComposer({
         const answer = (await response.json()) as PreviewResponse;
         setPreview(answer.html);
         setBlockReports(answer.blocks);
+        learn(answer.blocks.flatMap((block) => block.products));
         setPreviewBytes(new TextEncoder().encode(answer.html).length);
         setPreviewState("idle");
       } catch (error) {
@@ -378,9 +426,38 @@ export function NewsletterComposer({
         blocks: blockReports,
         htmlBytes: previewBytes,
         capitalised,
+        lastLetterAt,
+        announced,
+        announcedPlan,
+        announcedMissing,
+        named,
       }),
-    [subject, preheader, body, files, blockReports, previewBytes, capitalised],
+    [
+      subject,
+      preheader,
+      body,
+      files,
+      blockReports,
+      previewBytes,
+      capitalised,
+      lastLetterAt,
+      announced,
+      announcedPlan,
+      announcedMissing,
+      named,
+    ],
   );
+
+  /* -- a test copy: the address is checked before anything is sent -- */
+  const checkTestAddress = (event: MouseEvent<HTMLButtonElement>) => {
+    const address = testAddressSchema.safeParse(getValues("testTo") ?? "");
+    if (!address.success) {
+      event.preventDefault();
+      setError("testTo", { type: "format", message: address.error.issues[0]?.message ?? "" });
+      return;
+    }
+    choose("test");
+  };
 
   /* -- sending -- */
   const openConfirmation = (event: MouseEvent<HTMLElement>) => {
@@ -446,93 +523,128 @@ export function NewsletterComposer({
 
         <div>
           <div className="mb-1 flex flex-wrap items-end justify-between gap-2">
-            <label htmlFor="body" className="block text-sm font-medium text-ink-900">
-              Текст
-            </label>
-            <div
-              role="toolbar"
-              aria-label="Форматиране"
-              aria-controls="body"
-              className="flex flex-wrap gap-1.5"
+            <h2 id="body-title" className="block text-sm font-medium text-ink-900">
+              {mode === "blocks" ? "Текст и продукти" : <label htmlFor="body">Текст</label>}
+            </h2>
+            <button
+              type="button"
+              aria-pressed={mode === "markdown"}
+              onClick={toggleMode}
+              title="Целият текст като Markdown, с блоковете като редове [[…]]"
+              className={`${TOOL_BUTTON} aria-pressed:border-pine-700 aria-pressed:bg-pine-100`}
             >
-              {TOOLS.map((tool) => (
+              Markdown
+            </button>
+          </div>
+
+          {mode === "blocks" ? (
+            <NewsletterBlocks
+              model={model}
+              onChange={changeModel}
+              reports={blockReports}
+              previewing={previewState === "loading"}
+              known={known}
+              onKnown={learn}
+              describedBy="body-help"
+            />
+          ) : (
+            <>
+              <div
+                role="toolbar"
+                aria-label="Форматиране"
+                aria-controls="body"
+                className="mb-1.5 flex flex-wrap gap-1.5"
+              >
+                {TEXT_TOOLS.map((tool) => (
+                  <button
+                    key={tool.label}
+                    type="button"
+                    title={tool.title}
+                    onClick={() => apply(tool.edit)}
+                    className={TOOL_BUTTON}
+                  >
+                    {tool.label}
+                  </button>
+                ))}
+              </div>
+              {/* Named only before the script runs: without it, this is the
+                  field the browser posts (it comes first); with it, the body
+                  travels in the hidden field below, whichever view is open.
+                  Uncontrolled: the toolbar writes to it as well as the form. */}
+              <textarea
+                id="body"
+                ref={bodyRef}
+                name={hydrated ? undefined : "body"}
+                defaultValue={body ?? ""}
+                onChange={(event) => setBody(event.currentTarget.value)}
+                rows={16}
+                placeholder="Здравейте, …"
+                {...ariaFor("body", "body", "body-help")}
+                className={`${TEXTAREA_CLASS} font-mono leading-relaxed`}
+              />
+              <div
+                role="toolbar"
+                aria-label="Продукти"
+                aria-controls="body"
+                className="mt-2 flex flex-wrap items-center gap-1.5"
+              >
+                <span className="mr-1 text-sm text-ink-700">Вмъкни:</span>
                 <button
-                  key={tool.label}
                   type="button"
-                  title={tool.title}
-                  onClick={() => apply(tool.edit)}
+                  aria-expanded={pickerOpen}
+                  title="Избрани продукти ([[продукти: адрес-1, адрес-2]])"
+                  onClick={() => setPickerOpen((open) => !open)}
+                  className={`${TOOL_BUTTON} aria-expanded:border-pine-700 aria-expanded:bg-pine-100`}
+                >
+                  Продукти…
+                </button>
+                <button
+                  type="button"
+                  title={`Най-новите продукти (${NEW_LINE})`}
+                  onClick={() => insertLine(NEW_LINE)}
                   className={TOOL_BUTTON}
                 >
-                  {tool.label}
+                  Нови продукти
                 </button>
-              ))}
-            </div>
-          </div>
-          <textarea
-            id="body"
-            {...bodyField}
-            ref={(element) => {
-              bodyField.ref(element);
-              bodyRef.current = element;
-            }}
-            rows={16}
-            placeholder="Здравейте, …"
-            {...ariaFor("body", "body", "body-help")}
-            className={`${TEXTAREA_CLASS} font-mono leading-relaxed`}
-          />
-          <div
-            role="toolbar"
-            aria-label="Продукти"
-            aria-controls="body"
-            className="mt-2 flex flex-wrap items-center gap-1.5"
-          >
-            <span className="mr-1 text-sm text-ink-700">Вмъкни:</span>
-            <button
-              type="button"
-              aria-expanded={pickerOpen}
-              title="Избрани продукти ([[продукти: адрес-1, адрес-2]])"
-              onClick={() => setPickerOpen((open) => !open)}
-              className={`${TOOL_BUTTON} aria-expanded:border-pine-700 aria-expanded:bg-pine-100`}
-            >
-              Продукти…
-            </button>
-            <button
-              type="button"
-              title={`Най-новите продукти от последните 30 дни (${NEW_LINE})`}
-              onClick={() => insertLine(NEW_LINE)}
-              className={TOOL_BUTTON}
-            >
-              Нови продукти
-            </button>
-            <button
-              type="button"
-              title={`Продуктите с най-голямо намаление (${SALE_LINE})`}
-              onClick={() => insertLine(SALE_LINE)}
-              className={TOOL_BUTTON}
-            >
-              Промоции
-            </button>
-          </div>
-          {pickerOpen && (
-            <NewsletterProductPicker
-              onClose={() => setPickerOpen(false)}
-              onInsert={(slugs) => {
-                setPickerOpen(false);
-                insertLine(productTokenLine({ kind: "picked", slugs }));
-              }}
-            />
+                <button
+                  type="button"
+                  title={`Продуктите с най-голямо намаление (${SALE_LINE})`}
+                  onClick={() => insertLine(SALE_LINE)}
+                  className={TOOL_BUTTON}
+                >
+                  Промоции
+                </button>
+              </div>
+              {pickerOpen && (
+                <NewsletterProductPicker
+                  onClose={() => setPickerOpen(false)}
+                  onInsert={(products) => {
+                    setPickerOpen(false);
+                    learn(products.map(fromPicker));
+                    insertLine(
+                      productTokenLine({
+                        kind: "picked",
+                        slugs: products.map((product) => product.slug),
+                      }),
+                    );
+                  }}
+                />
+              )}
+              <p className={HELPER_CLASS}>
+                Продукти — всеки блок на отделен ред: <code>[[продукти: адрес-1, адрес-2]]</code>{" "}
+                (до 6), <code>[[нови-продукти]]</code> (пристигналите наскоро),{" "}
+                <code>[[промоции]]</code> (най-голямото намаление); число след двоеточие казва
+                колко, напр. <code>[[промоции: 6]]</code>.
+              </p>
+            </>
           )}
+          <input type="hidden" {...register("body")} />
           <p id="body-help" className={HELPER_CLASS}>
             Празен ред — нов абзац. <code>## Заглавие</code>, <code>**удебелен**</code>,{" "}
             <code>*курсив*</code>, <code>[текст](https://…)</code>, <code>- точка от списък</code>.
-            Адрес, написан направо, става връзка. HTML не се приема — показва се като текст.
-          </p>
-          <p className={HELPER_CLASS}>
-            Продукти — всеки блок на отделен ред: <code>[[продукти: адрес-1, адрес-2]]</code> (до
-            6), <code>[[нови-продукти]]</code> (от последните 30 дни), <code>[[промоции]]</code>{" "}
-            (най-голямото намаление); число след двоеточие казва колко, напр.{" "}
-            <code>[[промоции: 6]]</code>. Името, цената и снимката са като на сайта; при изпращането
-            се записват и всеки абонат получава едно и също писмо.
+            Адрес, написан направо, става връзка. HTML не се приема — показва се като текст. Името,
+            цената и снимката на продуктите са като на сайта; при изпращането се записват и всеки
+            абонат получава едно и също писмо.
           </p>
           <FieldError id="body" message={errorOf("body")} />
         </div>
@@ -651,18 +763,39 @@ export function NewsletterComposer({
             >
               {pending && intent === "save" ? "Запазва се…" : "Запази черновата"}
             </button>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1 basis-64">
+              <label htmlFor="testTo" className={LABEL_CLASS}>
+                Пробно писмо до
+              </label>
+              <input
+                id="testTo"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                {...register("testTo")}
+                maxLength={254}
+                placeholder="Напр. ime@example.com"
+                {...ariaFor("testTo", "testTo", "testTo-help")}
+                className={INPUT_CLASS}
+              />
+              <p id="testTo-help" className={HELPER_CLASS}>
+                Един адрес — вашият, или на някого, който да прочете писмото преди абонатите.
+              </p>
+              <FieldError id="testTo" message={errorOf("testTo")} />
+            </div>
             <button
               type="submit"
               name="intent"
               value="test"
-              disabled={busy || !canSend || !testRecipient}
-              onClick={() => choose("test")}
+              disabled={busy || !canSend}
+              onClick={checkTestAddress}
               aria-busy={(pending && intent === "test") || undefined}
-              className={BUTTON_SECONDARY}
+              className={`${BUTTON_SECONDARY} mb-6`}
             >
               {pending && intent === "test" ? "Изпраща се…" : "Изпрати пробно"}
             </button>
-            {testRecipient && <span className="text-xs text-ink-500">до {testRecipient}</span>}
           </div>
 
           <details ref={confirmRef} className="group border-t border-line pt-4">

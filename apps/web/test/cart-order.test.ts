@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_CART_LINES } from "@/lib/cart/cart";
-import { cartBlock, toCartProductView } from "@/lib/cart/view";
+import { cartBlock, requoteDelay, toCartProductView } from "@/lib/cart/view";
 import {
   CART_MESSAGES,
   EMAIL_MESSAGES,
@@ -14,7 +14,11 @@ import { orderThreadSubject, recordReference } from "@/lib/mail/reference";
 import {
   lineTotal,
   orderLinesText,
+  orderSavings,
   orderSum,
+  reductionNote,
+  samePrice,
+  savingsSentence,
   storedLine,
   sumSentence,
   type OrderLine,
@@ -108,12 +112,39 @@ describe("cartOrderSchema", () => {
     }
   });
 
-  it("carries no price: whatever else a line says is not read", () => {
+  it("carries no price but the one the page showed, as a hint: whatever else a line says is not read", () => {
     const result = cartOrderSchema.safeParse({
       ...valid,
       lines: JSON.stringify([{ productId: A, quantity: 1, unitPrice: "0.01" }]),
     });
     expect(result.success && result.data.lines).toEqual([{ productId: A, quantity: 1 }]);
+    const hinted = cartOrderSchema.safeParse({
+      ...valid,
+      lines: JSON.stringify([
+        { productId: A, quantity: 1, price: "8.95" },
+        { productId: B, quantity: 1, price: null },
+      ]),
+    });
+    expect(hinted.success && hinted.data.lines).toEqual([
+      { productId: A, quantity: 1, price: "8.95" },
+      { productId: B, quantity: 1, price: null },
+    ]);
+    for (const price of ["8,95", "-1", "8.955", 8.95, "free"]) {
+      const forged = cartOrderSchema.safeParse({
+        ...valid,
+        lines: JSON.stringify([{ productId: A, quantity: 1, price }]),
+      });
+      expect(forged.success, String(price)).toBe(false);
+      if (!forged.success) expect(toFieldErrors(forged.error).lines).toBe(CART_MESSAGES.changed);
+    }
+  });
+
+  it("compares a shown price with the server's in cents, not as text", () => {
+    expect(samePrice("8.9", "8.90")).toBe(true);
+    expect(samePrice("8.95", "8.94")).toBe(false);
+    expect(samePrice(null, null)).toBe(true);
+    expect(samePrice(null, "8.95")).toBe(false);
+    expect(samePrice("8.95", null)).toBe(false);
   });
 
   it("refuses a filled honeypot, and checks the optional email and note when they are given", () => {
@@ -196,6 +227,121 @@ describe("order sums", () => {
     });
     expect(storedLine({ quantity: 1, unitPrice: null, currency: null }, "x").unitPrice).toBeNull();
   });
+
+  it("read a stored line a promotion priced as the owner's: regular price, percentage, name", () => {
+    const line = storedLine(
+      {
+        quantity: 2,
+        unitPrice: "8.95",
+        currency: "EUR",
+        regularUnitPrice: "9.95",
+        discountPercent: 10,
+        promotionName: "Октомври, Lavazza −10%",
+      },
+      "Super Crema 1кг",
+    );
+    expect(line.reduction).toEqual({
+      reader: "owner",
+      before: eur("9.95"),
+      percent: 10,
+      promotionName: "Октомври, Lavazza −10%",
+    });
+    expect(reductionNote(line)).toMatch(/^−10% · Октомври, Lavazza −10%, редовна 9,95\s€$/);
+    // A line from before promotions, and one no promotion priced, carry none.
+    expect(storedLine({ quantity: 1, unitPrice: "8.95", currency: "EUR" }, "x")).not.toHaveProperty(
+      "reduction",
+    );
+    expect(
+      storedLine(
+        {
+          quantity: 1,
+          unitPrice: "8.95",
+          currency: "EUR",
+          regularUnitPrice: null,
+          discountPercent: null,
+          promotionName: null,
+        },
+        "x",
+      ),
+    ).not.toHaveProperty("reduction");
+  });
+});
+
+describe("what reductions save", () => {
+  const customer = (
+    amount: string,
+    before: string,
+    quantity = 1,
+    percent: number | null = 10,
+  ): OrderLine => ({
+    name: "a",
+    quantity,
+    unitPrice: eur(amount),
+    reduction: { reader: "customer", before: eur(before), percent },
+  });
+
+  it("adds up each reduced line's difference times its quantity, exactly", () => {
+    // 0.10 × 3 is 0.30000000000000004 in floating point.
+    expect(orderSavings([customer("0.20", "0.30", 3)])?.amount).toBe("0.30");
+    expect(
+      orderSavings([
+        customer("8.95", "9.95", 2),
+        { name: "b", quantity: 4, unitPrice: eur("5.00") },
+        customer("4.00", "5.00"),
+      ])?.amount,
+    ).toBe("3.00");
+  });
+
+  it("is nothing when nothing is reduced, or the price before is not above the price", () => {
+    expect(orderSavings([{ name: "a", quantity: 1, unitPrice: eur("5.00") }])).toBeNull();
+    expect(orderSavings([customer("5.00", "5.00"), customer("5.00", "4.00")])).toBeNull();
+    // An unpriced line, or a price before in another currency, adds nothing.
+    expect(
+      orderSavings([
+        { ...customer("1.00", "2.00"), unitPrice: null },
+        {
+          ...customer("1.00", "2.00"),
+          reduction: {
+            reader: "customer",
+            before: { amount: "2.00", currency: "BGN" },
+            percent: 50,
+          },
+        },
+      ]),
+    ).toBeNull();
+  });
+
+  it("is worded for the customer and for the owner", () => {
+    expect(savingsSentence([customer("8.95", "9.95", 2)])).toMatch(/^Спестявате 2,00\s€$/);
+    const owner = storedLine(
+      {
+        quantity: 2,
+        unitPrice: "8.95",
+        currency: "EUR",
+        regularUnitPrice: "9.95",
+        discountPercent: 10,
+      },
+      "x",
+    );
+    expect(savingsSentence([owner])).toMatch(/^Отстъпка по промоции: 2,00\s€$/);
+    expect(savingsSentence([{ name: "a", quantity: 1, unitPrice: eur("5.00") }])).toBeNull();
+  });
+
+  it("prints a reduced line's note after its unit price, and the saving under the sum", () => {
+    const text = orderLinesText([
+      { ...customer("8.95", "9.95", 2), name: "Lavazza Super Crema" },
+      { ...customer("4.00", "5.00"), name: "Kimbo Napoli" },
+      // Under one percent: struck, and no percentage, as on the card.
+      { ...customer("9.90", "9.95", 1, null), name: "Borbone Rossa" },
+    ]);
+    expect(text[0]).toMatch(
+      /^2 × Lavazza Super Crema — 8,95\s€ за брой \(вместо 9,95\s€, −10%\), 17,90\s€$/,
+    );
+    expect(text[1]).toMatch(/^1 × Kimbo Napoli — 4,00\s€ \(вместо 5,00\s€, −10%\)$/);
+    expect(text[2]).toMatch(/^1 × Borbone Rossa — 9,90\s€ \(вместо 9,95\s€\)$/);
+    expect(text.at(-2)).toMatch(/^Сума на продуктите: 31,80\s€$/);
+    expect(text.at(-1)).toMatch(/^Спестявате 3,05\s€$/);
+  });
 });
 
 describe("what the cart page is told about a product", () => {
@@ -228,10 +374,97 @@ describe("what the cart page is told about a product", () => {
       // The cut-out too, when one is live: none on this card.
       image: { url: "/media/a.jpg", alt: "Lavazza Super Crema", cutout: null },
       price: card.price,
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      priceEndsAt: null,
       servingPrice: "≈ 0,14 € на чаша",
       availability: "in_stock",
       blocked: null,
     });
+  });
+
+  const promotion = {
+    id: B,
+    label: "Есенни дни",
+    percentOff: 10,
+    endsAt: "2026-11-15T22:00:00.000Z",
+    regularPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
+  };
+
+  it("carries a reduction as the card shows it, with the promotion's words and end", () => {
+    const reduced: ProductCardView = {
+      ...card,
+      price: { amount: "17.91", currency: "EUR", formatted: "17,91 €" },
+      oldPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
+      discountPercent: 10,
+      promotion,
+    };
+    const view = toCartProductView(reduced, "active");
+    expect(view).toMatchObject({
+      price: reduced.price,
+      oldPrice: reduced.oldPrice,
+      discountPercent: 10,
+    });
+    // Its words and its end, and nothing else: not its id, not its own percentage.
+    expect(view.promotion).toEqual({ label: "Есенни дни", endsAt: "2026-11-15T22:00:00.000Z" });
+    expect(view.priceEndsAt).toBe("2026-11-15T22:00:00.000Z");
+  });
+
+  it("says nothing of a promotion that has no reduction to announce, but when its price ends", () => {
+    // The 30-day lowest was already lower: the promotion's price, and no claim.
+    const unannounced: ProductCardView = {
+      ...card,
+      price: { amount: "17.91", currency: "EUR", formatted: "17,91 €" },
+      promotion,
+    };
+    expect(toCartProductView(unannounced, "active")).toMatchObject({
+      price: unannounced.price,
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      // Not a claim: when the page should ask again.
+      priceEndsAt: "2026-11-15T22:00:00.000Z",
+    });
+    // Under one percent: the struck price, and no badge figure.
+    const slight: ProductCardView = {
+      ...card,
+      price: { amount: "19.85", currency: "EUR", formatted: "19,85 €" },
+      oldPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
+      discountPercent: 0,
+      promotion: { ...promotion, percentOff: 1 },
+    };
+    expect(toCartProductView(slight, "active")).toMatchObject({
+      oldPrice: slight.oldPrice,
+      discountPercent: null,
+      promotion: { label: "Есенни дни" },
+    });
+  });
+
+  it("leaves the source's own struck price to the cards", () => {
+    const sourceReduced: ProductCardView = {
+      ...card,
+      price: { amount: "15.90", currency: "EUR", formatted: "15,90 €" },
+      oldPrice: { amount: "19.90", currency: "EUR", formatted: "19,90 €" },
+      discountPercent: 20,
+      promotion: null,
+    };
+    expect(toCartProductView(sourceReduced, "active")).toMatchObject({
+      price: sourceReduced.price,
+      oldPrice: null,
+      discountPercent: null,
+      promotion: null,
+      priceEndsAt: null,
+    });
+  });
+
+  it("asks again a little after a price ends, never in a loop and never too far ahead", () => {
+    const now = Date.parse("2026-11-15T21:00:00.000Z");
+    expect(requoteDelay(now + 60_000, now)).toBe(62_000);
+    // The browser's clock says it ended; the server may not have yet.
+    expect(requoteDelay(now - 60_000, now)).toBe(30_000);
+    // Weeks away: asked about again within hours, and the timer set again then.
+    expect(requoteDelay(now + 30 * 24 * 3_600_000, now)).toBe(6 * 3_600_000);
   });
 
   it("refuses what the product page refuses: withdrawn, or out of stock today", () => {
@@ -291,6 +524,32 @@ describe("the confirmation mail", () => {
     expect(joined).toContain("Къде доставяме");
     for (const line of delivery) expect(joined).toContain(line);
     expect(text).toContain("Ако номерът или адресът са сгрешени");
+  });
+
+  it("shows a reduced line struck through, with what it saves, in both parts", async () => {
+    const { text, html } = await composeOrderConfirmation({
+      id: ID,
+      email: "ivan@example.com",
+      customerName: null,
+      phone: "+359888123456",
+      lines: [
+        {
+          name: "Lavazza Super Crema — кафе на зърна, 1 кг",
+          quantity: 2,
+          unitPrice: eur("17.91"),
+          reduction: { reader: "customer", before: eur("19.90"), percent: 10 },
+        },
+      ],
+      callback: "Ще ви се обадим утре, в работно време.",
+    });
+    expect(text).toMatch(/17,91\s€ за брой \(вместо 19,90\s€, −10%\), 35,82\s€/);
+    expect(text).toMatch(/Спестявате 3,98\s€/);
+    const joined = html.replace(/<!-- -->/g, "");
+    expect(joined).toMatch(
+      /вместо <span style="text-decoration:line-through">19,90\s€<\/span>, −10%/,
+    );
+    expect(joined).toMatch(/Спестявате<\/td>/);
+    expect(joined).toMatch(/3,98\s€/);
   });
 
   it("leaves the delivery out for an order that has none", async () => {

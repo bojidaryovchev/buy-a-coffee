@@ -45,6 +45,14 @@ export interface OrderItemRow {
   /** Exact decimal string; null for "Цена при запитване", and on lines from before the cart. */
   unitPrice: string | null;
   currency: string | null;
+  /**
+   * Set when the shop's own promotion priced the line: the price without it,
+   * its percentage, and the owner's name for it then. Null on every other
+   * line, and on lines from before promotions (0013).
+   */
+  regularUnitPrice: string | null;
+  discountPercent: number | null;
+  promotionName: string | null;
 }
 
 /** An enquiry as the panel reads it. The delivery fields are null on orders
@@ -87,6 +95,9 @@ async function withItems(orders: OrderColumns[]): Promise<OrderRow[]> {
       quantity: orderInquiryItems.quantity,
       unitPrice: orderInquiryItems.unitPrice,
       currency: orderInquiryItems.currency,
+      regularUnitPrice: orderInquiryItems.regularUnitPrice,
+      discountPercent: orderInquiryItems.discountPercent,
+      promotionName: orderInquiryItems.promotionName,
     })
     .from(orderInquiryItems)
     .where(
@@ -116,6 +127,9 @@ async function withItems(orders: OrderColumns[]): Promise<OrderRow[]> {
               quantity: order.quantity,
               unitPrice: null,
               currency: null,
+              regularUnitPrice: null,
+              discountPercent: null,
+              promotionName: null,
             },
           ]
         : [];

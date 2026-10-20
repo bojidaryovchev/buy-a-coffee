@@ -149,6 +149,37 @@ describe("ProductCard: what it shows", () => {
     expect(text(root)).toContain("Стара цена 6,60 €");
   });
 
+  it("says a product is new, in the positive tone, top left of the well", () => {
+    const badge = [...card({ isNew: true }).querySelectorAll("article > div span")].find(
+      (span) => span.textContent === "Ново",
+    );
+    expect(badge?.className).toContain("bg-pine-100");
+    expect(badge?.parentElement?.className).toContain("top-2 left-2");
+    for (const old of [card(), card({ isNew: false })]) expect(text(old)).not.toContain("Ново");
+  });
+
+  it("gives the left of the well to the reduction when a new product is reduced too", () => {
+    const root = card({
+      isNew: true,
+      oldPrice: { amount: "6.60", currency: "EUR", formatted: "6,60 €" },
+      discountPercent: 15,
+      availability: "preorder",
+    });
+    expect(text(root)).toContain("−15%");
+    expect(text(root)).not.toContain("Ново");
+    // Never more than two badges over the pack: the reduction and availability.
+    const well = root.querySelector("article > div")!;
+    expect(well.querySelectorAll(".absolute > span")).toHaveLength(2);
+    // A reduction too slight for a badge leaves the place to "Ново".
+    const slight = card({
+      isNew: true,
+      oldPrice: { amount: "5.62", currency: "EUR", formatted: "5,62 €" },
+      discountPercent: 0,
+    });
+    expect(text(slight)).toContain("Ново");
+    expect(text(slight)).not.toContain("%");
+  });
+
   it("says the price is on request rather than printing a zero", () => {
     const root = card({ price: null, servingPrice: null });
     expect(text(root)).toContain("Цена при запитване");

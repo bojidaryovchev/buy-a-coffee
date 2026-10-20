@@ -31,6 +31,7 @@ const DESTINATION: Record<Notification["kind"], (id: string) => string> = {
   contact_message: (id) => `/admin/sabshteniya/${id}`,
   newsletter_signup: () => `/admin/byuletin`,
   sync_alert: () => `/admin/sinhron`,
+  newsletter_draft: (id) => `/admin/byuletin/${id}`,
 };
 
 const LABEL: Record<Notification["kind"], string> = {
@@ -38,6 +39,7 @@ const LABEL: Record<Notification["kind"], string> = {
   contact_message: "съобщение от формата за контакт",
   newsletter_signup: "нов абонат за бюлетина",
   sync_alert: "проблем със синхронизацията на каталога",
+  newsletter_draft: "подготвен бюлетин",
 };
 
 /** The few words over the heading in the HTML part. */
@@ -46,6 +48,7 @@ const HEADLINE: Record<Notification["kind"], string> = {
   contact_message: "Ново съобщение",
   newsletter_signup: "Нов абонат",
   sync_alert: "Синхронизация",
+  newsletter_draft: "Бюлетин",
 };
 
 /**
@@ -66,9 +69,9 @@ export function composeNotificationEmail(
     link: adminUrl(DESTINATION[notification.kind](notification.recordId)),
     footnote: [
       `Автоматично известие за ${LABEL[notification.kind]}.`,
-      /* An operational alert holds no customer, so the reassurance would be a
-         non-sequitur in it. */
-      ...(notification.kind === "sync_alert"
+      /* An operational alert, or a prepared newsletter, holds no customer, so
+         the reassurance would be a non-sequitur in it. */
+      ...(notification.kind === "sync_alert" || notification.kind === "newsletter_draft"
         ? []
         : ["Данните за контакт са в записа, не в това писмо."]),
     ],

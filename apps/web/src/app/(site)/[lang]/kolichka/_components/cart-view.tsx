@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CartOrderForm } from "@/components/forms/cart-order-form";
 import { DeliveryPaymentBlock } from "@/components/commerce/delivery-payment-block";
 import { QuantityStepper } from "@/components/cart/quantity-stepper";
@@ -9,6 +9,7 @@ import { CloseIcon } from "@/components/layout/icons";
 import { Cup } from "@/components/illustrations/drawings";
 import {
   AvailabilityBadge,
+  Badge,
   ButtonLink,
   EmptyState,
   buttonClasses,
@@ -17,8 +18,15 @@ import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import type { CartLine } from "@/lib/cart/cart";
 import { cartStore, useCart } from "@/lib/cart/store";
-import type { CartProductView } from "@/lib/cart/view";
-import { lineTotal, orderSum, productCount } from "@/lib/orders/lines";
+import { requoteDelay, requoteRetryDelay, type CartProductView } from "@/lib/cart/view";
+import { promotionUntil } from "@/lib/catalog/promotion-days";
+import {
+  lineTotal,
+  orderSavings,
+  orderSum,
+  productCount,
+  type OrderLine,
+} from "@/lib/orders/lines";
 import { href, productHref, routes } from "@/lib/routes";
 import { PackWell } from "@/components/catalog/pack-well";
 
@@ -35,6 +43,13 @@ import { PackWell } from "@/components/catalog/pack-well";
  * A line the shop cannot take any more (withdrawn, gone from the catalog, or
  * out of stock today) stays on the page with the reason, and is left out of
  * the sum and the order, so nothing disappears without a word.
+ *
+ * A line the shop's own promotion reduces is drawn as its card draws it — the
+ * price in clay, the struck price, the badge — with the promotion and its last
+ * day, and the sum says what those reductions save, from the same struck
+ * prices: nothing the product's page did not already claim. The source's own
+ * struck price stays on the cards (`toCartProductView`). The free-delivery
+ * threshold is measured against the reduced sum, which is what is charged.
  *
  * States, in the order a visit meets them: reading the cart (the server sent
  * none), asking the server, the cart, and after the order the answer. An
@@ -71,8 +86,12 @@ export function CartView({ locale }: { locale: Locale }) {
   const { ready, lines } = useCart();
   const [quote, setQuote] = useState<Quote>({ status: "loading" });
   const [placed, setPlaced] = useState<Placed | null>(null);
-  /** Bumped to ask the server again about products it has already answered for. */
-  const [round, setRound] = useState(0);
+  /**
+   * Bumped to ask the server again about products it has already answered
+   * for: `quiet` when the page asks of its own accord (`requote`).
+   */
+  const [refresh, setRefresh] = useState({ round: 0, quiet: false });
+  const round = refresh.round;
 
   const ids = useMemo(() => [...new Set(lines.map((line) => line.productId))].sort(), [lines]);
   const idsKey = ids.join(",");
@@ -87,21 +106,52 @@ export function CartView({ locale }: { locale: Locale }) {
   const needed =
     quote.status === "loading" ||
     (quote.status === "ready" && (quote.round !== round || ids.some((id) => !quote.asked.has(id))));
-  const request = needed && ready && idsKey !== "" ? `${idsKey}|${round}` : "";
+  /*
+   * A quiet request is the page asking again of its own accord — back to the
+   * tab, back from the history, at a price's end, or retrying one of those —
+   * about products it already holds an answer for. If it fails (the network,
+   * a 429), that answer stays on the screen with the form and whatever was
+   * typed into it, and the page tries again later, waiting longer each time.
+   * Only a first answer, or one asked for because the action refused the
+   * cart, may end in "Не успяхме да заредим количката".
+   */
+  const quiet = refresh.quiet && quote.status === "ready" && ids.every((id) => quote.asked.has(id));
+  const request =
+    needed && ready && idsKey !== "" ? `${idsKey}|${round}|${quiet ? "quiet" : ""}` : "";
+
+  const requote = useCallback(
+    (quietly: boolean) => setRefresh(({ round }) => ({ round: round + 1, quiet: quietly })),
+    [],
+  );
+  /** Quiet requests that failed in a row, and the retry waiting for the next. */
+  const retry = useRef<{ failures: number; timer?: ReturnType<typeof setTimeout> }>({
+    failures: 0,
+  });
+  useEffect(() => {
+    const pending = retry.current;
+    return () => clearTimeout(pending.timer);
+  }, []);
 
   useEffect(() => {
     if (!request) return;
-    const [forIds = "", forRound = "0"] = request.split("|");
+    const [forIds = "", forRound = "0", mode = ""] = request.split("|");
+    const pending = retry.current;
+    clearTimeout(pending.timer);
     const controller = new AbortController();
     void (async () => {
+      let retryAfter: number | null = null;
       try {
         const response = await fetch(`/api/cart?ids=${forIds}`, {
           signal: controller.signal,
           headers: { accept: "application/json" },
           cache: "no-store",
         });
-        if (!response.ok) throw new Error(String(response.status));
+        if (!response.ok) {
+          retryAfter = Number(response.headers.get("retry-after")) || null;
+          throw new Error(String(response.status));
+        }
         const data = (await response.json()) as { products: CartProductView[] };
+        pending.failures = 0;
         setQuote({
           status: "ready",
           asked: new Set(forIds.split(",")),
@@ -109,11 +159,20 @@ export function CartView({ locale }: { locale: Locale }) {
           products: new Map(data.products.map((product) => [product.id, product])),
         });
       } catch {
-        if (!controller.signal.aborted) setQuote({ status: "failed" });
+        if (controller.signal.aborted) return;
+        if (mode === "quiet") {
+          pending.failures += 1;
+          pending.timer = setTimeout(
+            () => requote(true),
+            requoteRetryDelay(pending.failures, retryAfter),
+          );
+          return;
+        }
+        setQuote({ status: "failed" });
       }
     })();
     return () => controller.abort();
-  }, [request]);
+  }, [request, requote]);
 
   const products = quote.status === "ready" ? quote.products : null;
   /*
@@ -133,18 +192,10 @@ export function CartView({ locale }: { locale: Locale }) {
         : [],
     [lines, products],
   );
-  const sum = useMemo(
-    () =>
-      orderSum(
-        orderable.map((line) => ({
-          name: line.productId,
-          quantity: line.quantity,
-          unitPrice: products?.get(line.productId)?.price ?? null,
-        })),
-        locale,
-      ),
-    [orderable, products, locale],
-  );
+  const { sum, saved } = useMemo(() => {
+    const priced = orderable.map((line) => sumLine(line, products?.get(line.productId) ?? null));
+    return { sum: orderSum(priced, locale), saved: orderSavings(priced, locale) };
+  }, [orderable, products, locale]);
 
   const onPlaced = useCallback(
     (answer: { message: string; reference?: string }) => {
@@ -160,7 +211,51 @@ export function CartView({ locale }: { locale: Locale }) {
     },
     [orderable, products],
   );
-  const onCartRefused = useCallback(() => setRound((count) => count + 1), []);
+  // Refused by the action: asked again out loud, as a first answer is.
+  const onCartRefused = useCallback(() => requote(false), [requote]);
+
+  /*
+   * A price can change while the page is open: a promotion ends at midnight,
+   * the sync brings a new price. So the page asks again when it is looked at
+   * again — back to the tab, or back from the history with the page kept —
+   * and at the moment the first promotion in the cart ends, and the price
+   * beside the form is the one the order would be taken at. The action
+   * compares the prices sent with its own and refuses on any difference
+   * anyway (`onCartRefused`); this only spares the customer that refusal.
+   */
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requote(true);
+    };
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) requote(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, [requote]);
+
+  const nextPriceEnd = useMemo(() => {
+    const ends = lines.flatMap((line) => {
+      const at = Date.parse(products?.get(line.productId)?.priceEndsAt ?? "");
+      return Number.isNaN(at) ? [] : [at];
+    });
+    return ends.length > 0 ? Math.min(...ends) : null;
+  }, [lines, products]);
+  /*
+   * Set again with every answer, not only when the end it names moves: an
+   * answer that still names the same end — the server's clock a moment
+   * behind, or a six-hour step towards a later end — must be asked about
+   * again too.
+   */
+  useEffect(() => {
+    if (nextPriceEnd === null) return;
+    const timer = setTimeout(() => requote(true), requoteDelay(nextPriceEnd, Date.now()));
+    return () => clearTimeout(timer);
+  }, [nextPriceEnd, products, requote]);
 
   if (placed) return <PlacedView placed={placed} locale={locale} />;
 
@@ -200,7 +295,7 @@ export function CartView({ locale }: { locale: Locale }) {
           type="button"
           onClick={() => {
             setQuote({ status: "loading" });
-            setRound((count) => count + 1);
+            requote(false);
           }}
           className={buttonClasses({ variant: "secondary", className: "mt-4" })}
         >
@@ -263,6 +358,12 @@ export function CartView({ locale }: { locale: Locale }) {
                 телефона.
               </p>
             )}
+            {saved && (
+              <p className="mt-2 flex items-baseline justify-between gap-4 text-sm">
+                <span className="text-ink-700">Спестявате</span>
+                <span className="font-semibold text-clay-600 tabular-nums">{saved.formatted}</span>
+              </p>
+            )}
             <p className="mt-2 text-xs text-ink-500">
               Доставката и крайната сума потвърждаваме по телефона. На сайта нищо не се плаща.
             </p>
@@ -277,7 +378,12 @@ export function CartView({ locale }: { locale: Locale }) {
 
         {orderable.length > 0 ? (
           <CartOrderForm
-            lines={orderable.map(({ productId, quantity }) => ({ productId, quantity }))}
+            lines={orderable.map(({ productId, quantity }) => ({
+              productId,
+              quantity,
+              // What the line shows, for the action to compare with its own.
+              price: products.get(productId)?.price?.amount ?? null,
+            }))}
             onPlaced={onPlaced}
             onCartRefused={onCartRefused}
           />
@@ -378,7 +484,7 @@ function CartLineRow({
             )}
             <p className="mt-1.5 flex flex-wrap items-baseline gap-x-3 text-sm tabular-nums">
               {product.price ? (
-                <span className="text-ink-700">{product.price.formatted} за брой</span>
+                <UnitPrice product={product} />
               ) : (
                 <span className="text-ink-500">Цена при запитване</span>
               )}
@@ -386,6 +492,7 @@ function CartLineRow({
                 <span className="text-xs font-medium text-pine-700">{product.servingPrice}</span>
               )}
             </p>
+            {product.promotion && <PromotionLine promotion={product.promotion} />}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <QuantityStepper
                 value={line.quantity}
@@ -414,6 +521,67 @@ function CartLineRow({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * A cart line as a sum line: the server's price, and its struck price when the
+ * page shows one, so `orderSavings` counts only what the shop claimed.
+ */
+function sumLine(line: CartLine, product: CartProductView | null): OrderLine {
+  const price = product?.price ?? null;
+  return {
+    name: line.productId,
+    quantity: line.quantity,
+    unitPrice: price,
+    ...(price && product?.oldPrice
+      ? {
+          reduction: {
+            reader: "customer",
+            before: product.oldPrice,
+            percent: product.discountPercent,
+          },
+        }
+      : {}),
+  };
+}
+
+/** "5,60 € за брой", or reduced: the price in clay, the struck price, the badge. */
+function UnitPrice({ product }: { product: CartProductView }) {
+  if (!product.price) return null;
+  if (!product.oldPrice) {
+    return <span className="text-ink-700">{product.price.formatted} за брой</span>;
+  }
+  return (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2">
+      <span className="text-ink-700">
+        <span className="sr-only">Намалена цена </span>
+        <span className="font-medium text-clay-600">{product.price.formatted}</span> за брой
+      </span>
+      <span className="sr-only">Стара цена </span>
+      <span className="text-ink-300 line-through">{product.oldPrice.formatted}</span>
+      {product.discountPercent !== null && (
+        // `self-center`: a badge has a box of its own, and would sit on the baseline.
+        <Badge tone="reduction" className="self-center tabular-nums">
+          −{product.discountPercent}%
+        </Badge>
+      )}
+    </span>
+  );
+}
+
+/** "Есенни дни · до 15 ноември": the promotion behind a reduced line. No countdown. */
+function PromotionLine({ promotion }: { promotion: NonNullable<CartProductView["promotion"]> }) {
+  const until = promotionUntil(promotion.endsAt);
+  if (!promotion.label && !until) return null;
+  return (
+    <p className="mt-1 text-xs text-ink-500">
+      {promotion.label && <span className="font-medium text-ink-700">{promotion.label}</span>}
+      {promotion.label && until && <span aria-hidden> · </span>}
+      {until && (
+        <span className="tabular-nums">{promotion.label ? until : `Промоция ${until}`}</span>
+      )}
+    </p>
   );
 }
 

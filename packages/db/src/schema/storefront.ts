@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { products } from "./catalog.ts";
+import { promotions } from "./promotions.ts";
 
 const now = sql`now()`;
 
@@ -147,6 +148,15 @@ export const orderInquiryItems = pgTable(
     quantity: integer("quantity").notNull().default(1),
     unitPrice: numeric("unit_price", { precision: 12, scale: 2 }),
     currency: text("currency"),
+    /**
+     * Set when a promotion priced the line: the price without it, the
+     * promotion's reduction, and which promotion, under the owner's name for
+     * it then. Null on every other line, and on lines stored before 0013.
+     */
+    regularUnitPrice: numeric("regular_unit_price", { precision: 12, scale: 2 }),
+    discountPercent: integer("discount_percent"),
+    promotionId: uuid("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
+    promotionName: text("promotion_name"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(now),
   },
   (table) => [

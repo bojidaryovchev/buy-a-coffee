@@ -45,7 +45,23 @@ describe("the order notification", () => {
     const { html, text } = await mailFor(orderNotice(order));
     expect(text).toContain("Super Crema 1кг");
     expect(html).toContain("Napoli ESE 50");
-    expect(text).toMatch(/Сума на продуктите: 39,80\s€/);
+    expect(text).toMatch(/Сума на продуктите: 57,71\s€/);
+  });
+
+  it("says what a promotion took off a line and which one, under the owner's name for it", async () => {
+    const notice = orderNotice(order);
+    expect(notice.lines?.[2]?.reduction).toEqual({
+      reader: "owner",
+      before: { amount: "19.90", currency: "EUR" },
+      percent: 10,
+      promotionName: "Есенна кампания Lavazza",
+    });
+    const { html, text } = await mailFor(notice);
+    expect(text).toMatch(
+      /1 × Crema e Aroma 1кг — 17,91\s€ \(−10% · Есенна кампания Lavazza, редовна 19,90\s€\)/,
+    );
+    expect(text).toMatch(/Отстъпка по промоции: 1,99\s€/);
+    expect(html).toContain("Есенна кампания Lavazza");
   });
 
   it("carries none of the customer's contact details, in either part", async () => {
