@@ -15,7 +15,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.E2E_PORT ?? 8765);
 
 /** The specs that write shop-wide state to the database (the "after" project below). */
-const SHOP_WIDE = /(^|[\\/])promotion\.spec\.ts$/;
+const SHOP_WIDE = /(^|[\\/])(promotion|sitemap-fresh)\.spec\.ts$/;
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -47,9 +47,10 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: SHOP_WIDE },
     /*
      * Specs that change what the whole shop shows run once every other spec
-     * has finished. A running promotion puts a product on the promotions page,
-     * which is rendered per request, while the sitemap was rendered at build:
-     * a spec comparing the two in the middle of it would read a shop that is
+     * has finished. A running promotion puts a product on the promotions page
+     * and in the sitemap, and a product added for `sitemap-fresh.spec.ts`
+     * joins the sitemap, both drawn per request: a spec walking the sitemap or
+     * comparing it with a page in the middle of that would read a shop that is
      * half changed. Run alone, they cannot be met by anything else. If a spec
      * in the projects before them fails, these are reported as not run.
      */
@@ -82,6 +83,9 @@ export default defineConfig({
           ADMIN_SESSION_SECRET: "e2e-only-not-a-real-session-secret-0123456789",
           // Served at /<key>.txt for `seo-audit.spec.ts`; no spec submits anything.
           INDEXNOW_KEY: "e2e-only-indexnow-key-0123",
+          // Opens `/api/revalidate` (and the cron routes) to the spec that
+          // holds it, `sitemap-fresh.spec.ts`. Not the secret of anything.
+          CRON_SECRET: "e2e-only-cron-secret-not-a-real-one-0123456789",
         },
         timeout: 120_000,
         stdout: "ignore",
