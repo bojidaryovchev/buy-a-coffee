@@ -28,6 +28,20 @@ export function unsubscribeUrl(token: string): string {
   return url.toString();
 }
 
+/**
+ * The promotions page, as a letter links to it in its text: absolute, on the
+ * sending deployment, with the newsletter's `utm_*` — the same three the
+ * product cards carry (`emails/product-cards.tsx`), so the visits a letter
+ * brings are counted as its, wherever in it they were clicked.
+ */
+export function promotionsPageUrl(campaign: string): string {
+  const url = new URL(mailUrl(href(DEFAULT_LOCALE, routes.promotions)));
+  url.searchParams.set("utm_source", "newsletter");
+  url.searchParams.set("utm_medium", "email");
+  url.searchParams.set("utm_campaign", campaign);
+  return url.toString();
+}
+
 export function oneClickUnsubscribeUrl(token: string): string {
   const url = new URL(mailUrl("/api/newsletter/unsubscribe"));
   url.searchParams.set("token", token);

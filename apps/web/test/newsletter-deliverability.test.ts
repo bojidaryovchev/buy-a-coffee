@@ -28,6 +28,7 @@ const PROSE =
   "Rema са добър избор за всеки ден. Ако не сте сигурни кое е за вашата машина, обадете ни се.";
 
 const card = (title: string, detail: string | null = "Кафе на зърна, 1 кг") => ({
+  slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
   title,
   detail,
   price: "24,70 €",
@@ -302,24 +303,53 @@ describe("product blocks", () => {
       blocks: blockReport ? [blockReport] : [],
     });
 
-  it("warns about a block that resolved to nothing, saying why for its kind, and that it stops a send", () => {
+  it("warns about a section that resolved to nothing, saying why for its kind, and lets it go", () => {
     const empty = (kind: BlockReport["kind"], token: string, missing: string[] = []) =>
       withBlock(token, report(token, kind, [], missing)).find((item) => item.id === "block-empty");
 
-    expect(empty("sale", "[[промоции]]")?.detail).toMatch(/няма продукти с намалена цена/);
+    const sale = empty("sale", "[[промоции]]");
+    expect(sale?.title).toBe("Секцията „Промоции“ е празна и няма да се покаже");
+    expect(sale?.detail).toMatch(/няма продукти с намалена цена/);
+    expect(sale?.detail).toContain("Писмото може да се изпрати и така.");
+    expect(sale?.blocksSend).toBeUndefined();
     expect(empty("new", "[[нови-продукти]]")?.detail).toMatch(/последните 30 дни/);
-    const picked = empty("picked", "[[продукти: a-b, c-d]]", ["a-b", "c-d"]);
-    expect(picked?.title).toBe("Блокът [[продукти: a-b, c-d]] е празен");
-    expect(picked?.detail).toContain("„a-b“, „c-d“");
-    expect(picked?.detail).toContain("изпращането не започва");
+    expect(empty("picked", "[[продукти: a-b, c-d]]")?.title).toBe(
+      "Секцията „Избрани продукти“ е празна и няма да се покаже",
+    );
+    // Addresses that name nothing still stop it, beside the warning.
+    const notes = withBlock(
+      "[[продукти: a-b, c-d]]",
+      report("[[продукти: a-b, c-d]]", "picked", [], ["a-b", "c-d"]),
+    );
+    expect(notes.find((item) => item.id === "block-missing")).toMatchObject({ blocksSend: true });
+    expect(notes.find((item) => item.id === "block-missing")?.detail).toContain(
+      "изпращането не започва",
+    );
   });
 
-  it("names the hand-picked products that are not on sale, and the addresses that are no product's", () => {
+  it("warns, without stopping, about picked products sold out or withdrawn since", () => {
+    const notes = withBlock("[[продукти: ima, gone, spryan]]", {
+      ...report("[[продукти: ima, gone, spryan]]", "picked", [card("Има")]),
+      soldOut: [{ slug: "gone", title: "Lavazza Oro" }],
+      gone: ["spryan"],
+    });
+    const soldOut = notes.find((item) => item.id === "block-sold-out");
+    expect(soldOut?.title).toBe("Изчерпан продукт ще бъде пропуснат");
+    expect(soldOut?.detail).toMatch(/^„Lavazza Oro“ — изчерпан е и няма да се покаже/);
+    expect(soldOut?.blocksSend).toBeUndefined();
+    expect(notes.find((item) => item.id === "block-gone")?.detail).toMatch(
+      /^„spryan“ — вече не е в магазина/,
+    );
+    expect(notes.some((item) => item.blocksSend)).toBe(false);
+  });
+
+  it("names the hand-picked addresses that are no product's, which stop a send", () => {
     const missing = withBlock(
       "[[продукти: ima, nyama]]",
       report("[[продукти: ima, nyama]]", "picked", [card("Има")], ["nyama"]),
     ).find((item) => item.id === "block-missing");
-    expect(missing?.detail).toMatch(/^„nyama“ не е сред продаваните продукти/);
+    expect(missing?.detail).toMatch(/^„nyama“ не е адрес на продукт в магазина/);
+    expect(missing?.blocksSend).toBe(true);
 
     const invalid = withBlock(
       "[[продукти: ima, Лаваца]]",

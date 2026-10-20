@@ -7,11 +7,12 @@ import { composeNewsletterEmail } from "@/emails/newsletter";
 import { isSignedIn } from "@/lib/auth";
 import { splitErrors } from "@/lib/forms/admin-schemas";
 import { formText } from "@/lib/forms/schemas";
-import { MAIL_FROM, NOTIFY_TO } from "@/lib/mail/identity";
+import { MAIL_FROM } from "@/lib/mail/identity";
+import { createRateLimiter, sharedStore } from "@/lib/rate-limit";
 import {
   claimResume,
-  createDraft,
   deleteDraft,
+  duplicateCampaign,
   isUuid,
   saveDraft,
   startCampaign,
@@ -22,13 +23,14 @@ import { unsubscribeUrl } from "./links";
 import { blockProblems, describeBlockProblems, type ProductBlocksSnapshot } from "./product-blocks";
 import { resolveLetterProducts } from "./product-source";
 import { resyncActiveSubscribers, type ResyncReport } from "./resync";
-import { newsletterDraftSchema, requireContent, resolveIntent } from "./schemas";
+import { newsletterDraftSchema, requireContent, resolveIntent, testAddressSchema } from "./schemas";
 import { abandonRun, resendBatchClient, runCampaign } from "./send";
 
 /**
  * The newsletter's admin actions: write a draft, send a test of it, send it,
- * pick up a send that stopped, throw a draft away, and copy the list into
- * Resend again. (The composer's product search is a route,
+ * pick up a send that stopped, copy a letter into a new draft, throw a draft
+ * away, and copy the list into Resend again. (Starting a draft from a
+ * template is `template-actions.ts`.) (The composer's product search is a route,
  * `/api/admin/newsletter/products`: actions run one at a time per page, and a
  * search must never hold up a save.)
  *
@@ -47,6 +49,22 @@ const CHANGED_ELSEWHERE =
   "Черновата е променена в друг раздел или прозорец, след като е отворена тук. Нищо не е записано: копирайте текста, ако ви трябва, и презаредете страницата.";
 const NO_PRODUCTS_READ =
   "Продуктите в писмото не можаха да бъдат прочетени от каталога. Нищо не е изпратено; опитайте отново след минута.";
+
+/**
+ * Test copies: a real message over the shop's DKIM signature, to an address
+ * typed into the panel, so they are counted. One operator, one counter;
+ * generous for checking a letter, and far short of what a stolen session
+ * could make of it. Fails open, to the per-process counter, like the shop's
+ * forms: refusing the owner a test because the counter's table is
+ * unreachable would be the limiter doing the damage.
+ */
+const testLimiter = createRateLimiter({
+  name: "newsletter-test",
+  limit: 10,
+  windowMs: 60 * 60_000,
+  onStoreError: "allow",
+  store: sharedStore,
+});
 
 /** The letter's products from the catalog as it stands, or null when it could not be read. */
 async function letterProducts(
@@ -80,7 +98,7 @@ export type NewsletterFormState = {
   testSentTo?: string;
 };
 
-const VISIBLE_FIELDS = ["subject", "preheader", "body", "attachments"];
+const VISIBLE_FIELDS = ["subject", "preheader", "body", "attachments", "testTo"];
 
 /** Run the campaign once the response is out. Never throws into the request. */
 function sendLater(campaignId: string, key: string): void {
@@ -123,9 +141,10 @@ export async function submitNewsletter(
     preheader: formText(formData, "preheader"),
     body: formText(formData, "body"),
     attachments: formText(formData, "attachments"),
+    testTo: formText(formData, "testTo"),
   });
   if (!parsed.success) return splitErrors(parsed.error, VISIBLE_FIELDS);
-  const { id, version: shown, ...draft } = parsed.data;
+  const { id, version: shown, testTo, ...draft } = parsed.data;
 
   const saved = await saveDraft(id, draft, shown);
   if (!saved.ok) {
@@ -149,14 +168,28 @@ export async function submitNewsletter(
   if (!key) return { savedAt, version, error: NO_KEY };
 
   if (intent === "test") {
-    if (!NOTIFY_TO) {
-      return { savedAt, version, error: "Липсва MAIL_TO — няма къде да отиде пробното писмо." };
+    const address = testAddressSchema.safeParse(testTo ?? "");
+    if (!address.success) {
+      return {
+        savedAt,
+        version,
+        fieldErrors: { testTo: address.error.issues[0]?.message ?? "" },
+      };
     }
-    /* A real copy, through the same template, to the shop's own inbox. Its
-       unsubscribe link carries no token, so the page it opens unsubscribes
-       nobody, and the copy says so at the top. Not on the batch path and not
-       recorded as a delivery: it is not part of the campaign. Its products
-       are the catalog's as it stands, as in the preview. */
+    const to = address.data;
+    if (!(await testLimiter.check("panel")).allowed) {
+      return {
+        savedAt,
+        version,
+        error: "Изпратени са много пробни писма за кратко време. Опитайте отново след час.",
+      };
+    }
+    /* A real copy, through the same template, to the address in the field —
+       the owner's own inbox unless they typed another. Its unsubscribe link
+       carries no token, so the page it opens unsubscribes nobody, and the
+       copy says so at the top. Not on the batch path and not recorded as a
+       delivery: it is not part of the campaign. Its products are the
+       catalog's as it stands, as in the preview. */
     const products = await letterProducts(draft, id);
     if (!products) return { savedAt, version, error: NO_PRODUCTS_READ };
     const { html, text } = await composeNewsletterEmail(
@@ -166,7 +199,7 @@ export async function submitNewsletter(
     const { Resend } = await import("resend");
     const sent = await new Resend(key).emails.send({
       from: MAIL_FROM,
-      to: NOTIFY_TO,
+      to,
       subject: `[Пробно] ${draft.subject}`,
       html,
       text,
@@ -187,7 +220,7 @@ export async function submitNewsletter(
         error: "Пробното писмо не беше изпратено. Опитайте отново след минута.",
       };
     }
-    return { savedAt, version, testSentTo: NOTIFY_TO };
+    return { savedAt, version, testSentTo: to };
   }
 
   /* intent === "send". The number on the confirmation is checked against the
@@ -198,15 +231,17 @@ export async function submitNewsletter(
   const products = await letterProducts(draft, id);
   if (!products) return { savedAt, version, error: NO_PRODUCTS_READ };
 
-  /* The products as they are now, not as the owner last saw them: a block
-     that has emptied since, or names something no longer on sale, would put
-     a heading over nothing in every inbox. Nothing starts until it is fixed. */
+  /* The products as they are now, not as the owner last saw them. A line
+     that is not the letter the owner meant — unreadable, an address that is
+     no product's — or a letter left with nothing in it stops here; a product
+     sold out since, or a section left empty, does not: the letter goes out
+     without it, as the preview and the notes showed (`blockIssues`). */
   const problems = blockProblems(draft.body, products);
   if (problems.length > 0) {
     return {
       savedAt,
       version,
-      error: `Изпращането не започна: ${describeBlockProblems(problems)}. Поправете или махнете тези блокове и изпратете отново — заглавие без продукти под него изглежда като грешка.`,
+      error: `Изпращането не започна: ${describeBlockProblems(problems)}. Поправете или махнете тези блокове и изпратете отново.`,
     };
   }
 
@@ -249,11 +284,16 @@ export async function submitNewsletter(
   redirect(`/admin/byuletin/${id}`);
 }
 
-/** "Нов бюлетин": an empty draft, so uploads have a campaign to belong to. */
-export async function createNewsletter(): Promise<void> {
+/**
+ * "Дублирай": a new draft with this campaign's letter — sent or not — to
+ * write the next one from (`duplicateCampaign` says what is copied).
+ */
+export async function duplicateNewsletter(formData: FormData): Promise<void> {
   if (!(await isSignedIn())) redirect("/admin/vhod");
-  const id = await createDraft();
-  redirect(`/admin/byuletin/${id}`);
+  const id = formText(formData, "id");
+  const copy = isUuid(id) ? await duplicateCampaign(id) : null;
+  revalidatePath("/admin/byuletin");
+  redirect(copy ? `/admin/byuletin/${copy}` : "/admin/byuletin");
 }
 
 /** Drafts only; a campaign that went out stays as the record of it. */

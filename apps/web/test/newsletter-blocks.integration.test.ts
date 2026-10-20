@@ -7,6 +7,8 @@ import {
   productImages,
   products,
   sourceSites,
+  syncChanges,
+  syncRuns,
 } from "@catalog/db/schema";
 import type { Database } from "@catalog/db";
 // Types only: the modules are imported in `beforeAll`, once the test database is chosen.
@@ -101,7 +103,7 @@ suite("newsletter product blocks (integration)", () => {
   beforeEach(async () => {
     harness.signedIn = true;
     await db.execute(
-      sql`truncate table newsletter_deliveries, newsletter_campaigns, newsletter_subscribers, product_images, products, brands, source_sites restart identity cascade`,
+      sql`truncate table newsletter_deliveries, newsletter_campaigns, newsletter_subscribers, product_images, sync_changes, sync_runs, products, brands, source_sites restart identity cascade`,
     );
     const [site] = await db
       .insert(sourceSites)
@@ -172,18 +174,40 @@ suite("newsletter product blocks (integration)", () => {
     return row!.id;
   };
 
+  /**
+   * Record these products as created by one sync run, as the sync does — the
+   * only way a product is new (`isNewArrival`). `runSize` pads the run with
+   * other creations, to make it an import of the catalog rather than arrivals.
+   */
+  const arrive = async (ids: readonly string[], runSize = ids.length) => {
+    const [run] = await db
+      .insert(syncRuns)
+      .values({ sourceSiteId: siteId, status: "succeeded" })
+      .returning({ id: syncRuns.id });
+    await db.insert(syncChanges).values(
+      Array.from({ length: Math.max(runSize, ids.length) }, (_, index) => ({
+        syncRunId: run!.id,
+        productId: ids[index] ?? null,
+        sourceKey: `/created-${index}/`,
+        changeType: "created" as const,
+      })),
+    );
+  };
+
   const shown = (snapshot: Awaited<ReturnType<typeof source.resolveLetterProducts>>) =>
     snapshot.blocks.map((block) => block.products.map((product) => product.slug));
 
   describe("resolving from the catalog", () => {
     it("shows the newest of the last 30 days, newest first, only what is on sale and can be ordered", async () => {
-      await add({ slug: "nov-2", daysOld: 5 });
-      await add({ slug: "nov-1", daysOld: 1 });
-      await add({ slug: "nov-3", daysOld: 20 });
-      await add({ slug: "staro", daysOld: 40 });
-      await add({ slug: "izcherpan", daysOld: 1, availability: "out_of_stock" });
-      await add({ slug: "spryan", daysOld: 1, status: "removed" });
-      await add({ slug: "lipsva", daysOld: 1, status: "missing" });
+      await arrive([
+        await add({ slug: "nov-2", daysOld: 5 }),
+        await add({ slug: "nov-1", daysOld: 1 }),
+        await add({ slug: "nov-3", daysOld: 20 }),
+        await add({ slug: "staro", daysOld: 40 }),
+        await add({ slug: "izcherpan", daysOld: 1, availability: "out_of_stock" }),
+        await add({ slug: "spryan", daysOld: 1, status: "removed" }),
+        await add({ slug: "lipsva", daysOld: 1, status: "missing" }),
+      ]);
 
       const snapshot = await source.resolveLetterProducts({
         subject: "Ново",
@@ -191,6 +215,19 @@ suite("newsletter product blocks (integration)", () => {
       });
       // The second block leaves out what the first already shows.
       expect(shown(snapshot)).toEqual([["nov-1", "nov-2", "nov-3"], []]);
+    });
+
+    it("counts as new only what arrived, not what came with an import of the catalog", async () => {
+      await arrive([await add({ slug: "pristigna", daysOld: 3 })]);
+      // The first catalog, or a whole new part of it, taken in at once.
+      await arrive([await add({ slug: "vnos", daysOld: 2 })], 26);
+      // First seen, but never recorded as created by a sync: a seed.
+      await add({ slug: "bez-zapis", daysOld: 1 });
+      const snapshot = await source.resolveLetterProducts({
+        subject: "Ново",
+        body: "[[нови-продукти: 6]]",
+      });
+      expect(shown(snapshot)).toEqual([["pristigna"]]);
     });
 
     it("shows genuine reductions, biggest first, through the retail layer the storefront reads", async () => {
@@ -216,26 +253,34 @@ suite("newsletter product blocks (integration)", () => {
       expect(await queries.countPromotions()).toBeGreaterThanOrEqual(3);
     });
 
-    it("shows hand-picked products in the order typed, skipping what is not on sale", async () => {
+    it("shows hand-picked products in the order typed, telling apart why one is left out", async () => {
       await add({ slug: "a" });
       await add({ slug: "b", availability: "out_of_stock" });
       await add({ slug: "c", status: "removed" });
+      await add({ slug: "d" });
       const snapshot = await source.resolveLetterProducts({
         subject: "Избор",
-        body: "[[продукти: b, nyama, c, a]]",
+        body: "[[продукти: b, nyama, c, d, a]]",
       });
-      expect(shown(snapshot)).toEqual([["b", "a"]]);
-      expect(snapshot.blocks[0]!.missing).toEqual(["nyama", "c"]);
+      expect(shown(snapshot)).toEqual([["d", "a"]]);
+      // Sold out since: left out, by name. Withdrawn: left out. Never a product: an error.
+      expect(snapshot.blocks[0]).toMatchObject({
+        soldOut: [{ slug: "b", title: "Lavazza b" }],
+        gone: ["c"],
+        missing: ["nyama"],
+      });
     });
 
     it("names, prices and pictures each product exactly as its product page does", async () => {
-      await add({
-        slug: "kafe-na-zarna-lavazza-crema-e-aroma-1kg",
-        name: "Кафе на зърна Lavazza Crema e Aroma 1кг.",
-        price: "19.90",
-        oldPrice: "24.90",
-        daysOld: 2,
-      });
+      await arrive([
+        await add({
+          slug: "kafe-na-zarna-lavazza-crema-e-aroma-1kg",
+          name: "Кафе на зърна Lavazza Crema e Aroma 1кг.",
+          price: "19.90",
+          oldPrice: "24.90",
+          daysOld: 2,
+        }),
+      ]);
       await add({
         slug: "bez-marka",
         name: "Капсули DG Rema Caffè Cortado 16 бр.",
@@ -525,7 +570,7 @@ suite("newsletter product blocks (integration)", () => {
       return { id, answer };
     };
 
-    it("does not start with a block that would draw nothing, and names each one", async () => {
+    it("does not start with a line that is not the letter meant, and names each one", async () => {
       await add({ slug: "ima", daysOld: 120 });
       await subscribe(1);
       const { id, answer } = await sendForm(
@@ -545,14 +590,63 @@ suite("newsletter product blocks (integration)", () => {
         1,
       );
       expect(answer.error).toContain("Изпращането не започна");
-      expect(answer.error).toContain("[[промоции]] — няма продукти за показване");
-      expect(answer.error).toContain("[[продукти: ima, nyama]] — не са сред продаваните: „nyama“");
+      // An empty section is the letter going out shorter: not among the reasons.
+      expect(answer.error).not.toContain("[[промоции]]");
+      expect(answer.error).toContain(
+        "[[продукти: ima, nyama]] — не е адрес на продукт в магазина: „nyama“",
+      );
       expect(answer.error).toContain("[[продукти: ima, Лаваца]] — не е адрес на продукт: „Лаваца“");
       expect(answer.error).toContain("[[промоций]] — блокът не е разпознат");
       // Saved, as every press saves, and still a draft: nothing went anywhere.
       const draft = (await campaigns.getCampaign(id))!;
       expect(draft.status).toBe("draft");
       expect(draft.attachments).toEqual([]);
+    });
+
+    it("goes without what sold out since and a section left empty, and the letter reads whole", async () => {
+      await add({ slug: "ima", daysOld: 120 });
+      await add({ slug: "svarshi", daysOld: 120, availability: "out_of_stock" });
+      await subscribe(1);
+      const { id, answer } = await sendForm(
+        [
+          "Здравейте,",
+          "",
+          "## Ново в магазина",
+          "",
+          "[[нови-продукти]]",
+          "",
+          "## Избрано",
+          "",
+          "[[продукти: ima, svarshi]]",
+        ].join("\n"),
+        1,
+      ).then(
+        (result) => result,
+        (error: Error) => ({ id: error.message.split("/").at(-1)!, answer: null }),
+      );
+      // Started: the action redirected to the campaign.
+      expect(answer).toBeNull();
+      const started = (await campaigns.getCampaign(id))!;
+      expect(started.status).toBe("sending");
+
+      const inbox = new Inbox();
+      expect((await send.runCampaign(id, { client: inbox, sleep: async () => {} })).status).toBe(
+        "done",
+      );
+      const letter = inbox.delivered[0]!;
+      expect(letter.html).toContain("Избрано");
+      expect(letter.html).toContain("Lavazza ima");
+      expect(letter.html).not.toContain("Lavazza svarshi");
+      // Nothing new: the section and its heading are not drawn at all.
+      expect(letter.html).not.toContain("Ново в магазина");
+      expect(letter.text).not.toContain("Ново в магазина");
+    });
+
+    it("does not start a letter that would say nothing", async () => {
+      await subscribe(1);
+      const { id, answer } = await sendForm("## Промоции\n\n[[промоции]]", 1);
+      expect(answer.error).toContain("Писмото — няма нито текст, нито продукти за показване");
+      expect((await campaigns.getCampaign(id))!.status).toBe("draft");
     });
 
     it("does not start a letter Gmail would cut off, and says by how much", async () => {

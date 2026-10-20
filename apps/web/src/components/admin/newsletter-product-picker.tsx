@@ -7,7 +7,10 @@ import { MAX_BLOCK_PRODUCTS } from "@/lib/newsletter/tokens";
 
 /**
  * The composer's "Продукти": find products by name, brand or address, choose
- * up to six, and put them in the text as one `[[продукти: …]]` line.
+ * up to six, and put them in the letter — as a new block, as more of a block
+ * already there ("+ Добави", which says how many it still takes and leaves
+ * out what it already has), or as one `[[продукти: …]]` line in the
+ * Markdown text.
  *
  * The search is `/api/admin/newsletter/products`, which checks the session
  * like the panel's other routes, asked a moment after typing stops. A route
@@ -62,9 +65,18 @@ function Price({ product }: { product: PickerProduct }) {
 export function NewsletterProductPicker({
   onInsert,
   onClose,
+  max = MAX_BLOCK_PRODUCTS,
+  exclude = [],
+  insertLabel = (count) => (count > 1 ? `Вмъкни ${count} продукта` : "Вмъкни в текста"),
 }: {
-  onInsert: (slugs: string[]) => void;
+  /** The chosen products, in the order chosen; the block is written from their slugs. */
+  onInsert: (products: PickerProduct[]) => void;
   onClose: () => void;
+  /** How many more the block takes. */
+  max?: number;
+  /** Slugs the block already shows, which are not offered again. */
+  exclude?: readonly string[];
+  insertLabel?: (count: number) => string;
 }) {
   const id = useId();
   const [term, setTerm] = useState("");
@@ -108,14 +120,16 @@ export function NewsletterProductPicker({
   }, [query]);
 
   const searching = query.length >= MIN_TERM && answer.term !== query;
-  const results = query.length >= MIN_TERM && answer.term === query ? answer.products : [];
-  const full = selected.length >= MAX_BLOCK_PRODUCTS;
+  const results = (query.length >= MIN_TERM && answer.term === query ? answer.products : []).filter(
+    (product) => !exclude.includes(product.slug),
+  );
+  const full = selected.length >= max;
   const isSelected = (slug: string) => selected.some((product) => product.slug === slug);
   const toggle = (product: PickerProduct) =>
     setSelected((list) =>
       list.some((item) => item.slug === product.slug)
         ? list.filter((item) => item.slug !== product.slug)
-        : list.length >= MAX_BLOCK_PRODUCTS
+        : list.length >= max
           ? list
           : [...list, product],
     );
@@ -141,8 +155,8 @@ export function NewsletterProductPicker({
         Продукти в писмото
       </h3>
       <p className="mt-0.5 text-xs text-ink-500">
-        До {MAX_BLOCK_PRODUCTS}, в реда, в който ги изберете. Името, цената и снимката се взимат от
-        магазина, когато писмото се изпраща.
+        {max < MAX_BLOCK_PRODUCTS ? `Още до ${max}` : `До ${MAX_BLOCK_PRODUCTS}`}, в реда, в който
+        ги изберете. Името, цената и снимката се взимат от магазина, когато писмото се изпраща.
       </p>
 
       <label htmlFor={`${id}-search`} className="mt-3 block text-sm font-medium text-ink-900">
@@ -207,7 +221,7 @@ export function NewsletterProductPicker({
       {selected.length > 0 && (
         <div className="mt-3">
           <p className="text-sm font-medium text-ink-900">
-            Избрани: {selected.length} от {MAX_BLOCK_PRODUCTS}
+            Избрани: {selected.length} от {max}
           </p>
           <ol className="mt-1 flex flex-col gap-1 text-sm">
             {selected.map((product, index) => (
@@ -235,10 +249,10 @@ export function NewsletterProductPicker({
         <button
           type="button"
           disabled={selected.length === 0}
-          onClick={() => onInsert(selected.map((product) => product.slug))}
+          onClick={() => onInsert(selected)}
           className={BUTTON_PRIMARY}
         >
-          {selected.length > 1 ? `Вмъкни ${selected.length} продукта` : "Вмъкни в текста"}
+          {insertLabel(selected.length)}
         </button>
         <button type="button" onClick={onClose} className={BUTTON}>
           Отказ

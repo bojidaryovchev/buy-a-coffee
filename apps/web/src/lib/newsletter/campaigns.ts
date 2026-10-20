@@ -1,14 +1,20 @@
 import "server-only";
-import { and, count, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import {
   newsletterCampaigns,
   newsletterDeliveries,
   newsletterSubscribers,
   type NewsletterAttachment,
   type NewsletterDeliveryStatus,
+  type NewsletterTemplate,
 } from "@catalog/db/schema";
 import { db } from "@/lib/db";
-import { campaignSnapshot, withSnapshot, type ProductBlocksSnapshot } from "./product-blocks";
+import {
+  campaignFiles,
+  campaignSnapshot,
+  withSnapshot,
+  type ProductBlocksSnapshot,
+} from "./product-blocks";
 
 /**
  * The newsletter's rows: drafts, campaigns, their recipients, and the
@@ -73,12 +79,106 @@ const atRevision = (revision: number) => eq(newsletterCampaigns.revision, revisi
 
 /* -- drafts ----------------------------------------------------------------- */
 
-export async function createDraft(): Promise<string> {
+/** What a new draft starts with: nothing (a blank one), a template's letter, or a copy. */
+export interface DraftValues {
+  readonly subject?: string;
+  readonly preheader?: string;
+  readonly body?: string;
+  readonly attachments?: NewsletterAttachment[];
+  readonly template?: NewsletterTemplate | null;
+  readonly promotionId?: string | null;
+}
+
+export async function createDraft(values: DraftValues = {}): Promise<string> {
   const [row] = await db
     .insert(newsletterCampaigns)
-    .values({})
+    .values({ ...values })
     .returning({ id: newsletterCampaigns.id });
   return row!.id;
+}
+
+/**
+ * The monthly job's draft for a month ("2026-11"), or null when that month
+ * already has one. The partial unique index on `auto_period` is the lock: of
+ * two runs at once (a retry beside the scheduled call), exactly one insert
+ * goes in, and only its caller tells the owner.
+ */
+export async function createPeriodDraft(
+  period: string,
+  values: Omit<DraftValues, "template" | "promotionId">,
+): Promise<string | null> {
+  const [row] = await db
+    .insert(newsletterCampaigns)
+    .values({ ...values, template: MONTHLY, autoPeriod: period })
+    .onConflictDoNothing()
+    .returning({ id: newsletterCampaigns.id });
+  return row?.id ?? null;
+}
+
+/* Named, so a draft's template is not mistaken for a page's title template
+   by `test/title-format.test.ts`, which looks for `template: "…"`. */
+const MONTHLY: NewsletterTemplate = "monthly";
+
+export async function hasPeriodDraft(period: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: newsletterCampaigns.id })
+    .from(newsletterCampaigns)
+    .where(eq(newsletterCampaigns.autoPeriod, period))
+    .limit(1);
+  return Boolean(row);
+}
+
+/**
+ * Has a letter gone out — sent, partly or still sending — since `since`? The
+ * monthly job prepares nothing for a month that has already had its letter.
+ */
+export async function wentOutSince(since: Date): Promise<boolean> {
+  const [row] = await db
+    .select({ id: newsletterCampaigns.id })
+    .from(newsletterCampaigns)
+    .where(
+      and(
+        inArray(newsletterCampaigns.status, ["sent", "partial", "sending"]),
+        gte(newsletterCampaigns.startedAt, since),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
+/** Has the owner started a monthly letter of their own since `since`, still a draft? */
+export async function hasMonthlyDraftSince(since: Date): Promise<boolean> {
+  const [row] = await db
+    .select({ id: newsletterCampaigns.id })
+    .from(newsletterCampaigns)
+    .where(
+      and(
+        eq(newsletterCampaigns.status, "draft"),
+        eq(newsletterCampaigns.template, MONTHLY),
+        gte(newsletterCampaigns.createdAt, since),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
+/**
+ * A new draft with a campaign's letter: subject, preheader, body, its files
+ * and what it was started from. Not its product snapshot — the copy is a new
+ * letter, and draws the catalog as it is now — and not its month: the monthly
+ * job's claim on a month stays with the draft it made.
+ */
+export async function duplicateCampaign(id: string): Promise<string | null> {
+  const source = await getCampaign(id);
+  if (!source) return null;
+  return createDraft({
+    subject: source.subject,
+    preheader: source.preheader,
+    body: source.body,
+    attachments: campaignFiles(source.attachments),
+    template: source.template,
+    promotionId: source.promotionId,
+  });
 }
 
 export async function getCampaign(id: string): Promise<CampaignRow | null> {
@@ -297,6 +397,34 @@ export async function ensureProductSnapshot(
 }
 
 /**
+ * The campaigns a resume would pick up, oldest first: stopped with somebody
+ * still waiting, or `sending` with no heartbeat for `STALE_SENDING_MS`
+ * (`isResumable`, which the panel's "Продължи" is shown by).
+ */
+export async function resumableCampaigns(now = new Date()): Promise<CampaignRow[]> {
+  const staleBefore = new Date(now.getTime() - STALE_SENDING_MS);
+  const rows = await db
+    .select()
+    .from(newsletterCampaigns)
+    .where(
+      or(
+        eq(newsletterCampaigns.status, "partial"),
+        and(
+          eq(newsletterCampaigns.status, "sending"),
+          lt(newsletterCampaigns.updatedAt, staleBefore),
+        ),
+      ),
+    )
+    .orderBy(asc(newsletterCampaigns.startedAt), asc(newsletterCampaigns.id));
+  const resumable: CampaignRow[] = [];
+  for (const row of rows) {
+    const counts = await deliveryCounts(row.id);
+    if (isResumable(row, counts.pending + counts.sending, now)) resumable.push(row);
+  }
+  return resumable;
+}
+
+/**
  * Take a stopped or orphaned campaign back to `sending`, for one sender.
  *
  * The condition is the lock: of two presses, or a press and a sender that was
@@ -395,6 +523,58 @@ export async function listDeliveries(
     .limit(pageSize)
     .offset((page - 1) * pageSize);
   return { rows, total: n };
+}
+
+/* -- what to do next --------------------------------------------------------- */
+
+export type NextStep =
+  /** A send stopped or lost its sender: it wants "Продължи" (or the daily job will). */
+  | { kind: "stalled"; id: string; subject: string }
+  /** The newest draft, waiting to be checked and sent. */
+  | { kind: "draft"; id: string; subject: string; autoPeriod: string | null }
+  /** Nothing waiting; when the last letter went out. */
+  | { kind: "sent"; at: Date }
+  | null;
+
+/** The newsletter's next step, for the panel's front page. */
+export async function newsletterNextStep(now = new Date()): Promise<NextStep> {
+  const staleBefore = new Date(now.getTime() - STALE_SENDING_MS);
+  const [stalled] = await db
+    .select({ id: newsletterCampaigns.id, subject: newsletterCampaigns.subject })
+    .from(newsletterCampaigns)
+    .where(
+      or(
+        eq(newsletterCampaigns.status, "partial"),
+        and(
+          eq(newsletterCampaigns.status, "sending"),
+          lt(newsletterCampaigns.updatedAt, staleBefore),
+        ),
+      ),
+    )
+    .orderBy(desc(newsletterCampaigns.startedAt))
+    .limit(1);
+  if (stalled) {
+    const counts = await deliveryCounts(stalled.id);
+    if (counts.pending + counts.sending > 0) return { kind: "stalled", ...stalled };
+  }
+  const [draft] = await db
+    .select({
+      id: newsletterCampaigns.id,
+      subject: newsletterCampaigns.subject,
+      autoPeriod: newsletterCampaigns.autoPeriod,
+    })
+    .from(newsletterCampaigns)
+    .where(eq(newsletterCampaigns.status, "draft"))
+    .orderBy(desc(newsletterCampaigns.createdAt))
+    .limit(1);
+  if (draft) return { kind: "draft", ...draft };
+  const [sent] = await db
+    .select({ at: newsletterCampaigns.startedAt })
+    .from(newsletterCampaigns)
+    .where(inArray(newsletterCampaigns.status, ["sent", "partial", "sending"]))
+    .orderBy(sql`${newsletterCampaigns.startedAt} desc nulls last`)
+    .limit(1);
+  return sent?.at ? { kind: "sent", at: sent.at } : null;
 }
 
 /* -- the list --------------------------------------------------------------- */

@@ -6,7 +6,7 @@ import { CampaignAutoRefresh, ResumeForm } from "@/components/admin/campaign-pro
 import { NewsletterComposer } from "@/components/admin/newsletter-composer";
 import { listCapitalisedNames } from "@/lib/catalog/queries";
 import { MAIL_FROM, NOTIFY_TO } from "@/lib/mail/identity";
-import { deleteNewsletter } from "@/lib/newsletter/actions";
+import { deleteNewsletter, duplicateNewsletter } from "@/lib/newsletter/actions";
 import {
   countActiveSubscribers,
   deliveryCounts,
@@ -18,6 +18,8 @@ import {
 } from "@/lib/newsletter/campaigns";
 import { unsubscribeUrl } from "@/lib/newsletter/links";
 import { campaignFiles, campaignSnapshot } from "@/lib/newsletter/product-blocks";
+import { dayWords, lastDay, periodMonthName } from "@/lib/newsletter/sofia";
+import { lastLetterStart, promotionDays } from "@/lib/newsletter/template-data";
 import {
   CAMPAIGN_STATUS_LABEL,
   CAMPAIGN_STATUS_TONE,
@@ -41,12 +43,77 @@ export const maxDuration = 300;
 /**
  * One newsletter. A draft opens in the composer; anything else is the record
  * of the send — progress while it goes, then who got it, who did not and why,
- * and the message exactly as it went out.
+ * and the message exactly as it went out. Either can be copied into a new
+ * draft ("Дублирай"); a draft can be thrown away, after a second press.
  */
 
 const PAGE_SIZE = 100;
 
 type Params = { page?: string | string[] };
+
+const SMALL_BUTTON =
+  "inline-flex min-h-11 items-center rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium whitespace-nowrap text-ink-700 transition-colors hover:border-ink-300 hover:text-ink-900";
+
+function DuplicateForm({ id }: { id: string }) {
+  return (
+    <form action={duplicateNewsletter}>
+      <input type="hidden" name="id" value={id} />
+      <button type="submit" className={SMALL_BUTTON}>
+        Дублирай
+      </button>
+    </form>
+  );
+}
+
+/**
+ * "Изтрий черновата", behind a second press: a `<details>`, so it asks
+ * without script as well as with it. The answer is the only `danger` button
+ * on the page (DESIGN.md, "Buttons").
+ */
+function DeleteDraft({ id }: { id: string }) {
+  return (
+    <details className="group relative">
+      <summary
+        className={`${SMALL_BUTTON} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+      >
+        Изтрий черновата
+      </summary>
+      <div className="mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-line-strong bg-paper-raised p-4 text-sm sm:absolute sm:right-0 sm:z-10">
+        <p className="font-semibold text-ink-900">Да изтрием ли черновата?</p>
+        <p className="mt-1 text-ink-700">
+          Текстът и списъкът с продукти се губят. Качените файлове остават в хранилището.
+        </p>
+        <form action={deleteNewsletter} className="mt-3">
+          <input type="hidden" name="id" value={id} />
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center rounded-sm bg-critical px-4 py-2 text-sm font-semibold whitespace-nowrap text-paper transition-colors hover:bg-critical/90"
+          >
+            Да, изтрий
+          </button>
+        </form>
+      </div>
+    </details>
+  );
+}
+
+/** Where a draft came from, in a line: the month's letter, a promotion's, or nothing to say. */
+function originLine(
+  campaign: { template: string | null; autoPeriod: string | null },
+  promotion: { name: string; label: string | null; endsAt: Date } | null,
+): string | null {
+  if (campaign.template === "monthly") {
+    return campaign.autoPeriod
+      ? `Месечният бюлетин за ${periodMonthName(campaign.autoPeriod)}, подготвен автоматично: прегледайте текста и продуктите, махнете каквото не искате и го изпратете.`
+      : "Месечен бюлетин: новото в магазина и промоциите.";
+  }
+  if (campaign.template === "promotion") {
+    return promotion
+      ? `Обява за промоцията „${promotion.name}“${promotion.label ? ` (за клиентите: „${promotion.label}“)` : ""}, до ${dayWords(lastDay(promotion.endsAt))}.`
+      : "Обява за промоция, която вече я няма.";
+  }
+  return null;
+}
 
 function BackLink() {
   return (
@@ -71,10 +138,13 @@ export default async function AdminCampaignPage({
   if (!campaign) notFound();
 
   if (campaign.status === "draft") {
-    const [activeCount, capitalised] = await Promise.all([
+    const [activeCount, capitalised, lastLetter, promotion] = await Promise.all([
       countActiveSubscribers(),
       listCapitalisedNames(),
+      lastLetterStart(),
+      promotionDays(campaign.promotionId),
     ]);
+    const origin = originLine(campaign, promotion);
     return (
       <>
         <BackLink />
@@ -83,20 +153,16 @@ export default async function AdminCampaignPage({
             <h1 className="font-display text-3xl font-semibold text-ink-900">
               {campaign.subject || "Нов бюлетин"}
             </h1>
+            {origin && <p className="mt-1 max-w-prose text-base text-ink-700">{origin}</p>}
             <p className="mt-1 max-w-prose text-base text-ink-500">
-              Формата за абониране обещава кратко писмо, когато в магазина се появи ново кафе, и не
-              повече от веднъж месечно. Пазете това обещание.
+              Формата за абониране обещава писмо веднъж месечно: новите кафета и текущите промоции.
+              Пазете това обещание.
             </p>
           </div>
-          <form action={deleteNewsletter}>
-            <input type="hidden" name="id" value={campaign.id} />
-            <button
-              type="submit"
-              className="min-h-11 rounded-sm border border-line-strong px-3 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:border-ink-300 hover:text-ink-900"
-            >
-              Изтрий черновата
-            </button>
-          </form>
+          <div className="flex flex-wrap items-start gap-2">
+            <DuplicateForm id={campaign.id} />
+            <DeleteDraft id={campaign.id} />
+          </div>
         </div>
 
         <NewsletterComposer
@@ -114,6 +180,16 @@ export default async function AdminCampaignPage({
           canSend={Boolean(process.env.RESEND_API_KEY)}
           canUpload={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
           capitalised={capitalised}
+          lastLetterAt={lastLetter?.toISOString() ?? null}
+          promotion={
+            promotion
+              ? {
+                  startsAt: promotion.startsAt.toISOString(),
+                  endsAt: promotion.endsAt.toISOString(),
+                  stoppedAt: promotion.stoppedAt?.toISOString() ?? null,
+                }
+              : null
+          }
         />
       </>
     );
@@ -172,13 +248,16 @@ export default async function AdminCampaignPage({
             {campaign.sentAt && <> · приключен {utcStamp(campaign.sentAt)} UTC</>}
           </p>
         </div>
-        <span
-          className={`rounded-sm px-2 py-1 text-sm font-semibold ${
-            stale ? CAMPAIGN_STATUS_TONE.partial : CAMPAIGN_STATUS_TONE[campaign.status]
-          }`}
-        >
-          {stale ? "Прекъснат" : CAMPAIGN_STATUS_LABEL[campaign.status]}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-sm px-2 py-1 text-sm font-semibold ${
+              stale ? CAMPAIGN_STATUS_TONE.partial : CAMPAIGN_STATUS_TONE[campaign.status]
+            }`}
+          >
+            {stale ? "Прекъснат" : CAMPAIGN_STATUS_LABEL[campaign.status]}
+          </span>
+          <DuplicateForm id={campaign.id} />
+        </div>
       </div>
 
       <section

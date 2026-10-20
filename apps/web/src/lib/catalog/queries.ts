@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { and, asc, desc, eq, gte, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   brands,
@@ -30,6 +30,7 @@ import { AROMAS_LABELS, DECAF_LABELS, STRENGTH_LABELS, STRENGTH_ORDER } from "./
 import { publishedSummary, resolveProductFormat } from "./fallback-copy";
 import { isInstantCoffee, isNotInstantCoffee } from "./product-kind-sql";
 import {
+  isNewArrival,
   isRecentArrival,
   isReduced,
   promotionEndsAt,
@@ -1341,8 +1342,14 @@ export async function listProductCardsBySlugs(
 }
 
 /**
- * The newest products first seen since `since`, newest first — the home
- * page's "new arrivals" order — leaving out what cannot be ordered.
+ * The products that arrived since `since`, newest first — the home page's
+ * "new arrivals" order — leaving out what cannot be ordered: the newsletter's
+ * `[[нови-продукти]]` and the monthly letter's new arrivals.
+ *
+ * Arrived, not merely first seen: `isNewArrival` (`price-sql.ts`) leaves out
+ * what came with an import of the catalog — on production the first 110 and
+ * the 98 vending consumables taken in at once — which a letter announcing
+ * "new in the shop" would otherwise fill itself with.
  */
 export async function listNewProductCards(options: {
   readonly since: Date;
@@ -1353,7 +1360,9 @@ export async function listNewProductCards(options: {
       .select(productColumns)
       .from(products)
       .leftJoin(brands, eq(products.brandId, brands.id))
-      .where(and(isVisible, isOrderable, gte(products.firstSeenAt, options.since)))
+      .where(
+        and(isVisible, isOrderable, isNewArrival(sql`${options.since.toISOString()}::timestamptz`)),
+      )
       .orderBy(desc(products.firstSeenAt), asc(products.name), asc(products.id))
       .limit(options.limit),
   );

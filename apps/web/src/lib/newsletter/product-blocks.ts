@@ -5,11 +5,12 @@ import type {
   NewsletterProductBlocks,
 } from "@catalog/db/schema";
 import { slugify } from "@catalog/shared";
-import { parseMarkdown, type ProductsBlock } from "@/emails/markdown";
+import { parseMarkdown, type Block, type ProductsBlock } from "@/emails/markdown";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { isPlaceholderImage } from "@/lib/catalog/images";
 import type { Availability, ProductCardView } from "@/lib/catalog/types";
 import { productHref } from "@/lib/routes";
+import { drawnBlocks } from "./sections";
 import {
   MAX_LETTER_PRODUCTS,
   NEW_PRODUCTS_DAYS,
@@ -40,12 +41,22 @@ import {
  * what its lines ask for, in the order they appear (`planBlocks`): the first
  * line that would go past the cap, and every line after it, is not drawn.
  *
- * WHAT IS SKIPPED. A slug that names nothing on sale; in the two automatic
- * blocks, anything that cannot be ordered, and anything the letter already
- * shows higher up (hand-picked products first, then each automatic block in
- * the order it appears) — the same coffee twice in one letter looks like a
- * mistake. A block left with nothing is not drawn; the composer says so, and
- * a send with such a block does not start (`blockProblems`).
+ * WHAT IS SKIPPED. Anything that cannot be ordered: a hand-picked product
+ * that has sold out since it was picked (`soldOut`) or left the shop
+ * (`gone`), and in the two automatic blocks anything sold out; and anything
+ * the letter already shows higher up (hand-picked products first, then each
+ * automatic block in the order it appears) — the same coffee twice in one
+ * letter looks like a mistake. A block left with nothing is not drawn, nor is
+ * a heading over nothing but such blocks (`sections.ts`).
+ *
+ * WHAT STOPS A SEND, and what only warns (`blockIssues`). A letter goes out
+ * only when it is the letter the owner meant: a line the grammar cannot read,
+ * an address that is no product's, a block past the letter's twelve, a block
+ * whose products cannot be read, or a letter that would say nothing at all
+ * are errors. What the catalog did since the owner looked — a product sold
+ * out or withdrawn, nothing new this month — leaves the rest of the letter as
+ * meant, and is a warning: the monthly draft is prepared days before it is
+ * sent, and a coffee that sold out on the 3rd must not hold up the 5th.
  *
  * The catalog is reached through `ProductSource`, so the rules here are unit
  * tests with a stand-in (`test/newsletter-blocks.test.ts`) and the real reads
@@ -54,14 +65,20 @@ import {
 
 export { NEW_PRODUCTS_DAYS, type BlockState };
 
-/** The catalog, as far as the blocks need it. Every product returned is on sale. */
+/** The catalog, as far as the blocks need it. */
 export interface ProductSource {
-  /** Products these slugs name, any order; absent when not on sale. */
+  /** Products on sale that these slugs name, any order, sold out or not; absent otherwise. */
   bySlugs(slugs: readonly string[]): Promise<ReadonlyMap<string, ProductCardView>>;
-  /** First seen since `since`, newest first, orderable. */
+  /** New arrivals since `since` (`isNewArrival`), newest first, orderable. */
   newest(options: { since: Date; limit: number }): Promise<readonly ProductCardView[]>;
   /** Genuinely reduced, biggest first, orderable. */
   reduced(options: { limit: number }): Promise<readonly ProductCardView[]>;
+  /**
+   * Which of these slugs name a product at all, on sale or not: tells a
+   * product that has left the shop (a warning) from an address that never
+   * named one (an error). Without it, every slug not on sale is the latter.
+   */
+  known?(slugs: readonly string[]): Promise<ReadonlySet<string>>;
 }
 
 /* -- the snapshot ----------------------------------------------------------- */
@@ -117,8 +134,16 @@ const resolvedBlockSchema = z.object({
   token: z.string(),
   spec: specSchema,
   products: z.array(newsletterProductSchema),
-  /** Hand-picked slugs that named nothing on sale. */
+  /** Hand-picked slugs that name no product at all: a typo, or an address from elsewhere. */
   missing: z.array(z.string()),
+  /**
+   * Hand-picked products left out because they have sold out, with the name
+   * the owner knows them by. Optional, like `gone`: a snapshot from before
+   * either was kept has none.
+   */
+  soldOut: z.array(z.object({ slug: z.string(), title: z.string() })).optional(),
+  /** Hand-picked slugs of products that are in the catalog but no longer on sale. */
+  gone: z.array(z.string()).optional(),
 });
 
 export type ResolvedBlock = z.infer<typeof resolvedBlockSchema>;
@@ -231,10 +256,14 @@ export async function resolveProductBlocks(
     above += block.spec.limit;
     return block.spec.kind === "new" ? source.newest({ since, limit }) : source.reduced({ limit });
   });
-  const [bySlug, found] = await Promise.all([
-    picked.length > 0
-      ? source.bySlugs([...new Set(picked)])
+  const wanted = [...new Set(picked)];
+  const [bySlug, known, found] = await Promise.all([
+    wanted.length > 0
+      ? source.bySlugs(wanted)
       : Promise.resolve(new Map<string, ProductCardView>()),
+    wanted.length > 0 && source.known
+      ? source.known(wanted)
+      : Promise.resolve(new Set<string>() as ReadonlySet<string>),
     Promise.all(automatic.map((read) => read ?? Promise.resolve(null))),
   ]);
 
@@ -243,16 +272,28 @@ export async function resolveProductBlocks(
 
   shownBlocks.forEach((block, index) => {
     if (block.spec.kind !== "picked") return;
-    const cards = block.spec.slugs.flatMap((slug) => {
+    const onSale = block.spec.slugs.flatMap((slug) => {
       const card = bySlug.get(slug);
       return card ? [card] : [];
     });
+    /* The owner picked it when it could be ordered; a letter that offers it
+       now that it cannot is advertising what is not there. Left out, and the
+       composer says so. */
+    const cards = onSale.filter((card) => card.availability !== "out_of_stock");
+    const soldOut = onSale.filter((card) => card.availability === "out_of_stock");
+    const absent = block.spec.slugs.filter((slug) => !bySlug.has(slug));
     for (const card of cards) shown.add(card.id);
     resolved[index] = {
       token: block.token,
       spec: specOut(block.spec),
       products: cards.map(toNewsletterProduct),
-      missing: block.spec.slugs.filter((slug) => !bySlug.has(slug)),
+      missing: absent.filter((slug) => !known.has(slug)),
+      ...(soldOut.length > 0
+        ? { soldOut: soldOut.map((card) => ({ slug: card.slug, title: card.title ?? card.name })) }
+        : {}),
+      ...(absent.some((slug) => known.has(slug))
+        ? { gone: absent.filter((slug) => known.has(slug)) }
+        : {}),
     };
   });
 
@@ -370,47 +411,108 @@ export function pairBlocks(
 /* -- before a send ---------------------------------------------------------- */
 
 export interface BlockProblem {
-  /** The line as typed. */
+  /** The line as typed, or "Писмото" for the letter as a whole. */
   readonly token: string;
   /** What is wrong with it, in a few words. */
   readonly reason: string;
+  /** An error stops a send; a warning is the letter going out a little shorter. */
+  readonly severity: "error" | "warning";
 }
 
 const quoted = (items: readonly string[]) => items.map((item) => `„${item}“`).join(", ");
 
+/** The name a letter's problem as a whole goes by in `describeBlockProblems`. */
+export const WHOLE_LETTER = "Писмото";
+
 /**
- * The block lines that would leave a heading with nothing under it, or a
- * different list than the owner asked for: what a send refuses to start
- * with, and a run refuses to go on with. Every line is accounted for —
- * unreadable, over the cap, with an address that is no product's, without
- * its products in the snapshot, empty, or missing some of what it named.
+ * The body as the letter draws it from this snapshot: the blocks with
+ * products, the text, and no heading over nothing (`sections.ts`).
  */
-export function blockProblems(
+export function letterBlocks(
+  body: string,
+  snapshot: ProductBlocksSnapshot | null | undefined,
+): { blocks: Block[]; pairs: Map<ProductsBlock, ResolvedBlock | null> } {
+  const parsed = parseMarkdown(body);
+  const pairs = pairBlocks(
+    parsed.filter((block): block is ProductsBlock => block.type === "products"),
+    snapshot,
+  );
+  return {
+    blocks: drawnBlocks(parsed, (block) => (pairs.get(block)?.products.length ?? 0) === 0),
+    pairs,
+  };
+}
+
+/**
+ * Every block line, and the letter, as they would go out with this snapshot:
+ * what is wrong, and whether it stops the send (see "WHAT STOPS A SEND"
+ * above). Errors: unreadable, over the cap, an address that is no product's,
+ * products that cannot be read, a hand-picked slug that names no product, and
+ * a letter with neither a word nor a product in it. Warnings: a block left
+ * empty, a hand-picked product sold out or withdrawn since.
+ */
+export function blockIssues(
   body: string,
   snapshot: ProductBlocksSnapshot | null | undefined,
 ): BlockProblem[] {
   const blocks = productBlocksOf(body);
   const pairs = pairBlocks(blocks, snapshot);
-  return planBlocks(blocks).flatMap(({ block, state }): BlockProblem[] => {
+  const error = (token: string, reason: string): BlockProblem => ({
+    token,
+    reason,
+    severity: "error",
+  });
+  const warning = (token: string, reason: string): BlockProblem => ({
+    token,
+    reason,
+    severity: "warning",
+  });
+  const issues = planBlocks(blocks).flatMap(({ block, state }): BlockProblem[] => {
     const token = block.token.source;
-    if (state === "unreadable") return [{ token, reason: "блокът не е разпознат" }];
+    if (state === "unreadable") return [error(token, "блокът не е разпознат")];
     if (state === "over-cap") {
-      return [{ token, reason: `писмото вече има ${MAX_LETTER_PRODUCTS} продукта` }];
+      return [error(token, `писмото вече има ${MAX_LETTER_PRODUCTS} продукта`)];
     }
     if (block.token.invalid.length > 0) {
-      return [{ token, reason: `не е адрес на продукт: ${quoted(block.token.invalid)}` }];
+      return [error(token, `не е адрес на продукт: ${quoted(block.token.invalid)}`)];
     }
     const entry = pairs.get(block);
-    if (!entry) return [{ token, reason: "продуктите му не могат да бъдат прочетени" }];
-    if (entry.products.length === 0) return [{ token, reason: "няма продукти за показване" }];
+    if (!entry) return [error(token, "продуктите му не могат да бъдат прочетени")];
+    const found: BlockProblem[] = [];
     if (entry.missing.length > 0) {
-      return [{ token, reason: `не са сред продаваните: ${quoted(entry.missing)}` }];
+      found.push(error(token, `не е адрес на продукт в магазина: ${quoted(entry.missing)}`));
     }
-    return [];
+    if (entry.soldOut && entry.soldOut.length > 0) {
+      found.push(
+        warning(token, `изчерпани, пропускат се: ${quoted(entry.soldOut.map((p) => p.title))}`),
+      );
+    }
+    if (entry.gone && entry.gone.length > 0) {
+      found.push(warning(token, `вече не се продават, пропускат се: ${quoted(entry.gone)}`));
+    }
+    if (entry.products.length === 0) found.push(warning(token, "празен е и няма да се покаже"));
+    return found;
   });
+  /* Text, or at least one product: a letter of nothing but empty blocks is a
+     subject over an empty sheet. Only once the products are known. */
+  if (snapshot && letterBlocks(body, snapshot).blocks.length === 0) {
+    issues.push(error(WHOLE_LETTER, "няма нито текст, нито продукти за показване"));
+  }
+  return issues;
 }
 
-/** The problems in one sentence: "[[промоции]] — няма продукти за показване; …". */
+/**
+ * What a send refuses to start with, and a run refuses to go on with: the
+ * errors of `blockIssues`. The warnings are the composer's to show.
+ */
+export function blockProblems(
+  body: string,
+  snapshot: ProductBlocksSnapshot | null | undefined,
+): BlockProblem[] {
+  return blockIssues(body, snapshot).filter((issue) => issue.severity === "error");
+}
+
+/** The problems in one sentence: "[[промоции]] — блокът не е разпознат; …". */
 export function describeBlockProblems(problems: readonly BlockProblem[]): string {
   return problems.map((problem) => `${problem.token} — ${problem.reason}`).join("; ");
 }
@@ -452,18 +554,37 @@ export function withSnapshot(
 
 /* -- what the composer is told ---------------------------------------------- */
 
-/** One block as the preview reports it, for the checks under the composer. */
+/**
+ * One product as the composer draws it in its block: what the owner
+ * recognises it by — photograph, name, pack, price — and its address.
+ */
+export interface ReportedProduct {
+  readonly slug: string;
+  readonly title: string;
+  readonly detail: string | null;
+  readonly price?: string | null;
+  readonly oldPrice?: string | null;
+  readonly perCup?: string | null;
+  /** The photograph's address on the store, for the panel; null without one. */
+  readonly image?: string | null;
+}
+
+/**
+ * One block as the preview reports it: for the checks under the composer, and
+ * for the composer's own drawing of the block (its products, and what it left
+ * out and why). The optional fields are absent from a report built by hand.
+ */
 export interface BlockReport {
   readonly token: string;
   readonly kind: ProductBlockSpec["kind"];
   /** What each card says, as the reader reads it. */
-  readonly products: readonly {
-    readonly title: string;
-    readonly detail: string | null;
-    readonly price?: string | null;
-    readonly perCup?: string | null;
-  }[];
+  readonly products: readonly ReportedProduct[];
+  /** Hand-picked slugs that name no product. */
   readonly missing: readonly string[];
+  /** Hand-picked products left out because they sold out. */
+  readonly soldOut?: readonly { readonly slug: string; readonly title: string }[];
+  /** Hand-picked slugs of products no longer on sale. */
+  readonly gone?: readonly string[];
 }
 
 /** What the preview route answers: the letter, and what its blocks resolved to. */
@@ -477,11 +598,16 @@ export function blockReports(snapshot: ProductBlocksSnapshot): BlockReport[] {
     token: block.token,
     kind: block.spec.kind,
     products: block.products.map((product) => ({
+      slug: product.slug,
       title: product.title,
       detail: product.detail,
       price: product.price,
+      oldPrice: product.oldPrice,
       perCup: product.perCup,
+      image: product.image?.url ?? null,
     })),
     missing: block.missing,
+    soldOut: block.soldOut ?? [],
+    gone: block.gone ?? [],
   }));
 }

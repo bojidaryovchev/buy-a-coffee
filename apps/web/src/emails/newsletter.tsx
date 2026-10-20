@@ -13,11 +13,11 @@ import {
   formatFileSize,
 } from "./components";
 import {
-  pairBlocks,
+  letterBlocks,
   type ProductBlocksSnapshot,
   type ResolvedBlock,
 } from "@/lib/newsletter/product-blocks";
-import { markdownToText, parseMarkdown, type Block, type ProductsBlock } from "./markdown";
+import { markdownToText, type Block, type ProductsBlock } from "./markdown";
 import { emailMediaUrl } from "./media";
 import { ProductCards, productTextLines } from "./product-cards";
 import { renderEmail, type ComposedEmail } from "./render";
@@ -37,7 +37,10 @@ import { shop } from "./theme";
  * from `products`: what the blocks resolved to, which the caller supplies —
  * read from the catalog for a preview or a test, the campaign's snapshot for
  * a send. This file never reads the catalog, so drawing the same snapshot
- * twice draws the same letter. Without it, a block draws nothing.
+ * twice draws the same letter. Without it, a block draws nothing. A block
+ * with nothing to show is left out, and so is a heading over nothing but such
+ * blocks (`lib/newsletter/sections.ts`): the letter reads as if the section
+ * had never been written.
  *
  * Every copy carries its reader's own unsubscribe link, in the footer with the
  * reason they are receiving it. The same address, as an RFC 8058 one-click
@@ -91,14 +94,6 @@ function preview(content: NewsletterContent, blocks: readonly Block[]): string {
 }
 
 type Pairs = Map<ProductsBlock, ResolvedBlock | null>;
-
-/** The body's product blocks, each with what it resolved to in this letter. */
-function productPairs(blocks: readonly Block[], content: NewsletterContent): Pairs {
-  return pairBlocks(
-    blocks.filter((block): block is ProductsBlock => block.type === "products"),
-    content.products,
-  );
-}
 
 function BodyBlocks({
   blocks,
@@ -155,8 +150,7 @@ export function NewsletterEmail({
   content: NewsletterContent;
   recipient: NewsletterRecipient;
 }) {
-  const blocks = parseMarkdown(content.body);
-  const pairs = productPairs(blocks, content);
+  const { blocks, pairs } = letterBlocks(content.body, content.products);
   const campaign = content.products?.campaign ?? "";
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
@@ -189,8 +183,7 @@ export function NewsletterEmail({
 
 /** The plain-text twin: the same message, for a client that shows no HTML. */
 export function newsletterText(content: NewsletterContent, recipient: NewsletterRecipient): string {
-  const blocks = parseMarkdown(content.body);
-  const pairs = productPairs(blocks, content);
+  const { blocks, pairs } = letterBlocks(content.body, content.products);
   const campaign = content.products?.campaign ?? "";
   const images = content.attachments.filter((file) => file.kind === "image");
   const files = content.attachments.filter((file) => file.kind === "file");
