@@ -11,6 +11,13 @@
  *                                    otherwise, six at most.
  *   [[промоции]]                     products with a real reduction, the
  *   [[промоции: 6]]                  biggest first; four, six at most.
+ *   [[промоции: адрес-1, адрес-2]]   these products, in this order, each of
+ *                                    which must still be reduced when the
+ *                                    letter goes: the monthly letter's
+ *                                    reductions, chosen when it was prepared.
+ *                                    A lone number is a count, anything else
+ *                                    a list (no product's address is a bare
+ *                                    number).
  *
  * What a line asks for is all this file decides. Which products that is, at
  * what price, is `product-blocks.ts`, from the catalog, at the moment the
@@ -44,12 +51,18 @@ export const NEW_PRODUCTS_DAYS = 30;
  */
 export const MAX_LETTER_PRODUCTS = 12;
 
-export type ProductBlockKind = "picked" | "new" | "sale";
+export type ProductBlockKind = "picked" | "new" | "sale" | "reduced";
 
 export type ProductBlockSpec =
   | { readonly kind: "picked"; readonly slugs: readonly string[] }
   | { readonly kind: "new"; readonly limit: number }
-  | { readonly kind: "sale"; readonly limit: number };
+  | { readonly kind: "sale"; readonly limit: number }
+  /** Chosen products under a claim of reduction: each must still be reduced at the send. */
+  | { readonly kind: "reduced"; readonly slugs: readonly string[] };
+
+/** The kinds that name their products, as opposed to asking the catalog for some. */
+export const isListKind = (kind: ProductBlockKind): kind is "picked" | "reduced" =>
+  kind === "picked" || kind === "reduced";
 
 export interface ProductToken {
   /** The line as typed, trimmed: how the composer names it in a warning. */
@@ -73,11 +86,11 @@ export interface ProductToken {
  * text alone, before the catalog is asked anything.
  */
 export function requestedProducts(spec: ProductBlockSpec): number {
-  return spec.kind === "picked" ? spec.slugs.length : spec.limit;
+  return spec.kind === "picked" || spec.kind === "reduced" ? spec.slugs.length : spec.limit;
 }
 
-/** The words each kind answers to, after `normaliseName`. */
-const KINDS: Readonly<Record<string, ProductBlockKind>> = {
+/** The words each kind answers to, after `normaliseName`. A list of reductions is "промоции" with addresses. */
+const KINDS: Readonly<Record<string, "picked" | "new" | "sale">> = {
   продукти: "picked",
   продукт: "picked",
   "нови-продукти": "new",
@@ -92,6 +105,7 @@ export const TOKEN_NAMES: Readonly<Record<ProductBlockKind, string>> = {
   picked: "продукти",
   new: "нови-продукти",
   sale: "промоции",
+  reduced: "промоции",
 };
 
 const TOKEN_LINE = /^\[\[([^\n]*)\]\]$/;
@@ -100,6 +114,7 @@ const PRODUCT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UNKNOWN = `Непознат блок. Може да бъде [[${TOKEN_NAMES.picked}: адрес-1, адрес-2]], [[${TOKEN_NAMES.new}]] или [[${TOKEN_NAMES.sale}]].`;
 const NO_PRODUCTS = `Посочете продуктите: [[${TOKEN_NAMES.picked}: адрес-1, адрес-2]].`;
 const BAD_COUNT = `Броят трябва да е число от 1 до ${MAX_BLOCK_PRODUCTS}.`;
+const NO_REDUCED = `Посочете брой от 1 до ${MAX_BLOCK_PRODUCTS} — [[${TOKEN_NAMES.sale}: 4]] — или намалените продукти: [[${TOKEN_NAMES.sale}: адрес-1, адрес-2]].`;
 
 /** "Нови  Продукти", "нови_продукти" and "нови-продукти" are one name. */
 function normaliseName(raw: string): string {
@@ -174,19 +189,23 @@ export function parseProductToken(line: string): ProductToken | null {
 
   if (!kind) return refuse(UNKNOWN);
 
-  if (kind === "picked") {
+  /* The reductions take a count or a list: a lone number (or nothing) is a
+     count, as it always was; anything else names the products. */
+  const listed = kind === "picked" || (kind === "sale" && !/^\s*\d*\s*$/.test(args));
+  if (listed) {
     const slugs: string[] = [];
     for (const part of args.split(/[\s,;]+/).filter(Boolean)) {
       const slug = slugFromAddress(part);
       if (!slug) invalid.push(part);
       else if (!slugs.includes(slug)) slugs.push(slug);
     }
-    if (slugs.length === 0) return refuse(NO_PRODUCTS);
+    if (slugs.length === 0) return refuse(kind === "picked" ? NO_PRODUCTS : NO_REDUCED);
     if (slugs.length > MAX_BLOCK_PRODUCTS) {
       notes.push(`Показват се първите ${MAX_BLOCK_PRODUCTS}.`);
       slugs.length = MAX_BLOCK_PRODUCTS;
     }
-    return { source, spec: { kind, slugs }, problem: null, notes, invalid };
+    const listKind = kind === "picked" ? "picked" : "reduced";
+    return { source, spec: { kind: listKind, slugs }, problem: null, notes, invalid };
   }
 
   const limit = count(args, notes);
@@ -226,7 +245,9 @@ export function planTokens(tokens: readonly ProductToken[]): BlockState[] {
 
 /** The line the composer inserts for a block. */
 export function productTokenLine(spec: ProductBlockSpec): string {
-  if (spec.kind === "picked") return `[[${TOKEN_NAMES.picked}: ${spec.slugs.join(", ")}]]`;
+  if (spec.kind === "picked" || spec.kind === "reduced") {
+    return `[[${TOKEN_NAMES[spec.kind]}: ${spec.slugs.join(", ")}]]`;
+  }
   const name = TOKEN_NAMES[spec.kind];
   return spec.limit === DEFAULT_BLOCK_PRODUCTS ? `[[${name}]]` : `[[${name}: ${spec.limit}]]`;
 }

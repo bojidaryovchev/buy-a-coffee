@@ -28,6 +28,7 @@ const PROSE =
   "Rema са добър избор за всеки ден. Ако не сте сигурни кое е за вашата машина, обадете ни се.";
 
 const card = (title: string, detail: string | null = "Кафе на зърна, 1 кг") => ({
+  slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
   title,
   detail,
   price: "24,70 €",
@@ -302,24 +303,53 @@ describe("product blocks", () => {
       blocks: blockReport ? [blockReport] : [],
     });
 
-  it("warns about a block that resolved to nothing, saying why for its kind, and that it stops a send", () => {
+  it("warns about a section that resolved to nothing, saying why for its kind, and lets it go", () => {
     const empty = (kind: BlockReport["kind"], token: string, missing: string[] = []) =>
       withBlock(token, report(token, kind, [], missing)).find((item) => item.id === "block-empty");
 
-    expect(empty("sale", "[[промоции]]")?.detail).toMatch(/няма продукти с намалена цена/);
+    const sale = empty("sale", "[[промоции]]");
+    expect(sale?.title).toBe("Секцията „Промоции“ е празна и няма да се покаже");
+    expect(sale?.detail).toMatch(/няма продукти с намалена цена/);
+    expect(sale?.detail).toContain("Писмото може да се изпрати и така.");
+    expect(sale?.blocksSend).toBeUndefined();
     expect(empty("new", "[[нови-продукти]]")?.detail).toMatch(/последните 30 дни/);
-    const picked = empty("picked", "[[продукти: a-b, c-d]]", ["a-b", "c-d"]);
-    expect(picked?.title).toBe("Блокът [[продукти: a-b, c-d]] е празен");
-    expect(picked?.detail).toContain("„a-b“, „c-d“");
-    expect(picked?.detail).toContain("изпращането не започва");
+    expect(empty("picked", "[[продукти: a-b, c-d]]")?.title).toBe(
+      "Секцията „Избрани продукти“ е празна и няма да се покаже",
+    );
+    // Addresses that name nothing still stop it, beside the warning.
+    const notes = withBlock(
+      "[[продукти: a-b, c-d]]",
+      report("[[продукти: a-b, c-d]]", "picked", [], ["a-b", "c-d"]),
+    );
+    expect(notes.find((item) => item.id === "block-missing")).toMatchObject({ blocksSend: true });
+    expect(notes.find((item) => item.id === "block-missing")?.detail).toContain(
+      "изпращането не започва",
+    );
   });
 
-  it("names the hand-picked products that are not on sale, and the addresses that are no product's", () => {
+  it("warns, without stopping, about picked products sold out or withdrawn since", () => {
+    const notes = withBlock("[[продукти: ima, gone, spryan]]", {
+      ...report("[[продукти: ima, gone, spryan]]", "picked", [card("Има")]),
+      soldOut: [{ slug: "gone", title: "Lavazza Oro" }],
+      gone: ["spryan"],
+    });
+    const soldOut = notes.find((item) => item.id === "block-sold-out");
+    expect(soldOut?.title).toBe("Изчерпан продукт ще бъде пропуснат");
+    expect(soldOut?.detail).toMatch(/^„Lavazza Oro“ — изчерпан е и няма да се покаже/);
+    expect(soldOut?.blocksSend).toBeUndefined();
+    expect(notes.find((item) => item.id === "block-gone")?.detail).toMatch(
+      /^„spryan“ — вече не е в магазина/,
+    );
+    expect(notes.some((item) => item.blocksSend)).toBe(false);
+  });
+
+  it("names the hand-picked addresses that are no product's, which stop a send", () => {
     const missing = withBlock(
       "[[продукти: ima, nyama]]",
       report("[[продукти: ima, nyama]]", "picked", [card("Има")], ["nyama"]),
     ).find((item) => item.id === "block-missing");
-    expect(missing?.detail).toMatch(/^„nyama“ не е сред продаваните продукти/);
+    expect(missing?.detail).toMatch(/^„nyama“ не е адрес на продукт в магазина/);
+    expect(missing?.blocksSend).toBe(true);
 
     const invalid = withBlock(
       "[[продукти: ima, Лаваца]]",
@@ -364,5 +394,158 @@ describe("product blocks", () => {
     expect(
       ids({ ...healthy, body: `${PROSE}\n\n[[нови-продукти]]`, blocks: healthy.blocks }),
     ).not.toContain("block-empty");
+  });
+});
+
+describe("a letter with nothing in it", () => {
+  it("stops the send once every block has answered empty, and not before", () => {
+    const body = "## Промоции\n\n[[промоции]]";
+    const empty = { ...healthy, body, blocks: [report("[[промоции]]", "sale", [])] };
+    expect(note(empty, "letter-empty")).toMatchObject({
+      blocksSend: true,
+      title: "Писмото е празно",
+    });
+    // Waiting for the preview: nothing to say yet.
+    expect(ids({ ...empty, blocks: null })).not.toContain("letter-empty");
+    // A word of text, or a product, is a letter.
+    expect(ids({ ...empty, body: `Здравейте,\n\n${body}` })).not.toContain("letter-empty");
+    expect(
+      ids({ ...empty, blocks: [report("[[промоции]]", "sale", [card("Eurocaf")])] }),
+    ).not.toContain("letter-empty");
+  });
+});
+
+describe("when it goes out", () => {
+  const NOW = new Date("2026-11-20T10:00:00Z");
+
+  it("warns about a letter within a month of the last, with the day it could wait for", () => {
+    const recent = note(
+      { ...healthy, lastLetterAt: "2026-11-02T08:00:00Z", now: NOW },
+      "recent-letter",
+    );
+    expect(recent?.title).toBe("Последното писмо е изпратено преди 18 дни");
+    expect(recent?.detail).toContain("не повече от веднъж месечно");
+    expect(recent?.detail).toContain("след 2 декември");
+    expect(recent?.blocksSend).toBeUndefined();
+    expect(
+      note({ ...healthy, lastLetterAt: "2026-11-20T07:00:00Z", now: NOW }, "recent-letter")?.title,
+    ).toBe("Днес вече е изпратено писмо");
+    expect(ids({ ...healthy, lastLetterAt: "2026-10-20T09:00:00Z", now: NOW })).not.toContain(
+      "recent-letter",
+    );
+    expect(ids({ ...healthy, lastLetterAt: null, now: NOW })).not.toContain("recent-letter");
+  });
+
+  it("stops a promotion's letter before the promotion runs, and after it ended or was stopped", () => {
+    const facts = (startsAt: string, endsAt: string, stoppedAt: string | null = null) => ({
+      id: "p1",
+      name: "Есен 2026",
+      label: "Есенни дни",
+      percentOff: 10,
+      startsAt,
+      endsAt,
+      stoppedAt,
+    });
+    const notes = (announced: ReturnType<typeof facts>) =>
+      checkDeliverability({ ...healthy, announced, now: NOW });
+    const early = notes(facts("2026-11-24T22:00:00Z", "2026-11-30T22:00:00Z")).find(
+      (item) => item.id === "promotion-not-started",
+    );
+    expect(early).toMatchObject({ blocksSend: true });
+    expect(early?.detail).toMatch(/^Започва на 25 ноември\. Писмото може да се подготви отрано/);
+    const ended = notes(facts("2026-11-01T22:00:00Z", "2026-11-15T22:00:00Z")).find(
+      (item) => item.id === "promotion-ended",
+    );
+    expect(ended).toMatchObject({ blocksSend: true, title: "Промоцията е приключила" });
+    expect(ended?.detail).toMatch(/^Последният ѝ ден беше 15 ноември/);
+    expect(
+      notes(facts("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z", "2026-11-18T09:00:00Z")).find(
+        (item) => item.id === "promotion-ended",
+      )?.title,
+    ).toBe("Промоцията е спряна");
+    const running = notes(facts("2026-11-01T22:00:00Z", "2026-11-30T22:00:00Z"));
+    expect(running.map((item) => item.id)).not.toContain("promotion-ended");
+    expect(running.map((item) => item.id)).not.toContain("promotion-not-started");
+    // Deleted before it started.
+    expect(
+      checkDeliverability({ ...healthy, announcedMissing: true, now: NOW }).find(
+        (item) => item.id === "promotion-ended",
+      ),
+    ).toMatchObject({ title: "Промоцията вече я няма", blocksSend: true });
+  });
+
+  it("stops a running promotion's letter over a product whose badge shows less", () => {
+    const announced = {
+      id: "p1",
+      name: "Есен 2026",
+      label: null,
+      percentOff: 10,
+      startsAt: "2026-11-01T22:00:00Z",
+      endsAt: "2026-11-30T22:00:00Z",
+      stoppedAt: null,
+    };
+    const blocks = [
+      report("[[промоции]]", "sale", [
+        { ...card("Честен"), discountPercent: 10 },
+        { ...card("По-малко"), discountPercent: 7 },
+        { ...card("Без значка"), discountPercent: null },
+      ]),
+    ];
+    const claim = checkDeliverability({ ...healthy, blocks, announced, now: NOW }).find(
+      (item) => item.id === "promotion-claim",
+    );
+    expect(claim).toMatchObject({ blocksSend: true, title: "Продукти без −10% на значката" });
+    expect(claim?.detail).toMatch(/^„По-малко“, „Без значка“ — /);
+    expect(claim?.detail).toContain("30-дневна история на цената");
+    // Every badge carries it: nothing to say.
+    expect(
+      ids({
+        ...healthy,
+        blocks: [report("[[промоции]]", "sale", [{ ...card("Ч"), discountPercent: 12 }])],
+        announced,
+        now: NOW,
+      }),
+    ).not.toContain("promotion-claim");
+  });
+
+  it("stops a letter that names a promotion which has ended", () => {
+    const named = [
+      {
+        id: "p2",
+        name: "Октомври",
+        label: "Есенни дни",
+        percentOff: 10,
+        startsAt: "2026-10-26T22:00:00Z",
+        endsAt: "2026-11-15T22:00:00Z",
+        stoppedAt: null,
+      },
+    ];
+    const over = checkDeliverability({ ...healthy, named, now: NOW }).find(
+      (item) => item.id === "promotion-ended",
+    );
+    expect(over).toMatchObject({
+      blocksSend: true,
+      title: "Промоцията „Есенни дни“ („Октомври“) е приключила",
+    });
+    expect(ids({ ...healthy, named, now: new Date("2026-11-10T10:00:00Z") })).not.toContain(
+      "promotion-ended",
+    );
+  });
+
+  it("stops a letter whose listed reductions are no longer reduced", () => {
+    const notes = checkDeliverability({
+      ...healthy,
+      body: `${PROSE}\n\n[[промоции: a, b]]`,
+      blocks: [
+        {
+          ...report("[[промоции: a, b]]", "reduced", [card("A")]),
+          notReduced: [{ slug: "b", title: "Lavazza B" }],
+        },
+      ],
+    });
+    expect(notes.find((item) => item.id === "block-not-reduced")).toMatchObject({
+      blocksSend: true,
+      title: "Продукт, който вече не е намален",
+    });
   });
 });

@@ -1,4 +1,6 @@
 import "server-only";
+import { inArray } from "drizzle-orm";
+import { products } from "@catalog/db/schema";
 import { storeKey } from "@/emails/media";
 import {
   listNewProductCards,
@@ -26,7 +28,26 @@ export const catalogProductSource: ProductSource = {
   bySlugs: (slugs) => listProductCardsBySlugs(slugs),
   newest: ({ since, limit }) => listNewProductCards({ since, limit }),
   reduced: ({ limit }) => listReducedProductCards({ limit }),
+  known: (slugs) => knownSlugs(slugs),
 };
+
+/**
+ * Which of these slugs are a product's, whatever its state: one that has left
+ * the shop since it was picked is a warning, an address that never named a
+ * product an error (`product-blocks.ts`). Only the slug is read — nothing
+ * about how a product is shown is decided here.
+ */
+async function knownSlugs(slugs: readonly string[]): Promise<ReadonlySet<string>> {
+  const wanted = [...new Set(slugs)].filter((slug) => slug.length > 0 && slug.length <= 200);
+  if (wanted.length === 0) return new Set();
+  // On first use, like the catalog module: a body without products opens no connection.
+  const { db } = await import("@/lib/db");
+  const rows = await db
+    .select({ slug: products.slug })
+    .from(products)
+    .where(inArray(products.slug, wanted));
+  return new Set(rows.map((row) => row.slug));
+}
 
 /** Enough of a file for any of the four formats' header, a JPEG's EXIF included. */
 const HEADER_BYTES = 64 * 1024;

@@ -20,7 +20,13 @@ import type { OrderLine } from "@/lib/orders/lines";
  */
 
 export interface Notification {
-  readonly kind: "order_inquiry" | "contact_message" | "newsletter_signup" | "sync_alert";
+  readonly kind:
+    | "order_inquiry"
+    | "contact_message"
+    | "newsletter_signup"
+    | "sync_alert"
+    /** The monthly job prepared the month's newsletter draft; `recordId` is the draft. */
+    | "newsletter_draft";
   readonly subject: string;
   readonly summary: string;
   /** An order's lines, under the owner's names for the products, so the mail

@@ -4,7 +4,7 @@ import { absoluteUrl, siteConfig } from "@/config/site";
 import { unsubscribeSubscriber } from "@/lib/admin-actions";
 import { consentSourceLabel } from "@/lib/forms/consent";
 import { ResyncForm } from "@/components/admin/resync-form";
-import { createNewsletter } from "@/lib/newsletter/actions";
+import type { NewsletterTemplate } from "@catalog/db/schema";
 import {
   isStale,
   listCampaigns,
@@ -18,7 +18,15 @@ import {
   subscribersWord,
   utcStamp,
 } from "@/lib/newsletter/status";
+import { dayWords, lastDay, rangeWords } from "@/lib/newsletter/sofia";
 import { newsletterSyncStatus, PROPERTY_KEYS, PROPERTY_PREFIX } from "@/lib/newsletter/sync";
+import {
+  monthlyPlan,
+  promotionChoices,
+  type MonthlyPlan,
+  type PromotionChoice,
+} from "@/lib/newsletter/template-data";
+import { createNewsletterFromTemplate } from "@/lib/newsletter/template-actions";
 
 export const metadata: Metadata = { title: "Бюлетин" };
 export const dynamic = "force-dynamic";
@@ -29,8 +37,10 @@ export const maxDuration = 300;
 /**
  * The newsletter: the list, and what has been sent to it.
  *
- * The owner writes and sends from here (`Нов бюлетин` → the composer at
- * `/admin/byuletin/[id]`). It used to send from Resend's Broadcasts, with this
+ * The owner writes and sends from here: "Нов бюлетин" starts the monthly
+ * letter (with a line saying what it would hold, from the catalog as it is),
+ * a promotion's announcement, or a blank draft (`template-actions.ts`), and
+ * opens it in the composer at `/admin/byuletin/[id]`. It used to send from Resend's Broadcasts, with this
  * screen explaining how; sending from our own panel means each reader's own
  * unsubscribe link and one-click header, our table as the only list, and a
  * record of every copy (`lib/newsletter/send.ts` says why that matters).
@@ -44,12 +54,63 @@ export const maxDuration = 300;
  * Resend holds a copy of the list (`lib/newsletter/sync.ts`) for its own
  * pages, which is where an unsubscribe made in Resend comes from; the send
  * itself asks only this table. The copy's configuration and its repair
- * ("Копирай списъка в Resend") are at the bottom, folded.
+ * ("Копирай списъка в Resend") are at the bottom, folded as "Технически
+ * настройки" — and open, saying so, when something there is not set.
  */
 
 const PAGE_SIZE = 100;
 
-type Params = { page?: string | string[]; vsichki?: string | string[] };
+type Params = {
+  page?: string | string[];
+  vsichki?: string | string[];
+  /** Set by a promotion's "Нов бюлетин" that found nothing to announce. */
+  promotsiya?: string | string[];
+};
+
+const START_BUTTON =
+  "inline-flex min-h-11 items-center justify-center rounded-sm border border-line-strong bg-paper-raised px-4 py-2 text-sm font-medium whitespace-nowrap text-ink-900 transition-colors hover:bg-paper-sunken";
+
+const TEMPLATE_LABEL: Record<NewsletterTemplate, string> = {
+  monthly: "Месечен",
+  promotion: "Промоция",
+};
+
+const productsPhrase = (count: number, one: string, many: string) =>
+  count === 1 ? `1 ${one} продукт` : `${count} ${many} продукта`;
+
+/** What the monthly letter would hold if started now, in a line. */
+function monthlyLine(plan: MonthlyPlan): string {
+  const { newArrivals, reduced, promotions } = plan.input;
+  const parts = [
+    ...(newArrivals.length > 0 ? [productsPhrase(newArrivals.length, "нов", "нови")] : []),
+    ...(reduced.length > 0 ? [productsPhrase(reduced.length, "намален", "намалени")] : []),
+  ];
+  const counted = plan.sinceLetter
+    ? `от ${dayWords(plan.since)} насам, след последното писмо`
+    : `от последните 30 дни`;
+  if (parts.length === 0) {
+    return `Няма нови продукти (${counted}) и няма намалени. Писмото ще бъде само поздрав и подпис — напишете какво е новото.`;
+  }
+  const named = promotions
+    .map(
+      (promotion) =>
+        `${promotion.label ? `„${promotion.label}“` : `−${promotion.percentOff}%`} до ${dayWords(lastDay(promotion.endsAt))}`,
+    )
+    .join(", ");
+  const overflow = plan.plan.leftOut.newOverflow ?? 0;
+  const more = overflow > 0 ? ` Още ${overflow} нови не се побират: едно писмо показва до 12.` : "";
+  return `Сега ще съдържа ${parts.join(" и ")}${named ? ` (${named})` : ""}. Новите са ${counted}.${more}`;
+}
+
+/** A promotion in the list to choose from: the owner's name, its reduction and its days. */
+function choiceLabel(choice: PromotionChoice, now: Date): string {
+  const days =
+    choice.startsAt.getTime() <= now.getTime()
+      ? `до ${dayWords(lastDay(choice.endsAt))}`
+      : rangeWords(choice.startsAt, choice.endsAt);
+  const products = `${choice.products} ${choice.products === 1 ? "продукт" : "продукта"}`;
+  return `${choice.name} — −${choice.percentOff}% ${days} · ${products}`;
+}
 
 const one = (value: string | string[] | undefined): string | undefined =>
   typeof value === "string" ? value : undefined;
@@ -79,9 +140,17 @@ export default async function AdminNewsletterPage({
 }) {
   const params = await searchParams;
   const everybody = one(params.vsichki) === "1";
+  const promotionGone = one(params.promotsiya) === "nyama";
+  const now = new Date();
   const requested = Number(one(params.page) ?? "1");
 
-  const [counts, campaigns] = await Promise.all([subscriberCounts(), listCampaigns()]);
+  const [counts, campaigns, plan, choices] = await Promise.all([
+    subscriberCounts(),
+    listCampaigns(),
+    monthlyPlan(now),
+    promotionChoices(now),
+  ]);
+  const monthlySummary = monthlyLine(plan);
   const listed = everybody ? counts.active + counts.unsubscribed : counts.active;
   const pages = Math.max(1, Math.ceil(listed / PAGE_SIZE));
   const page = Number.isInteger(requested) && requested >= 1 ? Math.min(requested, pages) : 1;
@@ -123,6 +192,11 @@ export default async function AdminNewsletterPage({
       what: "качването на снимки и файлове към бюлетина",
     },
   ];
+  /* Open by itself only when something the newsletter needs is missing; the
+     segment is optional and does not count. */
+  const misconfigured = checks.some(
+    (check) => !check.ok && check.name !== "RESEND_NEWSLETTER_SEGMENT_ID",
+  );
 
   return (
     <>
@@ -148,19 +222,97 @@ export default async function AdminNewsletterPage({
           <h2 id="campaigns-title" className="font-display text-xl font-semibold text-ink-900">
             Бюлетини
           </h2>
-          <form action={createNewsletter}>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 items-center rounded-sm bg-pine-900 px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-pine-700"
-            >
-              Нов бюлетин
-            </button>
-          </form>
         </div>
+
+        {promotionGone && (
+          <p role="alert" className="mt-4 rounded-sm bg-caution-100 px-3 py-2 text-sm text-ink-900">
+            Тази промоция е приключила, спряна е или вече я няма, затова не е започнат бюлетин за
+            нея. Изберете друга по-долу.
+          </p>
+        )}
+
+        {/* "Нов бюлетин": three starting points, each a plain form, so it works
+            without script. A <details>, so the page stays quiet until asked. */}
+        <details
+          className="group mt-4 rounded-md border border-line bg-paper-raised"
+          open={campaigns.length === 0}
+        >
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex min-h-11 items-center rounded-sm bg-pine-900 px-5 py-2.5 text-sm font-semibold text-paper transition-colors group-hover:bg-pine-700">
+              Нов бюлетин
+            </span>
+            <span className="text-sm text-ink-500">Месечен, обява за промоция или празен</span>
+          </summary>
+          <div className="grid gap-3 border-t border-line p-4 lg:grid-cols-3">
+            <form
+              action={createNewsletterFromTemplate}
+              className="flex flex-col gap-2 rounded-md border border-line p-4"
+            >
+              <input type="hidden" name="template" value="monthly" />
+              <h3 className="font-semibold text-ink-900">Месечен</h3>
+              <p className="flex-1 text-sm text-ink-700">{monthlySummary}</p>
+              <button type="submit" className={START_BUTTON}>
+                Започни месечния
+              </button>
+            </form>
+
+            <form
+              action={createNewsletterFromTemplate}
+              className="flex flex-col gap-2 rounded-md border border-line p-4"
+            >
+              <input type="hidden" name="template" value="promotion" />
+              <h3 className="font-semibold text-ink-900">Обява за промоция</h3>
+              {choices.length === 0 ? (
+                <p className="flex-1 text-sm text-ink-500">
+                  Няма текуща или предстояща промоция. Създайте я в „Промоции“, после се върнете.
+                </p>
+              ) : (
+                <>
+                  <label htmlFor="promotionId" className="text-sm text-ink-700">
+                    Коя промоция
+                  </label>
+                  <select
+                    id="promotionId"
+                    name="promotionId"
+                    required
+                    defaultValue={choices[0]!.id}
+                    className="min-h-11 w-full rounded-sm border border-line-strong bg-paper-raised px-3 text-input text-ink-900"
+                  >
+                    {choices.map((choice) => (
+                      <option key={choice.id} value={choice.id}>
+                        {choiceLabel(choice, now)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="flex-1 text-xs text-ink-500">
+                    Писмото е с дните на промоцията и с продуктите, чиито значки показват цялото ѝ
+                    намаление. Може да се подготви отрано; изпраща се, когато промоцията тече.
+                    Промоциите влизат и в месечния бюлетин.
+                  </p>
+                  <button type="submit" className={START_BUTTON}>
+                    Започни обявата
+                  </button>
+                </>
+              )}
+            </form>
+
+            <form
+              action={createNewsletterFromTemplate}
+              className="flex flex-col gap-2 rounded-md border border-line p-4"
+            >
+              <input type="hidden" name="template" value="blank" />
+              <h3 className="font-semibold text-ink-900">Празен</h3>
+              <p className="flex-1 text-sm text-ink-700">Празна чернова, за писмо по друг повод.</p>
+              <button type="submit" className={START_BUTTON}>
+                Започни празен
+              </button>
+            </form>
+          </div>
+        </details>
 
         {campaigns.length === 0 ? (
           <p className="mt-4 rounded-md border border-dashed border-line-strong bg-paper-raised p-8 text-center text-ink-500">
-            Още няма бюлетини. „Нов бюлетин“ отваря празна чернова.
+            Още няма бюлетини.
           </p>
         ) : (
           <ul className="mt-4 flex flex-col gap-2">
@@ -184,6 +336,12 @@ export default async function AdminNewsletterPage({
                         >
                           {stale ? "Прекъснат" : CAMPAIGN_STATUS_LABEL[campaign.status]}
                         </span>
+                        {campaign.template && (
+                          <span className="ml-2 rounded-sm bg-paper-sunken px-1.5 py-0.5 align-middle text-xs font-semibold text-ink-700">
+                            {TEMPLATE_LABEL[campaign.template]}
+                            {campaign.autoPeriod ? " · автоматично" : ""}
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-ink-500 tabular-nums">{campaignLine(campaign)}</p>
                     </div>
@@ -309,10 +467,22 @@ export default async function AdminNewsletterPage({
         )}
       </section>
 
-      <details className="mt-10 rounded-md border border-line bg-paper-raised p-5">
+      <details
+        className="mt-10 rounded-md border border-line bg-paper-raised p-5"
+        open={misconfigured}
+      >
         <summary className="cursor-pointer font-display text-lg font-semibold text-ink-900">
-          Връзка с Resend
+          Технически настройки
+          {misconfigured && (
+            <span className="ml-2 rounded-sm bg-caution-100 px-1.5 py-0.5 align-middle font-sans text-xs font-semibold text-caution">
+              Нещо не е настроено
+            </span>
+          )}
         </summary>
+        <p className="mt-2 max-w-prose text-sm text-ink-500">
+          Връзката с Resend, който изпраща писмата и пази копие на списъка. Настройва се веднъж; ако
+          нещо липсва, е отбелязано.
+        </p>
         <ul className="mt-3 space-y-1.5 text-sm">
           {checks.map((check) => (
             <li key={check.name} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">

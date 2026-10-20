@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { insertBlockLine } from "@/components/admin/newsletter-edits";
@@ -7,12 +9,16 @@ import type { PickerProduct } from "@/lib/newsletter/picker";
 import { resolveIntent } from "@/lib/newsletter/schemas";
 
 /**
- * The composer's three buttons, in the browser: the action must learn which
- * one was pressed, or a press of "send" (or "test") is quietly read as
- * "save". With a modern browser the pressed button is in the form data; with
- * an older Safari it is not, and the hidden `intentChosen` field carries it.
- * Both paths are driven here, through the real component and the real
+ * The composer in the browser, through the real component and the real
  * `useSchemaForm`, to the action's `FormData`.
+ *
+ * Its three buttons: the action must learn which one was pressed, or a press
+ * of "send" (or "test") is quietly read as "save". With a modern browser the
+ * pressed button is in the form data; with an older Safari it is not, and the
+ * hidden `intentChosen` field carries it. Its blocks: products drawn as
+ * products, taken out and added, automatic blocks frozen into lists, blocks
+ * moved — and always the body string posted, which is all the action reads.
+ * Its test copy, to the address typed. And the notes before sending.
  */
 
 const actions = vi.hoisted(() => ({ submitNewsletter: vi.fn(async () => ({})) }));
@@ -126,7 +132,7 @@ describe("which button the action is told about", () => {
   });
 });
 
-describe("putting products in the text", () => {
+describe("putting products in the letter", () => {
   it("writes a block line where the cursor is, on a line of its own", () => {
     const text = "Здравейте,\nново кафе.";
     const at = "Здравейте,".length;
@@ -143,8 +149,28 @@ describe("putting products in the text", () => {
     expect(insertBlockLine("[[промоции]]")("а ТОВА б", 2, 6).text).toBe("а\n\n[[промоции]]\n\nб");
   });
 
-  it("puts the reductions in with one press", async () => {
+  it("opens on the blocks, and posts the body they make", async () => {
     draw({ body: "Здравейте,\n\nДо скоро." });
+    expect(screen.queryByRole("textbox", { name: "Текст" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Markdown" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Промоции" }));
+    });
+    // An automatic block, drawn as one; the preview has not answered for it yet.
+    expect(screen.getByRole("heading", { name: "Промоции · автоматично" })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("Здравейте,\n\nДо скоро.\n\n[[промоции]]");
+  });
+
+  it("puts the reductions in at the cursor in the Markdown view", async () => {
+    draw({ body: "Здравейте,\n\nДо скоро." });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Markdown" }));
+    });
     const field = bodyField();
     field.setSelectionRange("Здравейте,".length, "Здравейте,".length);
     await act(async () => {
@@ -155,9 +181,14 @@ describe("putting products in the text", () => {
       fireEvent.click(screen.getByRole("button", { name: "Нови продукти" }));
     });
     expect(field.value).toContain("[[нови-продукти]]");
+    // Back to the blocks: the body is read again, line for line.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Markdown" }));
+    });
+    expect(screen.getAllByRole("heading", { name: /автоматично$/ })).toHaveLength(2);
   });
 
-  it("finds products, takes the ones chosen in order, and writes them as one line", async () => {
+  it("finds products, adds the ones chosen as a block, and takes one out again", async () => {
     searchResults = [
       {
         slug: "lavazza-oro-1kg",
@@ -203,10 +234,93 @@ describe("putting products in the text", () => {
       );
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Вмъкни 2 продукта" }));
+      fireEvent.click(screen.getByRole("button", { name: "Добави 2 продукта" }));
     });
-    expect(bodyField().value).toBe("[[продукти: lavazza-rossa-1kg, lavazza-oro-1kg]]\n\n");
     expect(screen.queryByRole("searchbox", { name: "Търсене" })).toBeNull();
+    // Drawn as products at once, from what the search showed, in the order chosen.
+    const block = screen.getByRole("listitem", { name: "Избрани продукти" });
+    expect(
+      Array.from(block.querySelectorAll("[data-product]")).map((row) =>
+        row.getAttribute("data-product"),
+      ),
+    ).toEqual(["lavazza-rossa-1kg", "lavazza-oro-1kg"]);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Махни: Lavazza Qualità Rossa, Кафе на зърна, 1 кг" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("[[продукти: lavazza-oro-1kg]]");
+  });
+
+  it("shows what an automatic block would draw now, and freezes it into a list", async () => {
+    previewBlocks = [
+      {
+        token: "[[нови-продукти]]",
+        kind: "new",
+        products: [
+          { slug: "nov-1", title: "Kimbo Aroma", detail: "Кафе на зърна, 1 кг", price: "18,90 €" },
+          { slug: "nov-2", title: "Vergnano Gran Aroma", detail: null, price: "21,40 €" },
+        ],
+        missing: [],
+      },
+    ];
+    draw({ body: "Здравейте,\n\n[[нови-продукти]]" });
+    await screen.findByText("Kimbo Aroma", undefined, { timeout: 2000 });
+    // Read-only: nothing to take out of a block the catalog fills.
+    expect(screen.queryByRole("button", { name: /^Махни: Kimbo/ })).toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Замени с избраните" }));
+    });
+    expect(
+      screen.getByRole("button", { name: "Махни: Kimbo Aroma, Кафе на зърна, 1 кг" }),
+    ).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("Здравейте,\n\n[[продукти: nov-1, nov-2]]");
+  });
+
+  it("freezes the reductions into a list of reductions, still checked at the send", async () => {
+    previewBlocks = [
+      {
+        token: "[[промоции]]",
+        kind: "sale",
+        products: [
+          { slug: "minus-1", title: "Eurocaf", detail: null, price: "8,00 €", oldPrice: "10,00 €" },
+        ],
+        missing: [],
+      },
+    ];
+    draw({ body: "Здравейте,\n\n[[промоции]]" });
+    await screen.findByText("Eurocaf", undefined, { timeout: 2000 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Замени с избраните" }));
+    });
+    expect(screen.getByRole("heading", { name: "Промоции · избрани" })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("Здравейте,\n\n[[промоции: minus-1]]");
+  });
+
+  it("moves a block and takes one out, keeping the text apart", async () => {
+    draw({ body: "Първо.\n\n[[промоции]]\n\nПоследно." });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Промоции · автоматично: премести нагоре" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Промоции · автоматично: махни блока" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+    });
+    expect((await sent()).get("body")).toBe("Първо.\n\nПоследно.");
   });
 
   it("asks the search route, not an action, and drops the request for a term it has moved on from", async () => {
@@ -229,6 +343,77 @@ describe("putting products in the text", () => {
   });
 });
 
+describe("before the script runs", () => {
+  it("is a plain field the browser posts, and what was typed in it survives the swap to blocks", async () => {
+    const element = createElement(NewsletterComposer, {
+      campaign: { ...campaign, body: "Старо." },
+      activeCount: 3,
+      sender: "Buy a Coffee <info@buy-a-coffee.com>",
+      testRecipient: "owner@example.org",
+      canSend: true,
+      canUpload: false,
+    });
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(element);
+    document.body.appendChild(container);
+    const field = container.querySelector("textarea#body") as HTMLTextAreaElement;
+    expect(field.getAttribute("name")).toBe("body");
+    // The owner types before the script has run.
+    field.value = "Написано преди скрипта.\n\n[[промоции]]";
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, element, {
+          onRecoverableError: (error) => console.error("recoverable", error),
+        });
+      });
+      // Hydrated, not drawn again from scratch: no mismatch.
+      expect(errors.mock.calls.flat().join(" ")).not.toMatch(/hydrat|recoverable/i);
+      // The blocks took over, from what was typed rather than what was drawn.
+      expect(screen.getByRole("heading", { name: "Промоции · автоматично" })).toBeTruthy();
+      expect((screen.getByRole("textbox", { name: "Текст" }) as HTMLTextAreaElement).value).toBe(
+        "Написано преди скрипта.",
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Запази черновата" }));
+      });
+      expect((await sent()).get("body")).toBe("Написано преди скрипта.\n\n[[промоции]]");
+    } finally {
+      errors.mockRestore();
+      await act(async () => root?.unmount());
+      container.remove();
+    }
+  });
+});
+
+describe("a test copy", () => {
+  it("goes to the owner's address unless another is typed, and is refused for a bad one", async () => {
+    draw();
+    const address = screen.getByRole("textbox", { name: "Пробно писмо до" }) as HTMLInputElement;
+    expect(address.value).toBe("owner@example.org");
+    await act(async () => {
+      fireEvent.change(address, { target: { value: "не-е-адрес" } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати пробно" }));
+    });
+    expect(actions.submitNewsletter).not.toHaveBeenCalled();
+    expect(screen.getByText(/Това не е имейл адрес/)).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(address, { target: { value: "Colleague@Example.org" } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Изпрати пробно" }));
+    });
+    const data = await sent();
+    expect(resolveIntent(data)).toBe("test");
+    expect(data.get("testTo")).toBe("Colleague@Example.org");
+  });
+});
+
 describe("before sending", () => {
   it("says what may send the letter to spam, and says it again in the confirmation", async () => {
     draw({ body: "Голямо намаление!\n\n[[промоции]]", preheader: "" });
@@ -237,11 +422,17 @@ describe("before sending", () => {
     expect(panel.textContent).toContain("Малко текст");
     expect(panel.textContent).toContain("Няма въведение");
 
-    // The preview answers: the reductions block is empty.
-    await waitFor(() => expect(panel.textContent).toContain("Блокът [[промоции]] е празен"), {
-      timeout: 2000,
-    });
+    // The preview answers: the reductions block is empty — a warning, not a stop.
+    await waitFor(
+      () => expect(panel.textContent).toContain("Секцията „Промоции“ е празна и няма да се покаже"),
+      { timeout: 2000 },
+    );
     expect(panel.textContent).toContain("няма продукти с намалена цена");
+    expect(
+      Array.from(panel.querySelectorAll("li")).some((item) =>
+        item.textContent?.includes("Спира изпращането"),
+      ),
+    ).toBe(false);
 
     const confirmation = screen.getByText(/^Преди да изпратите:/);
     expect(confirmation.textContent).toContain("3 забележки");
@@ -256,16 +447,17 @@ describe("before sending", () => {
     previewBlocks = [{ token: "[[промоции]]", kind: "sale", products: [], missing: [] }];
     draw({ body: "Голямо намаление!\n\n[[промоции]]" });
     const panel = screen.getByRole("region", { name: "Преди изпращане" });
-    await waitFor(() => expect(panel.textContent).toContain("Блокът [[промоции]] е празен"), {
-      timeout: 2000,
-    });
+    await waitFor(() => expect(panel.textContent).toContain("е празна"), { timeout: 2000 });
 
     previewFails = true;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Markdown" }));
+    });
     await act(async () => {
       fireEvent.change(bodyField(), { target: { value: "Голямо намаление!\n\n[[промоции: 2]]" } });
     });
     await screen.findByText(/Прегледът не можа да се обнови/, undefined, { timeout: 2000 });
-    expect(panel.textContent).not.toContain("е празен");
+    expect(panel.textContent).not.toContain("е празна");
   });
 
   it("lists two identical block lines as two notes, without a key warning", async () => {
@@ -275,6 +467,48 @@ describe("before sending", () => {
     expect(panel.textContent?.match(/Блокът \[\[промоций\]\] не е разпознат/g)).toHaveLength(2);
     expect(warn.mock.calls.flat().join(" ")).not.toMatch(/same key/);
     warn.mockRestore();
+  });
+
+  it("says what stops the send first, and what only shortens the letter after it", async () => {
+    previewBlocks = [
+      {
+        token: "[[продукти: ima, nyama]]",
+        kind: "picked",
+        products: [{ slug: "ima", title: "Има", detail: null }],
+        missing: ["nyama"],
+      },
+      { token: "[[промоции]]", kind: "sale", products: [], missing: [] },
+    ];
+    draw({
+      preheader: "Три нови марки на зърна.",
+      body: `${"Здравейте! ".repeat(30)}\n\n[[продукти: ima, nyama]]\n\n[[промоции]]`,
+    });
+    const panel = screen.getByRole("region", { name: "Преди изпращане" });
+    await waitFor(() => expect(panel.textContent).toContain("Непознат продукт"), { timeout: 2000 });
+    const titles = Array.from(panel.querySelectorAll("li")).map((item) => item.textContent ?? "");
+    expect(titles[0]).toMatch(/^Спира изпращането.*Непознат продукт/);
+    expect(titles[1]).toContain("Секцията „Промоции“ е празна");
+    // The row in its block says the same.
+    expect(
+      screen.getByText("Няма продукт с този адрес — изпращането няма да започне."),
+    ).toBeTruthy();
+  });
+
+  it("warns when a letter went out less than a month ago", () => {
+    render(
+      createElement(NewsletterComposer, {
+        campaign,
+        activeCount: 3,
+        sender: "Buy a Coffee <info@buy-a-coffee.com>",
+        testRecipient: "owner@example.org",
+        canSend: true,
+        canUpload: false,
+        lastLetterAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+      }),
+    );
+    const panel = screen.getByRole("region", { name: "Преди изпращане" });
+    expect(panel.textContent).toContain("Последното писмо е изпратено преди 12 дни");
+    expect(panel.textContent).toContain("не повече от веднъж месечно");
   });
 
   it("says there is nothing to worry about when there is not", () => {

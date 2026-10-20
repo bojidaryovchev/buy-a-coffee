@@ -42,6 +42,9 @@ const now = sql`now()`;
  *   sent     every recipient has an answer and none of them is a failure
  *   partial  some went, and some failed or are still waiting for a resume
  *   failed   nothing went
+ *   dismissed  a draft the monthly job prepared (`auto_period`) and the owner
+ *            threw away: kept, emptied and out of every list, only so the job
+ *            does not prepare that month again
  */
 export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "draft",
@@ -49,6 +52,7 @@ export const NEWSLETTER_CAMPAIGN_STATUSES = [
   "sent",
   "partial",
   "failed",
+  "dismissed",
 ] as const;
 export type NewsletterCampaignStatus = (typeof NEWSLETTER_CAMPAIGN_STATUSES)[number];
 
@@ -129,8 +133,29 @@ export type NewsletterProductBlocks = {
   [field: string]: unknown;
 };
 
-/** What `newsletter_campaigns.attachments` holds: files, and once sending starts, the products. */
-export type NewsletterCampaignAttachment = NewsletterAttachment | NewsletterProductBlocks;
+/**
+ * What a draft was written from, kept beside its files like the snapshot: when
+ * the monthly letter's data was read, and which promotions its words name.
+ * The storefront's to define (`lib/newsletter/letter-plan.ts`).
+ */
+export type NewsletterLetterPlan = {
+  kind: "letter-plan";
+  [field: string]: unknown;
+};
+
+/**
+ * Why the last run of a send stopped, in a word the daily job can act on
+ * (`lib/newsletter/send.ts`): only a stop that a later run can get past is
+ * picked up without the owner.
+ */
+export type NewsletterRunStop = {
+  kind: "run-stop";
+  [field: string]: unknown;
+};
+
+/** What `newsletter_campaigns.attachments` holds: files, and the facts kept beside them. */
+export type NewsletterCampaignAttachment =
+  NewsletterAttachment | NewsletterProductBlocks | NewsletterLetterPlan | NewsletterRunStop;
 
 export const newsletterCampaigns = pgTable(
   "newsletter_campaigns",

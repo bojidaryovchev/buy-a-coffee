@@ -1,15 +1,28 @@
-import { parseMarkdown, type Inline } from "@/emails/markdown";
+import { parseMarkdown, type Inline, type ProductsBlock } from "@/emails/markdown";
+import { claimNotes, type PromotionFacts } from "./claims";
 import type { BlockReport } from "./product-blocks";
-import { MAX_LETTER_PRODUCTS, NEW_PRODUCTS_DAYS, planTokens, type ProductToken } from "./tokens";
+import { drawnBlocks } from "./sections";
+import { dayWords, daysBetween } from "./sofia";
+import {
+  MAX_LETTER_PRODUCTS,
+  NEW_PRODUCTS_DAYS,
+  planTokens,
+  type ProductBlockKind,
+  type ProductToken,
+} from "./tokens";
 
 /**
  * "Преди изпращане": what about a letter is likely to send it to "Спам", said
  * to the owner while they write it.
  *
- * Advice, with two exceptions that are about the letter arriving whole rather
- * than about spam: a letter over `LETTER_MAX_BYTES` and a product block that
- * would draw nothing under its heading both stop a send (`actions.ts`), and
- * the notes for them say so. Every other rule is one the filters at Gmail,
+ * Advice, with exceptions that are about the letter arriving whole rather
+ * than about spam: a letter over `LETTER_MAX_BYTES`, a product line that is
+ * not the letter the owner meant (`blockProblems` in `product-blocks.ts`) and
+ * a letter with nothing in it stop a send (`actions.ts`); those notes carry
+ * `blocksSend` and say so. What only shortens the letter — a section left
+ * empty, a picked product sold out since — is a warning, and so is a letter
+ * within a month of the last one: the signup promises one a month at most.
+ * Every other rule is one the filters at Gmail,
  * Outlook and abv.bg are known to weigh, worded as what to do and why. The
  * owner's own letters taught the first ones: a picture and one promotional
  * sentence went to spam, read by the filters as an advertisement with nothing
@@ -30,8 +43,15 @@ import { MAX_LETTER_PRODUCTS, NEW_PRODUCTS_DAYS, planTokens, type ProductToken }
  *   - no preheader, so the inbox shows whatever the body starts with;
  *   - more than about 15 links, a product block counting as one;
  *   - a letter over about 90 KB, which Gmail is close to cutting off;
- *   - a product block that shows nothing, names a product that is not on
- *     sale, cannot be read, or is past the letter's twelve products.
+ *   - a product block that cannot be read, names an address that is no
+ *     product's, or is past the letter's twelve products (each stops a
+ *     send); one that shows nothing, or leaves out a product sold out or
+ *     withdrawn since it was picked (warnings);
+ *   - a letter within a month of the last (a warning);
+ *   - what the letter says about the shop's promotions: a promotion's letter
+ *     before the promotion runs or after it ended, a product whose badge
+ *     cannot carry the announced percentage, a promotion named in words that
+ *     has ended (each stops a send; `claims.ts`).
  *
  * Pure: the composer runs it on every keystroke, and the send confirmation
  * shows the same list. What needs the server — the blocks' products, the
@@ -123,7 +143,15 @@ export type DeliverabilityNoteId =
   | "block-invalid"
   | "block-empty"
   | "block-missing"
-  | "block-adjusted";
+  | "block-sold-out"
+  | "block-gone"
+  | "block-adjusted"
+  | "letter-empty"
+  | "recent-letter"
+  | "block-not-reduced"
+  | "promotion-not-started"
+  | "promotion-ended"
+  | "promotion-claim";
 
 export interface DeliverabilityNote {
   readonly id: DeliverabilityNoteId;
@@ -131,7 +159,12 @@ export interface DeliverabilityNote {
   readonly title: string;
   /** Why it matters and what to do, in a sentence or two. */
   readonly detail: string;
+  /** The server will not start the send while this holds. Absent: advice, or a warning. */
+  readonly blocksSend?: true;
 }
+
+/** The signup promises a letter a month at most; within this, the composer says so. */
+export const LETTER_INTERVAL_DAYS = 30;
 
 export interface DeliverabilityInput {
   readonly subject: string;
@@ -147,6 +180,16 @@ export interface DeliverabilityInput {
   readonly htmlBytes?: number | null;
   /** Brand and line names from the catalog, which may be written in capitals. */
   readonly capitalised?: readonly string[];
+  /** When the last letter that went out started (`lastLetterStart`); null if none has. */
+  readonly lastLetterAt?: Date | string | null;
+  /** The promotion this letter announces, when it is a promotion's letter. */
+  readonly announced?: PromotionFacts | null;
+  /** A promotion's letter whose promotion was deleted before it started. */
+  readonly announcedMissing?: boolean;
+  /** The promotions the letter names in words (`LetterPlan.promotionIds`). */
+  readonly named?: readonly PromotionFacts[];
+  /** Now, for the dates above; the clock when absent. */
+  readonly now?: Date;
 }
 
 const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"]+/gi;
@@ -278,22 +321,51 @@ export function spamPhrasesIn(subject: string): string[] {
 const quoted = (items: readonly string[]) => items.map((item) => `„${item}“`).join(", ");
 
 const NOT_SENT = "Докато е в текста, изпращането не започва.";
+const HIDDEN =
+  "На нейно място в писмото няма да има нищо, а заглавие, под което няма друго, също се скрива. Писмото може да се изпрати и така.";
+
+/** How the composer names each kind of block. */
+export const BLOCK_KIND_NAMES: Readonly<Record<ProductBlockKind, string>> = {
+  picked: "Избрани продукти",
+  new: "Нови продукти",
+  sale: "Промоции",
+  reduced: "Промоции",
+};
 
 /** What a block that resolved to nothing asked for, in a reader's words. */
 function emptyBlockDetail(report: BlockReport): string {
   switch (report.kind) {
     case "picked":
-      return `Нито един от посочените продукти не е сред продаваните${
-        report.missing.length > 0 ? ` (${quoted(report.missing)})` : ""
-      }. Проверете адресите. ${NOT_SENT}`;
+      return `Нито един от избраните продукти не може да се поръча сега. ${HIDDEN}`;
     case "new":
-      return `Няма нови продукти от последните ${NEW_PRODUCTS_DAYS} дни, които могат да се поръчат. Заглавие без нищо под него изглежда като грешка. ${NOT_SENT}`;
+      return `Няма нови продукти от последните ${NEW_PRODUCTS_DAYS} дни, които могат да се поръчат. ${HIDDEN}`;
     case "sale":
-      return `В момента няма продукти с намалена цена, които могат да се поръчат. Заглавие без нищо под него изглежда като грешка. ${NOT_SENT}`;
+      return `В момента няма продукти с намалена цена, които могат да се поръчат. ${HIDDEN}`;
+    case "reduced":
+      return `Нито един от избраните намалени продукти не може да се поръча сега. Секцията им няма да се покаже, заедно с думите за промоцията над тях. Писмото може да се изпрати и така.`;
   }
 }
 
 const kilobytes = (bytes: number) => Math.round(bytes / 1000);
+
+/**
+ * Each block line with the report that answers for it: the n-th line the
+ * letter draws (`planTokens`) is the n-th report, and only if it is that
+ * line's — a report for a line since edited answers for nothing.
+ */
+export function reportsFor(
+  tokens: readonly ProductToken[],
+  reports: readonly BlockReport[] | null | undefined,
+): (BlockReport | null)[] {
+  const states = planTokens(tokens);
+  let drawn = 0;
+  return tokens.map((token, index) => {
+    if (states[index] !== "shown") return null;
+    const report = reports?.[drawn] ?? null;
+    drawn += 1;
+    return report && report.token === token.source ? report : null;
+  });
+}
 
 function blockNotes(
   tokens: readonly ProductToken[],
@@ -301,7 +373,7 @@ function blockNotes(
 ): DeliverabilityNote[] {
   const notes: DeliverabilityNote[] = [];
   const states = planTokens(tokens);
-  let drawn = 0;
+  const answers = reportsFor(tokens, reports);
   tokens.forEach((token, index) => {
     const state = states[index];
     if (state === "unreadable") {
@@ -309,6 +381,7 @@ function blockNotes(
         id: "block-unreadable",
         title: `Блокът ${token.source} не е разпознат`,
         detail: `${token.problem ?? ""} ${NOT_SENT}`.trim(),
+        blocksSend: true,
       });
       return;
     }
@@ -317,6 +390,7 @@ function blockNotes(
         id: "block-over-cap",
         title: `Блокът ${token.source} не се показва`,
         detail: `Едно писмо показва най-много ${MAX_LETTER_PRODUCTS} продукта, а блоковете над този вече ги изчерпват: с повече писмото става твърде дълго за Gmail. Махнете го или намалете броя в другите. ${NOT_SENT}`,
+        blocksSend: true,
       });
       return;
     }
@@ -334,27 +408,122 @@ function blockNotes(
         detail: `${quoted(token.invalid)} — ${
           token.invalid.length === 1 ? "това не е адрес" : "това не са адреси"
         } на продукт. Поправете или махнете. ${NOT_SENT}`,
+        blocksSend: true,
       });
     }
-    const report = reports?.[drawn];
-    drawn += 1;
-    if (!report || report.token !== token.source) return;
+    const report = answers[index];
+    if (!report) return;
+    if (report.missing.length > 0) {
+      notes.push({
+        id: "block-missing",
+        title: `Непознат продукт в ${token.source}`,
+        detail: `${quoted(report.missing)} не ${
+          report.missing.length === 1 ? "е адрес" : "са адреси"
+        } на продукт в магазина. Поправете адреса или го махнете. ${NOT_SENT}`,
+        blocksSend: true,
+      });
+    }
+    const soldOut = report.soldOut ?? [];
+    if (soldOut.length > 0) {
+      const one = soldOut.length === 1;
+      notes.push({
+        id: "block-sold-out",
+        title: one
+          ? "Изчерпан продукт ще бъде пропуснат"
+          : "Изчерпани продукти ще бъдат пропуснати",
+        detail: `${quoted(soldOut.map((product) => product.title))} — ${
+          one ? "изчерпан е и няма да се покаже" : "изчерпани са и няма да се покажат"
+        } в писмото. Махнете ${one ? "го" : "ги"} или изберете друг продукт.`,
+      });
+    }
+    const notReduced = report.notReduced ?? [];
+    if (notReduced.length > 0) {
+      const one = notReduced.length === 1;
+      notes.push({
+        id: "block-not-reduced",
+        title: one ? "Продукт, който вече не е намален" : "Продукти, които вече не са намалени",
+        detail: `${quoted(notReduced.map((product) => product.title))} — ${
+          one
+            ? "в писмото е сред намалените, а вече не е"
+            : "в писмото са сред намалените, а вече не са"
+        }. Махнете ${one ? "го" : "ги"} или изберете друг намален продукт. ${NOT_SENT}`,
+        blocksSend: true,
+      });
+    }
+    const gone = report.gone ?? [];
+    if (gone.length > 0) {
+      const one = gone.length === 1;
+      notes.push({
+        id: "block-gone",
+        title: one
+          ? "Продукт, който вече не се продава, ще бъде пропуснат"
+          : "Продукти, които вече не се продават, ще бъдат пропуснати",
+        detail: `${quoted(gone)} — ${
+          one
+            ? "вече не е в магазина и няма да се покаже"
+            : "вече не са в магазина и няма да се покажат"
+        }. Махнете ${one ? "го" : "ги"} или изберете друг продукт.`,
+      });
+    }
     if (report.products.length === 0) {
       notes.push({
         id: "block-empty",
-        title: `Блокът ${token.source} е празен`,
+        title: `Секцията „${BLOCK_KIND_NAMES[report.kind]}“ е празна и няма да се покаже`,
         detail: emptyBlockDetail(report),
-      });
-    } else if (report.missing.length > 0) {
-      notes.push({
-        id: "block-missing",
-        title: `Някои продукти в ${token.source} липсват`,
-        detail: `${quoted(report.missing)} не ${
-          report.missing.length === 1 ? "е" : "са"
-        } сред продаваните продукти. Поправете адреса или го махнете. ${NOT_SENT}`,
       });
     }
   });
+  return notes;
+}
+
+/**
+ * Would the letter draw nothing at all — no word, no product? Judged only once
+ * every block has its answer, or when there are no blocks to wait for.
+ */
+function drawsNothing(body: string, reports: readonly BlockReport[] | null | undefined): boolean {
+  if (!body.trim()) return false;
+  const parsed = parseMarkdown(body);
+  const lines = parsed.filter((block): block is ProductsBlock => block.type === "products");
+  if (lines.length > 0 && reports == null) return false;
+  const answers = reportsFor(
+    lines.map((line) => line.token),
+    reports,
+  );
+  const answerOf = new Map(lines.map((line, index) => [line, answers[index] ?? null]));
+  return (
+    drawnBlocks(parsed, (block) => (answerOf.get(block)?.products.length ?? 0) === 0).length === 0
+  );
+}
+
+const asDate = (value: Date | string) => (value instanceof Date ? value : new Date(value));
+
+function timingNotes(input: DeliverabilityInput): DeliverabilityNote[] {
+  const notes: DeliverabilityNote[] = [];
+  const now = input.now ?? new Date();
+  if (input.lastLetterAt) {
+    const last = asDate(input.lastLetterAt);
+    const days = daysBetween(last, now);
+    if (days >= 0 && days < LETTER_INTERVAL_DAYS) {
+      const after = new Date(last.getTime() + LETTER_INTERVAL_DAYS * 24 * 60 * 60 * 1000);
+      notes.push({
+        id: "recent-letter",
+        title:
+          days === 0
+            ? "Днес вече е изпратено писмо"
+            : `Последното писмо е изпратено преди ${days} ${days === 1 ? "ден" : "дни"}`,
+        detail: `Формата за абониране обещава писмо не повече от веднъж месечно, а честите писма карат хората да се отписват. Ако това може да почака, изпратете го след ${dayWords(after)}.`,
+      });
+    }
+  }
+  notes.push(
+    ...claimNotes({
+      announced: input.announced ?? null,
+      announcedMissing: input.announcedMissing ?? false,
+      named: input.named ?? [],
+      products: input.blocks ? input.blocks.flatMap((report) => report.products) : null,
+      now,
+    }),
+  );
   return notes;
 }
 
@@ -441,6 +610,7 @@ export function checkDeliverability(input: DeliverabilityInput): DeliverabilityN
   if (input.htmlBytes != null && input.htmlBytes > LETTER_WARN_BYTES) {
     const over = input.htmlBytes > LETTER_MAX_BYTES;
     notes.push({
+      ...(over ? { blocksSend: true as const } : {}),
       id: "too-large",
       title: over ? "Писмото е твърде голямо" : "Писмото е близо до границата на Gmail",
       detail: `Около ${kilobytes(input.htmlBytes)} KB. Gmail съкращава писмата над около 102 KB и скрива края им — заедно с връзката за отписване. ${
@@ -456,6 +626,17 @@ export function checkDeliverability(input: DeliverabilityInput): DeliverabilityN
     block.type === "products" ? [block.token] : [],
   );
   notes.push(...blockNotes(tokens, input.blocks));
+  if (drawsNothing(input.body, input.blocks)) {
+    notes.push({
+      id: "letter-empty",
+      title: "Писмото е празно",
+      detail: `В него няма нито текст, нито продукти за показване. Напишете какво е новото или добавете продукти. ${NOT_SENT}`,
+      blocksSend: true,
+    });
+  }
+
+  /* -- when it goes out -- */
+  notes.push(...timingNotes(input));
 
   return notes;
 }
