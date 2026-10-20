@@ -466,12 +466,16 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
       { slug: "illy-y3", name: "Y3.3 Iperespresso", system: "illy-iperespresso" },
       { slug: "illy-y5", name: "Y5 Iperespresso", system: "illy-iperespresso" },
       { slug: "illy-x1", name: "X1 Iperespresso", system: "illy-iperespresso" },
-      {
-        slug: "illy-x7-ese",
-        name: "X7.1 (версия за дози)",
-        system: "ese-pod",
-        note: "Вариантът с цедка за дози приема хартиени дози ESE 44 мм.",
-      },
+      /*
+       * illy's own X7.1 page: "designed specifically for our iperEspresso
+       * capsules",
+       * https://www.illy.com/en-us/coffee-machines/capsule-coffee-machines/x7-1-iperespresso-coffee-machine/coffee-machines-x71-iperespresso-us-P-1.html
+       * Until 20 October 2026 this entry was „X7.1 (версия за дози)“ under ESE pods,
+       * with no source: illy publishes no E.S.E. version of the X7.1, so an
+       * owner was told that pods fit a capsule machine. Its slug is new rather
+       * than reused, so the old anchor does not now say the opposite.
+       */
+      { slug: "illy-x7", name: "X7.1 Iperespresso", system: "illy-iperespresso" },
     ],
   },
   {

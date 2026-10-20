@@ -25,7 +25,7 @@ const TITLE = "Кафемашина за хартиени дози ESE: как �
 const META =
   "Дозата ESE е 44 мм и влиза в еспресо машина с цедка (филтър) за дози. Как да познаете такава кафемашина и как да изберете дозите по цена на чаша.";
 /** The machine-database brands with a model that takes ESE pods. */
-const POD_MACHINE_BRANDS = ["delonghi", "gaggia", "smeg", "illy"] as const;
+const POD_MACHINE_BRANDS = ["delonghi", "gaggia", "smeg"] as const;
 
 const decode = (text: string) =>
   text
