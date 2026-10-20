@@ -164,8 +164,10 @@ export interface WizardToggle {
  * moves on. Its note follows the same rule as an option's (see `OPTION_BODY`).
  */
 export function ToggleOptionList({ options }: { options: readonly WizardToggle[] }) {
+  // One per row: in two columns the longer labels broke onto a second line,
+  // and the rows stood at different heights.
   return (
-    <ul className="grid gap-3 sm:grid-cols-2">
+    <ul className="grid max-w-2xl gap-3">
       {options.map((option) => (
         <li key={option.href + option.label} className="@container">
           <Link

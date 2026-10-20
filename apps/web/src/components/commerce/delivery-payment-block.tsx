@@ -27,9 +27,10 @@ import { href, routes } from "@/lib/routes";
  * the delivery row says where one unit stands against the free-delivery
  * threshold, computed exactly.
  *
- * Specified in DESIGN.md, "Product page" → "Order panel". It is the panel's
- * second column from `sm` up and its first block on a phone, so the terms are
- * read before the number is typed and without scrolling past the form.
+ * Specified in DESIGN.md, "Product page" → "Order panel". On a product page it
+ * sits under the order controls, its rows two to a row where the panel is
+ * 42rem wide or more (`grid`); in the cart's column, one under another
+ * (`stack`).
  *
  * Every row is a term the business has set. A row with nothing set is left
  * out — "we will tell you on the phone" is not a term — and with no row at all
@@ -167,6 +168,7 @@ export function DeliveryPaymentBlock({
   price,
   commerce = siteConfig.commerce,
   basis = "unit",
+  layout = "stack",
   className,
 }: {
   locale: Locale;
@@ -174,6 +176,8 @@ export function DeliveryPaymentBlock({
   commerce?: CommerceConfig;
   /** `order` on the cart page, where `price` is the sum of the cart. */
   basis?: DeliveryBasis;
+  /** `grid`: rows two to a row where the block is 42rem wide or more. */
+  layout?: "stack" | "grid";
   /** Placement inside the order panel: which edge carries the divider. */
   className?: string;
 }) {
@@ -183,9 +187,17 @@ export function DeliveryPaymentBlock({
   return (
     <aside
       aria-label="Доставка и плащане"
-      className={["bg-paper-sunken p-4 sm:p-5", className].filter(Boolean).join(" ")}
+      className={["@container bg-paper-sunken p-5 sm:p-6", className].filter(Boolean).join(" ")}
     >
-      <dl className="space-y-3 text-sm">
+      <dl
+        className={
+          layout === "grid"
+            ? // Two to a row only where the panel is wide enough (a tablet's full
+              // width), so no row is squeezed into a narrow column of its own.
+              "grid gap-x-8 gap-y-5 text-sm leading-relaxed @2xl:grid-cols-2"
+            : "space-y-5 text-sm leading-relaxed"
+        }
+      >
         {rows.map((row) => (
           <div key={row.key}>
             <dt className="flex items-center gap-2 font-semibold text-ink-900">
@@ -193,11 +205,11 @@ export function DeliveryPaymentBlock({
               {row.term}
             </dt>
             {/* Indented by the icon and its gap, so values align under terms. */}
-            <dd className="mt-0.5 pl-6 text-ink-700">{row.lines.join(" ")}</dd>
+            <dd className="mt-1 pl-6 text-ink-700">{row.lines.join(" ")}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-sm">
+      <p className="mt-5 text-sm">
         <Link
           href={href(locale, routes.delivery)}
           className="inline-flex min-h-11 items-center text-pine-700 underline underline-offset-2 hover:no-underline lg:min-h-6"

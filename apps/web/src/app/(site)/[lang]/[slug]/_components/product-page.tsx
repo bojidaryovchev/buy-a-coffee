@@ -9,10 +9,7 @@ import {
 } from "@/components/ui/primitives";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { AddToCartPanel } from "@/components/cart/add-to-cart-panel";
-import {
-  DeliveryPaymentBlock,
-  deliveryPaymentRows,
-} from "@/components/commerce/delivery-payment-block";
+import { DeliveryPaymentBlock } from "@/components/commerce/delivery-payment-block";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGallery } from "@/components/catalog/product-gallery";
 import { FactsTable, factRows } from "@/components/catalog/facts-table";
@@ -149,7 +146,6 @@ export async function ProductPage({
   const reduced = product.discountPercent !== null && product.oldPrice !== null;
   const descriptionHtml = sanitizeHtml(product.descriptionHtml);
   const hasFacts = factRows(product, locale).length > 0;
-  const hasTerms = deliveryPaymentRows(product.price).length > 0;
 
   return (
     <div className="shell pb-16">
@@ -307,32 +303,18 @@ export async function ProductPage({
             </div>
           ) : (
             /*
-              One panel: the order form and the terms it is ordered on.
-
-              The terms come first in the source and are placed in the second
-              column from `sm`. On a phone that puts delivery cost and payment
-              above the phone field, where they are read before the number is
-              typed; a screen reader and a page without styles get the same
-              order. With no term configured the block renders nothing and the
-              form takes the full width.
-
-              The form component draws its own frame, which inside this panel
-              would be a card in a card. The wrapper takes that frame off so
-              the panel is the only edge, whichever way the form is styled.
+              One panel: the order controls, and under them the terms they are
+              ordered on, two to a row from `sm`. The terms once stood in a
+              13rem column beside the controls, where their sentences wrapped
+              into a tall strip and left the controls' side half empty. With no
+              term configured the block renders nothing.
             */
             <section
               id="order"
               aria-label="Поръчка"
-              className={`mt-6 scroll-mt-44 overflow-hidden rounded-md border border-line bg-paper-raised ${
-                hasTerms ? "sm:grid sm:grid-cols-[1fr_13rem]" : ""
-              }`}
+              className="mt-6 scroll-mt-44 overflow-hidden rounded-md border border-line bg-paper-raised"
             >
-              <DeliveryPaymentBlock
-                locale={locale}
-                price={product.price}
-                className="border-b border-line sm:col-start-2 sm:row-start-1 sm:border-b-0 sm:border-l"
-              />
-              <div className="min-w-0 p-4 sm:col-start-1 sm:row-start-1 sm:p-5">
+              <div className="min-w-0 p-5 sm:p-6">
                 {outOfStock ? (
                   /* No form for something that cannot be sent: a number left
                      here would be a promise the shop cannot keep today. */
@@ -371,6 +353,12 @@ export async function ProductPage({
                   </>
                 )}
               </div>
+              <DeliveryPaymentBlock
+                locale={locale}
+                price={product.price}
+                layout="grid"
+                className="border-t border-line"
+              />
             </section>
           )}
         </div>

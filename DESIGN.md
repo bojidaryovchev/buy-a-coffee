@@ -2184,22 +2184,26 @@ tabular-nums text-pine-700`: the price per cup ("0,35 € на чаша", or
 7. **Order panel,** `mt-6`, `id="order"` (below).
 
 **Order panel.** One `rounded-md border border-line bg-paper-raised` panel
-holding the order form and, beside it, the delivery-and-payment block.
+holding the order controls and, under them, the delivery-and-payment block.
 
-- From `sm` up: `grid grid-cols-[1fr_13rem]`; the form in the first column
-  (`p-5`), the block in the second (`border-l border-line bg-paper-sunken p-5`,
-  right corners rounded).
+- The controls on top (`p-5 sm:p-6`); the block underneath, across the panel
+  (`border-t border-line bg-paper-sunken p-5 sm:p-6`), its rows one under
+  another, two to a row only where the panel is 42rem wide or more. Beside the controls, in a 13rem column, those sentences once
+  wrapped into a tall strip and left the controls' side half empty.
 - _Order_ (`AddToCartPanel`): title "Поръчайте" (`font-display text-base
 font-semibold`); one sentence, `text-sm text-ink-500`; "Количество" and the
   quantity stepper (see "Cart"); the page's one `accent` button, size `lg`,
-  full width, a 20 px cart icon and "Добави в количката"; under it a `primary`
-  button, size `lg`, full width, "Поръчай", which puts the product in the cart
+  a 20 px cart icon and "Добави в количката", and a `primary` button, size
+  `lg`, "Поръчай" — side by side from `sm` (`grid sm:grid-cols-2 gap-3`), one
+  under the other on a phone — which puts the product in the cart
   unless it is there already and opens the cart's order form; under both a line
   that keeps its `min-h-6` whether or not it says "В количката: 2 бр." and links
   "Към количката". Without JavaScript the whole block is `noscript:hidden`
   (`@media (scripting: none)`): a cart in the browser cannot work then, and a
   sentence saying so, with the phone as a `PHONE_LINK`, is the panel.
-- _Delivery-and-payment block:_ a `dl`, `space-y-3 text-sm`. Rows, each with a
+- _Delivery-and-payment block:_ a `dl`, `text-sm leading-relaxed`: in the
+  order panel `grid gap-x-8 gap-y-5 @2xl:grid-cols-2` (`layout="grid"`, a
+  container query on the block), in the cart `space-y-5`. Rows, each with a
   16 px icon in `text-pine-700`, a `dt` in `font-semibold text-ink-900` and a
   `dd` in `text-ink-700`: **Доставка** (fee and free-delivery threshold),
   **Срок**, **Плащане**, **Връщане**. Values come from `siteConfig.commerce`; a
@@ -2300,7 +2304,8 @@ a pop-up is not.
 **Cart page** (`app/(site)/[lang]/kolichka/`, `routes.cart`, `noindex`, not in
 the sitemap). Breadcrumbs, the `h1` "Количка", then:
 
-- From `lg`, `grid lg:grid-cols-[1fr_22rem] lg:gap-10`: the lines on the
+- From `lg`, `grid lg:grid-cols-[1fr_26rem] xl:grid-cols-[1fr_28rem] lg:gap-10`
+  (at 22rem the order form's paired fields were cramped): the lines on the
   left, the sum and the form on the right (`lg:sticky lg:top-44`). On a phone
   the same order, stacked.
 - _Lines:_ one `rounded-md border border-line bg-paper-raised` list, rows
@@ -2384,8 +2389,8 @@ tabular-nums text-ink-500 whitespace-nowrap`, in sentence case — a count,
   label.
 - _Toggle_ (an optional requirement: „Без кофеин“, „Ароматизирано (ванилия,
   лешник и подобни)“): `ToggleOptionList`, a link back to the same step with
-  the requirement added or removed, `aria-pressed`, in a two-column grid from
-  `sm`. `flex min-h-12 items-center gap-3 rounded-md border px-4 py-3
+  the requirement added or removed, `aria-pressed`, one per row (`grid gap-3
+max-w-2xl`): in two columns the longer labels broke onto a second line. `flex min-h-12 items-center gap-3 rounded-md border px-4 py-3
 text-base`: an 18 px check box drawn as the filters draw theirs (checked
   `border-pine-900 bg-pine-900 text-paper` with the mark), the label in
   `text-ink-900` (`font-medium text-pine-900` when on), and its note — the

@@ -61,36 +61,15 @@ export function AddToCartPanel({
         <QuantityStepper value={quantity} onChange={setQuantity} label="Количество" />
       </div>
 
-      <Button
-        type="button"
-        variant="accent"
-        size="lg"
-        className="mt-3 w-full"
-        aria-describedby={statusId}
-        onClick={() => {
-          const { added } = cartStore.add({ productId, slug, name }, quantity);
-          if (added) {
-            analytics.track({
-              name: "add_to_cart",
-              productSlug: slug,
-              quantity,
-              source: "product_page",
-            });
-            setQuantity(1);
-          }
-        }}
-      >
-        <CartIcon className="h-5 w-5" />
-        Добави в количката
-      </Button>
-
-      <Button
-        type="button"
-        variant="primary"
-        size="lg"
-        className="mt-3 w-full"
-        onClick={() => {
-          if (inCart === 0) {
+      {/* Side by side from `sm`: the panel spans the column now. */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="accent"
+          size="lg"
+          className="w-full"
+          aria-describedby={statusId}
+          onClick={() => {
             const { added } = cartStore.add({ productId, slug, name }, quantity);
             if (added) {
               analytics.track({
@@ -99,13 +78,37 @@ export function AddToCartPanel({
                 quantity,
                 source: "product_page",
               });
+              setQuantity(1);
             }
-          }
-          router.push(href(locale, routes.cart));
-        }}
-      >
-        Поръчай
-      </Button>
+          }}
+        >
+          <CartIcon className="h-5 w-5" />
+          Добави в количката
+        </Button>
+
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          className="w-full"
+          onClick={() => {
+            if (inCart === 0) {
+              const { added } = cartStore.add({ productId, slug, name }, quantity);
+              if (added) {
+                analytics.track({
+                  name: "add_to_cart",
+                  productSlug: slug,
+                  quantity,
+                  source: "product_page",
+                });
+              }
+            }
+            router.push(href(locale, routes.cart));
+          }}
+        >
+          Поръчай
+        </Button>
+      </div>
 
       {/* Its height is kept whether or not the product is in the cart. */}
       <p id={statusId} className="mt-2 min-h-6 text-sm text-ink-700">
