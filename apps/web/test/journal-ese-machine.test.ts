@@ -351,6 +351,18 @@ describe("the ESE-machine guide: figures", () => {
       ]),
     );
     expect(cells).toHaveLength(3);
+    // The page is regenerated at most hourly and not on a promotion save: it says so.
+    const note = tables[0]!.type === "table" ? tables[0]!.note : undefined;
+    expect(note).toContain("до около час");
+    expect(note).not.toMatch(/при всяко/);
+  });
+
+  /* What the shop sells is the catalog's to say, not a sentence's: instant coffee is on sale too. */
+  it("states no list of the formats the shop sells", () => {
+    for (const [, figures] of VARIANTS) {
+      const said = text(figures);
+      expect(said).not.toMatch(/Мляно кафе в пакет|при нас има зърна/);
+    }
   });
 
   /* A small catalog reads as Bulgarian, not as a template with a one in it. */

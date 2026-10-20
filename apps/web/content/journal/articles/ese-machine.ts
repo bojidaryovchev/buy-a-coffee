@@ -141,6 +141,15 @@ function priceText(pods: PodFigures | null): Block[] {
   return sentences.length > 0 ? [p(sentences.join(" "))] : [];
 }
 
+/**
+ * How fresh the table is, said as it is: the article is regenerated at most
+ * hourly (`revalidate` in `blog/[slug]/page.tsx`), and a promotion does not
+ * regenerate it — the journal's pages are left to their own clock, because
+ * regenerating a `dynamicParams = false` route on demand caches a 404.
+ */
+const REFRESH_NOTE =
+  "Броят и цените се смятат от каталога и тук се опресняват до около час след промяна в него.";
+
 function strengthText(pods: PodFigures | null): Block[] {
   const steps = pods?.strengths ?? [];
   const [only] = steps;
@@ -165,8 +174,8 @@ function strengthText(pods: PodFigures | null): Block[] {
       ]),
       note:
         (pods?.byWeight ?? 0) > 0
-          ? "Броят и цените се смятат от каталога при всяко негово обновяване. Цените са само за кутиите с обявен брой дози."
-          : "Броят и цените се смятат от каталога при всяко негово обновяване.",
+          ? `${REFRESH_NOTE} Цените са само за кутиите с обявен брой дози.`
+          : REFRESH_NOTE,
     }),
   ];
 }
@@ -312,7 +321,6 @@ export const eseMachine: Article = {
                 ".",
               ]
             : []),
-          " Мляно кафе в пакет обаче не предлагаме — при нас има зърна, капсули и дози.",
         ],
         [
           strong("Цената и поддръжката. "),
