@@ -23,8 +23,8 @@ test.describe("the illy X7.1", () => {
     const pods = page.locator("main section", {
       has: page.getByRole("heading", { name: "Дози ESE", exact: true }),
     });
-    // Read, not awaited: today the page has no pods group at all.
-    expect((await pods.allInnerTexts()).join(" ")).not.toContain("X7");
+    // The group stands while illy has a pod machine (the Easy); it never names the X7.
+    if ((await pods.count()) > 0) await expect(pods).not.toContainText("X7");
     await expect(page.locator("main #illy-x7-ese")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("X7.1 (версия за дози)");
   });
