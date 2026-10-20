@@ -2,7 +2,8 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { sha256Hex, type Logger, silentLogger } from "@catalog/shared";
+import { type Logger, silentLogger } from "@catalog/shared";
+import { sha256Hex } from "@catalog/shared/hash";
 import { findWorkspaceRoot, resolveFromWorkspaceRoot } from "./paths.ts";
 import type { ScraperConfig } from "../config.ts";
 import type {

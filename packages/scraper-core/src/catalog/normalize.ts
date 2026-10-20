@@ -8,8 +8,8 @@ import {
   normalizeLabel,
   normalizeRichTextForHash,
   parseMoney,
-  semanticHash,
 } from "@catalog/shared";
+import { semanticHash } from "@catalog/shared/hash";
 import { z } from "zod";
 import { type ProductIdentity, normalizeSourceSlug, resolveProductIdentity } from "./identity.ts";
 
