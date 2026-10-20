@@ -86,11 +86,6 @@ export async function categoryMetadata(
   rawParams: RawSearchParams,
 ): Promise<Metadata> {
   const query = parseCatalogQuery(rawParams);
-  /* Past the last page there is nothing to describe: the 404 alone, with its one
-     `noindex`, not this page's `index, follow` beside it. Read only for page two
-     and later. */
-  if (query.page > 1 && isPastLastPage(await listProducts({ query, categorySlug: category.slug })))
-    notFound();
   const indexable = shouldIndexListing(query);
   const facts = await getListingFacts({ kind: "category", slug: category.slug });
   const metaFacts = {

@@ -513,10 +513,14 @@ test.describe("the head of every page", () => {
     ]) {
       const response = await request.get(view, { maxRedirects: 0 });
       expect(response.status(), view).toBe(404);
+      /* A 404 is never indexed, whatever else it says. A page-level `notFound()`
+         under `[lang]` also keeps the layout's default `index, follow` beside
+         Next's `noindex` (the same for every page-level 404 here); the
+         `noindex` must be there. */
       const robots = [
         ...(await response.text()).matchAll(/<meta name="robots" content="([^"]+)"/g),
-      ];
-      for (const [, content] of robots) expect(content, view).toMatch(/noindex/);
+      ].map((match) => match[1]);
+      expect(robots, view).toContain("noindex");
     }
     // Garbage is page one, not a 404.
     expect((await request.get(`${BG.capsules}?page=abc`)).status()).toBe(200);

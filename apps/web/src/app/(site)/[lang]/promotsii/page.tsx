@@ -49,11 +49,6 @@ interface PageProps {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
-  /* Past the last page there is nothing to describe: the 404 alone, with its one
-     `noindex`, not this page's `index, follow` beside it. Read only for page two
-     and later. */
-  if (query.page > 1 && isPastLastPage(await listProducts({ query, promotionsOnly: true })))
-    notFound();
   const facts = await getListingFacts({ kind: "promotions" });
   const hasPromotions = facts.productCount > 0;
   const description = hasPromotions
