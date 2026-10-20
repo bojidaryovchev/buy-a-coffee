@@ -283,6 +283,27 @@ suite("sync-health check (integration)", () => {
     expect(sent).toHaveLength(1);
   });
 
+  it("mails a row the sync would not move from a shared address (M2)", async () => {
+    await healthy();
+    await addRun(1, {
+      metadata: {
+        keyCollisions: [],
+        unresolvedMoves: [
+          {
+            matchedBy: "sku",
+            reason: "shared_address",
+            fingerprint: "sku 00417",
+            existingKeys: ["/moreno-super-bar-1/#1000g"],
+            discoveredKeys: ["/moreno-espresso-bar-1/#1000g"],
+          },
+        ],
+      },
+    });
+    const report = await run();
+    expect(report.conditions).toEqual([{ condition: "duplicate_key_conflict", outcome: "sent" }]);
+    expect(sent[0]?.summary).toContain("/moreno-super-bar-1/#1000g");
+  });
+
   it("does not mail again the next day what the source goes on listing (L6)", async () => {
     // Appeared 30 h ago, yesterday's check named it, and every run since has it.
     for (const h of [30, 25, 19, 13, 7, 1]) {

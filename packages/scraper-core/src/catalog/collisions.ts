@@ -105,6 +105,12 @@ export interface KeyCollision {
   readonly tiebreaker: KeyTiebreaker | null;
   readonly products: KeyCollisionProduct[];
   readonly dropped: KeyCollisionDropped[];
+  /**
+   * Products left out of this run: every key one of them could take belongs
+   * to a stored row it is not. Present only when there are any; always beside
+   * `unmatched`.
+   */
+  readonly held?: KeyCollisionProduct[];
   /** Why a person should look. Empty when the run settled it on its own. */
   readonly unresolved: KeyCollisionProblem[];
 }
@@ -396,6 +402,9 @@ export function settleKeyCollisions<
 
   const rekeyed = new Map<string, string>();
   const unmatched = new Set<string>();
+  /** Products left out of this run, and where. */
+  const held = new Set<NormalizedProduct>();
+  const heldAt = new Map<string, NormalizedProduct[]>();
   const recorded = new Set(discovery.keyCollisions.map((collision) => collision.sourceKey));
   const alone: KeyCollision[] = [];
 
@@ -407,30 +416,50 @@ export function settleKeyCollisions<
     const holder = stored.get(plainKey);
     const rows = holder ? [holder, ...history] : history;
     const pairs = pairAtAddress(listed, rows);
-    const keys = listed.map((product) => {
-      const row = pairs.get(product);
-      if (row) return row.sourceKey;
-      // Never a key a stored row holds: the diff would hand that row to this
-      // product, which is exactly what pairing just declined to do.
-      const options = keysFor(plainKey, product, split);
-      return options.find((key) => !stored.has(key)) ?? (options[0] as string);
-    });
 
-    if (new Set(keys).size !== keys.length) {
-      // Two products settling on one key: no reading of the evidence is safe.
-      // Left as discovery keyed them, and a person is told.
-      unmatched.add(plainKey);
-      logger.warn("catalog.duplicate_key_unsettled", { sourceKey: plainKey, keys });
-      continue;
+    /*
+     * A paired product takes its row's key. An unpaired one takes the first
+     * of its own keys that no stored row holds and no other product here has
+     * taken — never a stored row's key, for the diff would then hand that row
+     * to it, which is exactly what pairing just declined to do. With none
+     * left, the product sits this run out: nothing is created for it, no row
+     * is touched, and a person is told.
+     */
+    const assigned = new Set([...pairs.values()].map((row) => row.sourceKey));
+    const keys = new Map<NormalizedProduct, string>();
+    const heldHere: NormalizedProduct[] = [];
+    for (const product of listed) {
+      const row = pairs.get(product);
+      if (row) {
+        keys.set(product, row.sourceKey);
+        continue;
+      }
+      const key = keysFor(plainKey, product, split).find(
+        (candidate) => !stored.has(candidate) && !assigned.has(candidate),
+      );
+      if (key === undefined) {
+        heldHere.push(product);
+        continue;
+      }
+      keys.set(product, key);
+      assigned.add(key);
     }
-    listed.forEach((product, index) => {
-      const key = keys[index] as string;
+    for (const [product, key] of keys) {
       if (key !== product.sourceKey) rekeyed.set(product.sourceKey, key);
-    });
+    }
+    if (heldHere.length > 0) {
+      for (const product of heldHere) held.add(product);
+      heldAt.set(plainKey, heldHere);
+      unmatched.add(plainKey);
+      logger.warn("catalog.duplicate_key_held", {
+        sourceKey: plainKey,
+        held: heldHere.map((product) => product.name),
+      });
+    }
 
     const paired = new Set(pairs.values());
     const vanished = rows.filter((row) => row.status !== "removed" && !paired.has(row));
-    const arrived = keys.filter((key) => !stored.has(key));
+    const arrived = [...keys.values()].filter((key) => !stored.has(key));
     if (vanished.length > 0 && arrived.length > 0) {
       unmatched.add(plainKey);
       logger.warn("catalog.duplicate_key_unmatched", {
@@ -441,35 +470,43 @@ export function settleKeyCollisions<
     }
 
     const only = listed[0] as NormalizedProduct;
-    if (!split && !recorded.has(plainKey) && keys[0] !== plainKey) {
-      const settledAs = { ...summarise(only), sourceKey: keys[0] as string };
+    const onlyKey = keys.get(only);
+    if (!split && !recorded.has(plainKey) && onlyKey !== plainKey) {
       alone.push({
         sourceKey: plainKey,
-        tiebreaker: parseSplitSourceKey(settledAs.sourceKey)?.tiebreaker ?? null,
-        products: [settledAs],
+        tiebreaker: onlyKey ? (parseSplitSourceKey(onlyKey)?.tiebreaker ?? null) : null,
+        products: onlyKey ? [{ ...summarise(only), sourceKey: onlyKey }] : [],
         dropped: [],
         unresolved: [],
       });
-      logger.info("catalog.split_key_kept", { sourceKey: plainKey, keptKey: settledAs.sourceKey });
+      if (onlyKey) logger.info("catalog.split_key_kept", { sourceKey: plainKey, keptKey: onlyKey });
     }
   }
 
   if (rekeyed.size === 0 && unmatched.size === 0 && alone.length === 0) return discovery;
 
   const settledKey = (key: string): string => rekeyed.get(key) ?? key;
+  const heldKeys = new Set([...held].map((product) => product.sourceKey));
   return {
     ...discovery,
-    products: discovery.products.map((product) =>
-      rekeyed.has(product.sourceKey)
-        ? { ...product, sourceKey: settledKey(product.sourceKey) }
-        : product,
-    ),
+    products: discovery.products
+      .filter((product) => !held.has(product))
+      .map((product) =>
+        rekeyed.has(product.sourceKey)
+          ? { ...product, sourceKey: settledKey(product.sourceKey) }
+          : product,
+      ),
     keyCollisions: [...discovery.keyCollisions, ...alone].map((collision) => ({
       ...collision,
-      products: collision.products.map((product) => ({
-        ...product,
-        sourceKey: settledKey(product.sourceKey),
-      })),
+      products: collision.products
+        .filter((product) => !heldKeys.has(product.sourceKey))
+        .map((product) => ({
+          ...product,
+          sourceKey: settledKey(product.sourceKey),
+        })),
+      ...(heldAt.has(collision.sourceKey)
+        ? { held: (heldAt.get(collision.sourceKey) ?? []).map(summarise) }
+        : {}),
       dropped: collision.dropped.map((record) => ({
         ...record,
         keptAs: settledKey(record.keptAs),

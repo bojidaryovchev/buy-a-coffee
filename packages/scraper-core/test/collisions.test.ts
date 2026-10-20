@@ -671,6 +671,39 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       expect(keyed.keyCollisions[0]?.unresolved).toEqual(["unmatched"]);
     });
 
+    it("M2: the Espresso Bar moved away and renamed, holding its code — not silent", () => {
+      const rows = split().map((row) => (row.sourceKey === PLAIN ? { ...row, sku: "00417" } : row));
+      const classic = espressoBar({
+        path: "/moreno-espresso-bar-1/",
+        url: `${BASE}/moreno-espresso-bar-1/`,
+        name: "Кафе на зърна Moreno Espresso Bar Classic 1кг.",
+        sku: "00417",
+      });
+      const { keyed, diff } = sync([classic, superBar()], rows);
+
+      // The code alone does not move the row from a shared address.
+      expect(diff.moved).toEqual([]);
+      expect(changeFor(diff, ESPRESSO_ROW)).toMatchObject({
+        changeType: "marked_missing",
+        after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+      });
+      expect(diff.created.map((change) => change.sourceKey)).toEqual([
+        "/moreno-espresso-bar-1/#1000g",
+      ]);
+      expect(changeFor(diff, SUPER_ROW)?.changeType).toBe("unchanged");
+      // Settling saw nothing new at the old address; the diff says why the row went.
+      expect(keyed.keyCollisions.every((collision) => collision.unresolved.length === 0)).toBe(
+        true,
+      );
+      expect(diff.unresolvedMoves).toEqual([
+        expect.objectContaining({
+          reason: "shared_address",
+          existingKeys: [PLAIN],
+          discoveredKeys: ["/moreno-espresso-bar-1/#1000g"],
+        }),
+      ]);
+    });
+
     it("S6: one name in two scripts cannot tell two products apart — the first is kept, and raised", () => {
       const { keyed, diff } = sync(
         [
@@ -684,6 +717,51 @@ describe("settleKeyCollisions: the stored catalog decides who keeps the plain ke
       // As before the fix for exactly this case, and alarmed twice over: the
       // rename is named by `identity_changed` as well.
       expect(changeFor(diff, ESPRESSO_ROW)?.changeType).toBe("updated");
+    });
+  });
+});
+
+describe("a product whose every key belongs to another stored row (L1)", () => {
+  // The Super Bar's row holds a code of its own; the Espresso Bar's row is
+  // under a code key. The listing then gives the Super Bar the Espresso Bar's code.
+  const superRow = stored(superBar(), { id: "row:super", sourceKey: SUPER_KEY, sku: "00111" });
+  const espressoRow = stored(espressoBar(), {
+    id: "row:espresso",
+    sourceKey: `${PLAIN}~code:00417`,
+    sku: "00417",
+  });
+  const rows = [superRow, espressoRow];
+
+  it("is held out of the run rather than given a stored row's key", () => {
+    const { keyed, diff } = sync([superBar({ sku: "00417" })], rows);
+
+    // Not listed this run: nothing is created for it, and it takes no row.
+    expect(keyed.products).toEqual([]);
+    expect([...diff.created, ...diff.updated, ...diff.moved, ...diff.restored]).toEqual([]);
+    // Both rows keep what they are, and go missing as products no longer listed.
+    expect(changeFor(diff, "row:espresso")).toMatchObject({
+      changeType: "marked_missing",
+      after: { name: "Кафе на зърна Moreno Espresso Bar 1кг.", currentPrice: "20.00" },
+    });
+    expect(changeFor(diff, "row:super")?.changeType).toBe("marked_missing");
+    // And a person is told, with the held product named.
+    expect(keyed.keyCollisions).toEqual([
+      expect.objectContaining({
+        sourceKey: PLAIN,
+        products: [],
+        held: [{ sourceKey: PLAIN, name: "Кафе на зърна Moreno Super Bar 1кг.", price: "25.00" }],
+        unresolved: ["unmatched"],
+      }),
+    ]);
+  });
+
+  it("holds only that product when another at the address can still be placed", () => {
+    const { keyed, diff } = sync([superBar({ sku: "00417" }), espressoBar({ sku: "00222" })], rows);
+    expect(keysOf(keyed.products)).toEqual([`${PLAIN}~code:00222`]);
+    expect(diff.updated).toEqual([]);
+    expect(keyed.keyCollisions[0]).toMatchObject({
+      held: [{ name: "Кафе на зърна Moreno Super Bar 1кг." }],
+      unresolved: ["unmatched"],
     });
   });
 });

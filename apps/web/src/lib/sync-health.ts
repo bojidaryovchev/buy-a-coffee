@@ -14,8 +14,9 @@
  * A run is judged by its own record. `sync_runs` rows carry more columns than
  * are read here; unknown columns are ignored on purpose, so the sync can grow
  * without this breaking. `sync_changes` is read for one thing only, a
- * product the sync renamed (`evaluateIdentityChanges`). Of `metadata`, two
- * keys are read: `kind`, and `keyCollisions` (`duplicate_key_conflict`).
+ * product the sync renamed (`evaluateIdentityChanges`). Of `metadata`, three
+ * keys are read: `kind`, and `keyCollisions` and `unresolvedMoves`
+ * (`duplicate_key_conflict`).
  */
 
 export const SYNC_CONDITIONS = [
@@ -144,15 +145,21 @@ const COLLISION_REASON: Readonly<Record<string, string>> = {
   indistinguishable:
     "записи с едно име и код, но различно съдържание; показан е първият, а поправка може да направи само източникът",
   unmatched: "наш продукт вече не е сред изброените там, а се появи нов: преименуван или подменен",
+  shared_address:
+    "продукт от споделен адрес изчезна, а кодът му се появи на друг адрес под друго име: преместен и преименуван, или друг продукт",
 };
+
+/** What to do when a stored product vanished beside a new one that may be it. */
+const LINK_ADVICE =
+  "Ако изчезналият и новият продукт са един и същ, свържете ги: " +
+  "pnpm catalog:link <стария slug> <новия ключ> --absorb-twin --apply " +
+  "(новият ред се изтрива, а старият поема новия ключ и запазва адреса си). " +
+  "Ако са различни продукти, нищо не правете: старият се премахва сам след три синхронизации.";
 
 /** What a person can do about each reason. */
 const COLLISION_ADVICE: Readonly<Record<string, string>> = {
-  unmatched:
-    "Ако изчезналият и новият продукт са един и същ, свържете ги: " +
-    "pnpm catalog:link <стария slug> <новия ключ> --absorb-twin --apply " +
-    "(новият ред се изтрива, а старият поема новия ключ и запазва адреса си). " +
-    "Ако са различни продукти, нищо не правете: старият се премахва сам след три синхронизации.",
+  unmatched: LINK_ADVICE,
+  shared_address: LINK_ADVICE,
   indistinguishable:
     "За неразличимите записи няма какво да се свързва: само източникът може да ги раздели.",
 };
@@ -166,17 +173,36 @@ const COLLISION_ADVICE: Readonly<Record<string, string>> = {
  * address, and an alarm every day about that would teach people to ignore
  * this one. Read defensively: the column is `jsonb`, and a run written before
  * the sync recorded collisions has none.
+ *
+ * One kind of unresolved move belongs here too (`metadata.unresolvedMoves`,
+ * reason `shared_address`): a row at a shared address that the sync would not
+ * move on its product code alone, because the record with that code bears
+ * another name. It went missing, and the record was created; it is named under
+ * the row's own key, as an `unmatched` collision is under its address.
  */
 export function unresolvedKeyCollisions(run: SyncRunSnapshot): KeyCollisionNote[] {
   const recorded = run.metadata?.keyCollisions;
-  if (!Array.isArray(recorded)) return [];
-  return recorded.flatMap((entry: unknown) => {
-    if (entry === null || typeof entry !== "object") return [];
-    const { sourceKey, unresolved } = entry as Record<string, unknown>;
-    if (typeof sourceKey !== "string" || !Array.isArray(unresolved)) return [];
-    const reasons = unresolved.filter((reason): reason is string => typeof reason === "string");
-    return reasons.length > 0 ? [{ sourceKey, unresolved: reasons }] : [];
-  });
+  const fromCollisions = Array.isArray(recorded)
+    ? recorded.flatMap((entry: unknown) => {
+        if (entry === null || typeof entry !== "object") return [];
+        const { sourceKey, unresolved } = entry as Record<string, unknown>;
+        if (typeof sourceKey !== "string" || !Array.isArray(unresolved)) return [];
+        const reasons = unresolved.filter((reason): reason is string => typeof reason === "string");
+        return reasons.length > 0 ? [{ sourceKey, unresolved: reasons }] : [];
+      })
+    : [];
+  const moves = run.metadata?.unresolvedMoves;
+  const fromMoves = Array.isArray(moves)
+    ? moves.flatMap((entry: unknown) => {
+        if (entry === null || typeof entry !== "object") return [];
+        const { reason, existingKeys } = entry as Record<string, unknown>;
+        if (reason !== "shared_address" || !Array.isArray(existingKeys)) return [];
+        return existingKeys
+          .filter((key): key is string => typeof key === "string")
+          .map((sourceKey) => ({ sourceKey, unresolved: ["shared_address"] }));
+      })
+    : [];
+  return [...fromCollisions, ...fromMoves];
 }
 
 /**
@@ -336,9 +362,14 @@ export function evaluateSyncHealth(
       .join("; ");
     const rest = collisions.length - COLLISIONS_NAMED;
     const reasons = new Set(collisions.flatMap((collision) => collision.unresolved));
-    const advice = Object.entries(COLLISION_ADVICE)
-      .filter(([reason]) => reasons.has(reason))
-      .map(([, text]) => ` ${text}`)
+    const advice = [
+      ...new Set(
+        Object.entries(COLLISION_ADVICE)
+          .filter(([reason]) => reasons.has(reason))
+          .map(([, text]) => text),
+      ),
+    ]
+      .map((text) => ` ${text}`)
       .join("");
     add(
       "duplicate_key_conflict",
