@@ -40,6 +40,7 @@ import {
 } from "@/lib/routes";
 import { consumablesCopy, vendingCopy } from "../../../../../../content/vending";
 import { robotsFor } from "@/lib/seo/robots";
+import { isIndexable, isOrderable } from "@/lib/catalog/product-status";
 
 /**
  * A product page, at `/<locale>/<product slug>`.
@@ -70,8 +71,10 @@ export function productMetadata(locale: Locale, product: ProductDetailView): Met
        */
       image: "generated",
     }),
-    // A product we no longer sell should not keep attracting search traffic.
-    robots: robotsFor(product.status === "active"),
+    /* A product we no longer sell should not keep attracting search traffic;
+       one the last sync could not find (`missing`) is usually back on the
+       next, and keeps its place (`lib/catalog/product-status.ts`). */
+    robots: robotsFor(isIndexable(product.status)),
   };
 }
 
@@ -86,12 +89,14 @@ export async function ProductPage({
   product: ProductDetailView;
 }) {
   /*
-   * A removed product keeps its URL and renders an explicit unavailable state
+   * A product that is not on sale keeps its URL and renders an explicit unavailable state
    * rather than 404ing. The URL may already be indexed or bookmarked, and a
    * dead end serves nobody: this page still tells the customer what it was and
    * offers them somewhere to go.
    */
-  const unavailable = product.status !== "active";
+  const unavailable = !isOrderable(product.status);
+  // Not found by the last sync, not yet given up on: said as temporary.
+  const temporarilyUnavailable = unavailable && product.status === "missing";
   const outOfStock = product.availability === "out_of_stock";
   const related = await getRelatedProducts(product, 4);
 
@@ -284,11 +289,14 @@ export async function ProductPage({
               className="mt-6 scroll-mt-44 rounded-md border border-line bg-caution-100 p-4 md:p-5"
             >
               <h2 className="font-display text-lg font-semibold text-caution md:text-xl">
-                Този продукт вече не се предлага
+                {temporarilyUnavailable
+                  ? "Временно недостъпен"
+                  : "Този продукт вече не се предлага"}
               </h2>
               <p className="mt-1 text-sm text-ink-700">
-                Спряхме да го предлагаме. Обадете ни се и ще ви насочим към най-близкото, което
-                имаме.
+                {temporarilyUnavailable
+                  ? "В момента не можем да потвърдим наличността и цената му. Обадете ни се и ще проверим, или вижте подобните кафета."
+                  : "Спряхме да го предлагаме. Обадете ни се и ще ви насочим към най-близкото, което имаме."}
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <ButtonLink

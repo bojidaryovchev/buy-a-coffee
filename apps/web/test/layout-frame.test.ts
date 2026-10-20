@@ -47,6 +47,7 @@ vi.mock("@/lib/catalog/sitemap-queries", () => ({
       categoryKeys: [],
       reduced: false,
       images: [],
+      listed: true,
       ...product,
     })),
 }));

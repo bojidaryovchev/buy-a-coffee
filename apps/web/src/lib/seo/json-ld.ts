@@ -341,11 +341,11 @@ export function productWeight(pack: ProductDetailView["pack"]): Record<string, u
  * What the offer says about availability.
  *
  * An active product says what the record says. One that is not active is not
- * on sale, and its page says so ("Този продукт вече не се предлага"), so its
- * structured data must not say `InStock` behind it: a product the sync has
- * lost track of for now (`missing`) is `OutOfStock`; one taken off the
- * catalog (`removed`) is `Discontinued`. Both pages are `noindex`; this is
- * for every other reader of the markup.
+ * on sale, and its page says so, so its structured data must not say
+ * `InStock` behind it: a product the sync has lost track of for now
+ * (`missing`, "Временно недостъпен") is `OutOfStock` on a page that stays
+ * indexed; one taken off the catalog (`removed`) is `Discontinued` on a
+ * `noindex` page (`lib/catalog/product-status.ts`).
  */
 export function offerAvailability(
   product: Pick<ProductDetailView, "status" | "availability">,
