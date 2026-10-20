@@ -55,6 +55,8 @@ function row(overrides: Partial<BeansSectionRow> = {}): BeansSectionRow {
     availability: "in_stock",
     attributes: {},
     categoryKeys: BEANS,
+    slugs: [`product-${sequence}`],
+    descriptions: [],
     italianBrand: false,
     brandName: `Brand ${sequence}`,
     ...overrides,
