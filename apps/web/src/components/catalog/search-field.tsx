@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { MAX_QUERY_LENGTH } from "@/lib/catalog/filters";
+// Not `filters.ts`, which carries zod into every page's header (`filter-query.ts`).
+import { MAX_QUERY_LENGTH } from "@/lib/catalog/filter-query";
 import { BrandLogo, legibleBrandLogo } from "@/components/catalog/brand-logo";
 import { ImagePlaceholder } from "@/components/catalog/image-placeholder";
 import { ProductImage } from "@/components/catalog/product-image";

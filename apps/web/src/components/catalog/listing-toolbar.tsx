@@ -2,12 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  SORT_OPTIONS,
-  buildSearchParams,
-  countActiveFilters,
-  type CatalogQuery,
-} from "@/lib/catalog/filters";
+// Not `filters.ts`, which carries zod into the browser (`filter-query.ts`).
+import type { CatalogQuery } from "@/lib/catalog/filters";
+import { SORT_OPTIONS, buildSearchParams, countActiveFilters } from "@/lib/catalog/filter-query";
 import type { CatalogFacets } from "@/lib/catalog/types";
 import { FilterPanel } from "@/components/catalog/filter-panel";
 import { buttonClasses } from "@/components/ui/primitives";

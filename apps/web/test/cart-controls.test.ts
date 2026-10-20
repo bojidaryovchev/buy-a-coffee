@@ -19,8 +19,8 @@ vi.mock("@/lib/forms/actions", () => actions);
 
 /** The page the test is "on", for the notice, which belongs to one page. */
 const route = vi.hoisted(() => ({ pathname: "/bg/kafe-kapsuli" }));
-/** Where „Поръчай“ sends the browser. */
-const router = vi.hoisted(() => ({ push: vi.fn() }));
+/** Where „Поръчай“ sends the browser, and what the header's cart fetches ahead. */
+const router = vi.hoisted(() => ({ push: vi.fn(), prefetch: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "bg" }),
   usePathname: () => route.pathname,
@@ -56,6 +56,7 @@ beforeEach(() => {
   window.localStorage.clear();
   actions.submitCartOrder.mockReset();
   router.push.mockReset();
+  router.prefetch.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -160,6 +161,20 @@ describe("the header's cart", () => {
       "/bg/kolichka",
     );
     expect(screen.getByText("3").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  /* Not for being on the screen, which it is on every page from the first
+     paint: the cart page's order form brings react-hook-form and zod, and a
+     page still loading must not fetch them (`e2e/newsletter.spec.ts`). */
+  it("fetches the cart page ahead on intent: a pointer, a finger, focus", () => {
+    render(link());
+    expect(router.prefetch).not.toHaveBeenCalled();
+    const anchor = screen.getByRole("link");
+    for (const intend of [fireEvent.pointerEnter, fireEvent.touchStart, fireEvent.focus]) {
+      router.prefetch.mockClear();
+      intend(anchor);
+      expect(router.prefetch).toHaveBeenCalledExactlyOnceWith("/bg/kolichka");
+    }
   });
 });
 

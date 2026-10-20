@@ -554,8 +554,13 @@ describe("pressing the button", () => {
 
   it("refuses an empty newsletter address under the field", async () => {
     render(createElement(NewsletterForm, { source: "footer" }));
-    await press("Абонирай ме");
     const field = screen.getByLabelText("Имейл адрес");
+    /* The check is fetched when the form is first touched (or nears the
+       screen) and then takes the form over; `newsletter-form.test.ts` covers
+       the plain form before that. */
+    fireEvent.focusIn(field);
+    await waitFor(() => expect(field.closest("form")?.hasAttribute("data-enhanced")).toBe(true));
+    await press("Абонирай ме");
     expect(describedMessage(field)).toBe(EMAIL_MESSAGES.missing);
     expect(document.activeElement).toBe(field);
     expect(actions.subscribeToNewsletter).not.toHaveBeenCalled();
