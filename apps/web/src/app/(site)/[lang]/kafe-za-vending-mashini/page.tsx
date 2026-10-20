@@ -8,6 +8,7 @@ import {
   getSectionContents,
   getSectionListing,
   listVendingBlends,
+  sectionListsProducts,
 } from "@/lib/catalog/vending";
 import { localeFrom, type LangParams } from "@/i18n/params";
 import { pageAlternates } from "@/lib/seo/alternates";
@@ -92,9 +93,10 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 export default async function VendingPage({ params, searchParams }: PageProps) {
   const locale = await localeFrom(params);
   const query = parseCatalogQuery(await searchParams);
-  const [listing, blends] = await Promise.all([
+  const [listing, blends, consumablesListed] = await Promise.all([
     getSectionListing(section.id, query),
     listVendingBlends(),
+    sectionListsProducts("consumables"),
   ]);
   // `?page=99` of a two-page listing names nothing: a 404, not an empty page.
   if (listing && isPastLastPage(listing.result)) notFound();
@@ -107,6 +109,7 @@ export default async function VendingPage({ params, searchParams }: PageProps) {
       query={query}
       listing={listing}
       blends={blends}
+      relatedListed={consumablesListed}
     />
   );
 }

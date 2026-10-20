@@ -477,10 +477,14 @@ test.describe("the head of every page", () => {
   test("page two of a listing is index, follow, names itself and says which page it is", async ({
     page,
   }) => {
-    for (const listing of [BG.capsules, BG.brand("lavazza")]) {
+    /* Listings long enough for a page two in the reference catalog. A page past
+       the last is a 404 now, so the listing must really have one: page one
+       links it. */
+    for (const listing of [BG.capsules, BG.brand("lollo-caffe")]) {
       await page.goto(listing);
       const firstTitle = await page.title();
       const view = `${listing}?page=2`;
+      await expect(page.locator(`main a[href="${view}"]`).first(), listing).toBeAttached();
       await page.goto(view);
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
       const canonical = new URL((await canonicalOf(page))!);
