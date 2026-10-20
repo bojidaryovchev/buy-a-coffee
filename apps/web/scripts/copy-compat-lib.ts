@@ -113,3 +113,16 @@ export function describeFinding(finding: CompatFinding): string {
   }
   return lines.join("\n");
 }
+
+/**
+ * An error as this report may print it: its name and code, never its message.
+ * A malformed `DATABASE_URL` makes the URL parser throw a TypeError whose
+ * message (and `input`) is the whole address, password included.
+ */
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return typeof error;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" || typeof code === "number"
+    ? `${error.name} ${code}`
+    : error.name;
+}

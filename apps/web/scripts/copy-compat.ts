@@ -25,7 +25,7 @@
  *
  * Read-only by construction: one `read only` transaction holding one SELECT,
  * so even a mistaken edit to this file cannot write. It never prints the
- * database address. Exits 0 whenever it could read what it was asked to — a
+ * database address, nor an error's message, which can carry it. Exits 0 whenever it could read what it was asked to — a
  * finding is a to-do for the owner („Поискай нов текст“ in the admin for
  * machine copy, the copy file for hand copy), not a failed command.
  *
@@ -39,6 +39,7 @@ import {
   type StoredCopy,
   auditStoredCopy,
   auditTexts,
+  describeError,
   describeFinding,
 } from "./copy-compat-lib.ts";
 import { generatedSentenceFor, loadReferenceSnapshot } from "./copy-audit.ts";
@@ -58,9 +59,12 @@ function parseArgs(argv: readonly string[]): { all: boolean } {
 
 async function readDatabase(): Promise<readonly StoredCopy[] | string> {
   if (!process.env.DATABASE_URL) return "DATABASE_URL is not set — the database was not read";
-  const { sql, close } = createDatabase({ max: 1, connectTimeoutSeconds: 5 });
+  let close: (() => Promise<void>) | null = null;
   try {
-    const rows = await sql.begin(
+    // Inside the `try`: a malformed address throws here, with the address in the error.
+    const database = createDatabase({ max: 1, connectTimeoutSeconds: 5 });
+    close = database.close;
+    const rows = await database.sql.begin(
       "read only",
       (tx) => tx<StoredCopy[]>`
         select slug, status, copy_origin as origin,
@@ -72,10 +76,9 @@ async function readDatabase(): Promise<readonly StoredCopy[] | string> {
     );
     return [...rows];
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return `the database could not be read (${reason.split("\n")[0]})`;
+    return `the database could not be read (${describeError(error)})`;
   } finally {
-    await close().catch(() => {});
+    await close?.().catch(() => {});
   }
 }
 
@@ -146,6 +149,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(error);
+  console.error(`copy:compat failed: ${describeError(error)}`);
   process.exitCode = 1;
 });

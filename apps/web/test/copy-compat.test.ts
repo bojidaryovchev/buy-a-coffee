@@ -3,6 +3,7 @@ import {
   type StoredCopy,
   auditStoredCopy,
   bodyParagraphs,
+  describeError,
   describeFinding,
 } from "../scripts/copy-compat-lib";
 
@@ -75,5 +76,21 @@ describe("auditStoredCopy", () => {
         "      nespresso-home: 10 капсули за домашните машини Nespresso, интензивност 9 от 12.",
       ].join("\n"),
     );
+  });
+});
+
+describe("describeError", () => {
+  it("prints an error's name and code, never the address its message carries", () => {
+    const address = "postgres://owner:s3cret-pass@db.example.test/catalog";
+    const malformed = Object.assign(new TypeError(`Invalid URL: ${address}`), {
+      code: "ERR_INVALID_URL",
+      input: address,
+    });
+    expect(describeError(malformed)).toBe("TypeError ERR_INVALID_URL");
+    expect(describeError(new Error(`connect failed for ${address}`))).toBe("Error");
+    expect(describeError(Object.assign(new Error("x"), { code: "ECONNREFUSED" }))).toBe(
+      "Error ECONNREFUSED",
+    );
+    expect(describeError(address)).toBe("string");
   });
 });
