@@ -943,17 +943,27 @@ prepared comes in the next one — and what is reduced now, own promotions
 first, up to twelve cards. _Promotion_: one promotion's members whose honest
 badge (against the 30-day lowest price) reaches the promotion's percentage, so
 "−X%" is true of every product listed; the owner is told how many were left
-out and why. Before the promotion starts its letter names no figure and
-cannot be sent. _Blank_. The draft keeps its plan (`letter-plan`, in
-`attachments`: when the data was read, which promotions it names, what was
-left out).
+out and why. A promotion with no such member cannot be announced — the
+"Обява за промоция" list counts only honest members and disables it — and
+before the promotion starts its letter names no figure and cannot be sent.
+_Blank_. The draft keeps its plan (`letter-plan`, in `attachments`): when the
+data was read, and for each promotion it names, the days, label and reduction
+it was written with, the exact line the template wrote and the reductions it
+priced. "Дублирай" does not copy the plan, and only a monthly letter with a
+plan moves the new-arrivals window. A picked address that is a product's
+former slug resolves to the renamed product.
 
-**Before sending** (`deliverability.ts`, `product-blocks.ts`, `claims.ts`).
-Stops the send: an unreadable line; an address that names no product; more
-than twelve products; products that cannot be read; a letter with neither
-text nor products; a picked reduction that is no longer reduced; a promotion
-the letter names that has ended or was stopped; a promotion letter's product
-whose badge is below the promotion's percentage. Only warns: a section left
+**Before sending** (`deliverability.ts`, `product-blocks.ts`, `claims.ts`,
+`claims-data.ts`). Stops the send: an unreadable line; an address that names
+no product; more than twelve products; products that cannot be read; a letter
+with neither text nor products; a picked reduction that is no longer reduced;
+a promotion the letter still names (its line, or a reduction it priced, is in
+the body) that has ended, was stopped or is gone; a named promotion whose days,
+label or reduction changed since drafting, while its line is in the body; a
+promotion letter with no product its promotion prices, or a product whose
+badge is below the promotion's percentage. **The claims are checked at the
+start of every run**, a resume included; a failure stops the run with the
+cause `claims`, which the daily job never resumes. Only warns: a section left
 empty (it vanishes whole, heading and text with it, when all its products come
 from the catalog), a picked product sold out or withdrawn since (left out),
 and a letter within 30 days of the last one (the band promises no more than
@@ -962,7 +972,8 @@ hour.
 
 **The monthly draft** (`/api/cron/newsletter`, daily 07:00 UTC; `cron.ts`).
 On days 1–7 of a Sofia month, once (`auto_period`, unique), unless a letter
-already went out this month or an owner-started monthly draft is waiting, and
+already went out this month or an owner-started monthly draft from this month
+is waiting, and
 only when something is new or reduced: it prepares the draft and mails the
 owner a link (`newsletter_draft` notice). It never sends to subscribers. A
 prepared draft the owner deletes is kept as `dismissed`, so the month's claim
