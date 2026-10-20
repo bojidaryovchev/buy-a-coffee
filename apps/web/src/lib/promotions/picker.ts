@@ -35,7 +35,28 @@ export function toPromotionPickerProduct(card: ProductCardView): PromotionPicker
   };
 }
 
+/** A product the editor lists as chosen, by its shop name. */
+export interface ChosenProduct {
+  readonly title: string;
+  readonly detail: string | null;
+  /** Absent when on sale. */
+  readonly status?: "missing" | "removed";
+}
+
 /** "Lavazza Crema e Aroma, Кафе на зърна, 1 кг": a product told apart from its other packs. */
 export function describeProduct(product: { title: string; detail: string | null }): string {
   return product.detail ? `${product.title}, ${product.detail}` : product.title;
+}
+
+/**
+ * A chosen product as the lists name it: its shop name, and, when it is not
+ * on sale, why — in the preview's words for one the supplier's catalog lacks
+ * for now.
+ */
+export function chosenProductText(product: ChosenProduct | undefined): string {
+  if (!product) return "Продукт, който вече не се продава";
+  const name = describeProduct(product);
+  if (product.status === "missing") return `${name} — временно липсва в каталога на доставчика`;
+  if (product.status === "removed") return `${name} — вече не се продава`;
+  return name;
 }

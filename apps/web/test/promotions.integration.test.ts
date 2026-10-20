@@ -12,7 +12,7 @@ import {
   syncRuns,
   type PromotionTargets,
 } from "@catalog/db/schema";
-import type { Database } from "@catalog/db";
+import { createDatabase, type Database } from "@catalog/db";
 // Types only: the modules are imported in `beforeAll`, once the test database is chosen.
 import type * as Actions from "@/lib/promotions/actions";
 import type * as Membership from "@/lib/promotions/membership";
@@ -20,7 +20,7 @@ import type * as Refresh from "@/lib/promotions/refresh";
 import type * as Preview from "@/lib/promotions/preview";
 import type * as Queries from "@/lib/catalog/queries";
 import type * as CronRoute from "@/app/api/cron/promotions/route";
-import { addDays, todayInSofia } from "@/lib/promotions/days";
+import { addDays, sofiaDayStart, todayInSofia } from "@/lib/promotions/days";
 import { PROMOTION_MESSAGES } from "@/lib/promotions/schemas";
 import { isDatabaseAvailable, useTestDatabase } from "./helpers/test-db";
 
@@ -88,6 +88,7 @@ const targetsOf = (targets: Partial<PromotionTargets>): string =>
 
 suite("promotions (integration)", () => {
   let db: Database;
+  let databaseUrl: string;
   let close: () => Promise<void>;
   let actions: typeof Actions;
   let membership: typeof Membership;
@@ -123,7 +124,7 @@ suite("promotions (integration)", () => {
   };
 
   beforeAll(async () => {
-    ({ db, close } = await useTestDatabase("promotions"));
+    ({ db, close, url: databaseUrl } = await useTestDatabase("promotions"));
     actions = await import("@/lib/promotions/actions");
     membership = await import("@/lib/promotions/membership");
     refresh = await import("@/lib/promotions/refresh");
@@ -946,6 +947,62 @@ suite("promotions (integration)", () => {
       }
     });
 
+    it("lets an order hold a promotion while it is saved, and makes a delete wait for one", async () => {
+      /* What recording an order does to the promotion that priced a line
+         (`lib/orders/record.ts`): FOR KEY SHARE, held until its transaction
+         ends. Here held on another connection, released by hand. */
+      const other = createDatabase({ url: databaseUrl, max: 1 });
+      const hold = async (promotionId: string) => {
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
+        let taken!: () => void;
+        const holding = new Promise<void>((resolve) => (taken = resolve));
+        const order = other.sql.begin(async (tx) => {
+          await tx`select 1 from promotions where id = ${promotionId} for key share`;
+          taken();
+          await gate;
+        });
+        await holding;
+        return async () => {
+          release();
+          await order;
+        };
+      };
+      const waited = (ms: number) =>
+        new Promise<"waited">((resolve) => setTimeout(() => resolve("waited"), ms));
+
+      try {
+        const running = await create();
+        const version = await versionOf(running);
+        let releaseOrder = await hold(running);
+        try {
+          const saved = await Promise.race([
+            actions.savePromotion({}, formOf(fields({ id: running, version, name: "Пак" }))),
+            waited(5000),
+          ]);
+          expect(saved).not.toBe("waited");
+          expect((saved as Actions.PromotionFormState).error).toBeUndefined();
+        } finally {
+          await releaseOrder();
+        }
+
+        const upcoming = await create({
+          startDay: addDays(today(), 3),
+          endDay: addDays(today(), 5),
+        });
+        releaseOrder = await hold(upcoming);
+        const deletion = redirected(actions.deletePromotion(formOf({ id: upcoming })));
+        try {
+          expect(await Promise.race([deletion, waited(1500)])).toBe("waited");
+        } finally {
+          await releaseOrder();
+        }
+        expect(await deletion).toBe("/admin/promotsii?izvestie=iztrita");
+      } finally {
+        await other.close();
+      }
+    });
+
     it("may not end a running promotion before today", async () => {
       const id = await create();
       const answer = await actions.savePromotion(
@@ -1168,6 +1225,60 @@ suite("promotions (integration)", () => {
       expect(row!.notes[0]!.text).toMatch(/по-малко от 30 дни/);
     });
 
+    it("has an unsaved promotion lose a full tie with a running one, and says so", async () => {
+      const now = new Date();
+      const today = todayInSofia(now);
+      const tied = await addPromotion({
+        percentOff: 10,
+        startsAt: sofiaDayStart(today),
+        endsAt: sofiaDayStart(addDays(today, 7)),
+        targets: { productIds: [product.vergnanoBeans] },
+      });
+      await refresh.refreshPromotions(now);
+      const answer = await preview.previewPromotion(
+        {
+          promotionId: null,
+          percent: 10,
+          startDay: today,
+          endDay: addDays(today, 6),
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.vergnanoBeans] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      expect(answer).toMatchObject({ reduced: 0, elsewhere: 1 });
+      const [row] = answer.rows;
+      expect(row!.otherWins).toBe(true);
+      const note = row!.notes.find((entry) => entry.kind === "otherWins")!;
+      expect(note.text).toMatch(/същия ден/);
+      expect(note.text).toMatch(/прегледът приема, че важи тя/);
+      expect(note.text).not.toMatch(/започнала по-рано/);
+
+      // A saved one tied the same way is settled by the ids, as the shop settles it.
+      const saved = await addPromotion({
+        percentOff: 10,
+        startsAt: sofiaDayStart(today),
+        endsAt: sofiaDayStart(addDays(today, 7)),
+        targets: { productIds: [product.vergnanoBeans] },
+      });
+      await refresh.refreshPromotions(now);
+      const shop = (await cardOf(product.vergnanoBeans)).promotion?.id;
+      const asSaved = await preview.previewPromotion(
+        {
+          promotionId: saved,
+          percent: 10,
+          startDay: today,
+          endDay: addDays(today, 6),
+          targets: JSON.parse(
+            targetsOf({ productIds: [product.vergnanoBeans] }),
+          ) as PromotionTargets,
+        },
+        now,
+      );
+      expect(asSaved.rows[0]!.otherWins).toBe(shop === tied);
+    });
+
     it("counts the products a running promotion would lose", async () => {
       const now = new Date();
       const id = await addPromotion({
@@ -1196,6 +1307,25 @@ suite("promotions (integration)", () => {
   /* -- what the editor offers ---------------------------------------------- */
 
   describe("the editor's choices", () => {
+    it("keeps a chosen empty subcategory under an empty parent, and a missing product as absent for now", async () => {
+      const emptyParent = await addCategory("empty-parent", null);
+      const emptyChild = await addCategory("empty-child", emptyParent);
+      const { loadEditorChoices } = await import("@/lib/promotions/editor-data");
+      const choices = await loadEditorChoices(
+        JSON.parse(
+          targetsOf({ categoryIds: [emptyChild], productIds: [product.missing] }),
+        ) as PromotionTargets,
+      );
+      const parent = choices.categories.find((option) => option.id === emptyParent);
+      expect(parent).toMatchObject({ count: 0 });
+      expect(parent!.children.map((child) => child.id)).toEqual([emptyChild]);
+      expect(choices.chosenProducts[product.missing]).toMatchObject({ status: "missing" });
+
+      // Nobody chose them: they are not offered.
+      const none = await loadEditorChoices(JSON.parse(targetsOf({})) as PromotionTargets);
+      expect(none.categories.some((option) => option.id === emptyParent)).toBe(false);
+    });
+
     it("keeps a chosen brand or category the supplier no longer lists, marked inactive", async () => {
       await db.update(brands).set({ status: "removed" }).where(eq(brands.id, brand.vergnano));
       await db

@@ -18,7 +18,11 @@ import {
   periodLength,
   type Day,
 } from "@/lib/promotions/days";
-import { describeProduct, type PromotionPickerProduct } from "@/lib/promotions/picker";
+import {
+  chosenProductText,
+  type ChosenProduct,
+  type PromotionPickerProduct,
+} from "@/lib/promotions/picker";
 import type { PromotionPreview } from "@/lib/promotions/preview";
 import {
   PROMOTION_LABEL_MAX,
@@ -87,10 +91,7 @@ function InactiveMark({ inactive }: { inactive?: boolean }) {
   return <span className="text-xs font-semibold text-caution"> — неактивна</span>;
 }
 
-export interface ChosenProduct {
-  readonly title: string;
-  readonly detail: string | null;
-}
+export type { ChosenProduct } from "@/lib/promotions/picker";
 
 export interface PromotionFormValues {
   readonly id: string;
@@ -190,7 +191,7 @@ function ChosenProducts({
     <ul className="mt-1 flex flex-col divide-y divide-line">
       {ids.map((id) => {
         const product = names[id];
-        const text = product ? describeProduct(product) : "Продукт, който вече не се продава";
+        const text = chosenProductText(product);
         return (
           <li key={id} className="flex items-center gap-2 py-1.5 text-sm">
             <span className="min-w-0 flex-1 break-words text-ink-900">{text}</span>
