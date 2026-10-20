@@ -1,5 +1,5 @@
 import { MACHINE_BRANDS } from "@/content/machines";
-import { getBrewingSystem, type BrewingSystem } from "@/lib/recommend/systems";
+import { fitsSentence, getBrewingSystem, type BrewingSystem } from "@/lib/recommend/systems";
 import type { Locale } from "@/i18n/config";
 import { categoryHref, routes, type CategoryKeys } from "@/lib/routes";
 
@@ -105,7 +105,7 @@ export function compatibilityLine(system: BrewingSystem | null | undefined): str
   if (!system || system.method === "beans") return null;
   // "Машини Дози ESE" is not Bulgarian; a pod fits a machine by its filter.
   if (system.method === "pod") return "Става за еспресо машини с цедка за дози ESE.";
-  return `Става за машини ${system.name}.`;
+  return fitsSentence(system);
 }
 
 export interface CompatibleMachine {

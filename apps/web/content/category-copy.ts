@@ -22,6 +22,14 @@ import { WHICH_CAPSULE_SLUG } from "./journal/articles/which-capsule";
  * It sits below the products on purpose — someone who already knows what they
  * want should not scroll past an essay to reach it.
  *
+ * **The lead.** Two or three sentences above the products, on the first page
+ * only, in the words the page's searches use — the Cyrillic spelling where
+ * that is what most people type, and „съвместими“. Short on purpose, for the
+ * same reason. Released in stages so each stage can be judged on its own
+ * (research `09`, Milestone 1): Dolce Gusto, Nespresso, beans and ESE pods
+ * first; Lavazza Blue, A Modo Mio, Caffitaly and the capsule hub follow in a
+ * later release and until then keep their heading and the generic sentence.
+ *
  * The rules this copy was written under:
  *
  *  - Written from scratch, by us. Nothing here is adapted from anybody else's
@@ -63,6 +71,12 @@ export interface CategoryCopy {
   /** The page's `h1`. */
   readonly h1: string;
   /**
+   * Above the products on the first page, 40–60 words: the page's head phrase,
+   * what the format fits, and what it does not. In place of the system's
+   * generic „Става за …“ sentence. See „The lead“ above.
+   */
+  readonly lead?: string;
+  /**
    * `<title>`, before the shop's name. `{systems}` is the capsule families on
    * sale under a parent listing.
    */
@@ -100,6 +114,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   "kafe-na-zyrna": {
     name: "Кафе на зърна",
     h1: "Кафе на зърна",
+    lead: "Кафе на зърна за автоматични кафемашини с вградена мелачка и за собствена мелачка у дома. До всяка опаковка стоят цената за 1 кг и цената на чаша, така че сравнявате пакети с различен размер по едно и също мерило. Зърната се мелят точно преди кафето, затова тук избирате само вкус и опаковка.",
     title: "Кафе на зърна — цена за кг и на чаша",
     description: "Кафе на зърна с цена за килограм до всяка опаковка",
     article: CHOOSE_BEANS_SLUG,
@@ -126,7 +141,8 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   },
   nespresso: {
     name: "Капсули за Nespresso",
-    h1: "Капсули, съвместими с Nespresso",
+    h1: "Капсули, съвместими с Nespresso (Неспресо)",
+    lead: "Капсулите Неспресо тук са съвместими с класическите машини Nespresso (Original): Essenza, Inissia, Pixie, CitiZ и останалите модели от тази система. Под всяка кутия е цената на чаша, така че сравнявате кафетата по това, което плащате за едно кафе. Машините Vertuo приемат само собствените си капсули и тези не пасват в тях.",
     title: "Капсули за Nespresso (Неспресо) — цена на чаша",
     family: "Nespresso",
     description: "Капсули, съвместими с класическите машини Nespresso",
@@ -139,7 +155,8 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   },
   "dolce-gusto": {
     name: "Капсули за Dolce Gusto",
-    h1: "Капсули за Dolce Gusto",
+    h1: "Капсули за Dolce Gusto (Долче Густо)",
+    lead: "Капсулите Долче Густо тук са съвместими с класическите машини Dolce Gusto на Krups и De'Longhi: Piccolo, Genio, Mini Me, Infinissima и останалите. Под всяка кутия е цената на чаша, така че сравнявате кафетата по това, което плащате за едно кафе. Машините Dolce Gusto NEO работят с хартиени дози и тези капсули не пасват в тях.",
     title: "Капсули за Dolce Gusto (Долче Густо) — цена на чаша",
     family: "Dolce Gusto",
     description: "Капсули за машини Dolce Gusto",
@@ -200,6 +217,7 @@ export const categoryCopy: Readonly<Record<string, CategoryCopy>> = {
   "kafe-dozi": {
     name: "Кафе дози ESE",
     h1: "Кафе дози ESE",
+    lead: "Кафе дози ESE: хартиените дози, които мнозина търсят и като ESE капсули или дозети. Всяка доза е 44 мм и пасва на еспресо машина с цедка за дози ESE, без мелене и без пресоване на кафето. Под всяка опаковка е цената на чаша, така че сравнявате кафетата по това, което плащате за едно кафе.",
     title: "Кафе дози ESE (хартиени дози 44 мм)",
     description: "Хартиени кафе дози ESE, 44 мм, за еспресо машини с цедка за дози",
     links: [

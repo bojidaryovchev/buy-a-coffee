@@ -200,7 +200,11 @@ describe("compatibility", () => {
   it("names the system for every capsule system, and says nothing for beans", () => {
     for (const system of BREWING_SYSTEMS) {
       const line = compatibilityLine(system);
-      if (system.method === "capsule") expect(line).toBe(`Става за машини ${system.name}.`);
+      if (system.method === "capsule")
+        expect(line).toBe(`Става за ${system.fits ?? `машини ${system.name}`}.`);
+      // The Dolce Gusto name is on the NEO machines too, which take none of these.
+      if (system.id === "dolce-gusto")
+        expect(line).toBe("Става за класическите машини Dolce Gusto (не NEO).");
       if (system.method === "pod")
         expect(line).toBe("Става за еспресо машини с цедка за дози ESE.");
       if (system.method === "beans") expect(line).toBeNull();

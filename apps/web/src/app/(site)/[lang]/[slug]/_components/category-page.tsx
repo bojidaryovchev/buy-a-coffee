@@ -41,7 +41,7 @@ import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
 import { getArticle } from "@/lib/journal";
 import { categoryHref, href, productHref, routes, targetHref } from "@/lib/routes";
-import { BREWING_SYSTEMS, type BrewingSystem } from "@/lib/recommend/systems";
+import { BREWING_SYSTEMS, fitsSentence, type BrewingSystem } from "@/lib/recommend/systems";
 import { brewingSystemForCategory, businessSectionForCategory } from "../../_lib/category-scope";
 import { robotsFor } from "@/lib/seo/robots";
 
@@ -199,11 +199,13 @@ export async function CategoryPage({
         {system && (
           <p className="mt-3 max-w-measure text-base text-ink-700">
             {/*
-             * Only a capsule system names a family of machines. For beans and
-             * pods the system's name is a kind of coffee, so its own summary
-             * says what it goes in.
+             * The lead, where one is written: the page's own words for what it
+             * sells and what it fits, on the first page (`content/category-copy.ts`).
+             * Otherwise one sentence. Only a capsule system names a family of
+             * machines; for beans and pods the system's name is a kind of
+             * coffee, so its own summary says what it goes in.
              */}
-            {system.method === "capsule" ? `Става за машини ${system.name}.` : system.summary}{" "}
+            {intro?.lead ?? (system.method === "capsule" ? fitsSentence(system) : system.summary)}{" "}
             {/*
              * The listing's one link back to the machine finder. A system's
              * page is where a visitor who guessed the system lands, so the way

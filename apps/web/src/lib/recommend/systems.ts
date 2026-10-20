@@ -34,6 +34,12 @@ export interface BrewingSystem {
   readonly summary: string;
   /** What to look for, for someone who does not know what they own. */
   readonly recognise: string;
+  /**
+   * The machines it fits, where „машини <name>“ would promise too much: the
+   * Dolce Gusto name is also on the NEO machines, which take none of these
+   * capsules. Completes „Става за …“.
+   */
+  readonly fits?: string;
   readonly method: BrewMethod;
   /** Storefront category slugs that hold this system's products. */
   readonly categorySlugs: readonly string[];
@@ -56,6 +62,7 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
     id: "dolce-gusto",
     name: "Dolce Gusto",
     summary: "Големи пластмасови капсули с фолио отгоре.",
+    fits: "класическите машини Dolce Gusto (не NEO)",
     recognise:
       "Капсулата е голяма и пластмасова: 54 мм в диаметър и 36 мм висока, с фолио отгоре и малък накрайник в средата на дъното.",
     method: "capsule",
@@ -114,6 +121,11 @@ export const BREWING_SYSTEMS: readonly BrewingSystem[] = [
 ];
 
 const SYSTEMS_BY_ID = new Map(BREWING_SYSTEMS.map((system) => [system.id, system]));
+
+/** „Става за …“: the machines a capsule system fits, as a sentence. */
+export function fitsSentence(system: BrewingSystem): string {
+  return `Става за ${system.fits ?? `машини ${system.name}`}.`;
+}
 
 export function getBrewingSystem(id: string | null | undefined): BrewingSystem | null {
   if (!id) return null;
