@@ -238,6 +238,33 @@ test.describe("typeahead", () => {
     await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
   });
 
+  test("no page waits on the typeahead to load, the search page's focused field included", async ({
+    page,
+  }) => {
+    // The typeahead's chunk is held back for good. Were a page to ask for it
+    // before its `load` event, the event would never come.
+    let release = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/_next/static/chunks/*.js", async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes("/api/search/suggest")) await released;
+      await route.fulfill({ response, body });
+    });
+    await page.goto("/", { waitUntil: "load", timeout: 15_000 });
+    await page.goto("/bg/tarsene", { waitUntil: "load", timeout: 15_000 });
+
+    // The search page focuses its field for the visitor; that alone is not
+    // reaching for it. The first keystroke is.
+    const field = page.locator('main form[role="search"] input[name="q"]');
+    await expect(field).toBeFocused();
+    await expect(field).not.toHaveAttribute("role", "combobox");
+    release();
+    await field.pressSequentially("lavazza", { delay: 30 });
+    await expect(field).toHaveAttribute("role", "combobox");
+    await expect(page.getByRole("listbox", { name: /предложения/i })).toBeVisible();
+  });
+
   test("both fields follow the query in the address, back and forward", async ({ page }) => {
     await page.goto("/bg/tarsene?q=lavazza");
     // The two search forms' fields, the site header's first. (Not by `header`:

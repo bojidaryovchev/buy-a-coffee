@@ -110,16 +110,19 @@ export function SearchField({
    * Whatever was typed before the page hydrated is in the field already:
    * hydration leaves an input's text alone. The state learns it here, before
    * the first re-render could write the empty value back over it, and a field
-   * the visitor is already in asks for its typeahead at once.
+   * the visitor is typing in asks for its typeahead at once. An empty field
+   * that merely has the focus — the search page's, focused for the visitor
+   * by `autoFocus` — waits for the first keystroke or the idle moment: being
+   * focused is not reaching for it, and its typeahead would otherwise be
+   * fetched before that page's `load`.
    */
   useLayoutEffect(() => {
     const input = inputRef.current;
-    if (!input) return;
-    const focused = document.activeElement === input;
-    if (focused) wake();
-    if (input.value === "") return;
+    if (!input || input.value === "") return;
     setValue(input.value);
-    if (focused) setOpen(true);
+    if (document.activeElement !== input) return;
+    setOpen(true);
+    wake();
   }, []);
 
   /*
@@ -246,6 +249,8 @@ export function SearchField({
             onChange={(event) => {
               setValue(event.target.value);
               setOpen(true);
+              // Typing into a field that had the focus before it hydrated.
+              wake();
             }}
             onFocus={() => {
               setOpen(true);
