@@ -501,6 +501,19 @@ export const MACHINE_BRANDS: readonly MachineBrand[] = [
   },
 ];
 
+/**
+ * Slugs a model was listed under before, and the slug it has now.
+ *
+ * A model's slug is in wizard links and in anchors on its brand's page, so a
+ * model that was listed wrongly and corrected keeps answering under the old
+ * slug, as what it really is. `illy-x7-ese` claimed the X7.1 took ESE pods;
+ * it now names the Iperespresso machine, so a link that pairs it with the pod
+ * system contradicts itself and the wizard drops both halves.
+ */
+const MOVED_MODEL_SLUGS: Readonly<Record<string, string>> = {
+  "illy-x7-ese": "illy-x7",
+};
+
 const MODELS_BY_SLUG = new Map<string, { brand: MachineBrand; model: MachineModel }>();
 const BRANDS_BY_SLUG = new Map<string, MachineBrand>();
 
@@ -518,7 +531,8 @@ export function getMachineModel(
   slug: string | null | undefined,
 ): { readonly brand: MachineBrand; readonly model: MachineModel } | null {
   if (!slug) return null;
-  return MODELS_BY_SLUG.get(slug) ?? null;
+  const current = Object.hasOwn(MOVED_MODEL_SLUGS, slug) ? MOVED_MODEL_SLUGS[slug] : slug;
+  return MODELS_BY_SLUG.get(current ?? slug) ?? null;
 }
 
 /** Every model in the database, flattened. Used by tests and by search. */
