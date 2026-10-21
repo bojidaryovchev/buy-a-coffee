@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { and, asc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { imageCutouts, productImages, type CutoutShape } from "@catalog/db/schema";
 import type { ImagesContext } from "./commands-images.ts";
 
@@ -24,6 +24,12 @@ import type { ImagesContext } from "./commands-images.ts";
  * A row a person decided (`approved`, `rejected`) or the tool settled (`auto`,
  * `pending`) is never written again by this command; only `failed` rows are
  * retried. A changed photo has a new hash and gets a new row.
+ *
+ * The one exception is asked for by name: `redo` re-cuts the photos it lists,
+ * settled or not, after the tool has improved. The new cut-out always waits
+ * for a person, whatever the tool says, and the old decision is cleared. A
+ * redo that fails leaves the row as it was, and so does one that finds the
+ * row changed since it was read: a decision the owner made meanwhile stands.
  */
 
 export const CUTOUT_PREFIX = "cutouts";
@@ -41,6 +47,8 @@ export interface CutoutReportEntry {
   readonly shape?: CutoutShape;
   readonly status?: "auto" | "pending";
   readonly models?: readonly string[];
+  /** The method's version, so a later improvement knows what to redo. */
+  readonly version?: number;
   readonly error?: string;
 }
 export type CutoutReport = Readonly<Record<string, CutoutReportEntry>>;
@@ -50,6 +58,8 @@ export interface CutoutCandidate {
   readonly objectKey: string;
   readonly mimeType: string | null;
   readonly attempts: number;
+  /** For a redo: the row's `updated_at` as read, or null if it had none. */
+  readonly seen?: string | null;
 }
 
 /** Runs the tool; resolves to its exit code. Injected in tests. */
@@ -65,6 +75,8 @@ export type CutoutRunner = (input: {
 export interface CutoutOptions {
   /** Process at most this many photos. */
   readonly limit?: number;
+  /** Re-cut these photos (content hashes), settled or not; `limit` is ignored. */
+  readonly redo?: readonly string[];
   /** The Python interpreter (default `CUTOUT_PYTHON`, then `python`). */
   readonly python?: string;
   /** List what would be cut, and stop. */
@@ -173,6 +185,41 @@ export async function loadCutoutCandidates(
   return limit !== undefined ? unique.slice(0, limit) : unique;
 }
 
+/** The active photos with these hashes, whatever their cut-out's state. */
+export async function loadRedoCandidates(
+  db: ImagesContext["db"],
+  hashes: readonly string[],
+): Promise<CutoutCandidate[]> {
+  if (hashes.length === 0) return [];
+  const rows = await db
+    .select({
+      hash: productImages.sourceContentHash,
+      objectKey: productImages.objectKey,
+      mimeType: productImages.mimeType,
+      attempts: sql<number>`coalesce(max(${imageCutouts.attempts}), 0)`.mapWith(Number),
+      // As text: a Date would drop the microseconds the write compares against.
+      seen: sql<string | null>`max(${imageCutouts.updatedAt})::text`,
+    })
+    .from(productImages)
+    .leftJoin(imageCutouts, eq(imageCutouts.sourceContentHash, productImages.sourceContentHash))
+    .where(
+      and(
+        eq(productImages.status, "active"),
+        inArray(productImages.sourceContentHash, [...hashes]),
+        isNotNull(productImages.objectKey),
+      ),
+    )
+    .groupBy(productImages.sourceContentHash, productImages.objectKey, productImages.mimeType);
+  const candidates = rows.map((row) => ({
+    hash: row.hash!,
+    objectKey: row.objectKey!,
+    mimeType: row.mimeType,
+    attempts: row.attempts,
+    seen: row.seen,
+  }));
+  return [...new Map(candidates.map((c) => [c.hash, c])).values()];
+}
+
 const spawnRunner: CutoutRunner = ({ python, tool, inDir, outDir, env, onLine }) =>
   new Promise((resolve, reject) => {
     const child = spawn(python, [tool, inDir, outDir], { env, stdio: ["ignore", "pipe", "pipe"] });
@@ -193,8 +240,20 @@ export async function commandCutout(
   options: CutoutOptions = {},
 ): Promise<CutoutResult> {
   const { db, storage, logger } = ctx;
-  const candidates = await loadCutoutCandidates(db, options.limit);
-  logger.info("cutout.candidates", { count: candidates.length, dryRun: options.dryRun ?? false });
+  const redo = options.redo !== undefined;
+  const candidates = redo
+    ? await loadRedoCandidates(db, options.redo!)
+    : await loadCutoutCandidates(db, options.limit);
+  if (redo) {
+    const found = new Set(candidates.map((c) => c.hash));
+    const unknown = options.redo!.filter((hash) => !found.has(hash));
+    if (unknown.length > 0) logger.warn("cutout.redo_unknown", { hashes: unknown });
+  }
+  logger.info("cutout.candidates", {
+    count: candidates.length,
+    redo,
+    dryRun: options.dryRun ?? false,
+  });
   if (candidates.length === 0 || options.dryRun) {
     return { candidates: candidates.length, auto: 0, pending: 0, failed: 0 };
   }
@@ -256,7 +315,8 @@ export async function commandCutout(
         (entry?.file ? undefined : `the tool made nothing (exit ${code})`);
       if (error) {
         counts.failed += 1;
-        await recordFailure(db, candidate, error);
+        if (redo) logger.warn("cutout.redo_failed", { hash: candidate.hash, error });
+        else await recordFailure(db, candidate, error);
         continue;
       }
       const bytes = new Uint8Array(await readFile(path.join(outDir, entry!.file!)));
@@ -268,9 +328,22 @@ export async function commandCutout(
         // Content-addressed keys are immutable, so they can be cached forever.
         cacheControl: "public, max-age=31536000, immutable",
       });
-      const status = entry!.status === "auto" ? "auto" : "pending";
-      counts[status] += 1;
-      await recordCutout(db, candidate, key, bytes.byteLength, entry!, status);
+      const status = entry!.status === "auto" && !redo ? "auto" : "pending";
+      const written = await recordCutout(
+        db,
+        candidate,
+        key,
+        bytes.byteLength,
+        entry!,
+        status,
+        redo,
+      );
+      if (written || !redo) {
+        counts[status] += 1;
+      } else {
+        counts.failed += 1;
+        logger.warn("cutout.redo_skipped", { hash: candidate.hash, reason: "changed meanwhile" });
+      }
     }
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -280,20 +353,29 @@ export async function commandCutout(
   return { candidates: candidates.length, ...counts };
 }
 
-/** Insert, or update a row that last failed — never one that was settled. */
+/**
+ * Insert, or update a row that last failed — never one that was settled. A
+ * redo updates the row it read, settled or not, but only as it was read.
+ * Answers whether it wrote.
+ */
 async function upsert(
   db: ImagesContext["db"],
   values: typeof imageCutouts.$inferInsert,
-): Promise<void> {
+  redo?: { seen: string | null | undefined },
+): Promise<boolean> {
   const { sourceContentHash: _hash, createdAt: _created, ...set } = values;
-  await db
+  const written = await db
     .insert(imageCutouts)
     .values(values)
     .onConflictDoUpdate({
       target: imageCutouts.sourceContentHash,
       set: { ...set, updatedAt: sql`now()` },
-      setWhere: eq(imageCutouts.status, "failed"),
-    });
+      setWhere: redo?.seen
+        ? sql`${imageCutouts.updatedAt}::text = ${redo.seen}`
+        : eq(imageCutouts.status, "failed"),
+    })
+    .returning({ hash: imageCutouts.sourceContentHash });
+  return written.length > 0;
 }
 
 async function recordCutout(
@@ -303,20 +385,26 @@ async function recordCutout(
   byteSize: number,
   entry: CutoutReportEntry,
   status: "auto" | "pending",
-): Promise<void> {
-  await upsert(db, {
-    sourceContentHash: candidate.hash,
-    objectKey,
-    width: entry.width ?? null,
-    height: entry.height ?? null,
-    byteSize,
-    agreement: entry.agreement ?? null,
-    shape: entry.shape ?? null,
-    status,
-    madeBy: `tools/cutout ${(entry.models ?? []).join("+")}`,
-    attempts: candidate.attempts + 1,
-    lastError: null,
-  });
+  redo: boolean,
+): Promise<boolean> {
+  return upsert(
+    db,
+    {
+      sourceContentHash: candidate.hash,
+      objectKey,
+      width: entry.width ?? null,
+      height: entry.height ?? null,
+      byteSize,
+      agreement: entry.agreement ?? null,
+      shape: entry.shape ?? null,
+      status,
+      madeBy: `tools/cutout${entry.version ? ` v${entry.version}` : ""} ${(entry.models ?? []).join("+")}`,
+      attempts: candidate.attempts + 1,
+      lastError: null,
+      ...(redo ? { decidedBy: null, decidedAt: null } : {}),
+    },
+    redo ? { seen: candidate.seen } : undefined,
+  );
 }
 
 async function recordFailure(

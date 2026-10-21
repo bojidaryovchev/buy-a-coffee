@@ -424,6 +424,10 @@ export interface CutoutShape {
   readonly dents: ReadonlyArray<{ readonly share: number; readonly depth: number }>;
   /** How nearly the filled pack fills its bounding box; null if nothing was dented. */
   readonly box: number | null;
+  /** Share of the pack the ground check added where both models missed it (from v2). */
+  readonly added?: number;
+  /** Share the ground check took away as the floor's reflection (from v2). */
+  readonly removed?: number;
 }
 
 /**

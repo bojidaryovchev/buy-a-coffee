@@ -2,6 +2,7 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import type { Database } from "@catalog/db";
 import { imageCutouts, productImages, products, sourceSites } from "@catalog/db/schema";
 import { silentLogger } from "@catalog/shared";
@@ -14,6 +15,7 @@ import {
   cutoutEnvironment,
   cutoutKey,
   loadCutoutCandidates,
+  loadRedoCandidates,
   photoExtension,
 } from "../src/commands-cutout.ts";
 import type { ImagesContext } from "../src/commands-images.ts";
@@ -206,6 +208,103 @@ describeIntegration("images:cutout", () => {
     expect(await commandCutout(runtime, { runner: tool })).toMatchObject({ candidates: 0 });
     expect(tool.seen).toEqual([]);
     expect((await rowFor(hash))!.status).toBe("rejected");
+  });
+
+  it("redoes a settled photo by name: the new cut-out waits for a person", async () => {
+    const rejected = await seedPhoto();
+    const live = await seedPhoto();
+    const untouched = await seedPhoto();
+    for (const [hash, status] of [
+      [rejected, "rejected"],
+      [live, "approved"],
+      [untouched, "auto"],
+    ] as const) {
+      await db.insert(imageCutouts).values({
+        sourceContentHash: hash,
+        objectKey: `cutouts/old/${hash}.png`,
+        status,
+        attempts: 1,
+        ...(status === "auto" ? {} : { decidedBy: "owner", decidedAt: new Date() }),
+      });
+    }
+    const tool = fakeTool((hash) => ({ ...AUTO(hash), version: 2 }));
+
+    const result = await commandCutout(runtime, {
+      runner: tool,
+      redo: [rejected, live, "f".repeat(64)],
+    });
+
+    expect(result).toEqual({ candidates: 2, auto: 0, pending: 2, failed: 0 });
+    expect(tool.seen.sort()).toEqual([rejected, live].sort());
+    for (const hash of [rejected, live]) {
+      const row = await rowFor(hash);
+      expect(row).toMatchObject({
+        status: "pending",
+        decidedBy: null,
+        decidedAt: null,
+        attempts: 2,
+      });
+      expect(row!.objectKey).toBe(cutoutKey(PNG(`cut-${hash}`)));
+      expect(row!.madeBy).toBe("tools/cutout v2 birefnet-general-lite+birefnet-general");
+    }
+    expect(await rowFor(untouched)).toMatchObject({
+      status: "auto",
+      objectKey: `cutouts/old/${untouched}.png`,
+    });
+  });
+
+  it("a redo that fails leaves the settled row as it was", async () => {
+    const hash = await seedPhoto();
+    await db.insert(imageCutouts).values({
+      sourceContentHash: hash,
+      objectKey: `cutouts/old/${hash}.png`,
+      status: "approved",
+      decidedBy: "owner",
+      attempts: 1,
+    });
+    const result = await commandCutout(runtime, {
+      runner: fakeTool(() => ({ error: "boom" })),
+      redo: [hash],
+    });
+    expect(result).toMatchObject({ failed: 1 });
+    expect(await rowFor(hash)).toMatchObject({
+      status: "approved",
+      decidedBy: "owner",
+      objectKey: `cutouts/old/${hash}.png`,
+      lastError: null,
+    });
+  });
+
+  it("a redo leaves a decision the owner made while it ran", async () => {
+    const hash = await seedPhoto();
+    await db.insert(imageCutouts).values({
+      sourceContentHash: hash,
+      objectKey: `cutouts/old/${hash}.png`,
+      status: "pending",
+      attempts: 1,
+    });
+    const cut = fakeTool(AUTO);
+    const ownerDecidesMeanwhile: CutoutRunner = async (input) => {
+      await db
+        .update(imageCutouts)
+        .set({ status: "approved", decidedBy: "owner", updatedAt: new Date() })
+        .where(eq(imageCutouts.sourceContentHash, hash));
+      return cut(input);
+    };
+    const result = await commandCutout(runtime, { runner: ownerDecidesMeanwhile, redo: [hash] });
+    expect(result).toMatchObject({ pending: 0, failed: 1 });
+    expect(await rowFor(hash)).toMatchObject({
+      status: "approved",
+      decidedBy: "owner",
+      objectKey: `cutouts/old/${hash}.png`,
+    });
+  });
+
+  it("finds a redo's photos only among active ones", async () => {
+    const active = await seedPhoto();
+    const orphaned = await seedPhoto({ status: "orphaned" });
+    expect((await loadRedoCandidates(db, [active, orphaned])).map((c) => c.hash)).toEqual([active]);
+    expect(await loadRedoCandidates(db, [])).toEqual([]);
   });
 
   it("a photo missing from the store fails without stopping the others", async () => {

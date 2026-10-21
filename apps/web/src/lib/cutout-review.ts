@@ -19,6 +19,8 @@ export type CutoutStatus = (typeof imageCutouts.$inferSelect)["status"];
 export interface CutoutRow {
   readonly hash: string;
   readonly status: CutoutStatus;
+  /** The cut-out's key in the store, which a decision names; null for a row that failed. */
+  readonly objectKey: string | null;
   /** The cut-out, renderable; null for a row that failed. */
   readonly cutoutUrl: string | null;
   /** The photo it was cut from. */
@@ -75,6 +77,7 @@ async function rows(statuses: readonly CutoutStatus[], limit = LIST_LIMIT): Prom
   return found.map((row) => ({
     hash: row.hash,
     status: row.status,
+    objectKey: row.objectKey,
     cutoutUrl: row.objectKey ? resolveImageUrl(row.objectKey) : null,
     originalUrl: row.original ? resolveImageUrl(row.original) : null,
     agreement: row.agreement === null ? null : Number(row.agreement),
