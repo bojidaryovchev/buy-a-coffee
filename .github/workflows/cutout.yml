@@ -59,9 +59,11 @@ jobs:
       !github.event.repository.fork &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion == 'success'))
-    # 16 vCPUs, 64 GB on Ubicloud, as in connecto's CI: the two models use
-    # every core. On GitHub's 4-vCPU runner a photo took about 29 s.
-    runs-on: ubicloud-standard-16
+    # GitHub's standard runner, free for a public repository: 4 vCPUs and
+    # 16 GB, where the two models take about 29 s a photo and 7 to 9 GB. A
+    # scheduled run cuts the few photos a sync brings; even a full run of
+    # CUTOUT_LIMIT (60) fits the timeout at that speed.
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     # Secrets are given only to the step that uses them, never to the job: the
     # install steps run third-party install scripts.

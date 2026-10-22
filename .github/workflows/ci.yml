@@ -55,8 +55,8 @@ env:
 jobs:
   verify:
     name: Verify
-    # 16 vCPUs, 64 GB on Ubicloud, as in connecto's CI.
-    runs-on: ubicloud-standard-16
+    # GitHub's standard runner (4 vCPUs, 16 GB), free for a public repository.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
       postgres:
@@ -131,8 +131,9 @@ jobs:
 
   e2e:
     name: End-to-end (desktop and mobile)
-    # 8 vCPUs, 32 GB on Ubicloud, as connecto's Playwright job.
-    runs-on: ubicloud-standard-8
+    # GitHub's standard runner (4 vCPUs, 16 GB), free for a public repository;
+    # Playwright runs two workers in CI, so more cores would sit idle.
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
       postgres:
