@@ -1057,7 +1057,9 @@ Decided with the owner on 19 October 2026:
   cut reaching deep into a pack. A cut-out goes live by itself when the two
   models agree on 99 % of its pixels or more and nothing was filled; anything
   else waits for a person in the admin. On a sample of 13 packs: 11 automatic,
-  2 flagged and fixed.
+  2 flagged and fixed. _Since 22 October 2026 the model is BRIA RMBG 2.0 on
+  fal, checked against the photo's own ground; see docs/decisions.md, "BRIA
+  through fal"._
 - **Cut-outs are made by a GitHub Actions workflow** chained after each
   scheduled sync, like the copywriter.
 - **The logo is redrawn as SVG** from `public/logo.png`; the owner signs it off

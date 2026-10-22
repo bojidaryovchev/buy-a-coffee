@@ -322,8 +322,9 @@ export async function main(argv: readonly string[]): Promise<number> {
         printJson({ command, ...result });
         // A photo the tool could not cut is retried by the next run; the
         // run itself still did its job. A redo is retried by nobody, so a
-        // photo it could not redo fails it.
-        return redo && result.failed > 0 ? EXIT.failure : EXIT.ok;
+        // photo it could not redo fails it; and a run that stopped asking
+        // the model (no credit, an outage) fails, so a person sees it.
+        return result.stopped || (redo && result.failed > 0) ? EXIT.failure : EXIT.ok;
       }
 
       case "status": {

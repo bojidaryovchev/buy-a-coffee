@@ -9,7 +9,13 @@ import { and, asc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-o
 import { imageCutouts, productImages, type CutoutShape } from "@catalog/db/schema";
 import { mapWithConcurrency } from "@catalog/shared";
 import type { ImagesContext } from "./commands-images.ts";
-import { ModelAccountError, type Segmenter, falSegmenter } from "./cutout-model.ts";
+import {
+  ModelAccountError,
+  ModelError,
+  type Segmenter,
+  falSegmenter,
+  isFalKey,
+} from "./cutout-model.ts";
 
 /**
  * Packshot cut-outs — Phase K, K1; DESIGN.md, "Imagery".
@@ -22,10 +28,18 @@ import { ModelAccountError, type Segmenter, falSegmenter } from "./cutout-model.
  * `image_cutouts`.
  *
  * The Python tool gets the photos and the model's answers in a temporary
- * directory and nothing else: no database URL, no store token, no model key,
- * only the environment it needs to run. Everything that writes or calls out
- * stays here. A model that refuses the account (no credit, a wrong key) stops
- * the run before anything is recorded, so no photo spends an attempt on it.
+ * directory, and an environment with no database URL, no store token and no
+ * model key in it. That keeps them out of its environment, not out of its
+ * reach: it runs as this process's child, which can read its parent's. Every
+ * write and every call out is made here.
+ *
+ * Each call costs money, so asking stops as soon as it is pointless: when fal
+ * refuses the account (no credit, a wrong key), or answers none of the first
+ * photos it is asked about (an outage, a renamed endpoint, a store it cannot
+ * read). The photos already answered are still cut and recorded; the rest are
+ * left as they were, with no attempt spent, and the run reports why it stopped
+ * (`stopped`) and fails. Only a photo the model failed while it answered
+ * others is that photo's failure.
  *
  * A row a person decided (`approved`, `rejected`) or the tool settled (`auto`,
  * `pending`) is never written again by this command; only `failed` rows are
@@ -94,12 +108,18 @@ export interface CutoutOptions {
 
 /** Photos sent to the model at once. */
 const MODEL_CONCURRENCY = 4;
+/** With none of this many answered, the service is at fault, not the photos. */
+const MODEL_TRIAL = 4;
 
 export interface CutoutResult {
   readonly candidates: number;
   readonly auto: number;
   readonly pending: number;
   readonly failed: number;
+  /** Photos left as they were because asking stopped, with no attempt spent. */
+  readonly deferred?: number;
+  /** Why asking the model stopped; the run then fails. */
+  readonly stopped?: string;
 }
 
 /** `cutouts/ab/cd/<sha256>.png`, the same shape as the photos' keys. */
@@ -275,13 +295,16 @@ export async function commandCutout(
   await mkdir(inDir);
   await mkdir(outDir);
   const counts = { auto: 0, pending: 0, failed: 0 };
+  let deferred = 0;
+  let stopped: string | null = null;
 
   try {
-    // Each photo is written for the tool beside the model's answer for it. A
-    // photo the model could not cut is that photo's failure; an account the
-    // model refuses is the run's, and nothing is recorded.
+    // Each photo is written for the tool beside the model's answer for it.
     const missing = new Map<string, string>();
+    const answered = new Set<string>();
+    const modelFailures = new Map<string, string>();
     const prepared = await mapWithConcurrency(candidates, MODEL_CONCURRENCY, async (candidate) => {
+      if (stopped) return;
       const bytes = await storage.get(candidate.objectKey);
       if (!bytes) {
         missing.set(candidate.hash, `the photo ${candidate.objectKey} is not in the store`);
@@ -301,43 +324,60 @@ export async function commandCutout(
       try {
         cut = await segment(url);
       } catch (error) {
-        if (error instanceof ModelAccountError) throw error;
-        missing.set(
-          candidate.hash,
-          `the model failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        if (error instanceof ModelAccountError) {
+          stopped ??= error.message;
+          return;
+        }
+        if (!(error instanceof ModelError)) throw error;
+        modelFailures.set(candidate.hash, error.message);
+        if (answered.size === 0 && modelFailures.size >= MODEL_TRIAL) {
+          stopped ??= `the model answered none of the first ${MODEL_TRIAL} photos: ${error.message}`;
+        }
         return;
       }
       await writeFile(path.join(inDir, `${candidate.hash}.${ext}`), bytes);
       await writeFile(path.join(inDir, `${candidate.hash}.model.png`), cut);
+      answered.add(candidate.hash);
     });
-    const refused = prepared.find((entry) => !entry.ok && entry.error instanceof ModelAccountError);
-    if (refused && !refused.ok) throw refused.error;
-    for (const [index, entry] of prepared.entries()) {
-      if (!entry.ok) {
-        const reason = entry.error instanceof Error ? entry.error.message : String(entry.error);
-        missing.set(candidates[index]!.hash, `the photo could not be prepared: ${reason}`);
-      }
+    // The store or the disk failing is the run's failure, as it always was:
+    // nothing is recorded.
+    const broken = prepared.find((entry) => !entry.ok);
+    if (broken && !broken.ok) throw broken.error;
+    // A model that answered no photo at all failed the run, not each photo.
+    if (answered.size === 0 && modelFailures.size > 0) {
+      stopped ??= `the model answered no photo: ${[...modelFailures.values()][0]}`;
     }
+    if (answered.size > 0 || !stopped) {
+      for (const [hash, why] of modelFailures) missing.set(hash, `the model failed: ${why}`);
+    }
+    const waiting = new Set(
+      candidates.filter((c) => !answered.has(c.hash) && !missing.has(c.hash)).map((c) => c.hash),
+    );
+    deferred = waiting.size;
+    if (stopped)
+      logger.error("cutout.stopped", { reason: stopped, answered: answered.size, deferred });
 
     const runner = options.runner ?? spawnRunner;
     const python = options.python ?? process.env.CUTOUT_PYTHON ?? "python";
     let done = 0;
-    const code = await runner({
-      python,
-      tool: TOOL,
-      inDir,
-      outDir,
-      env: cutoutEnvironment(process.env),
-      onLine: (line) => {
-        if (line.startsWith("{")) {
-          done += 1;
-          logger.info("cutout.progress", { done, of: candidates.length });
-        } else if (line.trim()) {
-          logger.warn("cutout.tool", { line: line.slice(0, 2000) });
-        }
-      },
-    });
+    const code =
+      answered.size === 0
+        ? 0
+        : await runner({
+            python,
+            tool: TOOL,
+            inDir,
+            outDir,
+            env: cutoutEnvironment(process.env),
+            onLine: (line) => {
+              if (line.startsWith("{")) {
+                done += 1;
+                logger.info("cutout.progress", { done, of: candidates.length });
+              } else if (line.trim()) {
+                logger.warn("cutout.tool", { line: line.slice(0, 2000) });
+              }
+            },
+          });
 
     let report: CutoutReport = {};
     try {
@@ -347,6 +387,7 @@ export async function commandCutout(
     }
 
     for (const candidate of candidates) {
+      if (waiting.has(candidate.hash)) continue;
       const entry = report[candidate.hash];
       const error =
         missing.get(candidate.hash) ??
@@ -388,14 +429,20 @@ export async function commandCutout(
     await rm(work, { recursive: true, force: true });
   }
 
-  logger.info("cutout.done", { candidates: candidates.length, ...counts });
-  return { candidates: candidates.length, ...counts };
+  logger.info("cutout.done", { candidates: candidates.length, ...counts, deferred });
+  return {
+    candidates: candidates.length,
+    ...counts,
+    ...(deferred > 0 ? { deferred } : {}),
+    ...(stopped ? { stopped } : {}),
+  };
 }
 
-/** BRIA on fal, with the key from the environment; refuses to start without one. */
+/** BRIA on fal, with the key from the environment; refuses to start without a usable one. */
 function defaultSegmenter(): Segmenter {
   const key = process.env.FAL_KEY?.trim();
   if (!key) throw new Error("FAL_KEY is not set: the cut-out model runs on fal");
+  if (!isFalKey(key)) throw new Error("FAL_KEY is not a fal key (its id, a colon, its secret)");
   return falSegmenter({ key });
 }
 

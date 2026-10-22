@@ -27,7 +27,8 @@ The method (version 3, 22 October 2026):
    (RIM) somewhere; nothing is added under a standing pack's base
    (BASE_EDGE). A cut that reaches below the base onto a floor that holds the
    pack's reflection (MIRROR, MIRROR_GAIN) is shown to a person, unchanged —
-   a bag's own light lower panel is not its reflection.
+   a bag's own light lower panel is not its reflection — and so is one that
+   kept a light grey shadow beyond the pack's own print, or reaches the frame.
 4. The shape check: a pack is solid. Enclosed holes are filled; a gap reaching
    deeper than DENT_DEPTH into the pack is filled back (badge and crimp gaps
    reached 0.26 at most, the misses 0.35 and 0.51); a pack that then nearly
@@ -35,11 +36,13 @@ The method (version 3, 22 October 2026):
 5. The white edge is taken out of the soft border (each edge pixel is unmixed
    from white), and the result is trimmed to the pack.
 
-Status is "auto" when neither check changed the pack (the ground check makes
-no change of QUIET or less) and no reflection was suspected; "pending"
-otherwise. The ground check cannot see a white, grey or silver pack against
-the ground or a shadow, so there the model alone decides, and a person sees
-what it did whenever the shape check had to step in.
+Status is "auto" when no check changed the pack (the ground check makes no
+change of QUIET or less) or questioned it: a reflection kept under the base, a
+light grey shadow kept beyond the pack's print, a cut reaching the frame.
+"pending" otherwise. The ground check cannot tell a white, grey or silver pack
+from the ground or a shadow, so a white box with a blank border is shown to a
+person; and it cannot see a dark, patterned reflection kept under a light
+pack, which only BRIA's own judgement keeps out.
 """
 
 from __future__ import annotations
@@ -176,15 +179,22 @@ def reflection(rgb: np.ndarray, base: int, left: int, right: int) -> bool:
 def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     """The model's mask, checked against the photo's own ground.
 
-    A model can miss a whole box around a picture printed on it, and take a
-    reflection for the pack. The photo itself says otherwise: from the edge of
-    the frame, the ground spreads through every pixel that is no edge — a
-    shadow or a glow fades, so it is ground too — and stops at the pack's
-    outline (small gaps in it closed). What it cannot reach, is not white and
-    is no grey cast shadow, and is more than the thin rim of the model's own
-    outline, is pack whatever the model said. Nothing under a standing pack's
-    base is added. A cut that goes on under the base, onto a floor that holds
-    the pack's reflection, is left as it is and marked for a person.
+    A model can miss a whole box around a picture printed on it, keep a shadow
+    or the photo's backdrop, and take a reflection for the pack. The photo
+    itself says otherwise: from the edge of the frame, the ground spreads
+    through every pixel that is no edge — a shadow or a glow fades, so it is
+    ground too — and stops at the pack's outline (small gaps in it closed).
+
+    - What it cannot reach, is not white and is no grey cast shadow, and is
+      more than the thin rim of the model's own outline, is pack whatever the
+      model said, and is added. Nothing under a standing pack's base is added.
+    - What the model kept that it does reach, light and grey like a shadow and
+      outside the pack's own print, is reported (`kept`), not removed: a white
+      box's blank border looks the same, and only a person can tell them
+      apart.
+    - A cut that reaches the edge of the frame has kept the backdrop
+      (`framed`), and one that goes on under a standing pack's base onto its
+      reflection (`reflection`); both are left as they are and reported.
 
     A change of no more than QUIET of the pack is not made at all, so a
     cut-out that goes live by itself is exactly what the model cut; holes are
@@ -192,13 +202,24 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     """
     union = model > 0.5
     off = np.abs(255.0 - rgb).max(axis=2)
-    barrier = ndimage.binary_closing((edges(rgb) >= SMOOTH) | union, iterations=3)
-    reach, _ = ndimage.label(~barrier)
-    frame = np.concatenate([reach[0], reach[-1], reach[:, 0], reach[:, -1]])
-    ground = np.isin(reach, frame[frame > 0])
+    strong = edges(rgb) >= SMOOTH
+
+    def from_frame(barrier: np.ndarray) -> np.ndarray:
+        reach, _ = ndimage.label(~ndimage.binary_closing(barrier, iterations=3))
+        frame = np.concatenate([reach[0], reach[-1], reach[:, 0], reach[:, -1]])
+        return np.isin(reach, frame[frame > 0])
+
+    def wide(region: np.ndarray) -> np.ndarray:
+        """Only what is wide somewhere, grown back to its own edges so a box's
+        corner stays square; the thin rim of an outline never is."""
+        core = ndimage.binary_opening(region, iterations=RIM)
+        return ndimage.binary_dilation(core, iterations=RIM + 2, mask=region)
+
+    ground = from_frame(strong | union)
     # A cast shadow is grey and light; what a model misses of a pack is
     # printed: dark, or coloured, even when it is cream.
-    shadow = (rgb.max(axis=2) - rgb.min(axis=2) < SHADOW[0]) & (off < SHADOW[1])
+    grey = rgb.max(axis=2) - rgb.min(axis=2) < SHADOW[0]
+    shadow = grey & (off < SHADOW[1])
     missed = ~ground & (off >= GROUND) & ~shadow & ~union
     reflected = False
     base = floor_line(off, union | missed)
@@ -208,11 +229,9 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
         xs = np.where(union[base])[0]
         if below > BELOW * max(int(union.sum()), 1) and len(xs) > 1:
             reflected = reflection(rgb, base, xs.min(), xs.max() + 1)
-    # Only a miss wide somewhere counts, grown back to its own edges so a
-    # box's corner stays square; the thin rim of an outline or a contact
-    # shadow never has such a core, nor does what is left above a floor.
-    core = ndimage.binary_opening(missed, iterations=RIM)
-    missed = ndimage.binary_dilation(core, iterations=RIM + 2, mask=missed)
+    # A miss counts only where it is wide; a contact shadow never is, nor is
+    # what is left above a floor.
+    missed = wide(missed)
     # What the ground check adds must touch what the model found: a speck of
     # dust on the ground is not a pack.
     pack = union | missed
@@ -220,14 +239,36 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     pack = np.isin(parts, np.unique(parts[union]))
     added = pack & ~union
     share = round(float(added.sum() / max(int(pack.sum()), 1)), 4)
+    # What the model kept that the ground reaches through the model's mask
+    # too: light grey like a shadow, beyond the hull of the pack's own print.
+    print_ = strong & ndimage.binary_erosion(union, iterations=RIM)
+    printed = ndimage.binary_dilation(convex_hull_image(print_), iterations=RIM) if print_.any() else union
+    extra = wide(union & from_frame(strong) & grey & (off >= GROUND) & (off < SHADOW[1]) & ~printed)
+    report = {
+        "added": share,
+        "reflection": reflected,
+        "kept": round(float(extra.sum() / max(int(union.sum()), 1)), 4),
+        "framed": framed(union),
+    }
     alpha = soft(model)
     if share <= QUIET:
-        return alpha, {"added": 0.0, "reflection": reflected}
+        return alpha, {**report, "added": 0.0}
     # Solid where the model missed and where its edge ran through the middle
     # of the pack; its own soft edge on the outline it drew.
     solid = (ndimage.binary_erosion(pack, iterations=3) | added).astype(np.float32)
     alpha = np.maximum(alpha, np.maximum(solid, ndimage.gaussian_filter(solid, 0.8)))
-    return alpha, {"added": share, "reflection": reflected}
+    return alpha, report
+
+
+def framed(union: np.ndarray) -> bool:
+    """Whether the cut reaches the edge of the frame, where only the photo's
+    backdrop is: the tool works on the photo with a margin round it."""
+    ys, xs = np.where(union)
+    if len(ys) == 0:
+        return False
+    h, w = union.shape
+    margin = PAD // 2
+    return bool(ys.min() < margin or xs.min() < margin or ys.max() >= h - margin or xs.max() >= w - margin)
 
 
 def shape_check(alpha: np.ndarray) -> tuple[np.ndarray, dict]:
@@ -284,11 +325,11 @@ def cut_alpha(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
 
 
 def status_of(shape: dict) -> str:
-    """Live by itself only when no check changed the pack and no reflection
-    was suspected."""
+    """Live by itself only when no check changed the pack or questioned it."""
     filled = shape["holes"] > 0.001 or bool(shape["dents"])
     changed = shape["added"] > QUIET
-    return "pending" if filled or changed or shape["reflection"] else "auto"
+    questioned = shape["reflection"] or shape["kept"] > QUIET or shape["framed"]
+    return "pending" if filled or changed or questioned else "auto"
 
 
 def unmix_white(rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
@@ -301,15 +342,22 @@ def unmix_white(rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
 def cut_one(photo: Path, model_png: Path) -> tuple[Image.Image, dict]:
     """One photo and the model's answer for it: the trimmed cut-out and what the checks did."""
     image = Image.open(photo).convert("RGB")
-    model = Image.open(model_png).convert("RGBA")
+    model = Image.open(model_png)
+    # The model answers at the photo's own size, with transparency: anything
+    # else is not a cut-out of this photo.
     if model.size != image.size:
-        model = model.resize(image.size, Image.Resampling.BILINEAR)
+        raise ValueError(f"the model's answer is {model.size}, the photo {image.size}")
+    if "A" not in model.getbands() and "transparency" not in model.info:
+        raise ValueError("the model's answer has no transparency")
+    model = model.convert("RGBA")
     image.thumbnail((MAX_SIDE, MAX_SIDE))
     if model.size != image.size:
         model = model.resize(image.size, Image.Resampling.BILINEAR)
     whole = np.asarray(image).astype(np.float32)
     rgb = level(whole)
     mask = np.asarray(model)[..., 3].astype(np.float32)[framing(whole)] / 255.0
+    if not ((mask < 0.1).any() and (mask > 0.9).any()):
+        raise ValueError("the model's answer is all clear or all solid")
     alpha, shape = cut_alpha(rgb, mask)
     rgba = np.dstack([unmix_white(rgb, alpha), alpha * 255]).astype(np.uint8)
     cut = Image.fromarray(rgba, "RGBA")

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MODEL_ENDPOINT, ModelAccountError, falSegmenter } from "../src/cutout-model.ts";
+import {
+  MODEL_ENDPOINT,
+  ModelAccountError,
+  ModelError,
+  falSegmenter,
+} from "../src/cutout-model.ts";
 
 /**
  * The call to BRIA on fal, against a stand-in for `fetch`: what is sent, how
@@ -29,6 +34,31 @@ const inline = () =>
   json(200, { image: { url: `data:image/png;base64,${Buffer.from(PNG).toString("base64")}` } });
 
 describe("falSegmenter", () => {
+  it("will not use a key that cannot be one, and does not repeat it", () => {
+    for (const key of ["", "no-colon", "id:s3cr3t-value\nInjected: header", "id:s3cr3t value"]) {
+      let thrown: unknown = null;
+      try {
+        falSegmenter({ key, pauseMs: 0 });
+      } catch (error) {
+        thrown = error;
+      }
+      expect(thrown).toBeInstanceOf(ModelAccountError);
+      expect(String((thrown as Error).message)).not.toContain("s3cr3t");
+    }
+  });
+
+  it("describes a request that got no answer by its kind, never by the request", async () => {
+    const { fetchImpl } = scripted(
+      new TypeError('Headers.append: "Key id:s3cr3t-value" is an invalid header value'),
+      new TypeError("fetch failed"),
+      new TypeError("fetch failed"),
+    );
+    const call = falSegmenter({ key: "id:s3cr3t-value", fetchImpl, pauseMs: 0 })(PHOTO);
+    await expect(call).rejects.toBeInstanceOf(ModelError);
+    await expect(call).rejects.toThrow("fal could not be reached (TypeError)");
+    await expect(call).rejects.not.toThrow("s3cr3t");
+  });
+
   it("sends the photo's address with the key, and reads an inline answer", async () => {
     const { fetchImpl, requests } = scripted(inline());
     const bytes = await falSegmenter({ key: "id:secret", fetchImpl, pauseMs: 0 })(PHOTO);
@@ -48,7 +78,7 @@ describe("falSegmenter", () => {
       json(200, { image: { url: "https://v3.fal.media/files/cut.png" } }),
       new Response(PNG, { status: 200 }),
     );
-    const bytes = await falSegmenter({ key: "k", fetchImpl, pauseMs: 0 })(PHOTO);
+    const bytes = await falSegmenter({ key: "id:secret", fetchImpl, pauseMs: 0 })(PHOTO);
     expect(Array.from(bytes)).toEqual(Array.from(PNG));
     expect(requests[1]!.url).toBe("https://v3.fal.media/files/cut.png");
     // The key goes to fal's API only, never to the CDN.
@@ -58,23 +88,23 @@ describe("falSegmenter", () => {
   it("tries a busy or failing service again, then gives up", async () => {
     const busy = scripted(json(429, { detail: "busy" }), json(503, {}), inline());
     await expect(
-      falSegmenter({ key: "k", fetchImpl: busy.fetchImpl, pauseMs: 0 })(PHOTO),
+      falSegmenter({ key: "id:secret", fetchImpl: busy.fetchImpl, pauseMs: 0 })(PHOTO),
     ).resolves.toBeInstanceOf(Uint8Array);
     expect(busy.requests).toHaveLength(3);
 
     const down = scripted(new Error("socket hang up"), json(502, {}), json(500, {}));
     await expect(
-      falSegmenter({ key: "k", fetchImpl: down.fetchImpl, pauseMs: 0 })(PHOTO),
+      falSegmenter({ key: "id:secret", fetchImpl: down.fetchImpl, pauseMs: 0 })(PHOTO),
     ).rejects.toThrow("HTTP 500");
     expect(down.requests).toHaveLength(3);
   });
 
   it("stops at once when fal refuses the account or the key", async () => {
-    for (const status of [401, 403]) {
+    for (const status of [401, 402, 403]) {
       const { fetchImpl, requests } = scripted(
         json(status, { detail: "User is locked. Reason: TOP_UP." }),
       );
-      const call = falSegmenter({ key: "k", fetchImpl, pauseMs: 0 })(PHOTO);
+      const call = falSegmenter({ key: "id:secret", fetchImpl, pauseMs: 0 })(PHOTO);
       await expect(call).rejects.toBeInstanceOf(ModelAccountError);
       await expect(call).rejects.toThrow("TOP_UP");
       expect(requests).toHaveLength(1);
@@ -83,7 +113,7 @@ describe("falSegmenter", () => {
 
   it("does not try a request fal turned down as such again", async () => {
     const { fetchImpl, requests } = scripted(json(422, { detail: "image_url unreachable" }));
-    await expect(falSegmenter({ key: "k", fetchImpl, pauseMs: 0 })(PHOTO)).rejects.toThrow(
+    await expect(falSegmenter({ key: "id:secret", fetchImpl, pauseMs: 0 })(PHOTO)).rejects.toThrow(
       "HTTP 422",
     );
     expect(requests).toHaveLength(1);
@@ -94,12 +124,12 @@ describe("falSegmenter", () => {
     const { fetchImpl } = scripted(
       json(200, { image: { url: `data:image/png;base64,${notPng}` } }),
     );
-    await expect(falSegmenter({ key: "k", fetchImpl, pauseMs: 0 })(PHOTO)).rejects.toThrow(
+    await expect(falSegmenter({ key: "id:secret", fetchImpl, pauseMs: 0 })(PHOTO)).rejects.toThrow(
       "other than a PNG",
     );
     const { fetchImpl: empty } = scripted(json(200, {}));
-    await expect(falSegmenter({ key: "k", fetchImpl: empty, pauseMs: 0 })(PHOTO)).rejects.toThrow(
-      "no image",
-    );
+    await expect(
+      falSegmenter({ key: "id:secret", fetchImpl: empty, pauseMs: 0 })(PHOTO),
+    ).rejects.toThrow("no image");
   });
 });

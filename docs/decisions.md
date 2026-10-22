@@ -932,12 +932,20 @@ catalog, cents a month after. fal fetches the photo from its public address in
 our store; its answer, the cut-out at the photo's size, is used for its alpha
 only, and fal's own copy and BRIA's run locally gave the same masks (99.8 % of
 the pixels, median). The ground check stays as the second opinion — from the
-photo itself, now that the model has no twin to disagree with — and a cut that
-runs on under a standing pack's base onto its reflection is shown to a person
-rather than changed. fal is prepaid: with no credit it refuses every call, and
-the run stops without spending any photo's attempts. No model runs on our
-machines any more, so the workflow downloads none and runs on GitHub's free
-runner.
+photo itself, now that the model has no twin to disagree with. It adds what the
+model missed, and shows a person, unchanged, a cut that runs on under a
+standing pack's base onto its reflection, one that keeps a light grey shadow
+beyond the pack's own print, and one that reaches the frame. A white box with a
+blank border is among those: the photo cannot tell its border from a shadow.
+One thing it cannot see at all is a dark, patterned reflection kept under a
+light pack; there BRIA's own judgement is all there is. On the 20 photos, 15
+went live by themselves and five waited for a person: three white boxes, a
+white bag, and a pod with a gold-tinted edge. Every call costs money, so a run
+stops asking when fal refuses the account (with no credit it refuses every
+call) or answers none of the first four photos; the photos already answered are
+still recorded, the rest wait with no attempt spent, and the run fails so a
+person sees why. No model runs on our machines any more, so the workflow
+downloads none and runs on GitHub's free runner.
 
 **Cut-outs are keyed by the photo's hash, stored as PNG, and made after the
 sync, not during it.** A photo two products share is cut once; a changed photo

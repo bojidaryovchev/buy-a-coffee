@@ -99,6 +99,20 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      # The packshot cut-out tool's own tests, on synthetic photos; the cut-out
+      # workflow runs them again before it cuts.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/cutout/requirements.txt
+
+      - name: Cut-out tool tests
+        working-directory: tools/cutout
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt
+          python -m unittest -v test_cutout.py
+
       - name: Migrate database
         run: pnpm db:migrate
 

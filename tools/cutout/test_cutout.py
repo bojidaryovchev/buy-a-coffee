@@ -5,6 +5,9 @@ and no network needed.
     python -m unittest tools/cutout/test_cutout.py
 """
 
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -240,7 +243,110 @@ class GroundCheck(unittest.TestCase):
         self.assertGreater(report["added"], 0.2)
 
 
+class Kept(unittest.TestCase):
+    """What the model kept beyond the pack: shown to a person, never removed."""
+
+    def test_a_shadow_the_model_kept_beside_the_pack_is_shown_to_a_person(self):
+        rgb = photo()
+        striped(rgb, 40, 200, 40, 120)
+        for x in range(120, 170):  # a soft grey shadow fading out to the right
+            rgb[60:200, x] = 200.0 + (x - 120) * 55.0 / 50
+        greedy = rect(260, 200, 40, 200, 40, 160)
+        alpha, shape = cut_alpha(rgb, greedy)
+        self.assertGreater(shape["kept"], 0.05)
+        self.assertEqual(status_of(shape), "pending")
+        self.assertTrue((alpha[70:190, 125:155] > 0.99).all())  # reported, not removed
+
+    def test_a_cut_that_reaches_the_frame_kept_the_backdrop(self):
+        # The backdrop, levelled to white, is no shadow; only reaching the
+        # frame gives it away.
+        rgb = photo()
+        striped(rgb, 60, 200, 60, 140)
+        backdrop = rect(260, 200, 3, 257, 3, 197)
+        _, shape = cut_alpha(rgb, backdrop)
+        self.assertEqual(shape["kept"], 0.0)
+        self.assertTrue(shape["framed"])
+        self.assertEqual(status_of(shape), "pending")
+
+    def test_a_light_panel_within_the_pack_print_is_no_kept_shadow(self):
+        # A pale grey panel between the pack's printed bands, open at the
+        # sides where the box has no outline: inside the print, so the pack's.
+        rgb = photo()
+        rgb[40:220, 40:160] = 246.0
+        striped(rgb, 40, 80, 40, 160)
+        striped(rgb, 180, 220, 40, 160)
+        box = rect(260, 200, 40, 220, 40, 160)
+        _, shape = cut_alpha(rgb, box)
+        self.assertEqual(shape["kept"], 0.0)
+        self.assertEqual(status_of(shape), "auto")
+
+    def test_a_white_box_with_a_blank_border_is_shown_to_a_person(self):
+        # The ground check cannot tell a white box's blank border from a
+        # shadow; the model's word is not enough, so a person looks.
+        rgb = photo()
+        rgb[40:220, 30:170] = 246.0  # a white box, a shade off the ground, no outline to speak of
+        striped(rgb, 150, 200, 70, 130)  # its print, low and narrow
+        box = rect(260, 200, 40, 220, 30, 170)
+        _, shape = cut_alpha(rgb, box)
+        self.assertGreater(shape["kept"], 0.005)
+        self.assertEqual(status_of(shape), "pending")
+
+
+def answer(folder, size=(220, 300), mode="RGBA", alpha=True):
+    """A photo with a pack on its grey ground, and the model's answer for it."""
+    w, h = size
+    canvas = np.full((h, w, 3), 255, np.uint8)
+    canvas[h // 8:h - h // 8, w // 8:w - w // 8] = 246
+    canvas[h * 3 // 10:h * 8 // 10, w * 3 // 10:w * 7 // 10] = [40, 30, 90]
+    Image.fromarray(canvas).save(Path(folder) / "photo.png")
+    cut = np.zeros((h, w, 4), np.uint8)
+    cut[h * 3 // 10:h * 8 // 10, w * 3 // 10:w * 7 // 10] = [40, 30, 90, 255 if alpha else 0]
+    image = Image.fromarray(cut, "RGBA")
+    (image if mode == "RGBA" else image.convert(mode)).save(Path(folder) / "photo.model.png")
+    return Path(folder) / "photo.png", Path(folder) / "photo.model.png"
+
+
 class Reading(unittest.TestCase):
+    def test_an_answer_that_is_no_cut_out_of_this_photo_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            photo_path, model_path = answer(folder, mode="RGB")
+            with self.assertRaisesRegex(ValueError, "no transparency"):
+                cut_one(photo_path, model_path)
+            photo_path, model_path = answer(folder)
+            Image.open(model_path).resize((110, 150)).save(model_path)
+            with self.assertRaisesRegex(ValueError, "the model's answer is"):
+                cut_one(photo_path, model_path)
+            photo_path, model_path = answer(folder, alpha=False)
+            with self.assertRaisesRegex(ValueError, "all clear or all solid"):
+                cut_one(photo_path, model_path)
+
+    def test_a_photo_larger_than_the_tool_works_on_still_lines_up(self):
+        with tempfile.TemporaryDirectory() as folder:
+            cut, shape = cut_one(*answer(folder, size=(1600, 2400)))
+        width, height = cut.size  # the pack, at half the size, give or take its soft edge
+        self.assertLessEqual(abs(width - 320), 3)
+        self.assertLessEqual(abs(height - 600), 3)
+        self.assertEqual(status_of(shape), "auto")
+
+    def test_the_tool_reads_each_photo_beside_its_answer(self):
+        with tempfile.TemporaryDirectory() as folder:
+            given, made = Path(folder) / "in", Path(folder) / "out"
+            given.mkdir()
+            answer(given)
+            (given / "photo.png").rename(given / "aa.png")
+            (given / "photo.model.png").rename(given / "aa.model.png")
+            Image.fromarray(np.full((50, 50, 3), 120, np.uint8)).save(given / "bb.jpg")
+            run = subprocess.run(
+                [sys.executable, str(Path(__file__).with_name("cutout.py")), str(given), str(made)],
+                capture_output=True, text=True, check=True,
+            )
+            report = json.loads((made / "report.json").read_text())
+            self.assertEqual(sorted(report), ["aa", "bb"])  # the answer is no photo of its own
+            self.assertEqual(report["aa"]["status"], "auto")
+            self.assertTrue((made / "aa.png").exists())
+            self.assertIn("missing", report["bb"]["error"])
+            self.assertIn('"aa"', run.stdout)
+
     def test_the_models_cut_out_is_framed_as_the_photo_is(self):
         # The model answers at the photo's own size; the tool works on the
         # photo cropped out of its white canvas, so the answer must be cropped

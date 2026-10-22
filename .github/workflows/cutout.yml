@@ -7,11 +7,13 @@
 # the image store, and recorded in image_cutouts. A cut-out no check changed
 # goes live by itself; the rest wait for the owner on /admin/snimki.
 #
-# Only the Node command holds FAL_KEY, and only in the step that cuts; the
-# Python tool never sees a secret: the command runs it with only the
-# environment it needs (cutoutEnvironment), and does every write itself. fal
-# is prepaid: with no credit it refuses every call, and the run fails without
-# spending any photo's attempts.
+# Only the Node command uses FAL_KEY, and only the step that cuts has it. The
+# command runs the Python tool with none of the secrets in its environment
+# (cutoutEnvironment) and does every write itself; the tool runs as its child
+# in the same step, though, so it is kept from the secrets, not walled off.
+# fal is prepaid: with no credit it refuses every call, and the run stops
+# asking, records what was already answered, and fails without spending any
+# other photo's attempts; so does a run in which fal answers no photo.
 #
 # LOGS ARE PUBLIC (see sync.yml). The job prints content hashes and counts
 # only. Never add a step that echoes the environment, runs with `set -x`, or
@@ -182,6 +184,9 @@ jobs:
           if (result) {
             lines.push("| Photos | Live (auto) | Waiting on /admin/snimki | Failed (a scheduled run retries them; a redo does not) |", "| --- | --- | --- | --- |");
             lines.push(`| ${result.candidates} | ${result.auto} | ${result.pending} | ${result.failed} |`);
+            if (result.stopped) {
+              lines.push("", `**Stopped asking the model:** ${result.stopped}. ${result.deferred ?? 0} photos wait for the next run, with no attempt spent.`);
+            }
           } else {
             lines.push("No structured result was printed. See the log of the previous step.");
           }

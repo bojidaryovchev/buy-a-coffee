@@ -430,6 +430,10 @@ export interface CutoutShape {
   readonly removed?: number;
   /** The cut went on under the pack's base, onto its reflection (from v3). */
   readonly reflection?: boolean;
+  /** Share of the cut that is light grey like a shadow, beyond the pack's own print (from v3). */
+  readonly kept?: number;
+  /** The cut reaches the edge of the frame, where only the backdrop is (from v3). */
+  readonly framed?: boolean;
 }
 
 /**

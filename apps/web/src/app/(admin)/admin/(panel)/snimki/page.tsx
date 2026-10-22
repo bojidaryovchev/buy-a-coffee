@@ -40,6 +40,9 @@ function repairs(row: CutoutRow): string[] {
   if (row.shape?.removed && row.shape.removed > 0.001)
     said.push(`махнато отражение ${percent(row.shape.removed)}`);
   if (row.shape?.reflection) said.push("може да е хванато отражението под опаковката");
+  if (row.shape?.kept && row.shape.kept > 0.005)
+    said.push(`светлосиво извън печата ${percent(row.shape.kept)}: сянка или бял ръб на кутията`);
+  if (row.shape?.framed) said.push("стига до края на снимката: може да е хванат фонът");
   return said;
 }
 

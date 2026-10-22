@@ -1210,9 +1210,13 @@ hands the photos and the model's answers in a temporary directory to
 [`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (the ground check and the
 shape check), and stores each PNG content-addressed under `cutouts/` with a row
 in `image_cutouts`, keyed by the photo's content hash. Only the Node command
-holds the key; the Python process gets no secret, only the environment it
-needs to run. fal refusing the account (no credit, a wrong key) stops the run
-before anything is recorded. `.github/workflows/cutout.yml` runs it after each
+holds the key. The Python process is given none of the secrets in its
+environment, only what it needs to run; it can still read its parent's, so
+splitting the work into steps of their own is what would put them out of its
+reach. A run stops asking fal when it refuses the account (no credit, a wrong
+key) or answers none of the first four photos: what was answered is still
+recorded, the rest wait with no attempt spent, and the run fails with the
+reason (`stopped`). `.github/workflows/cutout.yml` runs it after each
 scheduled sync on GitHub's standard runner; locally it needs `FAL_KEY` and a
 Python with `tools/cutout/requirements.txt` (`--python` or `CUTOUT_PYTHON`).
 

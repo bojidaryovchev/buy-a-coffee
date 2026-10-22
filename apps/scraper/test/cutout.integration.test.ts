@@ -19,7 +19,7 @@ import {
   photoExtension,
 } from "../src/commands-cutout.ts";
 import type { ImagesContext } from "../src/commands-images.ts";
-import { ModelAccountError, type Segmenter } from "../src/cutout-model.ts";
+import { ModelAccountError, ModelError, type Segmenter } from "../src/cutout-model.ts";
 
 process.env.TEST_DATABASE_NAME = `${process.env.TEST_DATABASE_NAME ?? "catalog_test"}_cutout`.slice(
   0,
@@ -46,10 +46,12 @@ const PNG = (seed: string) =>
 /** A runner that cuts every photo it is given, as told by `outcome`. */
 function fakeTool(
   outcome: (hash: string) => CutoutReport[string],
-): CutoutRunner & { seen: string[]; modelled: string[] } {
+): CutoutRunner & { seen: string[]; modelled: string[]; envs: NodeJS.ProcessEnv[] } {
   const seen: string[] = [];
   const modelled: string[] = [];
-  const runner = async ({ inDir, outDir, onLine }: Parameters<CutoutRunner>[0]) => {
+  const envs: NodeJS.ProcessEnv[] = [];
+  const runner = async ({ inDir, outDir, onLine, env }: Parameters<CutoutRunner>[0]) => {
+    envs.push(env);
     const report: Record<string, CutoutReport[string]> = {};
     const files = await readdir(inDir);
     for (const file of files) {
@@ -65,20 +67,28 @@ function fakeTool(
     await writeFile(path.join(outDir, "report.json"), JSON.stringify(report));
     return 0;
   };
-  return Object.assign(runner, { seen, modelled });
+  return Object.assign(runner, { seen, modelled, envs });
 }
 
-/** A model that cuts every photo it is sent, unless `fail` says otherwise; remembers the addresses. */
-function fakeModel(fail: (url: string) => Error | null = () => null) {
+/**
+ * A model that cuts every photo it is sent, unless `fail` (told the address and
+ * how many calls came before) says otherwise; remembers the addresses.
+ */
+function fakeModel(fail: (url: string, before: number) => Error | null = () => null) {
   const calls: string[] = [];
+  const answered: string[] = [];
   const segment: Segmenter = async (url) => {
+    const error = fail(url, calls.length);
     calls.push(url);
-    const error = fail(url);
     if (error) throw error;
+    answered.push(url);
     return new Uint8Array(PNG(`model-${url}`));
   };
-  return { segment, calls };
+  return { segment, calls, answered };
 }
+
+/** The photo key `seedPhoto` stores a hash under. */
+const photoKey = (hash: string) => `catalog/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.jpg`;
 
 const AUTO = (hash: string) => ({
   file: `${hash}.png`,
@@ -364,7 +374,9 @@ describeIntegration("images:cutout", () => {
     const fine = await seedPhoto();
     const refused = await seedPhoto();
     const picky = fakeModel((url) =>
-      url.includes(refused) ? new Error("fal answered HTTP 422: image_url unreachable") : null,
+      url.includes(refused)
+        ? new ModelError("fal answered HTTP 422: image_url unreachable", 422)
+        : null,
     );
     const result = await commandCutout(runtime, { segment: picky.segment, runner: fakeTool(AUTO) });
     expect(result).toMatchObject({ auto: 1, failed: 1 });
@@ -379,16 +391,84 @@ describeIntegration("images:cutout", () => {
     const locked = fakeModel(
       () =>
         new ModelAccountError(
-          "fal refused the request (HTTP 403): User is locked. Reason: TOP_UP.",
+          "fal refused the account (HTTP 403): User is locked. Reason: TOP_UP.",
         ),
     );
     const tool = fakeTool(AUTO);
-    await expect(commandCutout(runtime, { segment: locked.segment, runner: tool })).rejects.toThrow(
-      "TOP_UP",
-    );
+    const result = await commandCutout(runtime, { segment: locked.segment, runner: tool });
+    expect(result).toMatchObject({ auto: 0, failed: 0, deferred: 1 });
+    expect(result.stopped).toContain("TOP_UP");
     expect(tool.seen).toEqual([]);
     expect(await rowFor(hash)).toBeUndefined();
     expect((await loadCutoutCandidates(db)).map((c) => c.hash)).toEqual([hash]);
+  });
+
+  it("a refusal mid-run stops the asking, and what was paid for is still recorded", async () => {
+    const hashes: string[] = [];
+    for (let i = 0; i < 12; i++) hashes.push(await seedPhoto());
+    const runsDry = fakeModel((_url, before) =>
+      before >= 3 ? new ModelAccountError("fal refused the account (HTTP 403): TOP_UP") : null,
+    );
+    const result = await commandCutout(runtime, {
+      segment: runsDry.segment,
+      runner: fakeTool(AUTO),
+    });
+    expect(runsDry.answered).toHaveLength(3);
+    expect(runsDry.calls.length).toBeLessThan(12);
+    expect(result).toMatchObject({ auto: 3, failed: 0, deferred: 9 });
+    expect(result.stopped).toContain("TOP_UP");
+    for (const url of runsDry.answered) {
+      const hash = hashes.find((h) => url.includes(h))!;
+      expect((await rowFor(hash))!.status).toBe("auto");
+    }
+    expect(await loadCutoutCandidates(db)).toHaveLength(9); // asked again next run, no attempt spent
+  });
+
+  it("a model that answers nothing is an outage: nothing is recorded, no attempt spent", async () => {
+    for (let i = 0; i < 12; i++) await seedPhoto();
+    const down = fakeModel(() => new ModelError("fal answered HTTP 503: unavailable", 503));
+    const tool = fakeTool(AUTO);
+    const result = await commandCutout(runtime, { segment: down.segment, runner: tool });
+    expect(result.stopped).toContain("answered none of the first 4");
+    expect(result).toMatchObject({ auto: 0, failed: 0, deferred: 12 });
+    expect(down.calls.length).toBeLessThan(12);
+    expect(tool.seen).toEqual([]);
+    const waiting = await loadCutoutCandidates(db);
+    expect(waiting).toHaveLength(12);
+    expect(waiting.every((c) => c.attempts === 0)).toBe(true);
+  });
+
+  it("a store that fails stops the run before anything is recorded", async () => {
+    const hash = await seedPhoto();
+    const failing = {
+      ...runtime,
+      storage: Object.assign(Object.create(Object.getPrototypeOf(store)), store, {
+        get: async () => {
+          throw new Error("store unavailable");
+        },
+      }),
+    };
+    await expect(
+      commandCutout(failing, { segment: model.segment, runner: fakeTool(AUTO) }),
+    ).rejects.toThrow("store unavailable");
+    expect(model.calls).toEqual([]);
+    expect(await rowFor(hash)).toBeUndefined();
+  });
+
+  it("the model's key reaches neither the tool's environment nor anything it is given", async () => {
+    await seedPhoto();
+    const saved = process.env.FAL_KEY;
+    process.env.FAL_KEY = "key-id:sentinel-secret";
+    try {
+      const tool = fakeTool(AUTO);
+      await commandCutout(runtime, { segment: model.segment, runner: tool });
+      expect(tool.envs).toHaveLength(1);
+      expect(Object.keys(tool.envs[0]!)).not.toContain("FAL_KEY");
+      expect(JSON.stringify(tool.envs[0])).not.toContain("sentinel-secret");
+    } finally {
+      if (saved === undefined) delete process.env.FAL_KEY;
+      else process.env.FAL_KEY = saved;
+    }
   });
 
   it("a photo with no public address is not sent anywhere", async () => {
@@ -417,18 +497,24 @@ describeIntegration("images:cutout", () => {
     expect(model.calls).toEqual([]);
   });
 
-  it("refuses to start without FAL_KEY, before any photo is touched", async () => {
+  it("refuses to start without a usable FAL_KEY, before any photo is touched", async () => {
     const hash = await seedPhoto();
     const saved = process.env.FAL_KEY;
-    delete process.env.FAL_KEY;
     try {
+      delete process.env.FAL_KEY;
       await expect(commandCutout(runtime, { runner: fakeTool(AUTO) })).rejects.toThrow(
         "FAL_KEY is not set",
       );
+      process.env.FAL_KEY = "key-id:broken\nsecret-part";
+      const refusal = commandCutout(runtime, { runner: fakeTool(AUTO) });
+      await expect(refusal).rejects.toThrow("is not a fal key");
+      await expect(refusal).rejects.not.toThrow("secret-part");
     } finally {
-      if (saved !== undefined) process.env.FAL_KEY = saved;
+      if (saved === undefined) delete process.env.FAL_KEY;
+      else process.env.FAL_KEY = saved;
     }
     expect(await rowFor(hash)).toBeUndefined();
+    expect(photoKey(hash)).toContain(hash);
   });
 
   it("cuts primary photos first when limited", async () => {
