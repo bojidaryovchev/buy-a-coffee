@@ -1221,6 +1221,11 @@ uses it by drawing the pack through
 [`PackWell`](../apps/web/src/components/catalog/pack-well.tsx), and everything
 else keeps the photo. `images:push` and `images:verify` include the cut-outs.
 
+When the tool improves, `pnpm images:cutout --redo <hash,...>` re-cuts the
+named photos, settled or not (the tool's `version` is in `made_by`). The new
+cut-out waits on `/admin/snimki` whatever the tool says, and the old decision is
+cleared; a redo that fails leaves the row as it was.
+
 ### Brand logos
 
 A brand's own logo is drawn wherever a brand is named as a brand: the brands

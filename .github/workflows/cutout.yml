@@ -37,6 +37,11 @@ on:
         description: "List what would be cut, and stop"
         type: boolean
         default: false
+      redo:
+        description: "Re-cut these photos (content hashes, comma-separated), settled or not; each waits on /admin/snimki"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -72,6 +77,7 @@ jobs:
           STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
           STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
           LIMIT: ${{ inputs.limit || vars.CUTOUT_LIMIT }}
+          REDO: ${{ inputs.redo }}
         run: |
           missing=()
           [ -n "$DATABASE_URL" ]            || missing+=("secret DATABASE_URL")
@@ -84,6 +90,10 @@ jobs:
           fi
           if [ -n "$LIMIT" ] && ! [[ "$LIMIT" =~ ^[1-9][0-9]{0,3}$ ]]; then
             echo "::error title=Bad input::limit must be a positive whole number."
+            exit 1
+          fi
+          if [ -n "$REDO" ] && ! [[ "$REDO" =~ ^[0-9a-f]{64}(,[0-9a-f]{64}){0,49}$ ]]; then
+            echo "::error title=Bad input::redo takes up to 50 photo content hashes, comma-separated."
             exit 1
           fi
           node -e '
@@ -142,8 +152,10 @@ jobs:
           CUTOUT_PYTHON: python
           LIMIT: ${{ inputs.limit || vars.CUTOUT_LIMIT || '60' }}
           DRY_RUN: ${{ inputs.dry_run }}
+          REDO: ${{ inputs.redo }}
         run: |
           args=(--limit "$LIMIT")
+          if [ -n "$REDO" ]; then args+=(--redo "$REDO"); fi
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           set +e
           pnpm images:cutout "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/cutout.out"
@@ -170,7 +182,7 @@ jobs:
           }
           const lines = ["### Packshot cut-outs", ""];
           if (result) {
-            lines.push("| Photos | Live (auto) | Waiting on /admin/snimki | Failed, retried next run |", "| --- | --- | --- | --- |");
+            lines.push("| Photos | Live (auto) | Waiting on /admin/snimki | Failed (a scheduled run retries them; a redo does not) |", "| --- | --- | --- | --- |");
             lines.push(`| ${result.candidates} | ${result.auto} | ${result.pending} | ${result.failed} |`);
           } else {
             lines.push("No structured result was printed. See the log of the previous step.");

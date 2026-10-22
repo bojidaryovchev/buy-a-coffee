@@ -154,6 +154,8 @@ images:cutout options:
   --python <path>          Python with tools/cutout/requirements.txt (default:
                            CUTOUT_PYTHON, then python); models cache in U2NET_HOME
   --dry-run                List what would be cut, and stop
+  --redo <hash,...>        Re-cut these photos even if settled; each new cut-out
+                           waits for a person on /admin/snimki
 
 A run that writes (sync, discovery or reference without --dry-run; catalog:enrich
 and catalog:link with --apply) refuses to start until CRAWL_USER_AGENT names a
@@ -306,15 +308,22 @@ export async function main(argv: readonly string[]): Promise<number> {
       case "images:cutout": {
         const limit = num(flags, "limit");
         const python = str(flags, "python");
+        const redo = flags.redo === undefined ? undefined : String(flags.redo).split(",");
+        if (redo && !redo.every((hash) => /^[0-9a-f]{64}$/.test(hash))) {
+          process.stderr.write("--redo takes photo content hashes (64 hex), comma-separated\n");
+          return EXIT.usage;
+        }
         const result = await commandCutout(runtime, {
           ...(limit !== undefined ? { limit } : {}),
           ...(python !== undefined ? { python } : {}),
+          ...(redo ? { redo } : {}),
           dryRun: bool(flags, "dry-run"),
         });
         printJson({ command, ...result });
         // A photo the tool could not cut is retried by the next run; the
-        // run itself still did its job.
-        return EXIT.ok;
+        // run itself still did its job. A redo is retried by nobody, so a
+        // photo it could not redo fails it.
+        return redo && result.failed > 0 ? EXIT.failure : EXIT.ok;
       }
 
       case "status": {

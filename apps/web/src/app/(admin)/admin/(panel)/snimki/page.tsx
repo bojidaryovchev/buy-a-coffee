@@ -35,6 +35,10 @@ function repairs(row: CutoutRow): string[] {
   if (row.shape?.box && row.shape.box > 0.9 && row.shape.dents.length > 0) {
     said.push("изправена до правоъгълник");
   }
+  if (row.shape?.added && row.shape.added > 0.001)
+    said.push(`допълнена от снимката ${percent(row.shape.added)}`);
+  if (row.shape?.removed && row.shape.removed > 0.001)
+    said.push(`махнато отражение ${percent(row.shape.removed)}`);
   return said;
 }
 
@@ -82,11 +86,13 @@ function Shot({
 }
 
 function Decision({ row, approve, reject }: { row: CutoutRow; approve?: string; reject?: string }) {
+  if (!row.objectKey) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {approve && (
         <form action={approveCutout}>
           <input type="hidden" name="hash" value={row.hash} />
+          <input type="hidden" name="key" value={row.objectKey} />
           <Button type="submit" size="sm">
             {approve}
           </Button>
@@ -95,6 +101,7 @@ function Decision({ row, approve, reject }: { row: CutoutRow; approve?: string; 
       {reject && (
         <form action={rejectCutout}>
           <input type="hidden" name="hash" value={row.hash} />
+          <input type="hidden" name="key" value={row.objectKey} />
           <Button type="submit" size="sm" variant="secondary">
             {reject}
           </Button>

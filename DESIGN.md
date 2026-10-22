@@ -915,12 +915,14 @@ Three kinds of image, and no others.
 storefront.
 
 - **Cut out.** Each photograph is cut out to transparency when it is imported
-  (`tools/cutout`): two background-removal models whose masks are combined, a
-  shape check that fills a cut reaching deep into a pack (a pack is solid; a
-  picture printed on a box fools the models), and the white edge taken out. A
-  cut-out goes live by itself when the two models agree on 99 % of its pixels
-  or more and nothing had to be filled; anything else waits for a person in
-  the admin, and a rejected cut-out is never made again.
+  (`tools/cutout`): two background-removal models whose masks are combined; a
+  ground check against the photo itself, which brings back a box the models
+  lost round a picture printed on it and drops a reflection one of them took
+  for the pack; a shape check that fills a cut reaching deep into a pack (a
+  pack is solid); and the white edge taken out. A cut-out goes live by itself
+  when the two models agree on 99 % of its pixels or more and neither check
+  had to change it; anything else waits for a person in the admin, and a
+  rejected cut-out is not made again unless it is redone by name.
 - **Standing.** A cut-out stands on its well, trimmed to its own edges, at one
   scale for every pack in a grid, with its contact shadow (see "Elevation").
   The well is `well` fading to `paper-sunken` at its foot, so the pack has

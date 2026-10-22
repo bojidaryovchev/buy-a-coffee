@@ -894,6 +894,30 @@ nothing was filled; the owner approves or rejects the rest on /admin/snimki,
 and a rejection is final: the pack keeps its white well and is never cut
 again.
 
+**The photo's own ground checks the models.** Added on 22 October 2026, when
+the whole catalog (215 photos) was checked by eye and seven cut-outs, five of
+them live, were found cut off. On three dark boxes both models lost much of
+the box: on Rema Cortado they kept only the cup printed on it, and agreed on
+99.8 % of the pixels while doing so. On two, the lite model took the glossy
+floor's reflection for the pack. On a cream box, both lost its top band. And
+where the shape check filled what was missing, its convex hull drew diagonal
+edges across it. Agreement cannot catch a cut both models got wrong, so the
+photo decides. From the edge of the frame, the ground spreads through every
+pixel that is no edge: a shadow or a glow fades, a pack's outline does not.
+What it cannot reach, is not white and is no light grey shadow is pack, if it
+is wider than a rim somewhere. Nothing is added under a standing pack's base;
+there, a pixel only one model claimed is dropped when the floor holds the
+pack's reflection (row by row a faded copy of it, or pairing better upside
+down than the right way up), which a bag's own light lower panel does not. A
+change of 0.5 % of the pack or less is not made at all, so a cut-out that goes
+live by itself is exactly what the models cut: on 206 of the 215
+photos the result is the same to the bit, and one, a pod with a gold-tinted
+edge, would now wait for a person where it did not. White, grey and silver packs are beyond the check,
+because for them the ground, a shadow and the pack look alike: Rema Forte, a
+white box whose top corner both models lost, stays a person's call. A photo
+can be redone by name once the tool improves (`--redo`), and the new cut-out
+waits for a person; a rejection is final until then.
+
 **Cut-outs are keyed by the photo's hash, stored as PNG, and made after the
 sync, not during it.** A photo two products share is cut once; a changed photo
 gets a new hash and a new cut-out. PNG because share cards accept only JPEG and
