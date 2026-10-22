@@ -19,6 +19,7 @@ import {
   photoExtension,
 } from "../src/commands-cutout.ts";
 import type { ImagesContext } from "../src/commands-images.ts";
+import { ModelAccountError, type Segmenter } from "../src/cutout-model.ts";
 
 process.env.TEST_DATABASE_NAME = `${process.env.TEST_DATABASE_NAME ?? "catalog_test"}_cutout`.slice(
   0,
@@ -28,10 +29,11 @@ const { isDatabaseAvailable, resetTestDatabase, setupTestDatabase } =
   await import("../../../packages/scraper-core/test/helpers/testDb.ts");
 
 /**
- * images:cutout against a real database and a local store, with the Python
- * tool replaced by a runner that writes what the tool would. What is checked is
- * this side's contract: which photos are cut, what is stored, what each row
- * says, and that a decided row is never touched.
+ * images:cutout against a real database and a local store, with the model
+ * and the Python tool replaced by stand-ins that answer as they would. What is
+ * checked is this side's contract: which photos are sent where, what is
+ * stored, what each row says, that a decided row is never touched, and that a
+ * refused account spends nothing.
  */
 
 const available = await isDatabaseAvailable();
@@ -44,13 +46,17 @@ const PNG = (seed: string) =>
 /** A runner that cuts every photo it is given, as told by `outcome`. */
 function fakeTool(
   outcome: (hash: string) => CutoutReport[string],
-): CutoutRunner & { seen: string[] } {
+): CutoutRunner & { seen: string[]; modelled: string[] } {
   const seen: string[] = [];
+  const modelled: string[] = [];
   const runner = async ({ inDir, outDir, onLine }: Parameters<CutoutRunner>[0]) => {
     const report: Record<string, CutoutReport[string]> = {};
-    for (const file of await readdir(inDir)) {
+    const files = await readdir(inDir);
+    for (const file of files) {
+      if (file.endsWith(".model.png")) continue;
       const hash = file.split(".")[0]!;
       seen.push(hash);
+      if (files.includes(`${hash}.model.png`)) modelled.push(hash);
       const entry = outcome(hash);
       if (entry.file) await writeFile(path.join(outDir, entry.file), PNG(`cut-${hash}`));
       report[hash] = entry;
@@ -59,17 +65,29 @@ function fakeTool(
     await writeFile(path.join(outDir, "report.json"), JSON.stringify(report));
     return 0;
   };
-  return Object.assign(runner, { seen });
+  return Object.assign(runner, { seen, modelled });
+}
+
+/** A model that cuts every photo it is sent, unless `fail` says otherwise; remembers the addresses. */
+function fakeModel(fail: (url: string) => Error | null = () => null) {
+  const calls: string[] = [];
+  const segment: Segmenter = async (url) => {
+    calls.push(url);
+    const error = fail(url);
+    if (error) throw error;
+    return new Uint8Array(PNG(`model-${url}`));
+  };
+  return { segment, calls };
 }
 
 const AUTO = (hash: string) => ({
   file: `${hash}.png`,
   width: 300,
   height: 500,
-  agreement: 0.9987,
-  shape: { holes: 0, dents: [], box: null },
+  shape: { holes: 0, dents: [], box: null, added: 0, reflection: false },
   status: "auto" as const,
-  models: ["birefnet-general-lite", "birefnet-general"],
+  models: ["fal-ai/bria/background/remove"],
+  version: 3,
 });
 
 describeIntegration("images:cutout", () => {
@@ -78,6 +96,7 @@ describeIntegration("images:cutout", () => {
   let root: string;
   let store: LocalStorageDriver;
   let runtime: ImagesContext;
+  let model: ReturnType<typeof fakeModel>;
   let seq = 0;
 
   beforeAll(async () => {
@@ -95,13 +114,14 @@ describeIntegration("images:cutout", () => {
   beforeEach(async () => {
     await resetTestDatabase(db);
     await rm(path.join(root, "store"), { recursive: true, force: true });
-    store = new LocalStorageDriver(path.join(root, "store"), "http://store.test/media");
+    store = new LocalStorageDriver(path.join(root, "store"), "https://store.test/media");
     runtime = {
       db,
       logger: silentLogger,
-      config: loadConfig({}, { STORAGE_PUBLIC_BASE_URL: "http://store.test/media" }),
+      config: loadConfig({}, { STORAGE_PUBLIC_BASE_URL: "https://store.test/media" }),
       storage: store,
     };
+    model = fakeModel();
   });
 
   /** A product with one photo in the store; returns the photo's hash. */
@@ -153,10 +173,10 @@ describeIntegration("images:cutout", () => {
     const b = await seedPhoto({ mimeType: null });
     await seedPhoto({ status: "orphaned" });
     const tool = fakeTool((hash) =>
-      hash === b ? { ...AUTO(hash), status: "pending", agreement: 0.51 } : AUTO(hash),
+      hash === b ? { ...AUTO(hash), status: "pending" } : AUTO(hash),
     );
 
-    const result = await commandCutout(runtime, { runner: tool });
+    const result = await commandCutout(runtime, { segment: model.segment, runner: tool });
 
     expect(result).toEqual({ candidates: 2, auto: 1, pending: 1, failed: 0 });
     expect(tool.seen.sort()).toEqual([a, b].sort());
@@ -165,7 +185,7 @@ describeIntegration("images:cutout", () => {
       status: "auto",
       width: 300,
       height: 500,
-      agreement: 0.9987,
+      agreement: null,
       attempts: 1,
     });
     expect(row!.objectKey).toBe(cutoutKey(PNG(`cut-${a}`)));
@@ -176,7 +196,9 @@ describeIntegration("images:cutout", () => {
 
     // Nothing is left to do, and a second run cuts nothing.
     expect(await loadCutoutCandidates(db)).toEqual([]);
-    expect(await commandCutout(runtime, { runner: fakeTool(AUTO) })).toMatchObject({
+    expect(
+      await commandCutout(runtime, { segment: model.segment, runner: fakeTool(AUTO) }),
+    ).toMatchObject({
       candidates: 0,
     });
   });
@@ -185,7 +207,7 @@ describeIntegration("images:cutout", () => {
     const hash = await seedPhoto();
     const failing = fakeTool(() => ({ error: "ValueError: the models found no pack" }));
     for (let attempt = 1; attempt <= CUTOUT_MAX_ATTEMPTS; attempt++) {
-      await commandCutout(runtime, { runner: failing });
+      await commandCutout(runtime, { segment: model.segment, runner: failing });
       expect(await rowFor(hash)).toMatchObject({ status: "failed", attempts: attempt });
     }
     expect((await rowFor(hash))!.lastError).toContain("found no pack");
@@ -194,8 +216,11 @@ describeIntegration("images:cutout", () => {
 
   it("a failed photo that later succeeds is recorded as made", async () => {
     const hash = await seedPhoto();
-    await commandCutout(runtime, { runner: fakeTool(() => ({ error: "boom" })) });
-    await commandCutout(runtime, { runner: fakeTool(AUTO) });
+    await commandCutout(runtime, {
+      segment: model.segment,
+      runner: fakeTool(() => ({ error: "boom" })),
+    });
+    await commandCutout(runtime, { segment: model.segment, runner: fakeTool(AUTO) });
     expect(await rowFor(hash)).toMatchObject({ status: "auto", attempts: 2, lastError: null });
   });
 
@@ -205,7 +230,9 @@ describeIntegration("images:cutout", () => {
       .insert(imageCutouts)
       .values({ sourceContentHash: hash, status: "rejected", decidedBy: "owner" });
     const tool = fakeTool(AUTO);
-    expect(await commandCutout(runtime, { runner: tool })).toMatchObject({ candidates: 0 });
+    expect(await commandCutout(runtime, { segment: model.segment, runner: tool })).toMatchObject({
+      candidates: 0,
+    });
     expect(tool.seen).toEqual([]);
     expect((await rowFor(hash))!.status).toBe("rejected");
   });
@@ -227,9 +254,10 @@ describeIntegration("images:cutout", () => {
         ...(status === "auto" ? {} : { decidedBy: "owner", decidedAt: new Date() }),
       });
     }
-    const tool = fakeTool((hash) => ({ ...AUTO(hash), version: 2 }));
+    const tool = fakeTool(AUTO);
 
     const result = await commandCutout(runtime, {
+      segment: model.segment,
       runner: tool,
       redo: [rejected, live, "f".repeat(64)],
     });
@@ -245,7 +273,7 @@ describeIntegration("images:cutout", () => {
         attempts: 2,
       });
       expect(row!.objectKey).toBe(cutoutKey(PNG(`cut-${hash}`)));
-      expect(row!.madeBy).toBe("tools/cutout v2 birefnet-general-lite+birefnet-general");
+      expect(row!.madeBy).toBe("tools/cutout v3 fal-ai/bria/background/remove");
     }
     expect(await rowFor(untouched)).toMatchObject({
       status: "auto",
@@ -263,6 +291,7 @@ describeIntegration("images:cutout", () => {
       attempts: 1,
     });
     const result = await commandCutout(runtime, {
+      segment: model.segment,
       runner: fakeTool(() => ({ error: "boom" })),
       redo: [hash],
     });
@@ -291,7 +320,11 @@ describeIntegration("images:cutout", () => {
         .where(eq(imageCutouts.sourceContentHash, hash));
       return cut(input);
     };
-    const result = await commandCutout(runtime, { runner: ownerDecidesMeanwhile, redo: [hash] });
+    const result = await commandCutout(runtime, {
+      segment: model.segment,
+      runner: ownerDecidesMeanwhile,
+      redo: [hash],
+    });
     expect(result).toMatchObject({ pending: 0, failed: 1 });
     expect(await rowFor(hash)).toMatchObject({
       status: "approved",
@@ -311,10 +344,91 @@ describeIntegration("images:cutout", () => {
     const present = await seedPhoto();
     const gone = await seedPhoto();
     await store.delete(`catalog/${gone.slice(0, 2)}/${gone.slice(2, 4)}/${gone}.jpg`);
-    const result = await commandCutout(runtime, { runner: fakeTool(AUTO) });
+    const result = await commandCutout(runtime, { segment: model.segment, runner: fakeTool(AUTO) });
     expect(result).toMatchObject({ auto: 1, failed: 1 });
     expect((await rowFor(present))!.status).toBe("auto");
     expect((await rowFor(gone))!.lastError).toContain("not in the store");
+  });
+
+  it("sends each photo's public address to the model, and hands the tool its answer", async () => {
+    const hash = await seedPhoto();
+    const tool = fakeTool(AUTO);
+    await commandCutout(runtime, { segment: model.segment, runner: tool });
+    expect(model.calls).toEqual([
+      `https://store.test/media/catalog/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.jpg`,
+    ]);
+    expect(tool.modelled).toEqual([hash]);
+  });
+
+  it("a photo the model could not cut fails alone, and is tried again next run", async () => {
+    const fine = await seedPhoto();
+    const refused = await seedPhoto();
+    const picky = fakeModel((url) =>
+      url.includes(refused) ? new Error("fal answered HTTP 422: image_url unreachable") : null,
+    );
+    const result = await commandCutout(runtime, { segment: picky.segment, runner: fakeTool(AUTO) });
+    expect(result).toMatchObject({ auto: 1, failed: 1 });
+    expect((await rowFor(fine))!.status).toBe("auto");
+    expect(await rowFor(refused)).toMatchObject({ status: "failed", attempts: 1 });
+    expect((await rowFor(refused))!.lastError).toContain("the model failed: fal answered HTTP 422");
+    expect((await loadCutoutCandidates(db)).map((c) => c.hash)).toEqual([refused]);
+  });
+
+  it("an account the model refuses stops the run, and no photo spends an attempt", async () => {
+    const hash = await seedPhoto();
+    const locked = fakeModel(
+      () =>
+        new ModelAccountError(
+          "fal refused the request (HTTP 403): User is locked. Reason: TOP_UP.",
+        ),
+    );
+    const tool = fakeTool(AUTO);
+    await expect(commandCutout(runtime, { segment: locked.segment, runner: tool })).rejects.toThrow(
+      "TOP_UP",
+    );
+    expect(tool.seen).toEqual([]);
+    expect(await rowFor(hash)).toBeUndefined();
+    expect((await loadCutoutCandidates(db)).map((c) => c.hash)).toEqual([hash]);
+  });
+
+  it("a photo with no public address is not sent anywhere", async () => {
+    const hash = await seedPhoto();
+    const unpublished = {
+      ...runtime,
+      storage: new LocalStorageDriver(path.join(root, "store"), "http://store.test/media"),
+    };
+    const result = await commandCutout(unpublished, {
+      segment: model.segment,
+      runner: fakeTool(AUTO),
+    });
+    expect(result).toMatchObject({ failed: 1 });
+    expect(model.calls).toEqual([]);
+    expect((await rowFor(hash))!.lastError).toContain("no public address");
+  });
+
+  it("a dry run lists the photos and calls no model", async () => {
+    await seedPhoto();
+    const result = await commandCutout(runtime, {
+      segment: model.segment,
+      runner: fakeTool(AUTO),
+      dryRun: true,
+    });
+    expect(result).toMatchObject({ candidates: 1, auto: 0 });
+    expect(model.calls).toEqual([]);
+  });
+
+  it("refuses to start without FAL_KEY, before any photo is touched", async () => {
+    const hash = await seedPhoto();
+    const saved = process.env.FAL_KEY;
+    delete process.env.FAL_KEY;
+    try {
+      await expect(commandCutout(runtime, { runner: fakeTool(AUTO) })).rejects.toThrow(
+        "FAL_KEY is not set",
+      );
+    } finally {
+      if (saved !== undefined) process.env.FAL_KEY = saved;
+    }
+    expect(await rowFor(hash)).toBeUndefined();
   });
 
   it("cuts primary photos first when limited", async () => {
@@ -345,14 +459,16 @@ describe("cutoutEnvironment", () => {
   it("passes what Python needs and nothing secret", () => {
     const env = cutoutEnvironment({
       PATH: "/usr/bin",
-      U2NET_HOME: "/models",
+      VIRTUAL_ENV: "/venv",
       DATABASE_URL: "postgres://user:secret@db/catalog",
       BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_secret",
+      FAL_KEY: "key-id:secret",
       STORAGE_PUBLIC_BASE_URL: "https://store.test",
     });
-    expect(env).toMatchObject({ PATH: "/usr/bin", U2NET_HOME: "/models", PYTHONUNBUFFERED: "1" });
+    expect(env).toMatchObject({ PATH: "/usr/bin", VIRTUAL_ENV: "/venv", PYTHONUNBUFFERED: "1" });
     expect(Object.keys(env)).not.toContain("DATABASE_URL");
     expect(Object.keys(env)).not.toContain("BLOB_READ_WRITE_TOKEN");
+    expect(Object.keys(env)).not.toContain("FAL_KEY");
     expect(JSON.stringify(env)).not.toContain("secret");
   });
 });

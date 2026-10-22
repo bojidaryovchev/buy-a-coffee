@@ -115,7 +115,7 @@ Commands:
   images:gc          Report (and optionally delete) unreferenced mirrored images
   images:push        Copy every referenced image from one store to another
   images:verify      Check that every referenced image is in the configured store
-  images:cutout      Cut packshots out to transparency (tools/cutout, Python)
+  images:cutout      Cut packshots out to transparency (BRIA on fal, then tools/cutout)
   status             Print catalog counts
   help               Show this message
 
@@ -152,7 +152,7 @@ images:verify options:
 images:cutout options:
   --limit <n>              Cut at most N photos (primary photos first)
   --python <path>          Python with tools/cutout/requirements.txt (default:
-                           CUTOUT_PYTHON, then python); models cache in U2NET_HOME
+                           CUTOUT_PYTHON, then python); the model needs FAL_KEY
   --dry-run                List what would be cut, and stop
   --redo <hash,...>        Re-cut these photos even if settled; each new cut-out
                            waits for a person on /admin/snimki

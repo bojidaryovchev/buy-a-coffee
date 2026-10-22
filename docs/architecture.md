@@ -1203,15 +1203,18 @@ checked by `pnpm images:verify --http`.
 Each active photo is also cut out to transparency (Phase K; DESIGN.md,
 "Imagery"). `pnpm images:cutout`
 ([`commands-cutout.ts`](../apps/scraper/src/commands-cutout.ts)) reads the
-photos that have no settled cut-out from the store, hands them in a temporary
-directory to [`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (two
-background-removal models through `rembg`, combined, then a shape check), and
-stores each PNG content-addressed under `cutouts/` with a row in
-`image_cutouts`, keyed by the photo's content hash. The Python process gets no
-secret: only the environment it needs to run and find its models
-(`U2NET_HOME`). `.github/workflows/cutout.yml` runs it after each scheduled
-sync with the models cached; locally it needs a Python with
-`tools/cutout/requirements.txt` (`--python` or `CUTOUT_PYTHON`).
+photos that have no settled cut-out from the store, sends each one's public
+address to BRIA RMBG 2.0 on fal
+([`cutout-model.ts`](../apps/scraper/src/cutout-model.ts), with `FAL_KEY`),
+hands the photos and the model's answers in a temporary directory to
+[`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (the ground check and the
+shape check), and stores each PNG content-addressed under `cutouts/` with a row
+in `image_cutouts`, keyed by the photo's content hash. Only the Node command
+holds the key; the Python process gets no secret, only the environment it
+needs to run. fal refusing the account (no credit, a wrong key) stops the run
+before anything is recorded. `.github/workflows/cutout.yml` runs it after each
+scheduled sync on GitHub's standard runner; locally it needs `FAL_KEY` and a
+Python with `tools/cutout/requirements.txt` (`--python` or `CUTOUT_PYTHON`).
 
 A row's `status` decides whether the shop shows it: `auto` and `approved` are
 live, `pending` waits on `/admin/snimki`, `rejected` keeps the white well for

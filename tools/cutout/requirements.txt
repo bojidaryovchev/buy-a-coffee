@@ -1,7 +1,7 @@
-# The packshot cut-out tool (tools/cutout/cutout.py), Python 3.13.
-# Pinned to the versions it was measured with on 19 October 2026.
-rembg[cpu]==2.0.85
-onnxruntime==1.31.0
+# The packshot cut-out tool (tools/cutout/cutout.py), Python 3.13. The model
+# runs on fal (apps/scraper/src/cutout-model.ts); the tool only checks and
+# trims, so it needs no model runtime. Pinned to the versions it was measured
+# with on 19 and 22 October 2026.
 numpy==2.5.4
 pillow==12.3.0
 scipy==1.18.1

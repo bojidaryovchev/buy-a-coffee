@@ -918,14 +918,35 @@ white box whose top corner both models lost, stays a person's call. A photo
 can be redone by name once the tool improves (`--redo`), and the new cut-out
 waits for a person; a rejection is final until then.
 
+**BRIA RMBG 2.0 through fal.** Decided with the owner on 22 October 2026, the
+same day. On the shop's 20 hardest photos (the seven cut off; white, grey and
+silver packs; glossy floors; a few that were always right), BRIA's model alone
+was right on all 20. The two BiRefNet models with the ground check were right
+on 19 (not on the white Rema Forte box, which is beyond the check), and on 13
+before it; IS-Net and SAM given the pack's box did worse than either. BRIA's
+model is BiRefNet's network trained on 15,000 licensed photos labelled by hand:
+the training made the difference, not the network. Its weights are licensed
+for non-commercial use only, so the shop calls it through fal, whose price,
+$0.018 a photo, includes the commercial licence: about $4 for the whole
+catalog, cents a month after. fal fetches the photo from its public address in
+our store; its answer, the cut-out at the photo's size, is used for its alpha
+only, and fal's own copy and BRIA's run locally gave the same masks (99.8 % of
+the pixels, median). The ground check stays as the second opinion — from the
+photo itself, now that the model has no twin to disagree with — and a cut that
+runs on under a standing pack's base onto its reflection is shown to a person
+rather than changed. fal is prepaid: with no credit it refuses every call, and
+the run stops without spending any photo's attempts. No model runs on our
+machines any more, so the workflow downloads none and runs on GitHub's free
+runner.
+
 **Cut-outs are keyed by the photo's hash, stored as PNG, and made after the
 sync, not during it.** A photo two products share is cut once; a changed photo
 gets a new hash and a new cut-out. PNG because share cards accept only JPEG and
-PNG; browsers get AVIF and WebP through the image optimizer anyway. The models
-are about 1.2 GB and run on CPU, so the work is its own workflow after each
-scheduled sync (`cutout.yml`), like the copywriter, and never slows the sync
-or touches its secrets. The Python tool sees the photos and nothing else; the
-Node command does every write. A cut-out is a field beside the photo, not a
+PNG; browsers get AVIF and WebP through the image optimizer anyway. The work is
+its own workflow after each scheduled sync (`cutout.yml`), like the copywriter,
+and never slows the sync or touches its secrets. The Python tool sees the
+photos and the model's answers and nothing else; the Node command holds the
+model's key and does every write. A cut-out is a field beside the photo, not a
 replacement: each surface opts in through `PackWell`, and email and share
 cards keep the photo until they do.
 

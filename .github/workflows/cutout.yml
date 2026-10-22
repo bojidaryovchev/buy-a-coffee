@@ -1,21 +1,24 @@
 # Packshot cut-outs, after every sync (Phase K, K1; DESIGN.md, "Imagery").
 #
 # Runs `pnpm images:cutout` (apps/scraper/src/commands-cutout.ts): every active
-# product photo without a cut-out is cut out to transparency by
-# tools/cutout/cutout.py (two BiRefNet models through rembg, combined, and a
-# shape check), stored content-addressed under cutouts/ in the image store,
-# and recorded in image_cutouts. A cut-out the two models agreed on goes live
-# by itself; the rest wait for the owner on /admin/snimki.
+# product photo without a cut-out is cut out to transparency by BRIA RMBG 2.0
+# on fal (given the photo's public address), checked and trimmed against the
+# photo by tools/cutout/cutout.py, stored content-addressed under cutouts/ in
+# the image store, and recorded in image_cutouts. A cut-out no check changed
+# goes live by itself; the rest wait for the owner on /admin/snimki.
 #
-# The Python tool never sees a secret: the Node command runs it with only the
-# environment it needs (cutoutEnvironment), and does every write itself.
+# Only the Node command holds FAL_KEY, and only in the step that cuts; the
+# Python tool never sees a secret: the command runs it with only the
+# environment it needs (cutoutEnvironment), and does every write itself. fal
+# is prepaid: with no credit it refuses every call, and the run fails without
+# spending any photo's attempts.
 #
 # LOGS ARE PUBLIC (see sync.yml). The job prints content hashes and counts
 # only. Never add a step that echoes the environment, runs with `set -x`, or
 # prints a secret.
 #
-# Configuration (names only, the same as the sync's):
-#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN
+# Configuration (names only, the same as the sync's, and the model's key):
+#   secrets    DATABASE_URL, BLOB_READ_WRITE_TOKEN, FAL_KEY (an API-scoped fal key)
 #   variables  STORAGE_DRIVER, STORAGE_PUBLIC_BASE_URL,
 #              CUTOUT_LIMIT (photos per run, default 60; the first backfill
 #              of the whole catalog takes a few runs)
@@ -59,23 +62,21 @@ jobs:
       !github.event.repository.fork &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.event == 'schedule' && github.event.workflow_run.conclusion == 'success'))
-    # GitHub's standard runner, free for a public repository: 4 vCPUs and
-    # 16 GB, where the two models take about 29 s a photo and 7 to 9 GB. A
-    # scheduled run cuts the few photos a sync brings; even a full run of
-    # CUTOUT_LIMIT (60) fits the timeout at that speed.
+    # GitHub's standard runner, free for a public repository: the model runs
+    # on fal (about 3 s a photo), and the tool's checks take about a second.
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     # Secrets are given only to the step that uses them, never to the job: the
     # install steps run third-party install scripts.
     env:
       NODE_VERSION: "22"
       PYTHON_VERSION: "3.13"
-      U2NET_HOME: ${{ github.workspace }}/.u2net
     steps:
       - name: Check configuration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
           STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
           STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
           LIMIT: ${{ inputs.limit || vars.CUTOUT_LIMIT }}
@@ -84,6 +85,7 @@ jobs:
           missing=()
           [ -n "$DATABASE_URL" ]            || missing+=("secret DATABASE_URL")
           [ -n "$BLOB_READ_WRITE_TOKEN" ]   || missing+=("secret BLOB_READ_WRITE_TOKEN")
+          [ -n "$FAL_KEY" ]                 || missing+=("secret FAL_KEY")
           [ -n "$STORAGE_DRIVER" ]          || missing+=("variable STORAGE_DRIVER")
           [ -n "$STORAGE_PUBLIC_BASE_URL" ] || missing+=("variable STORAGE_PUBLIC_BASE_URL")
           if [ ${#missing[@]} -gt 0 ]; then
@@ -128,13 +130,6 @@ jobs:
           cache: pip
           cache-dependency-path: tools/cutout/requirements.txt
 
-      # About 1.2 GB of models, fetched once and kept between runs.
-      - name: Restore the models
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.U2NET_HOME }}
-          key: cutout-models-birefnet-general-lite-birefnet-general-v1
-
       - name: Install
         run: |
           pnpm install --frozen-lockfile
@@ -149,6 +144,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
           STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
           STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
           CUTOUT_PYTHON: python

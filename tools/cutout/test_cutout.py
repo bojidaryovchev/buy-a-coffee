@@ -1,15 +1,19 @@
-"""The ground check, the shape check and the white edge, on synthetic photos
-and masks — no models needed.
+"""The ground check, the shape check, the white edge and the tool's reading of
+a photo beside the model's answer, on synthetic photos and masks — no model
+and no network needed.
 
     python -m unittest tools/cutout/test_cutout.py
 """
 
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
+from PIL import Image
 from scipy import ndimage
 
-from cutout import cut_alpha, ground_check, level, shape_check, status_of, unmix_white
+from cutout import cut_alpha, cut_one, ground_check, level, shape_check, status_of, unmix_white
 
 
 def rect(h, w, y0, y1, x0, x1):
@@ -82,9 +86,9 @@ def pictured(rgb, y0, y1, x0, x1):
 
 
 class GroundCheck(unittest.TestCase):
-    def test_a_box_the_models_missed_round_its_printed_cup_is_found_whole(self):
-        # As on Rema Cortado and Lollo Giove: both models cut out the cup
-        # printed on the box, and the box went missing round it.
+    def test_a_box_the_model_missed_round_its_printed_cup_is_found_whole(self):
+        # As on Rema Cortado and Lollo Giove under the BiRefNet models: the cup
+        # printed on the box was cut out, and the box went missing round it.
         rgb = photo()
         rgb[40:200, 40:160] = 40.0
         yy, xx = np.mgrid[0:260, 0:200]
@@ -92,14 +96,14 @@ class GroundCheck(unittest.TestCase):
         rgb[cup] = 230.0
         for y in range(200, 232):  # a soft shadow fading out under it
             rgb[y, 40:160] = 200.0 + (y - 200) * 55.0 / 32
-        alpha, report = ground_check(rgb, cup.astype(np.float32), cup.astype(np.float32))
+        alpha, report = ground_check(rgb, cup.astype(np.float32))
         self.assertTrue((alpha[44:196, 44:156] > 0.99).all())
         self.assertTrue((alpha[205:232, 40:160] < 0.01).all())  # the shadow stays ground
         self.assertGreater(report["added"], 0.5)
-        self.assertEqual(status_of(1.0, cut_alpha(rgb, cup * 1.0, cup * 1.0)[1]), "pending")
+        self.assertEqual(status_of(cut_alpha(rgb, cup * 1.0)[1]), "pending")
 
     def reflected(self, blur):
-        """A printed box on a glossy floor, its reflection under it; one model
+        """A printed box on a glossy floor, its reflection under it; the model
         took part of the reflection for the box."""
         rgb = photo()
         if blur:
@@ -111,30 +115,43 @@ class GroundCheck(unittest.TestCase):
         if blur:
             rgb[142:212] = ndimage.gaussian_filter(rgb[142:212], (blur, blur, 0))
             rgb[142:212] += np.random.default_rng(1).normal(0, 5, (70, 200, 1))
-        box = rect(260, 200, 40, 140, 40, 160)
-        greedy = box.copy()
+        greedy = rect(260, 200, 40, 140, 40, 160)
         greedy[142:180, 40:100] = 1.0
-        return rgb, box, greedy
+        return rgb, greedy
 
-    def test_a_sharp_reflection_one_model_took_for_the_pack_is_dropped(self):
-        # As on Bianchi Gusto Forte: each row under the box is a row of it,
-        # faded toward white. Its rows look alike, so pairing them upside
-        # down is no better than the right way up.
-        rgb, box, greedy = self.reflected(blur=0)
-        alpha, report = ground_check(rgb, box, greedy)
-        self.assertTrue((alpha[146:212, 40:160] < 0.01).all())
-        self.assertTrue((alpha[44:136, 44:156] > 0.99).all())
-        self.assertGreater(report["removed"], 0.05)
+    def test_a_sharp_reflection_in_the_cut_is_shown_to_a_person_unchanged(self):
+        # As on Bianchi Gusto Forte under BiRefNet lite: each row under the
+        # box is a row of it, faded toward white. Its rows look alike, so
+        # pairing them upside down is no better than the right way up.
+        rgb, greedy = self.reflected(blur=0)
+        alpha, shape = cut_alpha(rgb, greedy)
+        self.assertTrue(shape["reflection"])
+        self.assertEqual(status_of(shape), "pending")
+        self.assertTrue((alpha[150:178, 44:96] > 0.99).all())  # left as the model cut it
 
-    def test_a_blurred_reflection_is_dropped_too(self):
+    def test_a_blurred_reflection_in_the_cut_is_shown_to_a_person_too(self):
         # As on Caffitaly Panettone: too soft to be a faded copy row by row,
         # but it still pairs up better upside down than the right way up.
-        rgb, box, greedy = self.reflected(blur=2.5)
-        alpha, report = ground_check(rgb, box, greedy)
-        self.assertTrue((alpha[148:180, 40:100] < 0.01).all())
-        self.assertGreater(report["removed"], 0.05)
+        rgb, greedy = self.reflected(blur=2.5)
+        _, shape = cut_alpha(rgb, greedy)
+        self.assertTrue(shape["reflection"])
+        self.assertEqual(status_of(shape), "pending")
 
-    def test_a_bag_whose_light_lower_panel_one_model_missed_keeps_it(self):
+    def test_a_reflection_the_model_left_out_is_not_added_back(self):
+        # The model cut the box exactly; under it the glossy floor holds a
+        # coloured, patterned reflection the ground cannot reach. It is not
+        # the pack, so nothing under the base is added.
+        rgb = photo()
+        striped(rgb, 40, 140, 40, 160)
+        for j in range(0, 70):  # right at the base: it touches the box
+            rgb[140 + j, 40:160] = 0.45 * rgb[139 - j, 40:160] + 0.55 * 255.0
+        box = rect(260, 200, 40, 140, 40, 160)
+        alpha, shape = cut_alpha(rgb, box)
+        self.assertEqual(shape["added"], 0.0)
+        self.assertEqual(status_of(shape), "auto")
+        self.assertTrue((alpha[144:210] < 0.01).all())
+
+    def test_a_bag_with_a_light_lower_panel_is_no_reflection(self):
         # As on Elia Vending: a dark band over a light panel is no floor, and
         # the panel is no reflection of the band, though the bag's pillow
         # shading runs through both.
@@ -145,12 +162,12 @@ class GroundCheck(unittest.TestCase):
         pillow = 1 - 0.3 * ((np.arange(50, 150) - 100) / 50.0) ** 2
         rgb[40:220, 50:150] *= pillow[None, :, None]
         bag = rect(260, 200, 40, 220, 50, 150)
-        band = rect(260, 200, 40, 160, 50, 150)
-        alpha, report = ground_check(rgb, bag, band)
+        alpha, shape = cut_alpha(rgb, bag)
         self.assertTrue((alpha[164:216, 54:146] > 0.99).all())
-        self.assertEqual(report["removed"], 0.0)
+        self.assertFalse(shape["reflection"])
+        self.assertEqual(status_of(shape), "auto")
 
-    def test_a_small_change_is_not_made_and_the_cut_goes_live_as_the_models_drew_it(self):
+    def test_a_small_change_is_not_made_and_the_cut_goes_live_as_the_model_drew_it(self):
         # A small logo reflected under a cream box, no floor line found under
         # a box so light: too small to be worth a person's look, so not added.
         rgb = photo(300, 240)
@@ -158,42 +175,42 @@ class GroundCheck(unittest.TestCase):
         rgb[270:284, 100:114] = [200.0, 40.0, 40.0]
         box = rect(300, 240, 30, 270, 20, 220)
         soft_edge = ndimage.gaussian_filter(box, 1.5)
-        alpha, shape = cut_alpha(rgb, soft_edge, soft_edge)
-        self.assertEqual((shape["added"], shape["removed"]), (0.0, 0.0))
-        self.assertEqual(status_of(1.0, shape), "auto")
+        alpha, shape = cut_alpha(rgb, soft_edge)
+        self.assertEqual((shape["added"], shape["reflection"]), (0.0, False))
+        self.assertEqual(status_of(shape), "auto")
         np.testing.assert_allclose(alpha, shape_check(np.clip((soft_edge - 0.08) / 0.88, 0, 1))[0])
         self.assertTrue((alpha[274:284, 102:112] == 0).all())
-        self.assertGreater(alpha[270, 60], 0.0)  # the models' soft edge is kept
+        self.assertGreater(alpha[270, 60], 0.0)  # the model's soft edge is kept
 
     def test_a_hole_still_sends_the_cut_out_to_a_person(self):
-        # A hang hole the models both left open shows the ground: the shape
-        # check fills it, and only a person can say whether it should be.
+        # A hang hole the model left open shows the ground: the shape check
+        # fills it, and only a person can say whether it should be.
         rgb = photo()
         printed(rgb, 40, 200, 40, 160)
         rgb[60:68, 96:104] = 255.0
         pod = rect(260, 200, 40, 200, 40, 160)
         pod[60:68, 96:104] = 0.0
-        _, shape = cut_alpha(rgb, pod, pod)
+        _, shape = cut_alpha(rgb, pod)
         self.assertGreater(shape["holes"], 0.001)
-        self.assertEqual(status_of(1.0, shape), "pending")
-        # Also when the models missed the pod's lower part, and the ground
+        self.assertEqual(status_of(shape), "pending")
+        # Also when the model missed the pod's lower part, and the ground
         # check puts it back: the hole is still reported as a hole.
         top = pod.copy()
         top[140:200] = 0.0
-        _, shape = cut_alpha(rgb, top, top)
+        _, shape = cut_alpha(rgb, top)
         self.assertGreater(shape["added"], 0.2)
         self.assertGreater(shape["holes"], 0.001)
 
     def test_the_rim_of_an_outline_is_no_miss(self):
-        # The models got the box; the dark band just outside one side is the
-        # box's own edge, which they drew a few pixels in.
+        # The model got the box; the dark band just outside one side is the
+        # box's own edge, which it drew a few pixels in.
         rgb = photo()
         striped(rgb, 40, 200, 40, 160)
         rgb[40:200, 160:168] = [40.0, 30.0, 90.0]
         box = rect(260, 200, 40, 200, 40, 160)
-        alpha, shape = cut_alpha(rgb, box, box)
+        alpha, shape = cut_alpha(rgb, box)
         self.assertEqual(shape["added"], 0.0)
-        self.assertEqual(status_of(1.0, shape), "auto")
+        self.assertEqual(status_of(shape), "auto")
         self.assertTrue((alpha[40:200, 163:168] < 0.5).all())
 
     def test_a_drop_shadow_beside_a_flat_pod_is_no_miss(self):
@@ -203,14 +220,14 @@ class GroundCheck(unittest.TestCase):
         rgb[56:206, 56:176] = 205.0
         striped(rgb, 40, 190, 40, 160)
         pod = rect(260, 200, 40, 190, 40, 160)
-        alpha, shape = cut_alpha(rgb, pod, pod)
+        alpha, shape = cut_alpha(rgb, pod)
         self.assertEqual(shape["added"], 0.0)
         self.assertTrue((alpha[192:206, 60:176] < 0.5).all())
 
-    def test_a_light_box_whose_top_the_models_missed_is_found_through_a_gap(self):
-        # As on Foodness Mermaid Latte: a cream box on white; the models lost
-        # its top band, and its outline has a narrow soft gap the ground
-        # must not pour in through.
+    def test_a_light_box_whose_top_the_model_missed_is_found_through_a_gap(self):
+        # As on Foodness Mermaid Latte under the BiRefNet models: a cream box
+        # on white lost its top band, and its outline has a narrow soft gap
+        # the ground must not pour in through.
         rgb = photo()
         cream = np.array([240.0, 236.0, 222.0])
         rgb[40:200, 30:170] = cream
@@ -218,9 +235,30 @@ class GroundCheck(unittest.TestCase):
         for y in range(34, 47):  # the gap: four columns fading in smoothly
             rgb[y, 60:64] = 255.0 - (y - 34) / 12 * (255.0 - cream)
         lower = rect(260, 200, 90, 200, 30, 170)
-        alpha, report = ground_check(rgb, lower, lower)
+        alpha, report = ground_check(rgb, lower)
         self.assertTrue((alpha[44:88, 34:166] > 0.99).all())
         self.assertGreater(report["added"], 0.2)
+
+
+class Reading(unittest.TestCase):
+    def test_the_models_cut_out_is_framed_as_the_photo_is(self):
+        # The model answers at the photo's own size; the tool works on the
+        # photo cropped out of its white canvas, so the answer must be cropped
+        # the same way, or the pack and its mask would not line up.
+        with tempfile.TemporaryDirectory() as folder:
+            canvas = np.full((300, 220, 3), 255, np.uint8)
+            canvas[40:280, 30:200] = 246  # the photo's light-grey ground
+            canvas[90:250, 70:160] = [40, 30, 90]  # the pack
+            Image.fromarray(canvas).save(Path(folder) / "photo.png")
+            answer = np.zeros((300, 220, 4), np.uint8)
+            answer[90:250, 70:160] = [40, 30, 90, 255]
+            Image.fromarray(answer, "RGBA").save(Path(folder) / "photo.model.png")
+            cut, shape = cut_one(Path(folder) / "photo.png", Path(folder) / "photo.model.png")
+        self.assertEqual(cut.size, (90, 160))
+        self.assertEqual(status_of(shape), "auto")
+        pixels = np.asarray(cut)
+        self.assertTrue((pixels[..., 3] == 255).all())
+        self.assertLess(float(np.abs(pixels[..., :3].astype(float) - [41, 31, 93]).max()), 6)
 
 
 class Edge(unittest.TestCase):

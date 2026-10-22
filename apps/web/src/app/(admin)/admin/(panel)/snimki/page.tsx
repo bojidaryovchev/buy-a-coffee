@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 /**
  * Packshot cut-outs, for the owner to check (DESIGN.md, "Imagery").
  *
- * What needs an answer comes first: cut-outs the two models disagreed on, or
- * that the shape check had to repair. Each is shown next to its photo, on the
+ * What needs an answer comes first: cut-outs a check had to repair or
+ * question (the photo's own ground, the pack's shape, a reflection). Each is shown next to its photo, on the
  * cream of the page and on the green of the hero, where a bad edge shows at
  * once. Every action is a plain form, so the screen works without JavaScript.
  */
@@ -39,6 +39,7 @@ function repairs(row: CutoutRow): string[] {
     said.push(`допълнена от снимката ${percent(row.shape.added)}`);
   if (row.shape?.removed && row.shape.removed > 0.001)
     said.push(`махнато отражение ${percent(row.shape.removed)}`);
+  if (row.shape?.reflection) said.push("може да е хванато отражението под опаковката");
   return said;
 }
 
@@ -156,8 +157,8 @@ export default async function AdminCutoutsPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-ink-900">Снимки</h1>
         <p className="mt-1 max-w-3xl text-base text-ink-500">
-          Опаковките, изрязани от фона на снимката им след всяка синхронизация. Когато двата модела
-          са съгласни, изрязаната снимка се показва сама; останалите чакат тук. Отхвърлената остава
+          Опаковките, изрязани от фона на снимката им след всяка синхронизация. Когато проверките не
+          намерят нищо, изрязаната снимка се показва сама; останалите чакат тук. Отхвърлената остава
           на бял фон и не се изрязва отново. Решението се вижда в магазина до пет минути.
         </p>
       </div>

@@ -7,19 +7,25 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { and, asc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { imageCutouts, productImages, type CutoutShape } from "@catalog/db/schema";
+import { mapWithConcurrency } from "@catalog/shared";
 import type { ImagesContext } from "./commands-images.ts";
+import { ModelAccountError, type Segmenter, falSegmenter } from "./cutout-model.ts";
 
 /**
  * Packshot cut-outs — Phase K, K1; DESIGN.md, "Imagery".
  *
  * For every active photo that has no cut-out yet (or whose last attempt
- * failed, a few times), the photo is read from the store, cut out by
- * `tools/cutout/cutout.py`, and the PNG is stored content-addressed under
- * `cutouts/` with a row in `image_cutouts`.
+ * failed, a few times), the photo is read from the store, the model cuts it
+ * out (`cutout-model.ts`: BRIA RMBG 2.0 on fal, given the photo's public
+ * address), `tools/cutout/cutout.py` checks and trims that against the photo,
+ * and the PNG is stored content-addressed under `cutouts/` with a row in
+ * `image_cutouts`.
  *
- * The Python tool gets the photos in a temporary directory and nothing else:
- * no database URL, no store token, only the environment it needs to run and to
- * find its models. Everything that writes stays here.
+ * The Python tool gets the photos and the model's answers in a temporary
+ * directory and nothing else: no database URL, no store token, no model key,
+ * only the environment it needs to run. Everything that writes or calls out
+ * stays here. A model that refuses the account (no credit, a wrong key) stops
+ * the run before anything is recorded, so no photo spends an attempt on it.
  *
  * A row a person decided (`approved`, `rejected`) or the tool settled (`auto`,
  * `pending`) is never written again by this command; only `failed` rows are
@@ -82,7 +88,12 @@ export interface CutoutOptions {
   /** List what would be cut, and stop. */
   readonly dryRun?: boolean;
   readonly runner?: CutoutRunner;
+  /** The model (default: BRIA on fal, with `FAL_KEY`). Injected in tests. */
+  readonly segment?: Segmenter;
 }
+
+/** Photos sent to the model at once. */
+const MODEL_CONCURRENCY = 4;
 
 export interface CutoutResult {
   readonly candidates: number;
@@ -97,7 +108,7 @@ export function cutoutKey(bytes: Uint8Array): string {
   return `${CUTOUT_PREFIX}/${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}.png`;
 }
 
-/** The environment the tool may see: enough to run Python and find its models. */
+/** The environment the tool may see: enough to run Python. */
 const PASSED_THROUGH = new Set([
   "PATH",
   "PATHEXT",
@@ -112,7 +123,6 @@ const PASSED_THROUGH = new Set([
   "USERPROFILE",
   "APPDATA",
   "LOCALAPPDATA",
-  "U2NET_HOME",
   "PYTHONPATH",
   "VIRTUAL_ENV",
   "LANG",
@@ -257,6 +267,7 @@ export async function commandCutout(
   if (candidates.length === 0 || options.dryRun) {
     return { candidates: candidates.length, auto: 0, pending: 0, failed: 0 };
   }
+  const segment = options.segment ?? defaultSegmenter();
 
   const work = await mkdtemp(path.join(tmpdir(), "cutout-"));
   const inDir = path.join(work, "in");
@@ -266,19 +277,47 @@ export async function commandCutout(
   const counts = { auto: 0, pending: 0, failed: 0 };
 
   try {
+    // Each photo is written for the tool beside the model's answer for it. A
+    // photo the model could not cut is that photo's failure; an account the
+    // model refuses is the run's, and nothing is recorded.
     const missing = new Map<string, string>();
-    for (const candidate of candidates) {
+    const prepared = await mapWithConcurrency(candidates, MODEL_CONCURRENCY, async (candidate) => {
       const bytes = await storage.get(candidate.objectKey);
       if (!bytes) {
         missing.set(candidate.hash, `the photo ${candidate.objectKey} is not in the store`);
-        continue;
+        return;
       }
       const ext = photoExtension(bytes);
       if (!ext) {
         missing.set(candidate.hash, `the photo ${candidate.objectKey} is not a JPEG, PNG or WebP`);
-        continue;
+        return;
+      }
+      const url = storage.urlFor(candidate.objectKey);
+      if (!url?.startsWith("https://")) {
+        missing.set(candidate.hash, `the photo ${candidate.objectKey} has no public address`);
+        return;
+      }
+      let cut: Uint8Array;
+      try {
+        cut = await segment(url);
+      } catch (error) {
+        if (error instanceof ModelAccountError) throw error;
+        missing.set(
+          candidate.hash,
+          `the model failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return;
       }
       await writeFile(path.join(inDir, `${candidate.hash}.${ext}`), bytes);
+      await writeFile(path.join(inDir, `${candidate.hash}.model.png`), cut);
+    });
+    const refused = prepared.find((entry) => !entry.ok && entry.error instanceof ModelAccountError);
+    if (refused && !refused.ok) throw refused.error;
+    for (const [index, entry] of prepared.entries()) {
+      if (!entry.ok) {
+        const reason = entry.error instanceof Error ? entry.error.message : String(entry.error);
+        missing.set(candidates[index]!.hash, `the photo could not be prepared: ${reason}`);
+      }
     }
 
     const runner = options.runner ?? spawnRunner;
@@ -351,6 +390,13 @@ export async function commandCutout(
 
   logger.info("cutout.done", { candidates: candidates.length, ...counts });
   return { candidates: candidates.length, ...counts };
+}
+
+/** BRIA on fal, with the key from the environment; refuses to start without one. */
+function defaultSegmenter(): Segmenter {
+  const key = process.env.FAL_KEY?.trim();
+  if (!key) throw new Error("FAL_KEY is not set: the cut-out model runs on fal");
+  return falSegmenter({ key });
 }
 
 /**
