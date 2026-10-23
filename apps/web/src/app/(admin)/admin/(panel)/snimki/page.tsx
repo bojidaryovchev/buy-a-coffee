@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/primitives";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -80,9 +81,12 @@ function Shot({
     <figure className="flex flex-col gap-1">
       {/* A fixed box and a picture filling it, contained: a percentage
           max-height inside an auto-sized grid cell resolves to nothing, and a
-          cut-out 900 px tall then ran out of its box. */}
+          cut-out 900 px tall then ran out of its box. Drawn through the image
+          optimizer at the box's size, not as the stored PNG of 300 KB or more. */}
       <div className={`size-40 rounded-sm border border-line p-3 ${surface}`}>
-        <img src={src} alt={label} className="size-full object-contain" />
+        <div className="relative size-full">
+          <Image src={src} alt={label} fill sizes="136px" className="object-contain" />
+        </div>
       </div>
       <figcaption className="text-xs text-ink-500">{label}</figcaption>
     </figure>
@@ -140,7 +144,15 @@ function Tile({ row, children }: { row: CutoutRow; children: React.ReactNode }) 
     <li className="flex flex-col gap-2 rounded-md border border-line bg-paper-raised p-3">
       {row.cutoutUrl && (
         <div className="h-32 rounded-sm bg-paper p-2">
-          <img src={row.cutoutUrl} alt="" className="size-full object-contain" />
+          <div className="relative size-full">
+            <Image
+              src={row.cutoutUrl}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 180px, (min-width: 640px) 25vw, 50vw"
+              className="object-contain"
+            />
+          </div>
         </div>
       )}
       <p className="text-xs">
@@ -227,7 +239,7 @@ export default async function AdminCutoutsPage() {
           Показват се
         </h2>
         <p className="mt-1 text-sm text-ink-500">
-          Последните {live.length}. Свалената се връща на бял фон.
+          Всички {live.length}, най-новите отпред. Свалената се връща на бял фон.
         </p>
         <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {live.map((row) => (

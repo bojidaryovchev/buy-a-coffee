@@ -37,11 +37,18 @@ export interface CutoutRow {
 
 export type CutoutCounts = Readonly<Record<CutoutStatus | "uncut", number>>;
 
-/** Rows per list: the screen shows what needs a look, not the whole catalog. */
-const LIST_LIMIT = 60;
+/**
+ * Rows for the failed list, which should stay short; the shown and rejected
+ * lists are the whole catalog's (about 215 packs), so the owner can check every
+ * cut-out the shop shows, and the waiting list is everything waiting.
+ */
+const FAILED_LIMIT = 60;
 
-async function rows(statuses: readonly CutoutStatus[], limit = LIST_LIMIT): Promise<CutoutRow[]> {
-  const found = await db
+async function rows(
+  statuses: readonly CutoutStatus[],
+  limit: number | null = null,
+): Promise<CutoutRow[]> {
+  const query = db
     .select({
       hash: imageCutouts.sourceContentHash,
       status: imageCutouts.status,
@@ -72,7 +79,8 @@ async function rows(statuses: readonly CutoutStatus[], limit = LIST_LIMIT): Prom
     .where(inArray(imageCutouts.status, [...statuses]))
     .groupBy(imageCutouts.sourceContentHash)
     .orderBy(desc(imageCutouts.updatedAt))
-    .limit(limit);
+    .$dynamic();
+  const found = await (limit === null ? query : query.limit(limit));
 
   return found.map((row) => ({
     hash: row.hash,
@@ -115,8 +123,8 @@ export async function loadCutoutReview(): Promise<{
           sql`${imageCutouts.sourceContentHash} is null`,
         ),
       ),
-    rows(["pending"], 200),
-    rows(["failed"]),
+    rows(["pending"]),
+    rows(["failed"], FAILED_LIMIT),
     rows(["auto", "approved"]),
     rows(["rejected"]),
   ]);

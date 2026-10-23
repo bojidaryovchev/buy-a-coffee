@@ -85,4 +85,23 @@ suite("cut-out decisions (integration)", () => {
     await actions.approveCutout(data);
     expect((await row()).status).toBe("pending");
   });
+
+  it("lists every cut-out the shop shows, not only the latest sixty", async () => {
+    const hex = (n: number, seed: string) =>
+      `${seed}${n.toString(16).padStart(4, "0")}`.padEnd(64, "0");
+    const live = Array.from({ length: 70 }, (_, n) => ({
+      sourceContentHash: hex(n, "a"),
+      objectKey: `cutouts/0c/0c/${hex(n, "c")}.png`,
+      status: n % 2 ? ("auto" as const) : ("approved" as const),
+    }));
+    const failed = Array.from({ length: 65 }, (_, n) => ({
+      sourceContentHash: hex(n, "f"),
+      status: "failed" as const,
+      attempts: 1,
+    }));
+    await db.insert(imageCutouts).values([...live, ...failed]);
+    const review = await (await import("@/lib/cutout-review")).loadCutoutReview();
+    expect(review.live).toHaveLength(70);
+    expect(review.failed).toHaveLength(60); // a failed list stays short
+  });
 });
