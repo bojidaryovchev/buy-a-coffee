@@ -53,15 +53,22 @@ colors:
 typography:
   hero:
     fontFamily: "Literata, Georgia, 'Times New Roman', serif"
-    fontSize: "52px"
+    fontSize: "64px"
     fontWeight: 600
-    lineHeight: 1.1
+    lineHeight: 1.04
     letterSpacing: "-0.015em"
   hero-sm:
     fontFamily: "Literata, Georgia, 'Times New Roman', serif"
     fontSize: "31px"
     fontWeight: 600
-    lineHeight: 1.19
+    lineHeight: 1.08
+    letterSpacing: "-0.015em"
+  hero-accent:
+    fontFamily: "Literata, Georgia, 'Times New Roman', serif"
+    fontStyle: "italic"
+    fontSize: "64px"
+    fontWeight: 500
+    lineHeight: 1.04
     letterSpacing: "-0.015em"
   page-title:
     fontFamily: "Literata, Georgia, 'Times New Roman', serif"
@@ -173,10 +180,22 @@ components:
     textColor: "{colors.ink-900}"
     rounded: "{rounded.sm}"
     padding: "10px 20px"
+  button-on-espresso:
+    backgroundColor: "transparent"
+    textColor: "{colors.paper}"
+    borderColor: "{colors.espresso-200}"
+    rounded: "{rounded.sm}"
+    padding: "10px 20px"
+  button-on-espresso-hover:
+    borderColor: "{colors.gold-300}"
   card-product:
-    backgroundColor: "{colors.paper-raised}"
+    backgroundColor: "transparent"
     rounded: "{rounded.md}"
-    padding: "12px"
+    padding: "0"
+  card-product-well:
+    backgroundColor: "{colors.well}"
+    gradientTo: "{colors.paper-sunken}"
+    rounded: "{rounded.md}"
   input-text:
     backgroundColor: "{colors.paper-raised}"
     textColor: "{colors.ink-900}"
@@ -190,6 +209,9 @@ components:
     padding: "2px 6px"
   announcement-bar:
     backgroundColor: "{colors.pine-900}"
+    textColor: "{colors.paper}"
+  band-espresso:
+    backgroundColor: "{colors.espresso-900}"
     textColor: "{colors.paper}"
 ---
 
@@ -612,6 +634,7 @@ The token scale in `globals.css` is the only one. Root size is 16 px.
 | `text-3xl`   | 31 px | 36.8 px     |
 | `text-4xl`   | 40 px | 44 px       |
 | `text-5xl`   | 52 px | 54.4 px     |
+| `text-6xl`   | 64 px | 66.6 px     |
 
 ### Hierarchy
 
