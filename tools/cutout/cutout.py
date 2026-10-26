@@ -43,10 +43,11 @@ The method (version 4, 26 October 2026):
 Status is "auto" when no check changed the pack (the ground check makes no
 change of QUIET or less, and a count badge put back is no change) or
 questioned it: a reflection kept under the base, a light grey shadow kept
-beyond the pack's print, a cut reaching the frame. "pending" otherwise. The ground check cannot tell a white, grey or silver pack
-from the ground or a shadow, so a white box with a blank border is shown to a
-person; and it cannot see a dark, patterned reflection kept under a light
-pack, which only BRIA's own judgement keeps out.
+beyond the pack's print, a cut reaching the frame. "pending" otherwise. The
+ground check cannot tell a white, grey or silver pack from the ground or a
+shadow, so a white box with a blank border is shown to a person; and it cannot
+see a dark, patterned reflection kept under a light pack, which only BRIA's own
+judgement keeps out.
 """
 
 from __future__ import annotations
