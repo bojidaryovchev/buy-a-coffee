@@ -941,7 +941,8 @@ storefront.
   by BRIA RMBG 2.0, run by fal, then checked against the photo itself in
   `tools/cutout` — a ground check that brings back anything of the pack the
   model missed and notices a reflection, a shadow or the backdrop it kept for
-  the pack, and a shape
+  the pack, and puts back a pod's "x100" count badge the model dropped (the
+  count is kept, as in the photo), and a shape
   check that fills a cut reaching deep into a pack (a pack is solid) — and the
   white edge taken out. A cut-out goes live by itself when no check had to
   change or question it; anything else waits for a person in the admin, and a

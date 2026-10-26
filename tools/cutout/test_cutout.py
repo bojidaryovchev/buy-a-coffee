@@ -1,6 +1,6 @@
-"""The ground check, the shape check, the white edge and the tool's reading of
-a photo beside the model's answer, on synthetic photos and masks — no model
-and no network needed.
+"""The ground check, the count badges, the shape check, the white edge and the
+tool's reading of a photo beside the model's answer, on synthetic photos and
+masks — no model and no network needed.
 
     python -m unittest tools/cutout/test_cutout.py
 """
@@ -99,7 +99,7 @@ class GroundCheck(unittest.TestCase):
         rgb[cup] = 230.0
         for y in range(200, 232):  # a soft shadow fading out under it
             rgb[y, 40:160] = 200.0 + (y - 200) * 55.0 / 32
-        alpha, report = ground_check(rgb, cup.astype(np.float32))
+        alpha, report, _ = ground_check(rgb, cup.astype(np.float32))
         self.assertTrue((alpha[44:196, 44:156] > 0.99).all())
         self.assertTrue((alpha[205:232, 40:160] < 0.01).all())  # the shadow stays ground
         self.assertGreater(report["added"], 0.5)
@@ -238,7 +238,7 @@ class GroundCheck(unittest.TestCase):
         for y in range(34, 47):  # the gap: four columns fading in smoothly
             rgb[y, 60:64] = 255.0 - (y - 34) / 12 * (255.0 - cream)
         lower = rect(260, 200, 90, 200, 30, 170)
-        alpha, report = ground_check(rgb, lower)
+        alpha, report, _ = ground_check(rgb, lower)
         self.assertTrue((alpha[44:88, 34:166] > 0.99).all())
         self.assertGreater(report["added"], 0.2)
 
@@ -290,6 +290,118 @@ class Kept(unittest.TestCase):
         _, shape = cut_alpha(rgb, box)
         self.assertGreater(shape["kept"], 0.005)
         self.assertEqual(status_of(shape), "pending")
+
+
+def badged(rgb, cy, cx, r, ring=5, over=True, colour=(120.0, 20.0, 30.0)):
+    """An "x100" count badge as the shop's photos carry it: a coloured disc
+    with white figures, in a white ring, a soft grey shadow round that on the
+    ground. Without `over` the ring is not drawn over the pack, and the disc's
+    colour runs straight into the pack's. Returns each pixel's distance from
+    the badge's centre."""
+    yy, xx = np.mgrid[0:rgb.shape[0], 0:rgb.shape[1]]
+    rad = np.hypot(yy - cy, xx - cx)
+    ground = (rgb == 255.0).all(axis=2)
+    fade = (rad >= r + ring) & (rad < r + ring + 10) & ground
+    rgb[fade] = (200.0 + (rad[fade] - r - ring) * 5.5)[:, None]
+    rgb[(rad < r + ring) & (ground if not over else True)] = 255.0
+    rgb[rad < r] = colour
+    if r >= 20:
+        rgb[cy - 8:cy + 8, cx - 12:cx - 6] = 255.0  # the figures
+        rgb[cy - 8:cy + 8, cx + 2:cx + 8] = 255.0
+    return rad
+
+
+class Badges(unittest.TestCase):
+    """A count badge the model dropped is put back, and is no change for a
+    person to look at; nothing else is taken for one."""
+
+    def pod(self):
+        rgb = photo(260, 260)
+        striped(rgb, 80, 230, 30, 190)
+        return rgb, rect(260, 260, 80, 230, 30, 190)
+
+    def assert_kept(self, alpha, shape, rad, r=30, ring=5):
+        self.assertTrue((alpha[rad < r + ring - 1] > 0.99).all())  # the disc, its figures and its ring
+        shadow = (rad > r + ring + 1) & (rad < r + ring + 9) & (self.pod()[1] == 0)
+        self.assertTrue((alpha[shadow] < 0.01).all())
+        self.assertGreater(shape["badge"], 0.05)
+        self.assertEqual(shape["added"], 0.0)
+        self.assertEqual(status_of(shape), "auto")
+
+    def test_a_badge_clear_of_the_pod_the_model_dropped_is_put_back(self):
+        # As on Bianchi Gold 100: the badge stands a few pixels off the
+        # pouch's corner, and BRIA cut the pouch alone.
+        rgb, pod = self.pod()
+        rad = badged(rgb, 52, 218, 30)
+        alpha, shape = cut_alpha(rgb, pod)
+        self.assert_kept(alpha, shape, rad)
+
+    def test_a_badge_over_the_pod_the_model_cut_round_is_put_back(self):
+        # As on Bianchi Decaf: the badge sits over the pouch's corner, its
+        # colour running into the pouch's, and BRIA bit the corner out with it.
+        rgb, pod = self.pod()
+        rad = badged(rgb, 70, 200, 30, over=False)
+        alpha, shape = cut_alpha(rgb, pod * (rad >= 35))
+        self.assert_kept(alpha, shape, rad)
+
+    def test_a_badge_the_model_kept_a_piece_of_is_put_back(self):
+        # As on Rema Crema Forte: BRIA kept a quarter of the badge, joined to
+        # the pouch, and dropped the rest.
+        rgb, pod = self.pod()
+        rad = badged(rgb, 70, 200, 30)
+        yy, xx = np.mgrid[0:260, 0:260]
+        piece = (rad < 35) & (yy >= 70) & (xx <= 200)
+        alpha, shape = cut_alpha(rgb, np.maximum(pod * (rad >= 35), piece))
+        self.assert_kept(alpha, shape, rad)
+
+    def test_a_badge_the_model_kept_is_left_as_it_cut_it(self):
+        # As on Lavazza Gran Espresso: BRIA kept the badge, and drew its own
+        # edge a little inside the white ring.
+        rgb, pod = self.pod()
+        rad = badged(rgb, 70, 200, 30)
+        alpha, shape = cut_alpha(rgb, np.maximum(pod, rad < 32))
+        self.assertEqual(shape["badge"], 0.0)
+        self.assertEqual(status_of(shape), "auto")
+        self.assertTrue((alpha[(rad > 33) & (pod == 0)] < 0.01).all())
+
+    def test_a_sticker_that_is_no_disc_is_no_badge(self):
+        rgb, pod = self.pod()
+        yy, xx = np.mgrid[0:260, 0:260]
+        oval = ((yy - 52) / 22.0) ** 2 + ((xx - 205) / 40.0) ** 2  # a few pixels off the corner
+        rgb[oval < 1.35] = 255.0
+        rgb[oval < 1] = [120.0, 20.0, 30.0]
+        alpha, shape = cut_alpha(rgb, pod)
+        self.assertEqual(shape["badge"], 0.0)
+        self.assertTrue((alpha[oval < 1] < 0.01).all())
+
+    def test_only_a_disc_of_a_badges_size_at_the_pods_edge_is_a_badge(self):
+        for where, (cy, cx, r) in {
+            "away from the pod": (95, 228, 26),
+            "a dot beside it": (126, 204, 8),
+            "the size of a second pack": (100, 225, 42),
+        }.items():
+            with self.subTest(where):
+                rgb = photo(320, 320)
+                striped(rgb, 140, 290, 30, 190)
+                pod = rect(320, 320, 140, 290, 30, 190)
+                rad = badged(rgb, cy, cx, r)
+                alpha, shape = cut_alpha(rgb, pod)
+                self.assertEqual(shape["badge"], 0.0)
+                self.assertTrue((alpha[rad < r] < 0.01).all())
+
+    def test_nothing_under_a_standing_packs_base_is_a_badge(self):
+        # A round logo's reflection on a glossy floor, just under the base.
+        rgb = photo()
+        striped(rgb, 40, 140, 40, 160)
+        for j in range(0, 70):
+            rgb[140 + j, 40:160] = 0.45 * rgb[139 - j, 40:160] + 0.55 * 255.0
+        yy, xx = np.mgrid[0:260, 0:200]
+        rad = np.hypot(yy - 160, xx - 52)
+        rgb[rad < 15] = 255.0
+        rgb[rad < 12] = [150.0, 120.0, 160.0]
+        alpha, shape = cut_alpha(rgb, rect(260, 200, 40, 140, 40, 160))
+        self.assertEqual(shape["badge"], 0.0)
+        self.assertTrue((alpha[rad < 12] < 0.01).all())
 
 
 def answer(folder, size=(220, 300), mode="RGBA", alpha=True):

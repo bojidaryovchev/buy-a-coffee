@@ -947,6 +947,24 @@ still recorded, the rest wait with no attempt spent, and the run fails so a
 person sees why. No model runs on our machines any more, so the workflow
 downloads none and runs on GitHub's free runner.
 
+**A pod's count badge is part of its cut-out.** Decided with the owner on 26
+October 2026. The shop's photos of pods and capsules carry an "x100" sticker,
+a coloured disc in a white ring at a corner of the pack, clear of it or over
+it. The first cut-outs kept it; BRIA drops it as no part of the pack: whole on
+nine pods, with a piece left on three. Where the badge sits over the pack (five
+of the twelve), the ground check put it back ragged and sent the pod to a
+person; elsewhere it was simply gone. The owner chose to keep the count, as the
+photo shows it. The tool now looks for a disc of colour the ground cannot
+reach, of a badge's size (1 to 20 % of the pack; the shop's are 5 to 8 %), with
+nothing of it beyond the largest circle inside it, within a rim's width of the
+pack and mostly not in the model's cut, and draws it back as a circle with its
+white ring, out to where the ring's shadow begins. On the whole catalog it
+found all 12 badges BRIA dropped and nothing else; the badges and printed discs
+the model kept were left alone, and the other 198 photos came out the same to
+the bit. A badge put back is no change for a person to check, so all 12 pods
+would go live by themselves. Version 4 of the tool; the live cut-outs of those
+pods, made before BRIA, already show their badges, so none is redone.
+
 **Cut-outs are keyed by the photo's hash, stored as PNG, and made after the
 sync, not during it.** A photo two products share is cut once; a changed photo
 gets a new hash and a new cut-out. PNG because share cards accept only JPEG and
