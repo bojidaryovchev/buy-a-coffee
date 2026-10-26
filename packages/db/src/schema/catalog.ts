@@ -434,6 +434,8 @@ export interface CutoutShape {
   readonly kept?: number;
   /** The cut reaches the edge of the frame, where only the backdrop is (from v3). */
   readonly framed?: boolean;
+  /** Share of the pack a count badge ("x100") the model dropped adds, put back (from v4). */
+  readonly badge?: number;
 }
 
 /**

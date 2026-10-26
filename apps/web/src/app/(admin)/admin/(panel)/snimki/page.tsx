@@ -44,6 +44,8 @@ function repairs(row: CutoutRow): string[] {
   if (row.shape?.kept && row.shape.kept > 0.005)
     said.push(`светлосиво извън печата ${percent(row.shape.kept)}: сянка или бял ръб на кутията`);
   if (row.shape?.framed) said.push("стига до края на снимката: може да е хванат фонът");
+  if (row.shape?.badge && row.shape.badge > 0.001)
+    said.push(`върнат стикерът с броя ${percent(row.shape.badge)}`);
   return said;
 }
 

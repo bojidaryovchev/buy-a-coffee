@@ -10,7 +10,7 @@ measured and what was done. The Node side (`pnpm images:cutout`) calls the
 model, uploads the PNGs and records the report; this script touches no
 database and no network, and holds no key.
 
-The method (version 3, 22 October 2026):
+The method (version 4, 26 October 2026):
 
 1. The model is BRIA RMBG 2.0, run by fal. On the shop's 20 hardest photos
    (a cup or a capsule printed on a box, glossy floors, a cream box, white,
@@ -29,6 +29,10 @@ The method (version 3, 22 October 2026):
    pack's reflection (MIRROR, MIRROR_GAIN) is shown to a person, unchanged —
    a bag's own light lower panel is not its reflection — and so is one that
    kept a light grey shadow beyond the pack's own print, or reaches the frame.
+   A count badge the model dropped ("x100" in a white ring on a pod's corner,
+   which the owner wants kept) is put back as a disc with its ring (BADGE,
+   ROUND): on the whole catalog it was dropped from 12 pods, found on all 12,
+   and nothing else was taken for one (26 October 2026, version 4).
 4. The shape check: a pack is solid. Enclosed holes are filled; a gap reaching
    deeper than DENT_DEPTH into the pack is filled back (badge and crimp gaps
    reached 0.26 at most, the misses 0.35 and 0.51); a pack that then nearly
@@ -37,9 +41,9 @@ The method (version 3, 22 October 2026):
    from white), and the result is trimmed to the pack.
 
 Status is "auto" when no check changed the pack (the ground check makes no
-change of QUIET or less) or questioned it: a reflection kept under the base, a
-light grey shadow kept beyond the pack's print, a cut reaching the frame.
-"pending" otherwise. The ground check cannot tell a white, grey or silver pack
+change of QUIET or less, and a count badge put back is no change) or
+questioned it: a reflection kept under the base, a light grey shadow kept
+beyond the pack's print, a cut reaching the frame. "pending" otherwise. The ground check cannot tell a white, grey or silver pack
 from the ground or a shadow, so a white box with a blank border is shown to a
 person; and it cannot see a dark, patterned reflection kept under a light
 pack, which only BRIA's own judgement keeps out.
@@ -57,7 +61,7 @@ from scipy import ndimage
 from skimage.morphology import convex_hull_image
 
 MODEL = "fal-ai/bria/background/remove"
-VERSION = 3  # 2: the ground check; 3: BRIA RMBG 2.0 through fal (22 October 2026)
+VERSION = 4  # 2: the ground check; 3: BRIA RMBG 2.0 through fal (22 October 2026); 4: count badges kept
 GROUND = 8  # a pixel this close to the levelled white could be the ground
 SMOOTH = 40  # edge strength: a shadow or a glow fades below it, a pack's outline does not
 BASE_EDGE = 120  # the edge a standing pack's base makes against its floor
@@ -67,6 +71,8 @@ MIRROR = 0.5  # how closely what lies under a base must mirror the pack to be it
 MIRROR_GAIN = 0.2  # how much better a blurred reflection pairs upside down than the right way up
 BELOW = 0.01  # share of the cut under a standing pack's base worth asking a person about
 QUIET = 0.005  # what the ground check may change and the cut-out still go live by itself
+BADGE = (0.01, 0.2)  # share of the pack a count badge covers; the shop's cover 0.05 to 0.08
+ROUND = 0.95  # how much of a badge lies within the largest circle inside it: a disc, nothing more
 DENT_DEPTH = 0.30
 BOX_FIT = 0.90
 MAX_SIDE = 1200  # the photos are 800 x 1200; nothing is upscaled
@@ -176,8 +182,70 @@ def reflection(rgb: np.ndarray, base: int, left: int, right: int) -> bool:
     return False
 
 
-def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
-    """The model's mask, checked against the photo's own ground.
+def badges(off: np.ndarray, union: np.ndarray, coloured: np.ndarray) -> np.ndarray:
+    """The count badges the model dropped, as a 0..1 alpha.
+
+    The shop's photos of pods and capsules carry an "x100" sticker: a coloured
+    disc in a white ring at a corner of the pack, clear of it or over it, and
+    the owner wants it kept. BRIA drops it whole, or keeps a piece. A badge is
+    a disc of colour the ground cannot reach: of a badge's size (BADGE), with
+    nothing beyond the largest circle inside it (ROUND), within a rim's width
+    of the model's cut and mostly not in it. It is looked for in the cores of
+    that colour without the model's cut, as a badge over the pack runs into
+    the pack's colour, and with it, as a piece the model kept is part of the
+    disc. It comes back with its white ring (`ring`), as a circle with a soft
+    edge a pixel wide."""
+    size = max(int(union.sum()), 1)
+    near = ndimage.distance_transform_edt(~union)
+    yy, xx = np.indices(union.shape)
+    alpha = np.zeros(union.shape, np.float32)
+    for region in (coloured & ~union, coloured):
+        parts, _ = ndimage.label(ndimage.binary_opening(region, iterations=RIM))
+        areas = np.bincount(parts.ravel())
+        areas[0] = 0
+        for index in np.flatnonzero((areas >= BADGE[0] * size) & (areas <= BADGE[1] * size)):
+            disc = ndimage.binary_fill_holes(parts == index)
+            depth = ndimage.distance_transform_edt(disc)
+            cy, cx = np.unravel_index(np.argmax(depth), depth.shape)
+            if alpha[cy, cx] > 0:
+                continue  # found in the first look
+            radius = float(depth[cy, cx])
+            rad = np.hypot(yy - cy, xx - cx)
+            if (disc & (rad <= radius + 2)).sum() < ROUND * disc.sum():
+                continue
+            if union[rad <= radius].mean() >= 0.5:
+                continue  # the model kept it
+            if near[(rad > radius) & (rad <= radius + 1.5)].min() > 2 * RIM:
+                continue  # not at this pack's edge
+            edge = radius + ring(off, union, rad, radius)
+            alpha = np.maximum(alpha, np.clip(edge - rad + 0.5, 0, 1))  # a pixel's share inside the edge
+    return alpha
+
+
+def ring(off: np.ndarray, union: np.ndarray, rad: np.ndarray, radius: float) -> int:
+    """How far a badge's white ring reaches past its disc: out circle by circle
+    (the median of each, the pack left out) to where the ring's shadow rises a
+    step (GROUND) out of the white again. Where no shadow shows, a white ring
+    cannot be told from the ground, and the badge is cut at its disc's edge."""
+    lowest, edge = None, None
+    for k in range(max(RIM, int(0.2 * radius))):
+        band = (rad >= radius + k) & (rad < radius + k + 1) & ~union
+        if not band.any():
+            continue
+        level_ = float(np.median(off[band]))
+        if lowest is not None and level_ >= lowest + GROUND:
+            return k
+        if lowest is None or level_ < lowest:
+            lowest = level_
+        if edge is None and level_ < GROUND:
+            edge = k
+    return 0 if edge is None else edge
+
+
+def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict, np.ndarray]:
+    """The model's mask, checked against the photo's own ground; and apart, the
+    count badges the model dropped, to be laid over the pack once its shape is
+    checked.
 
     A model can miss a whole box around a picture printed on it, keep a shadow
     or the photo's backdrop, and take a reflection for the pack. The photo
@@ -195,10 +263,13 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     - A cut that reaches the edge of the frame has kept the backdrop
       (`framed`), and one that goes on under a standing pack's base onto its
       reflection (`reflection`); both are left as they are and reported.
+    - A count badge the model dropped is put back (`badges`), with or without
+      anything else, and its share of the pack reported (`badge`).
 
     A change of no more than QUIET of the pack is not made at all, so a
-    cut-out that goes live by itself is exactly what the model cut; holes are
-    left to the shape check, which has its own, stricter limit.
+    cut-out that goes live by itself is exactly what the model cut, but for a
+    count badge; holes are left to the shape check, which has its own, stricter
+    limit.
     """
     union = model > 0.5
     off = np.abs(255.0 - rgb).max(axis=2)
@@ -220,11 +291,13 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     # printed: dark, or coloured, even when it is cream.
     grey = rgb.max(axis=2) - rgb.min(axis=2) < SHADOW[0]
     shadow = grey & (off < SHADOW[1])
-    missed = ~ground & (off >= GROUND) & ~shadow & ~union
+    coloured = ~ground & (off >= GROUND) & ~shadow
+    missed = coloured & ~union
     reflected = False
     base = floor_line(off, union | missed)
     if base is not None:
         missed[base + 2:] = False
+        coloured[base + 2:] = False
         below = union[base + 2:].sum()
         xs = np.where(union[base])[0]
         if below > BELOW * max(int(union.sum()), 1) and len(xs) > 1:
@@ -233,11 +306,13 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     # what is left above a floor.
     missed = wide(missed)
     # What the ground check adds must touch what the model found: a speck of
-    # dust on the ground is not a pack.
+    # dust on the ground is not a pack. A count badge is the one thing put
+    # back that need not, and it is no change for a person to look at.
+    badge = badges(off, union, coloured)
     pack = union | missed
     parts, _ = ndimage.label(pack)
     pack = np.isin(parts, np.unique(parts[union]))
-    added = pack & ~union
+    added = pack & ~union & (badge == 0)
     share = round(float(added.sum() / max(int(pack.sum()), 1)), 4)
     # What the model kept that the ground reaches through the model's mask
     # too: light grey like a shadow, beyond the hull of the pack's own print.
@@ -249,15 +324,16 @@ def ground_check(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
         "reflection": reflected,
         "kept": round(float(extra.sum() / max(int(union.sum()), 1)), 4),
         "framed": framed(union),
+        "badge": round(float(((badge > 0.5) & ~union).sum() / max(int(union.sum()), 1)), 4),
     }
     alpha = soft(model)
     if share <= QUIET:
-        return alpha, {**report, "added": 0.0}
+        return alpha, {**report, "added": 0.0}, badge
     # Solid where the model missed and where its edge ran through the middle
     # of the pack; its own soft edge on the outline it drew.
     solid = (ndimage.binary_erosion(pack, iterations=3) | added).astype(np.float32)
     alpha = np.maximum(alpha, np.maximum(solid, ndimage.gaussian_filter(solid, 0.8)))
-    return alpha, report
+    return alpha, report, badge
 
 
 def framed(union: np.ndarray) -> bool:
@@ -319,9 +395,11 @@ def shape_check(alpha: np.ndarray) -> tuple[np.ndarray, dict]:
 def cut_alpha(rgb: np.ndarray, model: np.ndarray) -> tuple[np.ndarray, dict]:
     """The pack's alpha from the levelled photo and the model's 0..1 mask, and
     what each check did to it."""
-    alpha, ground = ground_check(rgb, model)
+    alpha, ground, badge = ground_check(rgb, model)
+    # The shape check is for the pack alone: where a badge's soft edge meets
+    # the pack it would find a hole, and fill the badge's shadow round it.
     alpha, shape = shape_check(alpha)
-    return alpha, {**shape, **ground}
+    return np.maximum(alpha, badge), {**shape, **ground}
 
 
 def status_of(shape: dict) -> str:

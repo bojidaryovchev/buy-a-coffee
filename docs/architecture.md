@@ -1207,7 +1207,7 @@ photos that have no settled cut-out from the store, sends each one's public
 address to BRIA RMBG 2.0 on fal
 ([`cutout-model.ts`](../apps/scraper/src/cutout-model.ts), with `FAL_KEY`),
 hands the photos and the model's answers in a temporary directory to
-[`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (the ground check and the
+[`tools/cutout/cutout.py`](../tools/cutout/cutout.py) (the ground check, the count badges and the
 shape check), and stores each PNG content-addressed under `cutouts/` with a row
 in `image_cutouts`, keyed by the photo's content hash. Only the Node command
 holds the key. The Python process is given none of the secrets in its
