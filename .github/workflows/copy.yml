@@ -194,7 +194,7 @@ jobs:
           const code = process.env.EXIT_CODE || "unknown";
           const verdict = {
             0: "succeeded",
-            1: "configuration error (is the Claude token valid?)",
+            1: "Claude Code could not run, or the account refused it (or the copywriter is misconfigured)",
             2: "stopped early or some batches failed",
             3: "failed",
           }[code] ?? `unknown (exit ${code})`;
@@ -225,18 +225,28 @@ jobs:
             lines.push("No structured result was printed. See the log of the previous step.");
           }
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          // On the run's page: why it stopped, in the CLI's own words (already
+          // in the log above; escaped so it stays one annotation), and the
+          // products it gave up on, which a green run would otherwise hide.
+          if (result?.stopped) {
+            const data = String(result.stopped).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+            console.log(`::warning title=Copywriter stopped::${data}`);
+          }
+          if (result?.givenUp?.length) {
+            console.log(`::warning title=Copywriter gave up::${result.givenUp.length} product(s) failed three times in a row and wait for the owner on /admin/tekstove. See the summary.`);
+          }
           EOF
 
       - name: "FAILED - stopped early (exit 2): usage limit, or batches failed"
         if: steps.copy.outputs.exit_code == '2'
         run: |
-          echo "::error title=Copywriter stopped early::A usage limit was reached or some batches failed. Nothing was written for those products; the next run retries them. See the summary."
+          echo "::error title=Copywriter stopped early::A usage limit was reached, or some batches failed. Nothing was written for those products; the next run retries them, and a product that fails three times in a row is left for the owner. See the summary."
           exit 1
 
-      - name: "FAILED - misconfigured (exit 1): the Claude CLI could not run or sign in"
+      - name: "FAILED - misconfigured (exit 1): Claude Code could not run, or the account refused it"
         if: steps.copy.outputs.exit_code == '1'
         run: |
-          echo "::error title=Copywriter misconfigured::The Claude CLI could not start or sign in. Is CLAUDE_CODE_OAUTH_TOKEN current? Tokens from 'claude setup-token' last a year."
+          echo "::error title=Copywriter misconfigured::Claude Code could not start, sign in or use the account, or the copywriter's own configuration failed; the run stopped there. A 'Copywriter stopped' warning, when there is one, has the CLI's message. An expired or revoked token needs a new 'claude setup-token'. A new token does not help with 'organization has disabled Claude subscription access': the account behind the token needs Claude Code access back, or the job has to move to an API key, which means changing this workflow too (it sets ANTHROPIC_API_KEY empty on purpose)."
           exit 1
 
       - name: "FAILED - crashed"

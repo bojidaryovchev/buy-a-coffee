@@ -8,7 +8,7 @@ import { products } from "@catalog/db/schema";
 import { silentLogger } from "@catalog/shared";
 import { loadConfig } from "../src/config.ts";
 import type { SourceCheck } from "../src/catalog/copywriter/apply.ts";
-import { ClaudeRunError } from "../src/catalog/copywriter/claude.ts";
+import { ClaudeRunError, parseClaudeEnvelope } from "../src/catalog/copywriter/claude.ts";
 import type { CopyBatch, CopyOutput } from "../src/catalog/copywriter/contract.ts";
 import { type CopyGenerator, runCatalogCopy } from "../src/catalog/copywriter/run.ts";
 import { runCatalogSync } from "../src/catalog/sync.ts";
@@ -352,13 +352,76 @@ describeIntegration("catalog copywriter (integration)", () => {
     expect(stopped.failedBatches).toBe(1);
     expect((await db.select().from(products)).every((row) => row.copyAttempts === 0)).toBe(true);
 
-    const broken: CopyGenerator = async () => {
+    // The first batch fails on its own account; the model answers the next.
+    const model = fakeModel();
+    let firstSize = 0;
+    const broken: CopyGenerator = async (request) => {
+      if (firstSize > 0) return model.generate(request);
+      firstSize = request.products;
       throw new ClaudeRunError("out of turns", "", "batch");
     };
     const failed = await run(broken, { limit: 6 });
     expect(failed.stopped).toBeNull();
-    const charged = (await db.select().from(products)).filter((row) => row.copyAttempts === 1);
-    expect(charged).toHaveLength(6);
+    expect(failed.failedBatches).toBe(1);
+    const rows = await db.select().from(products);
+    const charged = rows.filter((row) => row.copyAttempts === 1);
+    expect(charged).toHaveLength(firstSize);
     expect(charged[0]?.copyLastError).toMatch(/out of turns/);
+    expect(failed.copyWritten).toBeGreaterThan(0);
+  });
+
+  it("charges nobody, and stops, when the account refuses Claude Code", async () => {
+    await sync(catalog());
+    // The 2026-11-17 failures, through the real parser. The logs kept only
+    // the message, so the envelope has nothing else to go on.
+    const refused: CopyGenerator = async () => {
+      parseClaudeEnvelope(
+        JSON.stringify({
+          type: "result",
+          is_error: true,
+          result:
+            "Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access",
+        }),
+      );
+      return expect.unreachable();
+    };
+    // Two batches' worth: the run stops at the first.
+    const stopped = await run(refused, { limit: 6 });
+    expect(stopped.stopped).toMatch(/^setup: .*organization has disabled/);
+    expect(stopped.failedBatches).toBe(1);
+    const rows = await db.select().from(products);
+    expect(rows.every((row) => row.copyAttempts === 0 && row.copyLastError === null)).toBe(true);
+  });
+
+  it("stops at the second failed batch in a row, charging it nothing", async () => {
+    await sync(catalog());
+    // A failure no rule knows, whose text changes every time (a request id,
+    // a timeout's length): the products are not the cause.
+    const sizes: number[] = [];
+    const strange: CopyGenerator = async (request) => {
+      sizes.push(request.products);
+      throw new ClaudeRunError(`Claude run failed: oddity ${sizes.length}`, "");
+    };
+    // Six products make more than one batch: the first is charged, the second
+    // is not, and the run stops there.
+    const stopped = await run(strange, { limit: 6 });
+    expect(stopped.stopped).toBe("repeated: Claude run failed: oddity 2");
+    expect(stopped.failedBatches).toBe(2);
+    expect(sizes).toHaveLength(2);
+    const charged = (await db.select().from(products)).filter((row) => row.copyAttempts > 0);
+    expect(charged).toHaveLength(sizes[0] as number);
+    expect(charged.every((row) => row.copyAttempts === 1)).toBe(true);
+
+    // The next run charges the same first batch again, and stops again: the
+    // queue still moves (that batch is given up after three runs), but no run
+    // gives up on more than one batch. Known per-batch failures count too.
+    const timedOut: CopyGenerator = async () => {
+      throw new ClaudeRunError("Claude run timed out after 660000 ms", "", "batch");
+    };
+    const again = await run(timedOut, { limit: 6 });
+    expect(again.stopped).toBe("repeated: Claude run timed out after 660000 ms");
+    const after = await db.select().from(products);
+    expect(after.filter((row) => row.copyAttempts === 2)).toHaveLength(sizes[0] as number);
+    expect(after.filter((row) => row.copyAttempts > 0)).toHaveLength(sizes[0] as number);
   });
 });

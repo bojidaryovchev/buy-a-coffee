@@ -15,6 +15,7 @@ import {
   childEnvironment,
   claudeArgs,
   classifyFailure,
+  exitFailure,
   parseClaudeEnvelope,
 } from "../src/catalog/copywriter/claude.ts";
 import {
@@ -214,9 +215,210 @@ describe("parseClaudeEnvelope", () => {
     expect(classifyFailure("API Error: 500 Internal server error")).toBe("service");
     expect(classifyFailure("Connection error.")).toBe("service");
     // A web page's 403, or "catalog in" in prose, is nobody's sign-in problem.
-    expect(classifyFailure("WebFetch returned 403 for the shop's page")).toBe("batch");
-    expect(classifyFailure("added the item to the catalog in stock")).toBe("batch");
-    expect(classifyFailure("The model returned something odd")).toBe("batch");
+    expect(classifyFailure("WebFetch returned 403 for the shop's page")).toBe("unknown");
+    expect(classifyFailure("added the item to the catalog in stock")).toBe("unknown");
+    expect(classifyFailure("The model returned something odd")).toBe("unknown");
+  });
+
+  it("knows the service's and the network's failures, with or without a status", () => {
+    // https://code.claude.com/docs/en/errors: server errors, usage limits, network.
+    for (const said of [
+      "Request timed out",
+      "API Error: No response from API",
+      "API Error: Repeated 529 Overloaded errors",
+      "Opus is experiencing high load",
+      "API Error: Stream idle timeout - no chunks received",
+      "Server error mid-response. The response above may be incomplete.",
+      "Connection lost mid-response",
+      "Response stalled mid-stream",
+      "Part of the response never arrived",
+      "API Error: Content block not found",
+      "API returned an empty or malformed response",
+      "You've hit your session limit · resets 3pm",
+      "You've hit your weekly limit",
+      "You've hit your Opus limit",
+      "You've hit your org's monthly spend limit",
+      "You've hit your team's shared budget",
+      "spend limit reached",
+      "Server is temporarily limiting requests",
+      "Request rejected (429)",
+      "API Error: Connection lost before a response was produced. Try again.",
+      "API Error: The response stalled before a response was produced. Try again.",
+      "API Error: Connection to the API was lost (EPIPE). This is usually temporary",
+      "Connection to the API was lost (UND_ERR_SOCKET)",
+      "Unable to connect to API (EHOSTUNREACH)",
+      "Unable to connect to Anthropic services",
+      "Connection refused — is a firewall blocking api.anthropic.com? (ConnectionRefused)",
+      "Couldn't connect through your proxy",
+      "Socket is closed",
+      "SSL certificate verification failed",
+    ]) {
+      expect(classifyFailure(said), said).toBe("service");
+    }
+  });
+
+  it("knows billing, version and organization-policy refusals as setup", () => {
+    for (const said of [
+      // As 2.1.302 prints them.
+      "Credit balance too low · Add funds: https://platform.claude.com/settings/billing",
+      "It looks like your version of Claude Code (2.1.302) needs an update. A newer version (2.1.400 or higher) is required to continue.",
+      // As the error reference lists them.
+      "Credit balance is too low",
+      "Usage credits required for 1M context",
+      "Claude Code 2.1.302 is older than the minimum version required by your organization's policy",
+      "Claude Code 2.1.302 does not support this model; version 2.1.400 or newer is required",
+      "Claude Code 2.1.400 or later is required for your organization",
+      "Your organization's settings need an update",
+      "Claude Code can't start this session yet",
+      "Your Claude session has expired. Sign in again to continue (claude auth login).",
+    ]) {
+      expect(classifyFailure(said), said).toBe("setup");
+    }
+  });
+
+  it("knows the CLI's account refusals as setup, never the batch's doing", () => {
+    // What Claude Code 2.1.302 printed from 2026-11-17, when the token's
+    // organization lost Claude Code access. Read as the batch's failure, it
+    // charged every product an attempt and gave up on 20 of them.
+    expect(
+      classifyFailure(
+        "Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access",
+      ),
+    ).toBe("setup");
+    // The other refusals at https://code.claude.com/docs/en/errors#authentication-errors,
+    // as `-p` words them.
+    for (const said of [
+      "Failed to authenticate: OAuth token revoked. Please log in again or contact your administrator.",
+      "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "Failed to authenticate. API Error: 401 OAuth access token is invalid.",
+      "Your account is on hold and can't use Claude Code. View details or appeal: https://claude.ai/restricted",
+      "Your organization has disabled API key authentication · Unset ANTHROPIC_API_KEY to use your claude.ai account instead",
+      "Your ANTHROPIC_API_KEY belongs to a disabled organization · Update or unset the environment variable",
+      "API Error: 400 This organization has been disabled.",
+      "Your account does not have access to Claude. Please login again or contact your administrator.",
+    ]) {
+      expect(classifyFailure(said), said).toBe("setup");
+    }
+  });
+
+  it("falls back on what the failed envelope records when the wording is new", () => {
+    // The fields Claude Code 2.1.302 prints for a refused request (captured
+    // with an invalid token), with a message no pattern knows.
+    const failure = (fields: Record<string, unknown>) => {
+      try {
+        parseClaudeEnvelope(
+          JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: true,
+            terminal_reason: "api_error",
+            result: "Something the CLI has never said before",
+            ...fields,
+          }),
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(ClaudeRunError);
+        return (error as ClaudeRunError).failure;
+      }
+      return expect.unreachable();
+    };
+    // The status of our own request to the model, never of a page it fetched.
+    expect(failure({ api_error_status: 401, total_cost_usd: 0.2 })).toBe("setup");
+    expect(failure({ api_error_status: 403, total_cost_usd: 0.2 })).toBe("setup");
+    expect(failure({ api_error_status: 429, total_cost_usd: 0.2 })).toBe("service");
+    expect(failure({ api_error_status: 529, total_cost_usd: 0 })).toBe("service");
+    // Refused before the model's first answer: it had not read the batch file.
+    expect(failure({ api_error_status: 404, total_cost_usd: 0 })).toBe("setup");
+    expect(failure({ total_cost_usd: 0 })).toBe("setup");
+    // Once the model may have read the batch, nothing says whose fault it is.
+    expect(failure({ api_error_status: 400, total_cost_usd: 0.31 })).toBe("unknown");
+    expect(failure({})).toBe("unknown");
+    // Out of turns stays the batch's, whatever else the envelope says.
+    expect(failure({ subtype: "error_max_turns", total_cost_usd: 0 })).toBe("batch");
+  });
+
+  it("reads a crash from its errors, and never takes its zero cost for a refusal", () => {
+    // The shape 2.1.302's crash handler prints: no `result`, `errors` instead,
+    // and a cost of 0 however far the run got - the model may have read the
+    // batch and be researching it.
+    const crash = (errors: unknown) =>
+      JSON.stringify({
+        type: "result",
+        subtype: "error_during_execution",
+        is_error: true,
+        num_turns: 0,
+        duration_ms: 0,
+        duration_api_ms: 0,
+        total_cost_usd: 0,
+        errors,
+      });
+    // As the crash handler fills `errors`: the crash's own message, then what
+    // the CLI logged during the session (stack traces and all), and the
+    // `[session_crash]` line last - here past the 2000 characters a failure
+    // keeps.
+    const logged = Array.from(
+      { length: 4 },
+      (_, n) =>
+        `Error: connect ETIMEDOUT 203.0.113.${n}:443\n${"    at Socket.emit (node:events:519:28)\n".repeat(12)}`,
+    );
+    const real = (line: string) => crash(["TypeError: x is not a function", ...logged, line]);
+    try {
+      parseClaudeEnvelope(real("[session_crash] error_name=TypeError api_error_status=none"));
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(ClaudeRunError);
+      // Not "service": a timeout the CLI logged earlier is not this crash.
+      expect((error as ClaudeRunError).failure).toBe("unknown");
+      expect((error as ClaudeRunError).message).toBe(
+        "Claude run failed (error_during_execution): [session_crash] error_name=TypeError api_error_status=none",
+      );
+      expect((error as ClaudeRunError).detail).toMatch(/^\[session_crash\][^\n]*\nTypeError: x/);
+    }
+    // A crash that records the refused request's status is still that refusal.
+    expect(() =>
+      parseClaudeEnvelope(real("[session_crash] error_name=APIError api_error_status=403")),
+    ).toThrow(expect.objectContaining({ failure: "setup" }));
+    expect(() =>
+      parseClaudeEnvelope(real("[session_crash] error_name=APIError api_error_status=529")),
+    ).toThrow(expect.objectContaining({ failure: "service" }));
+    // Without the line, the crash's own message is all there is.
+    expect(() => parseClaudeEnvelope(crash(["TypeError: x is not a function"]))).toThrow(
+      expect.objectContaining({
+        failure: "unknown",
+        message: "Claude run failed (error_during_execution): TypeError: x is not a function",
+      }),
+    );
+    // Errors that are not text are not read; the message says there was none.
+    expect(() => parseClaudeEnvelope(crash([{ code: 1 }, "  "]))).toThrow(
+      expect.objectContaining({
+        failure: "unknown",
+        message: expect.stringMatching(/no message$/),
+      }),
+    );
+  });
+
+  it("reads a CLI that refused to start from its stderr, in its own words", () => {
+    // How 2.1.302 refuses to run once the service wants a newer version: on
+    // stderr only, with nothing on stdout.
+    const outdated = exitFailure(
+      1,
+      "\nIt looks like your version of Claude Code (2.1.302) needs an update.\nA newer version (2.1.400 or higher) is required to continue.\n\nTo update, please run:\n    claude update\n",
+    );
+    expect(outdated.failure).toBe("setup");
+    expect(outdated.message).toBe(
+      "Claude exited with code 1: It looks like your version of Claude Code (2.1.302) needs an update.",
+    );
+    expect(
+      exitFailure(1, "TypeError: undefined is not an object\n    at main (cli.js:1:1)"),
+    ).toEqual(
+      expect.objectContaining({
+        failure: "unknown",
+        message: "Claude exited with code 1: TypeError: undefined is not an object",
+      }),
+    );
+    expect(exitFailure(null, "")).toEqual(
+      expect.objectContaining({ failure: "unknown", message: "Claude exited with code null" }),
+    );
   });
 
   it("rejects output without structured data", () => {

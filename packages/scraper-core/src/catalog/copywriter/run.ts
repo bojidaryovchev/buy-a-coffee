@@ -200,6 +200,8 @@ export async function runCatalogCopy(options: CatalogCopyOptions): Promise<Catal
   };
   let stopped: string | null = null;
   const changed: string[] = [];
+  // Whether the batch before this one failed (and was charged for it).
+  let failedBefore = false;
 
   const workspace = await createWorkspace(options.skillFile);
   try {
@@ -221,16 +223,31 @@ export async function runCatalogCopy(options: CatalogCopyOptions): Promise<Catal
         });
       } catch (error) {
         totals.failedBatches += 1;
-        const failure = error instanceof ClaudeRunError ? error.failure : "batch";
-        const message = error instanceof Error ? error.message : String(error);
+        const failure = error instanceof ClaudeRunError ? error.failure : "unknown";
+        // Bound for the public log, the summary and the database alike; it
+        // may quote the CLI's stderr.
+        const message = scrubForLog(error instanceof Error ? error.message : String(error));
         const detail = error instanceof ClaudeRunError ? scrubForLog(error.detail) : "";
         log.error("copy.batch.failed", { failure, message, detail });
-        if (failure !== "batch") {
+        if (failure === "setup" || failure === "service") {
           // Not these products' fault: stop, and charge nobody an attempt.
           stopped = `${failure}: ${message}`;
           break;
         }
-        // This batch's own failure: each product in it is charged one attempt.
+        if (failedBefore) {
+          // Two failed batches in a row: what fails batch after batch is not
+          // about their products, whatever it says - a wording the classifier
+          // does not know, a failure whose text changes each time, an outage
+          // our timeout reaches first. Stop, and charge this batch nothing.
+          // The batch before has paid one attempt, so every run still moves
+          // the queue on; but a failure that hits every batch now costs one
+          // batch an attempt per run, not the whole queue.
+          stopped = `repeated: ${message}`;
+          break;
+        }
+        failedBefore = true;
+        // This batch's own failure, or one nothing explains: each product in
+        // it is charged one attempt.
         await writeDecisions(
           options.db,
           items.map((item) => ({
@@ -250,6 +267,7 @@ export async function runCatalogCopy(options: CatalogCopyOptions): Promise<Catal
         await rm(path.join(workspace, batchFile), { force: true });
       }
 
+      failedBefore = false;
       totals.batches += 1;
       totals.costUsd += generated.costUsd ?? 0;
       const review = await reviewBatch(items, generated.output, {
